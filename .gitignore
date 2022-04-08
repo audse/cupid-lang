@@ -1,0 +1,6 @@
+node_modules/
+.vscode/
+debug/
+target/
+.DS_STORE
+antlr/.antlr/

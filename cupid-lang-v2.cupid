@@ -1,0 +1,122 @@
+***
+
+Features I like:
+- kwargs (Python)
+- destructuring & spread operator (JS)
+- closures (JS)
+- const keyword/immutability
+- setters/getters (maybe setget keyword from GDScript)
+- defined enums (e.g. GDScript)
+- optional chaining (JS)
+- ternary options that START with the if (JS, not GDScript)
+    bool ? something : something else
+- optional whitespace
+- modules (Python and JS)
+- match (rather than switch, GDScript)
+- underscore pascal case for constants
+- dictionary keyword rather than object (Python, GDScript)
+- no undefined... ?
+- algebraic types (union, nullable, etc, like Typescript)
+- decorators
+- named tuples, e.g. GDScript's Vector2
+- OPTIONAL else on ternaries?
+
+Ideas
+- arrays and dictionaries are the same? why separate? array is just dict with auto-int keys
+- get arrays AND dictionaries using dot operator, this should work with identifiers or strings
+- optional parentheses ?
+- super easy unit testing !
+- super easy/cute error handling ? 
+- traits, e.g. rust, instead of OOP
+
+***
+
+enum CUPID_TYPES [
+    STRING,
+    INT,
+    BOOL
+] # etc
+
+
+type person [
+    string name,
+    int age,
+    bool is_friendly
+]
+
+static const fun (string) get_name = string first, string last, string middle? => "{{ first }} {{ last }}"
+
+***
+Range
+start/end numbers positions determine if the array is inclusive or exclusive
+***
+let array (int) inclusive_array = [0..5] # [0, 1, 2, 3, 4, 5]
+let array (int) exclusive_array = 0[..]5 # [1, 2, 3, 4]
+let array (int) varied_inclusive_array = [0..]5 # [0, 1, 2, 3, 4]
+let array (int) step_array = [0..10], 2 # [0, 2, 4, 6, 8, 10]
+
+const array (string) countries = [ "USA", "Australia", "Canada" ]
+for index in [0..]countries.length => log countries.index
+
+const fun (person) make_person = string name = "Audrey", int age => [
+    name: name,
+    age: age,
+]
+
+const (array, string) my_arr
+const (dict, int:string) _my_dict
+const array (array(int))
+
+const array (string) languages = [ "cupid", "javascript", "python" ]
+const string cupid_lang_name = languages.0
+
+let dict (int:string) users = [ 111: "user_a", 222: "user_b" ]
+
+const fun (void) log_users = dict all_users => for (key, val) in all_users => log ("User id:", key, "Username:", val)
+
+let int user_id = 111
+
+***
+Chain functions
+functions can be chained by using the => operator, which calls each function using the return value of the previous
+Additional arguments can be passed w/ option parentheses
+***
+const fun (int) add = int a, int b => a + b
+const fun (int) double = int n => n * 2
+const fun (dec) percentify = int i => i / 100
+const fun (dec) multiply = dec a, dec b => a * b
+
+const fun (dec) my_chain = int x, int y => add => double => percentify
+const fun (dec) my_multiplied_chain = int x, int y => my_chain => multiply (1.5)
+
+
+let dec chain_value = my_chain (5, 10) # returns 0.3
+
+const dec call_immediately = (5, 10 => add => double => percentify)
+
+const fun (string) no_args = => " {{ new_template }} "
+
+const int num_people = 8,,000,,000
+
+***
+Decorators
+***
+
+static const fun (int) clamp = int num => if num < 0 ? 0 else? num
+
+& clamp
+static const fun (int) get_difference = int a, int b => b - a
+
+
+***
+Match statements
+basically just regular functions taking a dict as the second param
+the dict is shape (tuple: any)
+***
+const fun (fun) check_match = int to_match => match => ( /* first param is `to_match` */ [
+    2, 4, 6: ==> to_match / 2
+    1, 3, 5: ==> to_match * 2
+])
+
+let int match_fun_val = (3 => check_match) # call `check_match` result immediately
+let fun (int) match_fun = check_match (3) # call `check_match` result later

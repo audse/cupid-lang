@@ -1,0 +1,2 @@
+let my_var = 100
+let my_func = x, y, z => x * y * z

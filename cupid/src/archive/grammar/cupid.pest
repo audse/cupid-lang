@@ -1,0 +1,68 @@
+
+expression = {
+	block
+	| declaration
+	| assignment
+	| operation
+	| term
+}
+
+term = {
+	string
+	| boolean
+	| none
+	| identifier
+	| decimal
+	| number
+}
+
+declaration = { let ~ identifier ~ equal ~ term }
+assignment = { identifier ~ assignment_operator ~ term }
+
+assignment_operator = _{ 
+	equal
+	| add_equal 
+	| subtract_equal 
+	| multiply_equal 
+	| divide_equal 
+}
+
+operation = { term ~ (operator ~ term)* }
+
+operator = _{ add | subtract | multiply | divide }
+	add      = { "+" }
+	subtract = { "-" }
+	multiply = { "*" }
+	divide   = { "/" }
+
+let = @{ "let" ~ !(id_part) }
+
+keywords = {
+	let
+}
+
+true = @{ "true" ~ !(id_part) }
+false = @{ "false" ~ !(id_part) }
+none = @{ "none" ~ !(id_part) }
+
+boolean = {
+	true
+	| false
+}
+
+id_part = _{ (ASCII_ALPHA | "_") }
+identifier = { (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
+
+number = { ASCII_DIGIT+ }
+decimal = { number ~ "." ~ number }
+
+
+string = {
+	"\"" ~ string_inner ~ "\""
+}
+string_inner = @{ string_char* }
+string_char = _{ !("\"") ~ ANY }
+
+whitespace = _{ " " | "\t" | "\r" | "\n" }
+comment_single = _{ "#" (!"\n" ~ ANY)* }
+comment_multiline = _{ "***" ~ (!"***" ~ ANY)* ~ "***" }

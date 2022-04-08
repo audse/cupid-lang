@@ -1,0 +1,49 @@
+#TODO To decide
+- [ ] Structural vs nominal typing
+- [ ] Error handling: exceptions or errors as values?
+- [ ] Implicit returns in function blocks?
+- [ ] Variable scopes
+    - [ ] Should outer variables be accessible inside block functions?
+- [ ] Difference between lists and tuples
+
+#TODO To implement
+- [ ] Immutable by default
+- [x] Arrays
+- [x] Dictionaries
+- [ ] Immutable data structures
+- [x] Tuples
+- [x] Range
+- [x] For..in loop
+- [x] Basic for loop ?
+- [ ] Operator assignment (e.g. +=)
+- [ ] Declare types
+    - [ ] Variables
+    - [ ] Function returns
+    - [ ] Function parameters
+    - [ ] Nullable
+- [ ] Function parameters defaults
+- [ ] Meta features
+    - [ ] Enums
+    - [ ] Interfaces
+        - [ ] Sum types
+        - [ ] Nullable
+- [ ] Pattern matching
+- [x] Immediately invoked functions
+- [ ] Chain function
+- [ ] Compare dictionaries/arrays
+- [x] Map instead of {} object
+- [ ] Data structure built-ins
+    - [ ] Dictionary: delete key/value
+    - [ ] List/Tuple: append, pop, pop_back, ...
+    - [ ] Length, size, etc
+- [ ] Standard library
+    - [ ] Extra data structures
+        - [ ] Sets
+        - [ ] Maps
+- [ ] Error handling
+- [ ] Browser playground
+- [ ] Property dot operator chaining
+    - [ ] Optional chaining
+- [ ] Return keyword
+- [ ] Allow trailing commas
+- [ ] Method overloading

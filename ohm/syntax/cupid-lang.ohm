@@ -1,0 +1,483 @@
+CupidLang {
+
+	/************
+     * Comments *
+     ************/
+     
+	comment_line = "#" (~"\n" any)*
+    
+    comment_multiline_delimiter = "***"
+	comment_multiline 
+    	= comment_multiline_delimiter 
+        (~comment_multiline_delimiter any)* 
+        comment_multiline_delimiter
+        
+    comment = comment_line | comment_multiline
+    
+    space := "\t" | " " | "\n" | comment | ";"
+
+
+    id_part = alnum | "_"
+    identifier = ~reserved_word (base_identifier | constant_identifier)
+	base_identifier = (letter | "_") id_part*
+    
+    /************
+    * Constants *
+    *************/
+    
+    true = "true" ~ id_part
+    false = "false" ~ id_part
+    constant_boolean = true | false
+    
+    none = "none" ~ id_part
+    constant_null = none
+
+    constant_number
+        = constant_decimal
+        | constant_int
+
+    constant_int = constant_big_int | digit+
+    constant_decimal = digit* "." digit+
+    
+    constant_big_int = 
+    	(digit digit? digit? "_"?)+
+        (digit digit digit "_"?)*
+        
+    constant_identifier = (upper | "_")+
+    
+    constant 
+    	= constant_boolean
+    	| constant_null
+        | constant_number
+    
+    
+    /************
+     * Keywords *
+     ************/
+
+    reserved_word
+        = keyword_constant
+        | keyword_variable
+        | keyword_class
+        | keyword_type
+        | keyword_type_meta
+        | keyword_type_null
+        | keyword_modifier
+        | keyword_control
+        | keyword_operator
+        | keyword_assignment
+        | keyword_operator_assignment
+        | constant_null
+        | constant_boolean
+
+    keyword_constant = const
+    
+    const = "const" ~ id_part
+    
+    keyword_variable = let | mut
+    
+    let = "let" ~ id_part
+    mut = "mut" ~ id_part
+    
+    keyword_class = self | super
+    
+    self = "self" ~ id_part
+    super = "super" ~ id_part
+    
+    keyword_type 
+        = fun
+        | str
+        | int
+        | char
+        | decimal
+        | bool
+        | array
+        | dict
+    
+    fun = "fun" ~ id_part
+    str = "string" ~ id_part
+    int = "int" ~ id_part
+    char = "char" ~ id_part
+    decimal = "decimal" | "dec" | "float" ~ id_part
+    bool = "bool" | "boo" ~ id_part
+    array = "array" ~ id_part
+    dict = "dict" ~ id_part
+    
+    keyword_type_meta 
+        = enum
+        | type
+        | import
+        | export
+    
+    enum = "enum" ~ id_part
+    type = "type" ~ id_part
+    import = "import" ~ id_part
+    export = "export" ~ id_part
+    
+    void = "void" ~ id_part
+    keyword_type_null = void
+    
+    keyword_modifier 
+        = static
+        | private
+        | public
+        | get
+        | set
+    
+    static = "static" ~ id_part
+    private = "private" ~ id_part
+    public = "public" ~ id_part
+    get = "get" ~ id_part
+    set = "set" ~ id_part
+     
+    keyword_control 
+        = if
+        | else
+        | for
+        | while
+        | return
+        | match
+        | throw
+        | async
+        | await
+     
+    if = "if" ~ id_part
+    else = "else" ~ id_part
+    elseif = "elif" ~ id_part | "else if" ~ id_part 
+    for = "for" ~ id_part
+    while = "while" ~ id_part
+    return = "return" ~ id_part
+    match = "match" ~ id_part
+    throw = "throw" ~ id_part
+    async = "async" ~ id_part
+    await = "await" ~ id_part
+     
+    keyword_operator 
+        = symbol_and
+        | symbol_equal
+        | symbol_or
+        | symbol_not
+        | symbol_less_than
+        | symbol_less_or_equal
+        | symbol_greater_than
+        | symbol_greater_or_equal
+        // | in
+        // | of
+        // | to
+        // | istype
+    
+    and = "and" ~ id_part
+    is = "is" ~ id_part
+    or = "or" ~ id_part
+    not = "not" ~ id_part
+    in = "in" ~ id_part
+    of = "of" ~ id_part
+    to = "to" ~ id_part
+    istype = "istype" ~ id_part
+    
+    symbol_equal = is | "=="
+    symbol_not = not | "!="
+    symbol_or = or | "||"
+    symbol_and = and | "&&"
+    symbol_less_than = "<"
+    symbol_less_or_equal = "<="
+    symbol_greater_than = ">"
+    symbol_greater_or_equal = ">="
+    
+    
+     
+     keyword_operator_assignment
+    	= keyword_addition_assignment
+        | keyword_subtraction_assignment
+        | keyword_multiplication_assignment
+        | keyword_division_assignment
+
+    keyword_addition_assignment = "+="
+    keyword_subtraction_assignment = "-="
+    keyword_division_assignment = "/="
+    keyword_multiplication_assignment = "*="
+    keyword_modulus_assignment = "%="
+    keyword_exponent_assignment = "**="
+    
+    keyword_assignment 
+    	= keyword_explicit_assignment 
+        | keyword_implicit_assignment
+        
+   	keyword_explicit_assignment = "="
+    keyword_implicit_assignment = ":="
+    keyword_function_assignment = "=>"
+    
+    
+    
+    /***************
+     * Expressions *
+     ***************/
+    
+    escape = "\\" any
+    
+    regex = regex_delimiter (~regex_delimiter any)* regex_delimiter
+    regex_delimiter = "/"
+    
+    File = Expression*
+
+    Expression
+        = Loop
+        | Function
+        | Block 
+        | PropertyAssignment
+        | Assignment
+        | Operation 
+        | Term
+
+    Term 
+        = Group
+        | AnonymousFunction
+        | FunctionCall
+        | PropertyAccess
+        | Dictionary
+        | List
+        | Tuple
+        | Range
+        | constant
+        | identifier
+        | String
+    
+    Group  = "(" Expression ")"
+
+    List = "[" ListOf<Expression, ","> "]"
+
+    Dictionary = "[" ListOf<DictionaryElement, ","> "]"
+    DictionaryElement = Term ":" Expression
+    
+    PropertyAccess
+        =  IndexedStructure "." constant_int -- index
+        | IndexedStructure "." identifier -- identifier
+        | IndexedStructure "[" Term "]" -- term
+
+    
+    PropertyAssignment 
+        = PropertyAccess keyword_assignment Expression
+
+    IndexedStructure
+        = Range
+        | Dictionary
+        | List 
+        | Tuple 
+        | identifier
+        
+    Tuple = "(" ListOf<Expression, ","> ")"
+
+    Function =
+        | BaseFunction
+
+    BaseFunction = fun identifier "(" Parameters ")" Block
+    Parameters = ListOf<identifier, ",">
+
+    AnonymousFunctionCall = 
+
+    FunctionCall
+        = PropertyAccess BaseFunctionCall -- dictionary_property
+        | identifier BaseFunctionCall -- base
+        | "(" Arguments keyword_function_assignment (AnonymousFunction | PropertyAccess | identifier) ")" -- inline_anonymous
+
+    BaseFunctionCall = "(" Arguments ")"
+
+    Arguments = ListOf<Expression, ",">
+
+    AnonymousFunction = Parameters keyword_function_assignment Expression
+
+    // FunctionChainCall = "(" Arguments keyword_function_assignment FunctionChainList ")"
+    // FunctionChain = Parameters keyword_function_assignment FunctionChainList
+    // FunctionChainList = ListOf<(AnonymousFunction | identifier), keyword_function_assignment>
+    
+    
+    // Parameter = ParameterDefault | DeclarationIdentifier
+    
+    // ParameterDefault = 
+    // 	DeclarationIdentifier
+    //     keyword_assignment
+    //     Expression
+
+    Range
+        = Term "[.." Term "]" -- exclusive_start_inclusive_end
+        | Term "[..]" Term -- exclusive
+        | "[" Term ".." Term "]" -- inclusive
+        | "[" Term "..]" Term -- inclusive_start_exclusive_end
+
+
+    Operation
+        = Comparison
+    
+    Comparison
+        = Comparison symbol_equal Addition -- equal
+        | Comparison symbol_not Addition -- not_equal
+        | Comparison symbol_less_than Addition -- less_than
+        | Comparison symbol_less_or_equal Addition -- less_or_equal
+        | Comparison symbol_greater_than Addition -- greater_than
+        | Comparison symbol_greater_or_equal Addition -- greater_or_equal
+        | Comparison symbol_and Addition -- and
+        | Comparison symbol_or Addition -- or
+        | Addition
+
+    Addition
+        = Addition "+" Multiplication  -- addition
+        | Addition "-" Multiplication  -- subtraction
+        | Multiplication
+
+    Multiplication
+        = Multiplication "*" Exponent  -- multiplication
+        | Multiplication "/" Exponent  -- division
+        | Multiplication "%" Exponent  -- modulus
+        | Exponent
+
+    Exponent
+        = Primary "**" Exponent -- exponent
+        | Primary
+
+    Primary
+        = "(" Expression ")"  -- parentheses
+        | "+" Primary   -- positive
+        | "-" Primary   -- negative
+        | Term
+    
+    /**************
+     * Statements *
+     **************/
+     
+   	
+    Loop
+        = WhileLoop
+        | ForInLoop
+    
+    WhileLoop = while Expression Block
+    
+    ForInLoop = for ForInIdentifiers in ForInTerm Block
+    ForInIdentifiers
+        = "(" ListOf<identifier, ","> ")" -- parentheses
+        | ListOf<identifier, ","> -- no_parentheses
+    ForInTerm
+    	= Group
+        | FunctionCall 
+        | IndexedStructure 
+        | identifier
+
+    Block
+        = IfBlock
+        | BraceBlock
+        | ArrowBlock
+
+    BraceBlock = "{" Expression* "}"
+    ArrowBlock = keyword_function_assignment Expression
+    
+    // AssignmentStatement 
+    // 	= FunctionDeclarationAssignment
+    // 	| DeclarationAssignment
+    //     | Assignment
+    
+    // FunctionDeclarationAssignment =
+    // 	FunctionDeclaration
+    //     keyword_assignment
+    //     Parameters
+    //     FunctionAssignmentBlock
+    
+    // FunctionAssignmentBlock = 
+    //     keyword_function_assignment
+    //     Statement
+        
+    // DeclarationAssignment =
+    // 	(Declaration | DeclarationIdentifier)
+    //     keyword_assignment
+    //     Expression
+    
+
+    Assignment = DeclarationAssignment | BaseAssignment
+
+    BaseAssignment = identifier keyword_assignment Expression
+
+    DeclarationAssignment 
+        = keyword_constant identifier keyword_assignment Expression -- constant
+        | keyword_variable identifier keyword_assignment Expression -- variable
+
+    OperatorAssignmnt
+        = identifier keyword_operator_assignment Expression
+    
+    IfBlock = 
+    	if Expression Block ElseIfBlock* (else Block)?
+    
+    ElseIfBlock = elseif Expression Block
+    
+
+    // ForBlock = ForInStatement
+    
+    // ForInStatement = 
+    // 	for 
+    //     identifier ("," identifier)?
+    //     in 
+    //     Expression 
+    
+    
+    /***************
+     * Declaration *
+     ***************/
+    
+    // Declaration 
+    // 	= FunctionDeclaration
+    //     | ConstantDeclaration
+    // 	| VariableDeclaration
+    
+    // ConstantDeclaration = 
+    // 	keyword_modifier? keyword_constant DeclarationIdentifier
+    
+    // VariableDeclaration =
+    // 	keyword_modifier? keyword_variable DeclarationIdentifier
+    
+    // FunctionDeclaration = ConstantFunctionDeclaration | VariableFunctionDeclaration
+    
+    // ConstantFunctionDeclaration =
+    // 	keyword_modifier? keyword_constant TypeAnnotationFunction identifier
+        
+    // VariableFunctionDeclaration =
+    // 	keyword_modifier? keyword_variable TypeAnnotationFunction identifier
+    	
+    
+    // MetaTypeDeclaration =
+    // 	type identifier "[" ListOf<DeclarationIdentifier, ","> "]"
+    
+    // MetaEnumDeclaration =
+    // 	enum constant_identifier? "[" (ListOf<MetaEnumDeclarationIdentifier, ",">) "]"
+    // MetaEnumDeclarationIdentifier =
+    // 	constant_identifier ("=" Expression)?
+    
+    // DeclarationIdentifier = TypeAnnotatedIdentifier | identifier
+    
+    /**************
+     * Type hints *
+     **************/
+    
+    TypeAnnotatedIdentifier = (TypeAnnotationFunction | TypeAnnotation) identifier
+    TypeAnnotation = (keyword_type | identifier) TypeHint?
+    TypeAnnotationFunction = fun TypeHint?
+    
+    TypeHint = "(" TypeHintContentRecursive ")"
+    TypeHintContentRecursive = TypeHintContent TypeHint?
+    TypeHintContent = TypeHintContentDict | TypeHintContentAny
+    TypeHintContentDict = TypeHintContentAny ":" TypeHintContentAny
+    TypeHintContentAny = keyword_type | identifier
+	
+    
+    /***********
+     * Strings *
+     ***********/
+    
+    string_delimiter = "\"" | "'"
+    
+    string_template_begin = "{{"
+    string_template_end = "}}"
+    
+    String = string_delimiter StringContent* string_delimiter
+    
+    StringContent = StringTemplate | (~string_delimiter any)
+
+    StringTemplate = 
+    	string_template_begin Expression string_template_end
+}

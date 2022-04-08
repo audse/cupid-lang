@@ -1,0 +1,182 @@
+use crate::{
+	Tokenizer,
+	BiDirectionalIterator,
+	is_identifier,
+	is_string,
+	is_uppercase,
+};
+
+pub struct GrammarParser {
+	pub tokens: BiDirectionalIterator<String>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Rule {
+	pub name: String,
+	pub alts: Vec<Vec<AltGroup>>,
+	pub pass_through: bool, // to be included in the rule tree, or "passed through" to an encapsulating rule
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct Alt {
+	pub kind: String,
+	pub source: String,
+	pub prefix_modifier: Option<String>,
+	pub suffix_modifier: Option<String>
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct AltGroup {
+	pub alts: Vec<Alt>,
+	pub prefix_modifier: Option<String>,
+	pub suffix_modifier: Option<String>,
+}
+
+impl GrammarParser {
+	pub fn new(source: String) -> Self {
+		let mut tokenizer = Tokenizer::new(source.as_str());
+		tokenizer.scan();
+		Self { tokens: BiDirectionalIterator::new(tokenizer.tokens) }
+	}
+	fn expect(&mut self, rule_name: &str) -> Option<String> {
+		self.tokens.expect(rule_name.to_string())
+	}
+	fn expect_one(&mut self, rule_names: Vec<&str>) -> Option<String> {
+		for rule_name in rule_names {
+			if let Some(next) = self.expect(rule_name) {
+				return Some(next);
+			}
+		}
+		return None;
+	}
+	fn expect_constant(&mut self) -> Option<String> {
+		if let Some(next) = self.tokens.peek(0) {
+			if is_uppercase(next.clone()) {
+				return self.tokens.next();
+			}
+		}
+		return None;
+	}
+	fn expect_name(&mut self) -> Option<String> {
+		if let Some(next) = self.tokens.peek(0) {
+			if is_identifier(next.clone()) {
+				return self.tokens.next();
+			}
+		}
+		return None;
+	}
+	fn expect_string(&mut self) -> Option<String> {
+		if let Some(next) = self.tokens.peek(0) {
+			if is_string(next.clone()) {
+				return self.tokens.next();
+			}
+		}
+		return None;
+	}
+	pub fn grammar(&mut self) -> Vec<Rule> {
+		let mut pos = self.tokens.index();
+		let mut rules = vec![];
+		while let Some(rule) = self.rule() {
+			rules.push(rule);
+			pos = self.tokens.index();
+			if self.tokens.at_end() {
+				break;
+			}
+		}
+		self.tokens.goto(pos);
+		return rules;
+	}
+	
+	fn rule(&mut self) -> Option<Rule> {
+		let mut pass_through = false;
+		let pos = self.tokens.index();
+		if let Some(_dash) = self.expect("-") {
+			
+			// pass_through modifier
+			if let Some(_tilde) = self.expect("~") {
+				pass_through = true;
+			}
+			
+			if let Some(name) = self.expect_name() {
+				if let Some(_colon) = self.expect(":") {
+					let mut alts = vec![self.alternative()];
+					let mut alt_pos = self.tokens.index();
+					while let Some(_option) = self.expect("|") {
+						alts.push(self.alternative());
+						alt_pos = self.tokens.index();
+					}
+					self.tokens.goto(alt_pos);
+					return Some(Rule { name, alts, pass_through });
+				}
+			}
+		}
+		self.tokens.goto(pos);
+		return None;
+	}
+	
+	fn group(&mut self) -> Vec<Alt> {
+		let mut items = vec![];
+		loop {
+			if let Some(_paren) = self.expect(")") {
+				break;
+			}
+			if let Some(item) = self.item() {
+				items.push(item);
+			} else {
+				break;
+			}
+		}
+		return items;
+	}
+	
+	fn alternative(&mut self) -> Vec<AltGroup> {
+		let mut items = vec![];
+		loop {
+			let mut group = AltGroup {
+				alts: vec![],
+				prefix_modifier: self.prefix_modifier(),
+				suffix_modifier: None
+			};
+			if let Some(_paren) = self.expect("(") {
+				group.alts = self.group();
+				group.suffix_modifier = self.suffix_modifier();
+				items.push(group);
+			} else if let Some(item) = self.item() {
+				group.suffix_modifier = self.suffix_modifier();
+				group.alts.push(item);
+				items.push(group);
+			} else {
+				break;
+			}
+		}
+		return items;
+	}
+	
+	fn item(&mut self) -> Option<Alt> {
+		if let Some(_end) = self.expect("EOF") {
+			return None;
+		}
+		let prefix_modifier = self.prefix_modifier();
+		if let Some(con) = self.expect_constant() {
+			let suffix_modifier = self.suffix_modifier();
+			return Some(Alt { kind: "constant".to_string(), source: con, prefix_modifier, suffix_modifier });
+		}
+		if let Some(name) = self.expect_name() {
+			let suffix_modifier = self.suffix_modifier();
+			return Some(Alt { kind: "name".to_string(), source: name, prefix_modifier, suffix_modifier });
+		}
+		if let Some(string) = self.expect_string() {
+			let suffix_modifier = self.suffix_modifier();
+			return Some(Alt { kind: "string".to_string(), source: string, prefix_modifier, suffix_modifier });
+		}
+		return None;
+	}
+	
+	fn prefix_modifier(&mut self) -> Option<String> {
+		return self.expect_one(vec!["~", "&", "!"]);
+	}
+	
+	fn suffix_modifier(&mut self) -> Option<String> {
+		return self.expect_one(vec!["?", "*", "+"]);
+	}
+}

@@ -1,0 +1,29 @@
+# Builtin words: WORD, STRING, NUMBER
+# Modifiers:
+#	Prefixes:
+#	"~" matches and consumes, but is not included in final output
+#		useful for things like delimiters, symbols, etc.
+#	"!" ensures (without consuming) that the next token does not match the 
+#		given token
+#	"&" ensures (without consuming) that the next token does match the given
+#		token
+#	Suffixes:
+#	"*" matches 0 or more times
+#	"+" matches 1 or more times
+#	"?" matches 0 or 1 times
+#	Other:
+#	"|" defines alternates
+#
+# Todo:
+# - passthrough rules
+# - more builtins
+# - grouping
+
+- grammar: rule* EOF
+- rule: ~'-' WORD ~':' item+ alt*
+- alt: ~'|' item+
+- item: word | string
+- string: prefix ? STRING suffix ?
+- word: prefix ? WORD suffix ?
+- prefix: "~" | "!" | "&"
+- suffix: "*" | "+" | "?"

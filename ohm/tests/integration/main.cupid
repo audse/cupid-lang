@@ -1,0 +1,148 @@
+let should_log = false
+let do_log = args => if should_log is true => log(args)
+
+***
+Functions
+***
+
+# Block functions
+fun make_copy (x) {
+    let y = x
+} # implicit return of y
+
+let num = make_copy(1)
+
+# Anonymous functions
+const add = x, y => x + y
+const do_immediately = (10, 10 => add) # 20
+do_log(do_immediately)
+
+# All functions, are anonymous, though
+let z = (10 => make_copy)
+do_log(z)
+
+(z => log) #...except built-ins?
+
+
+***
+Data structures
+***
+
+# Lists/Dictionaries
+
+const names_list = ["John", "Jane", "Joe"]
+const names_dict = [
+    John: "Doe",
+    Jane: "Doe",
+    Joe: "Doe"
+]
+
+# Constant lists and dicts are mutable (to be changed- only mutable with "mut" keyword)
+names_list.0 = "Johnny"
+names_dict.John = "Johnny"
+
+# Key/value pairs can be anything 
+const math_dict = [
+    "+": x, y => x + y,
+    "-": x, y => x - y,
+    "*": x, y => x * y,
+    "/": x, y => x / y
+]
+
+const expressions = [
+    (1 + 2): 3,
+    [1, 2, 3]: ["one", "two", "three"],
+    first, last => first + " " + last: "John Doe"
+]
+
+# Dictionaries are not ordered, so they can't be accessed by index
+do_log(expressions.0) # null
+
+# When using variables in lists or the values of dictionaries, they are stored as references
+const refs = [names_dict.John]
+names_dict.John = "JJ"
+do_log(refs.0 is "JJ") # true
+
+# However, if you use a variable in a dictionary, it is stored as a copy
+const ref_dict = [
+    names_dict.John: "JJ"
+]
+names_dict.John = "John"
+do_log(ref_dict[names_dict.John] is none) # true
+
+
+# Range (list)
+
+# Ranges are explicitly inclusive or exclusive, depending on number position
+const inclusive = [0..3] # [0, 1, 2, 3]
+const exclusive = 0[..]3 # [1, 2]
+const mix = [0..]3 # [0, 1, 2]
+
+# Useful for iterating in loops, e.g.
+# for n in [0..]my_var.length 
+
+# for value in [1, 2, 3] {
+#     log('loop', value)
+# }
+
+# for key, value in [a: 1, b: 2, c: 3] {
+#     log('key', key, 'value', value)
+# }
+
+
+***
+Loops
+***
+
+# While loops
+const test_while = _ => {
+    let i = 0
+    while i < 5 { 
+        i = i + 1 
+        log (i) 
+    }
+}
+# (1 => test_while)
+
+# For loops
+
+const test_for = _ => {
+    let family = [
+        [relation: "Mother", name: "Lori"], 
+        [relation: "Father", name: "Jason"],
+        [relation: "Sister", name: "Raven"]
+    ]
+    const log_family = fam => for member in fam => do_log ('My', member.relation, 'is named', member.name)
+    log_family(family) # My Mother is named Lori My Father is named Jason My Sister is named Raven
+
+    # for index in [0..]family.length {
+    #     do_log(family[index].name)
+    # }
+
+    for member in family {
+        let fam = []
+        for key, value in member => fam.key = value
+        log(fam)
+    }
+}
+
+test_for()
+
+# one identifier: just value
+for value in ["a", "b", "c"] => do_log (value)
+# two identifiers: index/value (lists) or key/value (dicts)
+for index, value in ["a", "b", "c"] => do_log (index, value)
+for key, value in [a: 1, b: 2] => do_log (key, value)
+# three identifiers: index/value/key (dicts)
+for index, key, value in [a: 1, b: 2] => do_log (index, key, value)
+
+# You can change the list within a loop
+let num_list = [1, 2, 3]
+for index, val in num_list => {
+    num_list.index = "a" # this works
+    val = "a" # this doesn't
+}
+
+
+# let mapped_list = ([0..]5 => range => for i, val in range => range.i = val * 2)
+# log(mapped_list) # [0, 2, 4, 6, 8]

@@ -1,0 +1,12 @@
+{
+  "dependencies": {
+    "antlr4": "^4.9.3",
+    "generator-code": "^1.6.8",
+    "ohm-js": "^15.5.0",
+    "yo": "^4.3.0"
+  },
+  "devDependencies": {
+    "@ohm-js/cli": "^1.1.0"
+  },
+  "type": "module"
+}

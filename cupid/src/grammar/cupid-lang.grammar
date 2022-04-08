@@ -1,0 +1,77 @@
+- expression
+	: loop
+	| block
+	| declaration
+	| assignment
+	| term
+
+-~loop
+	: for_loop
+	| while_loop
+	| infinite_loop
+
+- for_loop: ~'for' identifier ~'in' term block
+- while_loop: ~'while' expression block
+- infinite_loop: ~'loop' block
+
+-~block
+	: if_block
+	| brace_block
+	| arrow_block
+	
+- if_block: ~'if' expression block else_block?
+-~else_block: ~'else' block
+- brace_block: ~'{' expression* ~'}'
+- arrow_block: ~arrow expression
+
+- declaration: keyword_variable 'mut'? assignment
+- assignment: identifier ~'=' expression
+
+-~term
+	: group
+	| anonymous_function
+	| function_call
+	| boolean
+	| none
+	| string
+	| decimal
+	| number
+	| identifier
+
+- group: ~'(' expression ~')'
+- anonymous_function: parameters? arrow block
+- parameters: (identifier ',')*
+
+- function_call: identifier ~'(' args? ~')'
+- args: (term ~',')*
+
+- boolean: 'true' | 'false'
+- none: ~'none'
+- identifier: WORD
+- string: STRING
+- decimal: NUMBER ~'.' NUMBER
+- number: NUMBER
+
+-~keyword_variable
+	: 'let'
+	| 'const'
+
+-~keyword_operator
+	: 'in'
+	| 'is'
+	| 'and'
+	| 'not'
+	| arrow
+
+-~arrow: '=>'
+
+- type
+	: none
+	| 'int'
+	| 'dec'
+	| 'string'
+	| 'fun'
+	| 'maybe'
+	| 'list'
+	| 'dict'
+	| 'tuple'
