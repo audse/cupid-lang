@@ -171,7 +171,7 @@ impl TokenType {
             '<' => Some(Self::Symbol(Symbol::Less)),
             '>' => Some(Self::Symbol(Symbol::Greater)),
             '=' => Some(Self::Symbol(Symbol::Equal)),
-            '"' => Some(Self::Symbol(Symbol::Quote)),
+            '"' => Some(Self::Symbol(Symbol::Quote)), //"
             '\'' => Some(Self::Symbol(Symbol::Quote)),
             '!' => Some(Self::Symbol(Symbol::Bang)),
             ',' => Some(Self::Symbol(Symbol::Comma)),
@@ -204,8 +204,10 @@ impl Token {
             index,
         }
     }
-    
-    pub fn clone(&self) -> Self {
+}
+
+impl Clone for Token {
+    fn clone(&self) -> Self {
         Self {
             source: self.source.clone(),
             token_type: self.token_type,

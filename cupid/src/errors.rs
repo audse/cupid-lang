@@ -1,5 +1,6 @@
 use crate::Token;
 
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct Error {
     pub line: usize,
     pub index: usize,
@@ -18,18 +19,14 @@ impl Error {
         }
     }
 
-    // pub fn report(&mut self) -> () {
-    //     println!("Error at line {}: {}", self.line, self.message);
-    // }
-
-    pub fn to_string(&mut self) -> String {
-        return String::from(format!(
+    pub fn make_string(&mut self) -> String {
+        return format!(
             "Error at line {} / {} (\"{}\"): {}", 
             self.line, 
             self.index, 
             self.source, 
             self.message
-        ));
+        );
     }
 
     // TODO fn get_line_string(line, file) -> String { }

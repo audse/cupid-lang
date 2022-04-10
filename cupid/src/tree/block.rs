@@ -1,53 +1,45 @@
-use std::fmt::{
-	Display,
-	Formatter,
-	Result,
-};
-use crate::{
-	CupidExpression,
-	CupidValue,
-	CupidScope,
-	Tree,
-};
+use std::fmt::{Display, Formatter, Result};
+use crate::{Expression, Value, Scope, Tree};
 
-#[derive(Debug, Hash, Clone)]
-pub struct CupidBlock {
-	pub expressions: Vec<CupidExpression>,
+#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+pub struct Block {
+	pub expressions: Vec<Expression>,
 }
 
-impl Tree for CupidBlock {
-	fn resolve(&self, scope: &mut CupidScope) -> CupidValue {
-		let mut result = CupidValue::None;
+impl Tree for Block {
+	fn resolve(&self, scope: &mut Scope) -> Value {
+		let mut result = Value::None;
 		for exp in &self.expressions {
 			result = exp.resolve(scope);
 		}
-		return result;
+		result
 	}
 }
 
-impl Display for CupidBlock {
+impl Display for Block {
 	fn fmt(&self, f: &mut Formatter) -> Result {
 		write!(f, "Block: {:?}", self.expressions)
 	}
 }
 
-#[derive(Debug, Hash, Clone)]
-pub struct CupidIfBlock {
-	pub condition: Box<CupidExpression>,
-	pub body: CupidBlock,
-	pub else_body: Option<CupidBlock>,
+#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+pub struct IfBlock {
+	pub condition: Box<Expression>,
+	pub body: Block,
+	pub else_if_bodies: Vec<(Expression, Block)>,
+	pub else_body: Option<Block>,
 }
 
-impl Tree for CupidIfBlock {
-	fn resolve(&self, scope: &mut CupidScope) -> CupidValue {
+impl Tree for IfBlock {
+	fn resolve(&self, scope: &mut Scope) -> Value {
 		let condition = self.condition.resolve(scope);
 		match condition {
-			CupidValue::Boolean(b) => if b {
-				return self.body.resolve(scope);
+			Value::Boolean(b) => if b {
+				self.body.resolve(scope)
 			} else if self.else_body.is_some() {
-				return self.else_body.as_ref().unwrap().resolve(scope);
-			} else { return CupidValue::None },
-			_ => return CupidValue::None
+				self.else_body.as_ref().unwrap().resolve(scope)
+			} else { Value::None },
+			_ => Value::None
 		}
 	}
 }

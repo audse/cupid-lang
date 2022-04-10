@@ -1,19 +1,14 @@
-use crate::{
-	CupidExpression,
-	CupidValue,
-	CupidScope,
-	Tree,
-};
+use crate::{Expression, Value, Scope, Tree};
 
 #[derive(Debug, Hash, Clone)]
-pub struct CupidLoop {
-	pub expressions: Vec<CupidExpression>,
+pub struct Loop {
+	pub block: Block,
 }
 
-impl Tree for CupidLoop {
-	fn resolve(&self, scope: &mut CupidScope) -> CupidValue {
-		let mut result = CupidValue::None;
-		for exp in &self.expressions {
+impl Tree for Loop {
+	fn resolve(&self, scope: &mut Scope) -> Value {
+		let mut result = Value::None;
+		for exp in &self.block {
 			result = exp.resolve(scope);
 		}
 		return result;

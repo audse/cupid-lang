@@ -1,2 +1,8 @@
-let my_var = 100
-let my_func = x, y, z => x * y * z
+***
+Cupid Lang
+A cute new programming language full of syntactic sugar
+***
+
+# Functions
+const squared = x => x * x
+squared(12) # 144

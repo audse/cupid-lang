@@ -4,10 +4,12 @@ use crate::{
 	is_identifier,
 	is_string,
 	is_uppercase,
+	is_tag,
+	Token,
 };
 
 pub struct GrammarParser {
-	pub tokens: BiDirectionalIterator<String>,
+	pub tokens: BiDirectionalIterator<Token>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -20,7 +22,7 @@ pub struct Rule {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Alt {
 	pub kind: String,
-	pub source: String,
+	pub source: Token,
 	pub prefix_modifier: Option<String>,
 	pub suffix_modifier: Option<String>
 }
@@ -36,42 +38,56 @@ impl GrammarParser {
 	pub fn new(source: String) -> Self {
 		let mut tokenizer = Tokenizer::new(source.as_str());
 		tokenizer.scan();
+		println!("{:#?}", tokenizer.tokens);
 		Self { tokens: BiDirectionalIterator::new(tokenizer.tokens) }
 	}
-	fn expect(&mut self, rule_name: &str) -> Option<String> {
-		self.tokens.expect(rule_name.to_string())
+	fn expect(&mut self, rule_name: &str) -> Option<Token> {
+		if let Some(next) = self.tokens.peek(0) {
+			if next.source == rule_name {
+				return self.tokens.next();
+			}
+		}
+		None
 	}
-	fn expect_one(&mut self, rule_names: Vec<&str>) -> Option<String> {
+	fn expect_one(&mut self, rule_names: Vec<&str>) -> Option<Token> {
 		for rule_name in rule_names {
 			if let Some(next) = self.expect(rule_name) {
 				return Some(next);
 			}
 		}
-		return None;
+		None
 	}
-	fn expect_constant(&mut self) -> Option<String> {
+	fn expect_constant(&mut self) -> Option<Token> {
 		if let Some(next) = self.tokens.peek(0) {
-			if is_uppercase(next.clone()) {
+			if is_uppercase(&next.source) {
 				return self.tokens.next();
 			}
 		}
-		return None;
+		None
 	}
-	fn expect_name(&mut self) -> Option<String> {
+	fn expect_name(&mut self) -> Option<Token> {
 		if let Some(next) = self.tokens.peek(0) {
-			if is_identifier(next.clone()) {
+			if is_identifier(&next.source) {
 				return self.tokens.next();
 			}
 		}
-		return None;
+		None
 	}
-	fn expect_string(&mut self) -> Option<String> {
+	fn expect_string(&mut self) -> Option<Token> {
 		if let Some(next) = self.tokens.peek(0) {
-			if is_string(next.clone()) {
+			if is_string(&next.source) {
 				return self.tokens.next();
 			}
 		}
-		return None;
+		None
+	}
+	fn expect_tag(&mut self) -> Option<Token> {
+		if let Some(next) = self.tokens.peek(0) {
+			if is_tag(&next.source) {
+				return self.tokens.next();
+			}
+		}
+		None
 	}
 	pub fn grammar(&mut self) -> Vec<Rule> {
 		let mut pos = self.tokens.index();
@@ -84,7 +100,7 @@ impl GrammarParser {
 			}
 		}
 		self.tokens.goto(pos);
-		return rules;
+		rules
 	}
 	
 	fn rule(&mut self) -> Option<Rule> {
@@ -106,12 +122,12 @@ impl GrammarParser {
 						alt_pos = self.tokens.index();
 					}
 					self.tokens.goto(alt_pos);
-					return Some(Rule { name, alts, pass_through });
+					return Some(Rule { name: name.source, alts, pass_through });
 				}
 			}
 		}
 		self.tokens.goto(pos);
-		return None;
+		None
 	}
 	
 	fn group(&mut self) -> Vec<Alt> {
@@ -126,7 +142,7 @@ impl GrammarParser {
 				break;
 			}
 		}
-		return items;
+		items
 	}
 	
 	fn alternative(&mut self) -> Vec<AltGroup> {
@@ -149,7 +165,7 @@ impl GrammarParser {
 				break;
 			}
 		}
-		return items;
+		items
 	}
 	
 	fn item(&mut self) -> Option<Alt> {
@@ -169,14 +185,24 @@ impl GrammarParser {
 			let suffix_modifier = self.suffix_modifier();
 			return Some(Alt { kind: "string".to_string(), source: string, prefix_modifier, suffix_modifier });
 		}
-		return None;
+		if let Some(tag) = self.expect_tag() {
+			let suffix_modifier = self.suffix_modifier();
+			return Some(Alt { kind: "tag".to_string(), source: tag, prefix_modifier, suffix_modifier })
+		}
+		None
 	}
 	
 	fn prefix_modifier(&mut self) -> Option<String> {
-		return self.expect_one(vec!["~", "&", "!"]);
+		if let Some(token) = self.expect_one(vec!["~", "&", "!"]) {
+			return Some(token.source);
+		}
+		None
 	}
 	
 	fn suffix_modifier(&mut self) -> Option<String> {
-		return self.expect_one(vec!["?", "*", "+"]);
+		if let Some(token) = self.expect_one(vec!["?", "*", "+"]) {
+			return Some(token.source);
+		}
+		None
 	}
 }

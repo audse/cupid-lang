@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<syntax name="cupid-grammar">
+	<meta>
+		<name>CupidGrammar</name>
+		<type>structured</type>
+		<preferred-file-extension>grammar</preferred-file-extension>
+	</meta>
+	
+	<detectors>
+		<extension priority="1.0">grammar</extension>
+	</detectors>
+	
+	<comments>
+		<single>
+			<expression>\#[^\n]*</expression>
+		</single>
+	</comments>
+	
+	<surrounding-pairs>
+		<pair open="&lt;" close="&gt;" />
+		<pair open="{" close="}" />
+		<pair open="[" close="]" />
+		<pair open="(" close=")" />
+		<pair open="&apos;" close="&apos;" />
+		<pair open="&quot;" close="&quot;" />
+		<pair open="`" close="`" />
+	</surrounding-pairs>
+	
+	<scopes>
+		
+		<!-- Comments -->
+		<scope name="cupid-grammar.comment.block" spell-check="true">
+			<starts-with>
+				<expression>\*\*\*</expression>
+			</starts-with>
+			<ends-with>
+				<expression>\*\*\*</expression>
+			</ends-with>
+		</scope>
+		<scope name="cupid-grammar.comment">
+			<expression>\#[^\n]*</expression>
+		</scope>
+		
+		<!-- Tags -->
+		<!-- <include syntax="self" collection="tags" /> -->
+		
+		<!-- Values -->
+		<scope name="cupid-grammar.value.number">
+			<expression>[0-9]+\.?[0-9]*</expression>
+		</scope>
+		<scope name="cupid-grammar.string.double">
+			<expression>\"[^\"]*\"</expression>
+		</scope>
+		<scope name="cupid-grammar.string.single">
+			<expression>\'[^\']*\'</expression>
+		</scope>
+		
+		<scope name="cupid-grammar.keyword">
+			<strings>
+				<string>STRING</string>
+				<string>NUMBER</string>
+				<string>WORD</string>
+				<string>LETTER</string>
+				<string>EOF</string>
+				<string>TAG</string>
+			</strings>
+		</scope>
+		
+		<scope name="cupid-grammar.identifier.method">
+			<expression>(?&gt;=\-)?\s*(\~)?([A-Za-z_]*)(?=\:)</expression>
+			<capture number="1" name="cupid-grammar.regex.conceal" />
+		</scope>
+		
+		<scope name="cupid-grammar.identifier">
+			<expression>([A-Za-z_]*)</expression>
+		</scope>
+		
+		<scope name="cupid-grammar.regex.repeat.plus">
+			<expression>\+</expression>
+		</scope>
+		<scope name="cupid-grammar.regex.repeat.star">
+			<expression>\*</expression>
+		</scope>
+		<scope name="cupid-grammar.regex.optional">
+			<expression>\?</expression>
+		</scope>
+		<scope name="cupid-grammar.regex.conceal">
+			<expression>\~</expression>
+		</scope>
+		<scope name="cupid-grammar.regex.positive">
+			<expression>\?</expression>
+		</scope>
+		<scope name="cupid-grammar.regex.negative">
+			<expression>\!</expression>
+		</scope>
+		<scope name="cupid-grammar.regex.alternate">
+			<expression>\|</expression>
+		</scope>
+		<scope name="cupid-grammar.bracket.begin">
+			<expression>\(</expression>
+		</scope>
+		<scope name="cupid-grammar.bracket.end">
+			<expression>\)</expression>
+		</scope>
+		
+		<scope name="cupid-grammar.tag">
+			<starts-with>
+				<expression>\&lt;</expression>
+			</starts-with>
+			<ends-with>
+				<expression>\&gt;</expression>
+			</ends-with>
+		</scope>
+	</scopes>
+	
+	<collections>
+	
+		
+	</collections>
+</syntax>

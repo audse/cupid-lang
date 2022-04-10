@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<syntax name="cupid">
+    <meta>
+        <name>CupidLang</name>
+        <type>structured</type>
+        <preferred-file-extension>cupid</preferred-file-extension>
+    </meta>
+    
+    <detectors>
+        <extension priority="1.0">cupid</extension>
+    </detectors>
+    
+    <indentation>
+        <increase>
+            <expression>^\s*&lt;(([^!/?]|%)(?!.+?([/%]&gt;|&lt;/.+?&gt;))|[%!]--\s*$)</expression>
+        </increase>
+        <decrease>
+            <expression>^\s*(&lt;/[^&gt;]+&gt;|--&gt;|--%&gt;)</expression>
+        </decrease>
+    </indentation>
+    
+    <comments>
+        <single>
+            <expression>\#[^\n]*</expression>
+        </single>
+        <multiline>
+            <starts-with>
+                <expression>\*\*\*</expression>
+            </starts-with>
+            <ends-with>
+                <expression>\*\*\*</expression>
+            </ends-with>
+        </multiline>
+    </comments>
+    
+    <surrounding-pairs>
+        <pair open="&lt;" close="&gt;" />
+        <pair open="{" close="}" />
+        <pair open="[" close="]" />
+        <pair open="(" close=")" />
+        <pair open="&apos;" close="&apos;" />
+        <pair open="&quot;" close="&quot;" />
+        <pair open="`" close="`" />
+    </surrounding-pairs>
+    
+    <scopes>
+        <include syntax="self" collection="keywords" />
+        
+        <!-- Meta -->
+        <!-- <scope name="cupid.meta.declaration">
+            <starts-with>
+                <expression></expression>
+            </starts-with>
+            <ends-with>
+                <expression></expression>
+            </ends-with>
+        </scope> -->
+        
+        <!-- Comments -->
+        <scope name="cupid.comment.block" spell-check="true">
+            <starts-with>
+                <expression>\*\*\*</expression>
+            </starts-with>
+            <ends-with>
+                <expression>\*\*\*</expression>
+            </ends-with>
+        </scope>
+        <scope name="cupid.comment">
+            <expression>\#[^\n]*</expression>
+        </scope>
+        
+        <!-- Tags -->
+        <!-- <include syntax="self" collection="tags" /> -->
+        
+        <!-- Values -->
+        <scope name="cupid.value.number">
+            <expression>[0-9]+\.?[0-9]*</expression>
+        </scope>
+        <scope name="cupid.string">
+            <expression>\"[^\"]*\"</expression>
+        </scope>
+        
+       
+        <scope name="cupid.storage.type">
+            <strings>
+                <string>fun</string>
+            </strings>
+        </scope>
+        
+    </scopes>
+    
+    <collections>
+    
+        <!-- Keywords --> 
+        <collection name="keywords">
+            <scope name="cupid.keyword.definition">
+                <strings>
+                    <string>let</string>
+                    <string>const</string>
+                    <string>mut</string>
+                </strings>
+            </scope>
+            <scope name="cupid.keyword.control">
+                <expression>\=&gt;</expression>
+            </scope>
+            <scope name="cupid.keyword.control">
+                <strings>
+                    <string>if</string>
+                    <string>else</string>
+                    <string>for</string>
+                    <string>in</string>
+                    <string>while</string>
+                    <string>loop</string>
+                </strings>
+            </scope>
+            <scope name="cupid.keyword.operator">
+                <expression>\+</expression>
+                <expression>\+\=</expression>
+                <expression>\-</expression>
+                <expression>\-\=</expression>
+                <expression>\*</expression>
+                <expression>\*\=</expression>
+                <expression>\/</expression>
+                <expression>\/\=</expression>
+                <expression>\^</expression>
+                <expression>\^\=</expression>
+            </scope>
+        </collection>
+    
+        <!-- Function -->
+        <collection name="function">
+            <scope name="cupid.definition.function">
+                <starts-with>
+                    <expression>([A-Za-z_]\w+)\s*(\=)</expression>
+                    <capture number="1" name="cupid.definition.function" />
+                </starts-with>
+                <ends-with>
+                    <expression>\=&gt;</expression>
+                    <capture number="0" name="cupid.keyword" />
+                </ends-with>
+                <subscopes>
+                    <scope name="cupid.identifier.argument.name">
+                        <expression>([A-Za-z_]\w*)(\,)?</expression>
+                        <capture number="1" name="cupid.identifier.argument.name" />
+                        <capture number="2" name="cupid.punctuation" />
+                    </scope>
+                </subscopes>
+            </scope>
+        </collection>
+        
+    </collections>
+</syntax>

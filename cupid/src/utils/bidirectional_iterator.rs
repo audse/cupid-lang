@@ -16,12 +16,12 @@ impl<T> BiDirectionalIterator<T> where T: Clone + PartialEq {
 impl<T> Iterator for BiDirectionalIterator<T> where T: Clone + PartialEq {
 	type Item = T;
 	fn next(&mut self) -> Option<T> {
-		if self.index < self.items.len() - 1 {
+		if !self.at_end() {
 			let val = self.items[self.index].clone();
 			self.index += 1;
-			return Some(val);
+			Some(val)
 		} else {
-			return None;
+			None
 		}
 	}
 }
@@ -48,10 +48,13 @@ impl<T> BiDirectionalIterator<T> where T: Clone + PartialEq {
 		if next {
 			return self.next();
 		}
-		return None;
+		None
 	}
 	pub fn peek(&self, amount: usize) -> Option<&T> {
-		self.items.get(self.index + amount)
+		if !self.at_end() {
+			return self.items.get(self.index + amount);
+		}
+		None
 	}
 	pub fn peek_expect(&self, amount: usize, val: T) -> bool {
 		if let Some(item) = self.peek(amount) {
@@ -59,6 +62,6 @@ impl<T> BiDirectionalIterator<T> where T: Clone + PartialEq {
 				return true;
 			}
 		}
-		return false;
+		false
 	}
 }

@@ -1,4 +1,4 @@
-# Builtin words: WORD, STRING, NUMBER
+# Builtin words: WORD, STRING, NUMBER, EOF
 # Modifiers:
 #	Prefixes:
 #	"~" matches and consumes, but is not included in final output
@@ -15,15 +15,19 @@
 #	"|" defines alternates
 #
 # Todo:
-# - passthrough rules
-# - more builtins
-# - grouping
+# - more builtins (letter, any)
+# - builtin functions (list)
+# - "one of" & "any but" syntax [abc] & [^abc]
+# - don't ignore whitespace group
 
-- grammar: rule* EOF
-- rule: ~'-' WORD ~':' item+ alt*
-- alt: ~'|' item+
-- item: word | string
-- string: prefix ? STRING suffix ?
-- word: prefix ? WORD suffix ?
-- prefix: "~" | "!" | "&"
-- suffix: "*" | "+" | "?"
+- grammar: rule*
+- rule: ~'-' WORD ~':' alt+ alt_alt*
+- alt: item+
+-~alt_alt: ~'|' item+
+-item: prefix? alt_item suffix?
+-~alt_item: group | constant | error
+- constant: STRING | WORD | NUMBER
+- group: prefix? ~'(' alt ~')' suffix?
+- error: ~'<e' STRING ~'>'
+-~prefix: '~' | '!' | '&'
+-~suffix: '*' | '+' | '?'

@@ -4,7 +4,7 @@
 
 - [x] Declaration
 - [x] Assignment
-- [ ] Immutable
+- [x] Immutable
 - [ ] Deep immutable
 
 ## Operators
@@ -16,7 +16,7 @@
 ## Functions
 
 - [x] Anonymous functions
-- [ ] Block functions
+- [x] Block functions
 - [ ] Function chaining
 - [ ] Closed scope
 - [ ] Return statement
@@ -56,3 +56,8 @@
 
 - [ ] Benchmarking performance
 - [ ] Error handling: create error nodes in tree
+  - [ ] A node is "poisoned" if it has an error- all other nodes that interact
+        with that node are poisoned as well
+- [ ] LSP
+- [ ] Optimization
+  - [ ] `String` to `Cow`

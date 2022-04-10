@@ -1,35 +1,42 @@
-- expression
-	: loop
+- file: expression+
+- expression: expression_item
+
+-~expression_item:
+	loop
 	| block
 	| declaration
+	| symbol_declaration
+	| function
 	| assignment
+	| operation
 	| term
 
--~loop
-	: for_loop
+-~loop:
+	for_loop
 	| while_loop
 	| infinite_loop
 
 - for_loop: ~'for' identifier ~'in' term block
-- while_loop: ~'while' expression block
+- while_loop: ~'while' expression_item block
 - infinite_loop: ~'loop' block
 
--~block
-	: if_block
+- block: 
+	if_block
 	| brace_block
 	| arrow_block
 	
-- if_block: ~'if' expression block else_block?
--~else_block: ~'else' block
-- brace_block: ~'{' expression* ~'}'
-- arrow_block: ~arrow expression
+- if_block: ~'if' expression block else_if_block* else_block?
+- else_if_block: ~'else' ~'if' expression block
+- else_block: ~'else' block
+-~brace_block: ~'{' expression* closing_brace
+-~arrow_block: ~arrow require_expression
 
-- declaration: keyword_variable 'mut'? assignment
-- assignment: identifier ~'=' expression
+- declaration: symbol_declaration ~'=' !'>' expression_item
+- symbol_declaration: keyword_variable 'mut'? identifier
+- assignment: identifier '=' !'>' expression
 
--~term
-	: group
-	| anonymous_function
+-~term:
+	group
 	| function_call
 	| boolean
 	| none
@@ -37,36 +44,74 @@
 	| decimal
 	| number
 	| identifier
+	| comment
 
-- group: ~'(' expression ~')'
-- anonymous_function: parameters? arrow block
-- parameters: (identifier ',')*
+- group: ~'(' expression_item closing_paren
+- function: parameters block
+- parameters: (identifier ~',')*
 
-- function_call: identifier ~'(' args? ~')'
-- args: (term ~',')*
+- function_call: identifier ~'(' arguments closing_paren
+- arguments: (term ~',')*
+
+-~operation:
+	binary_op
+	| unary_op
+	
+- binary_op: term binary_operator require_expression
+-~binary_operator: '+' | '-' | '*' | '/' | keyword_operator
+
+- unary_op: unary_operator require_expression
+-~unary_operator: '+' | '-'
 
 - boolean: 'true' | 'false'
-- none: ~'none'
-- identifier: WORD
+- none: 'none'
+- identifier: !keyword WORD
 - string: STRING
 - decimal: NUMBER ~'.' NUMBER
 - number: NUMBER
 
--~keyword_variable
-	: 'let'
+# Error handling
+-~require_expression: expression_item | <e missing_expression>
+-~closing_paren: ~')' | <e missing_closing_parenthesis>
+-~closing_brace: ~'}' | <e missing_closing_brace>
+
+-~keyword:
+	keyword_variable
+	| keyword_operator
+	| keyword_control
+	| type
+	| boolean
+	| none
+	| 'for'
+	| 'while'
+	| 'else'
+	| 'if'
+	| 'loop'
+
+-~keyword_variable:
+	'let'
 	| 'const'
 
--~keyword_operator
-	: 'in'
+-~keyword_operator:
+	'in'
 	| 'is'
 	| 'and'
 	| 'not'
-	| arrow
+	| 'or'
+	| '>'
+	| '>' '='
+	| '<'
+	| '<' '='
 
--~arrow: '=>'
+-~keyword_control:
+	'break'
+	| 'return'
 
-- type
-	: none
+-arrow: ~'=' ~'>'
+
+- type:
+	none
+	| 'bool'
 	| 'int'
 	| 'dec'
 	| 'string'
@@ -75,3 +120,7 @@
 	| 'list'
 	| 'dict'
 	| 'tuple'
+	
+-~comment_delimiter: '*' '*' '*'
+-~comment_content: ANY !comment_delimiter
+- comment: ~comment_delimiter comment_content* ANY ~comment_delimiter

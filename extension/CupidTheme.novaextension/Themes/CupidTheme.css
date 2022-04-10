@@ -1,0 +1,437 @@
+meta {
+  -theme-display-name: "Cupid Light";
+  -theme-interface-style: light;
+  -theme-accent-color: auto;
+}
+
+/*
+ * Titlebar & sidebar styles
+ */
+meta.window {
+  background: color(display-p3 0.949 0.96 0.971);
+  border: #d0d7deb2;
+}
+meta.titlebar {
+  background: linear-gradient(#f6f8fa, #eaeef2);
+  color: #24292f; /* No alpha support */
+  border: #d0d7de; /* No alpha support */
+}
+meta.titlebar.inactive {
+  background-color: #f6f8fa;
+  color: #57606a; /* No effect */
+}
+
+meta.button {
+  background: #eaeef2;
+  border: #d0d7de;
+  color: #24292f;
+}
+meta.button.highlighted {
+  background: #d0d7de;
+  border: #afb8c1;
+  color: #24292f;
+}
+meta.button.disabled {
+  background: #f6f8fa;
+  border: #d0d7de;
+  color: #8c959f;
+}
+
+meta.button.selected,
+meta.button.selected.highlighted {
+  color: white;
+}
+
+meta.textfield,
+meta.textfield.highlighted {
+  background: #fcfcfc;
+  border: #d0d7de;
+}
+
+/*
+ * Document styles
+ */
+meta.document {
+  background: #ffffff;
+  border: #d7dde3;
+}
+
+meta.document.button {
+  background: #eaeef2;
+  border: #d0d7de;
+  color: #24292f;
+}
+meta.document.button.highlighted {
+  background: #d0d7de;
+  border: #afb8c1;
+  color: #24292f;
+}
+meta.document.button.disabled {
+  background: #f6f8fa;
+  border: #d0d7de;
+  color: #8c959f;
+}
+
+meta.document.textfield,
+meta.document.textfield.highlighted {
+  background: #f6f8fa;
+  border: #d7dde3;
+}
+
+/* Text */
+meta.text {
+  color: #24292f;
+}
+meta.text.invisible {
+  color: #6e7781;
+}
+meta.text.selected {
+  background: #edf4fc; /* No alpha support */
+}
+meta.declaration {
+  color: #24292f;
+}
+
+/* Cursor */
+meta.cursor {
+  background-color: #fafbfc;
+}
+
+/* Indentation Guides */
+meta.indentguide {
+  border-color: #d0d7de;
+}
+
+/* Gutter */
+meta.gutter {
+  color: #9cb2b8;
+}
+meta.gutter.selected {
+  color: #24292f;
+}
+
+/*
+ * Syntax styles
+ */
+comment {
+  color: #6e7781;
+  font-style: italic;
+}
+processing {
+  color: #8899ac;
+  font-style: italic;
+}
+bracket,
+value.variable.bracket {
+  color: #6d7780;
+}
+operator {
+  color: #557587;
+}
+invalid {
+  /* ? */
+  background-color: hsl(0, 90%, 60%);
+  color: hsl(60, 33%, 96%);
+  text-decoration: underline;
+}
+method {
+  color: #0d161c;
+}
+
+/* Keywords */
+keyword {
+  color: #0d161c;
+  font-weight: bold;
+}
+keyword.self {
+  color: #c73f75;
+  font-style: italic;
+}
+
+/* Values */
+value {
+  color: #ba5aa4;
+}
+
+/* Identifiers */
+identifier {
+  color: #24292f;
+}
+identifier.core.global,
+identifier.type.core,
+identifier.constant,
+identifier.global,
+identifier.variable {
+  color: #7954c1;
+}
+identifier.type {
+  color: #284253;
+}
+identifier.property.name {
+  color: #24292f;
+  font-style: italic;
+}
+identifier.function,
+identifier.method,
+identifier.method.name {
+  color: #0d161c;
+}
+identifier.key {
+  color: #2b4d76;
+}
+identifier.argument {
+  color: #213745;
+}
+
+/* Strings */
+string,
+string-template,
+cdata {
+  color: #06807d;
+  font-style: italic;
+}
+string.escape {
+  color: #0969da;
+}
+regex {
+  color: #0a3069;
+}
+regex.escape {
+  color: #cf222e;
+}
+regex.character-class {
+  color: #0969da;
+}
+
+/* Markup */
+markup.heading {
+  font-weight: bold;
+  color: #0969da;
+}
+markup.bold {
+  font-weight: bold;
+}
+markup.italic {
+  font-style: italic;
+}
+markup.list.item {
+  color: #e16f24;
+}
+markup.processing {
+  color: #24292f;
+  font-weight: bold;
+}
+markup.link {
+  color: #0a3069;
+}
+
+/* Tags */
+tag,
+tag.framework {
+  color: #24292f;
+}
+tag.name,
+tag.framework.name {
+  color: #1a7f37;
+}
+tag.attribute.name,
+tag.framework.attribute.name {
+  color: #0969da;
+}
+tag.attribute.value,
+tag.attribute.value.delimiter,
+tag.attribute.value.link {
+  color: #0a3069;
+}
+tag.attribute.operator {
+  color: #cf222e;
+}
+
+/* Style sheets */
+style.at,
+style.value.number.unit {
+  color: #cf222e;
+}
+style.selector.element {
+  color: #1a7f37;
+}
+style.selector.identifier.id,
+style.attribute.name,
+style.value.number,
+style.value.identifier.function,
+style.value.color.named,
+style.selector.identifier.class,
+style.value.color.hex,
+style.value.keyword,
+style.selector.pseudoclass,
+style.selector.pseudoelement,
+style.media-feature.keyword {
+  color: #0969da;
+}
+style.attribute,
+style.attribute.separator,
+style.value.function.bracket,
+style.attribute-list.bracket,
+at-rule.definition.bracket {
+  color: #24292f;
+}
+style.value.property.identifier {
+  color: #e16f24;
+}
+
+/*
+ * Language specific
+ */
+
+/* Typescript */
+typescript.comma,
+typescript.dot {
+  color: #24292f;
+}
+typescript.identifier.type.class.name,
+typescript.identifier.type.name {
+  color: #e16f24;
+}
+
+/* Markdown */
+markdown.image.bracket {
+  color: #0a3069;
+}
+markdown.image.string {
+  color: #24292f;
+}
+
+/* YAML */
+yaml.identifier.key {
+  color: #1a7f37;
+}
+
+/* XML */
+xml.meta.processing {
+  color: #24292f;
+}
+
+/* Ruby */
+ruby.identifier.core.method {
+  color: #cf222e;
+}
+
+/*
+ * Terminal 
+ */
+
+terminal.bright-black {
+  color: #57606a;
+}
+terminal.bright-red {
+  color: #a40e26;
+}
+terminal.bright-green {
+  color: #1a7f37;
+}
+terminal.bright-yellow {
+  color: #633c01;
+}
+terminal.bright-blue {
+  color: #218bff;
+}
+terminal.bright-magenta {
+  color: #a475f9;
+}
+terminal.bright-cyan {
+  color: #3192aa;
+}
+terminal.bright-white {
+  color: #8c959f;
+}
+
+terminal.black {
+  color: #24292f;
+}
+terminal.red {
+  color: #cf222e;
+}
+terminal.green {
+  color: #116329;
+}
+terminal.yellow {
+  color: #4d2d00;
+}
+terminal.blue {
+  color: #0969da;
+}
+terminal.magenta {
+  color: #8250df;
+}
+terminal.cyan {
+  color: #1b7c83;
+}
+terminal.white {
+  color: #6e7781;
+}
+
+/* Rust */
+
+rust.argument.self {
+  color: #c73f75;
+  font-style: italic;
+}
+
+rust.bracket {
+  color: #6d7780;
+}
+
+rust.identifier.property {
+  color: #2f4b5b;
+  font-style: italic;
+}
+
+rust.definition.struct {
+  font-weight: bold;
+}
+
+rust.import {
+  font-style: italic;
+}
+
+rust.value.boolean {
+  color: #ba5aa4;
+  font-style: italic;
+}
+
+rust.identifier.type.struct.name,
+rust.definition.struct {
+  font-weight: bold;
+}
+
+rust.identifier.type {
+  color: #a6428e;
+}
+
+rust.identifier.core.type.primitive {
+  color: #a6428e;
+}
+
+/* Cupid Grammar */
+
+cupid-grammar.regex {
+  color: #6a96af;
+}
+
+cupid-grammar.string {
+  color: rgba(0, 129, 124, 1);
+}
+
+cupid-grammar.tag {
+  color: rgba(210, 34, 88, 1);
+  font-weight: bold;
+}
+
+cupid-grammar.identifier {
+  font-style: italic;
+}
+
+cupid-grammar.identifier.method {
+  font-weight: bold;
+  font-style: normal;
+}

@@ -1,71 +1,52 @@
-use crate::{
-	CupidSymbol,
-	CupidScope,
-	CupidValue,
-	CupidExpression,
-	FunctionBody,
-	Tree,
-};
+use crate::{Symbol, Scope, Value, Expression, Tree};
 
-#[derive(Debug, Hash, Clone)]
-pub struct CupidFunction {
-	pub params: Vec<CupidSymbol>,
-	pub body: Box<CupidExpression>,
+#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+pub struct Function {
+	pub params: Vec<Symbol>,
+	pub body: Box<Expression>,
 }
 
-impl Tree for CupidFunction {
-	fn resolve(&self, _scope: &mut CupidScope) -> CupidValue {
-		let param_list = self.params.iter().map(|p| p.clone()).collect();
-		return CupidValue::FunctionBody(FunctionBody(param_list, self.body.clone()));
+impl Tree for Function {
+	fn resolve(&self, _scope: &mut Scope) -> Value {
+		Value::FunctionBody(self.params.clone(), self.body.clone())
 	}
 }
 
-impl PartialEq for CupidFunction {
-	fn eq(&self, _other: &Self) -> bool { return false; } // TODO
-}
-impl Eq for CupidFunction {}
-
 #[derive(Debug, Hash, Clone)]
-pub struct CupidFunctionCall {
-	pub fun: CupidSymbol,
-	pub args: Vec<CupidExpression>
+pub struct FunctionCall {
+	pub fun: Symbol,
+	pub args: Vec<Expression>
 }
 
-impl Tree for CupidFunctionCall {
-	fn resolve(&self, scope: &mut CupidScope) -> CupidValue {
+impl Tree for FunctionCall {
+	fn resolve(&self, scope: &mut Scope) -> Value {
 		let mut inner_scope = scope.make_sub_scope();
 		let args = self.resolve_args(scope);
-		
 		if let Some(fun) = scope.get_symbol(&self.fun) {
 			let (params, body) = match fun {
-				CupidValue::FunctionBody(FunctionBody(params, body)) => (params, body),
+				Value::FunctionBody(params, body) => (params, body),
 				_ => panic!("Not a function")
 			};
-			
-			CupidFunctionCall::set_scope(&mut inner_scope, params, args);
+			FunctionCall::set_scope(&mut inner_scope, params, args);
 			return body.resolve(&mut inner_scope);
 		}
-		return CupidValue::None;
+		Value::None
 	}
 }
 
-impl CupidFunctionCall {
-	
-	fn resolve_args(&self, scope: &mut CupidScope) -> Vec<CupidValue> {
-		return (&self.args).iter().map(|arg| arg.resolve(scope)).collect();
+impl FunctionCall {
+	fn resolve_args(&self, scope: &mut Scope) -> Vec<Value> {
+		(&self.args).iter().map(|arg| arg.resolve(scope)).collect()
 	}
-	
-	fn set_scope(inner_scope: &mut CupidScope, params: &Vec<CupidSymbol>, args: Vec<CupidValue>) {
-		let mut index = 0;
-		for param in params {
+	fn set_scope(inner_scope: &mut Scope, params: &[Symbol], args: Vec<Value>) {
+		for (index, param) in params.iter().enumerate() {
 			let arg = &args[index];
-			inner_scope.set_symbol(&param, arg.clone());
-			index += 1;
+			inner_scope.create_symbol(param, arg.clone(), true, true);
 		}
 	}
 }
 
-impl PartialEq for CupidFunctionCall {
-	fn eq(&self, _other: &Self) -> bool { return false; } // TODO
+impl PartialEq for FunctionCall {
+	fn eq(&self, _other: &Self) -> bool { false } // TODO
 }
-impl Eq for CupidFunctionCall {}
+impl Eq for FunctionCall {}

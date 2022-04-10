@@ -1,56 +1,27 @@
-use std::fmt::{
-	Display,
-	Formatter,
-	Result,
-};
-use crate::{
-	CupidValue,
-	Tree,
-	CupidScope,
-};
+use std::fmt::{Display, Formatter, Result};
+use crate::{Value, Tree, Scope};
 
-#[derive(Debug, Hash, Eq, Clone)]
-pub struct CupidSymbol {
-	pub identifier: CupidValue,
-	pub mutable: bool,
-	pub deep_mutable: bool,
-}
 
-impl PartialEq for CupidSymbol {
-	fn eq(&self, other: &Self) -> bool {
-		self.identifier == other.identifier
-	}
-}
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+pub struct Symbol(pub Value);
 
-impl Display for CupidSymbol {
+impl Display for Symbol {
 	fn fmt(&self, f: &mut Formatter) -> Result {
-		write!(f, "{} (mutable: {}, deep_mutable: {})", self.identifier, self.mutable, self.deep_mutable)
+		write!(f, "{:?}", self)
 	}
 }
 
-impl Tree for CupidSymbol {
-	fn resolve(&self, scope: &mut CupidScope) -> CupidValue {
+impl Tree for Symbol {
+	fn resolve(&self, scope: &mut Scope) -> Value {
 		if let Some(value) = scope.get_symbol(self) {
 			return value.clone();
 		}
-		return CupidValue::None;
+		Value::None
 	}
 }
 
-impl CupidSymbol {
-	pub fn new(identifier: String, mutable: bool, deep_mutable: bool) -> Self {
-		Self {
-			identifier: CupidValue::String(identifier),
-			mutable,
-			deep_mutable
-		}
-	}
-	
-	pub fn clone(&self) -> Self {
-		Self {
-			identifier: self.identifier.clone(),
-			mutable: self.mutable,
-			deep_mutable: self.deep_mutable
-		}
+impl Symbol {
+	pub fn new(identifier: String) -> Self {
+		Self(Value::String(identifier))
 	}
 }

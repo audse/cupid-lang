@@ -1,4 +1,7 @@
-use crate::{is_identifier, is_number, is_string, is_uppercase, BiDirectionalIterator, Tokenizer};
+#![allow(clippy::all)]
+use crate::{
+    is_identifier, is_number, is_string, is_uppercase, BiDirectionalIterator, Tokenizer, Token,
+};
 use std::collections::HashMap;
 use std::hash::Hash;
 
@@ -45,21 +48,19 @@ macro_rules! use_repeat {
 }
 
 macro_rules! use_negative_lookahead {
-    ($parser:expr, $item:ident, $method:expr) => {{
-        let pos = $parser.tokens.index();
-        if let Some((mut val, pass_through)) = $method {
-            $parser.tokens.goto(pos);
+    ($parser:expr, $index:expr, $method:expr) => {{
+        $parser.tokens.goto($index);
+        if let Some((_val, _pass_through)) = $method {
             break;
         }
     }};
 }
 
 macro_rules! use_positive_lookahead {
-    ($parser:expr, $item:ident, $method:expr) => {{
-        let pos = $parser.tokens.index();
-        if let Some((mut val, pass_through)) = $method {
+    ($parser:expr, $index:expr, $method:expr) => {{
+        $parser.tokens.goto($index);
+        if let Some((_val, _pass_through)) = $method {
         } else {
-            $parser.tokens.goto(pos);
             break;
         }
     }};
@@ -69,48 +70,41 @@ macro_rules! use_positive_lookahead {
 pub struct Node {
     pub name: String,
     pub children: Vec<Node>,
-    pub tokens: Vec<String>,
+    pub tokens: Vec<Token>,
 }
 
 #[derive(PartialEq, Eq)]
 pub struct Parser {
-    pub tokens: BiDirectionalIterator<String>,
+    pub tokens: BiDirectionalIterator<Token>,
     pub index: usize,
     pub memos: Memos,
-}
-
-#[derive(PartialEq, Eq)]
-pub struct Memos {
-    memos: HashMap<usize, HashMap<String, ParseResult>>,
-}
-
-impl Memos {
-    fn has_memo(&self, pos: usize) -> bool {
-        return self.memos.contains_key(&pos);
-    }
-    fn get_memo(&mut self, pos: usize, func: String) -> Option<&ParseResult> {
-        return self.memos.entry(pos).or_insert(HashMap::new()).get(&func);
-    }
-    fn add_memo(&mut self, pos: usize, func: String, result: ParseResult) -> ParseResult {
-        return self
-            .memos
-            .entry(pos)
-            .or_insert(HashMap::new())
-            .entry(func)
-            .insert_entry(result)
-            .get()
-            .clone();
-    }
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct ParseResult(Option<(Node, bool)>, usize);
 
+#[derive(PartialEq, Eq)]
+pub struct Memos {
+    memos: HashMap<(usize, String), ParseResult>,
+}
+
+impl Memos {
+    fn has_memo(&self, pos: usize, func: String) -> bool {
+        self.memos.contains_key(&(pos, func))
+    }
+    fn get_memo(&mut self, pos: usize, func: String) -> Option<&ParseResult> {
+        self.memos.get(&(pos, func))
+    }
+    fn add_memo(&mut self, pos: usize, func: String, result: ParseResult) -> ParseResult {
+        self.memos.insert((pos, func.clone()), result);
+        self.memos.get(&(pos, func)).unwrap().clone()
+    }
+}
+
 impl Parser {
     pub fn new(source: String) -> Self {
         let mut tokenizer = Tokenizer::new(source.as_str());
         tokenizer.scan();
-        println!("{:?}", tokenizer.tokens);
         Self {
             index: 0,
             tokens: BiDirectionalIterator::new(tokenizer.tokens),
@@ -123,13 +117,17 @@ impl Parser {
         if let Some(memo) = self.memoize("expect".to_string(), Some(rule_name.clone())) {
             return Some(memo);
         }
-        if let Some(token) = self.tokens.expect(rule_name.clone()) {
-            return Some((node_from_token(token, rule_name), true));
+        if let Some(token) = self.tokens.peek(0) {
+            if token.source == rule_name {
+                return Some((node_from_token(self.tokens.next().unwrap(), rule_name), true));
+            }
         }
         None
     }
     fn expect_one(&mut self, rule_names: Vec<String>) -> Option<(Node, bool)> {
-        if let Some(memo) = self.memoize("expect_one".to_string(), Some(format!("{:?}", rule_names))) {
+        if let Some(memo) =
+            self.memoize("expect_one".to_string(), Some(format!("{:?}", rule_names)))
+        {
             return Some(memo);
         }
         for rule_name in rule_names {
@@ -137,59 +135,82 @@ impl Parser {
                 return Some(next);
             }
         }
-        return None;
+        None
     }
     fn expect_constant(&mut self, _arg: Option<String>) -> Option<(Node, bool)> {
         if let Some(memo) = self.memoize("expect_constant".to_string(), None) {
             return Some(memo);
         }
         if let Some(next) = self.tokens.peek(0) {
-            if is_uppercase(next.clone()) {
-                if let Some(token) = self.tokens.next() {
-                    return Some((node_from_token(token, "constant".to_string()), true));
-                }
+            if is_uppercase(&next.source) {
+                let token = self.tokens.next().unwrap();
+                return Some((node_from_token(token, "constant".to_string()), true));
             }
         }
-        return None;
+        None
     }
     fn expect_word(&mut self, _arg: Option<String>) -> Option<(Node, bool)> {
         if let Some(memo) = self.memoize("expect_word".to_string(), None) {
             return Some(memo);
         }
         if let Some(next) = self.tokens.peek(0) {
-            if is_identifier(next.clone()) {
-                if let Some(token) = self.tokens.next() {
-                    return Some((node_from_token(token, "word".to_string()), true));
-                }
+            if is_identifier(&next.source) {
+                let token = self.tokens.next().unwrap();
+                return Some((node_from_token(token, "word".to_string()), true));
             }
         }
-        return None;
+        None
     }
     fn expect_string(&mut self, _arg: Option<String>) -> Option<(Node, bool)> {
         if let Some(memo) = self.memoize("expect_string".to_string(), None) {
             return Some(memo);
         }
         if let Some(next) = self.tokens.peek(0) {
-            if is_string(next.clone()) {
-                if let Some(token) = self.tokens.next() {
-                    return Some((node_from_token(token, "string".to_string()), true));
-                }
+            if is_string(&next.source) {
+                let token = self.tokens.next().unwrap();
+                return Some((node_from_token(token, "string".to_string()), true));
             }
         }
-        return None;
+        None
     }
     fn expect_number(&mut self, _arg: Option<String>) -> Option<(Node, bool)> {
         if let Some(memo) = self.memoize("expect_number".to_string(), None) {
             return Some(memo);
         }
         if let Some(next) = self.tokens.peek(0) {
-            if is_number(next.clone()) {
-                if let Some(token) = self.tokens.next() {
-                    return Some((node_from_token(token, "number".to_string()), true));
-                }
+            if is_number(&next.source) {
+                let token = self.tokens.next().unwrap();
+                return Some((node_from_token(token, "number".to_string()), true));
             }
         }
-        return None;
+        None
+    }
+    fn expect_tag(&mut self, arg: String) -> Option<(Node, bool)> {
+        if let Some(memo) = self.memoize("expect_tag".to_string(), Some(arg.clone())) {
+            return Some(memo);
+        }
+        if !self.tokens.at_end() {
+            let current_token = self.tokens.peek_back(1).unwrap();
+            return Some((Node {
+                name: "error".to_string(),
+                tokens: vec![Token { 
+                    source: arg, index: 
+                    current_token.index, line:
+                    current_token.line 
+                }],
+                children: vec![],
+            }, false));
+        }
+        None
+    }
+    fn expect_any(&mut self, _arg: Option<String>) -> Option<(Node, bool)> {
+        if let Some(memo) = self.memoize("expect_any".to_string(), None) {
+            return Some(memo);
+        }
+        if let Some(next) = self.tokens.next() {
+            return Some((node_from_token(next, "any".to_string()), false));
+        }
+        None
     }
     fn reset_parse(&mut self, item: &mut Node, pos: usize) {
         item.tokens.clear();
@@ -204,20 +225,25 @@ impl Parser {
             self.tokens.goto(memo.1);
             return memo.0.clone();
         } else {
-            return None
+            return None;
         }
     }
-    fn make_memo(&mut self, pos: usize, func: String, result: Option<(Node, bool)>) -> Option<(Node, bool)> {
+    fn make_memo(
+        &mut self,
+        pos: usize,
+        func: String,
+        result: Option<(Node, bool)>,
+    ) -> Option<(Node, bool)> {
         let end_pos = self.tokens.index();
         let next_result = ParseResult(result, end_pos);
-        return self.memos.add_memo(pos, func, next_result).0;
+        self.memos.add_memo(pos, func, next_result).0
     }
     
     /*RULES*/
 
 }
 
-fn node_from_token(token: String, name: String) -> Node {
+fn node_from_token(token: Token, name: String) -> Node {
     Node { 
         name,
         tokens: vec![token], 

@@ -1,0 +1,8 @@
+{
+    "identifier": "org.CupidGrammar",
+    "name": "CupidGrammar",
+    "organization": "MyOrganization",
+    "description": "Lorem ipsum, dolor sit amet.",
+    "version": "1.0",
+    "categories": ["languages"]
+}
