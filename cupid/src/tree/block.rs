@@ -1,4 +1,3 @@
-use std::fmt::{Display, Formatter, Result};
 use crate::{Expression, Value, Scope, Tree};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
@@ -8,17 +7,15 @@ pub struct Block {
 
 impl Tree for Block {
 	fn resolve(&self, scope: &mut Scope) -> Value {
+		let mut inner_scope = scope.make_sub_scope();
 		let mut result = Value::None;
 		for exp in &self.expressions {
-			result = exp.resolve(scope);
+			result = exp.resolve(&mut inner_scope);
+			if result.is_poisoned() {
+				return result;
+			}
 		}
 		result
-	}
-}
-
-impl Display for Block {
-	fn fmt(&self, f: &mut Formatter) -> Result {
-		write!(f, "Block: {:?}", self.expressions)
 	}
 }
 

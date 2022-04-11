@@ -6,6 +6,7 @@
 - [x] Assignment
 - [x] Immutable
 - [ ] Deep immutable
+- [ ] Assignment type checking
 
 ## Operators
 

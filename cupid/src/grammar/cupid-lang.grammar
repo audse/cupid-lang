@@ -4,6 +4,7 @@
 -~expression_item:
 	loop
 	| block
+	| typed_declaration
 	| declaration
 	| symbol_declaration
 	| function
@@ -31,12 +32,28 @@
 -~brace_block: ~'{' expression* closing_brace
 -~arrow_block: ~arrow require_expression
 
-- declaration: symbol_declaration ~'=' !'>' expression_item
+- declaration: symbol_declaration ~equal expression_item
 - symbol_declaration: keyword_variable 'mut'? identifier
-- assignment: identifier '=' !'>' expression
+- assignment: identifier equal expression
+
+-~typed_declaration:
+	boolean_declaration
+	| integer_declaration
+	| decimal_declaration
+	| string_declaration
+	| function_declaration
+
+- boolean_declaration: ~'boo' 'mut'? identifier (~'=' expression)?
+- integer_declaration: ~'int' 'mut'? identifier (~'=' expression)?
+- decimal_declaration: ~'dec' 'mut'? identifier (~'=' expression)?
+- string_declaration: ~'str' 'mut'? identifier (~'=' expression)?
+- function_declaration: ~'fun' 'mut'? identifier (~'=' expression)?
+
+-~equal: '=' !'>'
 
 -~term:
 	group
+	| log
 	| function_call
 	| boolean
 	| none
@@ -50,8 +67,11 @@
 - function: parameters block
 - parameters: (identifier ~',')*
 
+- log: log_keyword ~'(' arguments closing_paren
 - function_call: identifier ~'(' arguments closing_paren
 - arguments: (term ~',')*
+
+-~log_keyword: 'log' | 'logs' | 'log_line' | 'logs_line'
 
 -~operation:
 	binary_op
@@ -71,9 +91,9 @@
 - number: NUMBER
 
 # Error handling
--~require_expression: expression_item | <e missing_expression>
--~closing_paren: ~')' | <e missing_closing_parenthesis>
--~closing_brace: ~'}' | <e missing_closing_brace>
+-~require_expression: expression_item | <e 'missing expression'>
+-~closing_paren: ~')' | <e 'missing closing parenthesis'>
+-~closing_brace: ~'}' | <e 'missing closing brace'>
 
 -~keyword:
 	keyword_variable

@@ -1,4 +1,10 @@
 // #![feature(test)]
+
+// External
+#[allow(unused_imports)]
+use colored::*;
+
+
 mod errors;
 pub use errors::*;
 

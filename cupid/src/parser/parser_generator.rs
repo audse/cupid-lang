@@ -59,10 +59,13 @@ fn generate_rule_body(rule: &Rule, items: &[AltGroup]) -> String {
 				loop_string += item_body(item, group_prefix).as_str();
 			}
 		}
-		if group_suffix == "*" || group_suffix == "+" {
+		if group_suffix == "*" || group_suffix == "+" || group_suffix == "?" {
 			loop_string += "loop { \n";
 			for item in &item_list {
 				loop_string += item_body(item, group_prefix).as_str();
+			}
+			if group_suffix == "?" {
+				loop_string += "break";
 			}
 			loop_string += "}";
 		}

@@ -1,4 +1,3 @@
-use std::fmt::{Debug, Display, Formatter, Result};
 use crate::{Scope, Value, Token};
 
 pub trait Tree {
@@ -17,11 +16,6 @@ impl Node {
     }
 }
 
-impl Display for Node {
-    fn fmt(&self, f: &mut Formatter) -> Result {
-        write!(f, "Node Value: {}", self.value)
-    }
-}
 impl Tree for Node {
     fn resolve(&self, _scope: &mut Scope) -> Value {
         self.get_value()

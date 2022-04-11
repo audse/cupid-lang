@@ -3,6 +3,27 @@ Cupid Lang
 A cute new programming language full of syntactic sugar
 ***
 
+# All block statements return the value of the last item
+int mut lots_of_math = {
+	int x = 1 + 2 + 3
+	int y = x * 4 * 5
+	x + y
+} # 126
+
+logs ("Math!", lots_of_math)
+
 # Functions
-const squared = x => x * x
-squared(12) # 144
+fun squared = x => x * x
+int square_num = squared (12) # 144
+
+fun get_name = first, last {
+	first + " " + last
+}
+
+log (get_name ("Audrey", "Barnes"))
+
+int mut my_int = 100
+my_int = "string"
+
+str a = "abc"
+a = "xyz"

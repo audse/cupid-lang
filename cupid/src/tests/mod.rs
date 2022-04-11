@@ -49,7 +49,11 @@ fn test_assignment() {
 	assert!(test_int("let x = (10 + 1) * 2", 22));
 	assert!(test_int("let x = 1", 1));
 	assert!(test_int("const y = 2", 2));
-	assert!(test_str("const mut z = 'abc'", "abc"));
+	assert!(test_str("const mut z = 'abc'", "'abc'"));
+	assert!(test_boo("boo x = true", true));
+	assert!(test_int("int x = 1", 1));
+	assert!(test_str("str x = 'abc'", "'abc'"));
+	assert!(test_dec("dec x = -1.5", -1.5));
 }
 
 #[test]
@@ -65,10 +69,10 @@ fn test_brace_block() {
 		x * 10 
 	}", 20));
 	assert!(test_str("{ 
-		let x = \"abc\" 
-		let y = \"xyz\"
+		let x = 'abc'
+		let y = 'xyz'
 		let z = x + y 
-	}", "abcxyz"));
+	}", "'abc''xyz'"));
 }
 
 #[test]
@@ -95,7 +99,7 @@ fn test_expression() {
 
 #[test]
 fn test_operation() {
-	assert!(test_str("'abc' + 'xyz'", "abcxyz"));
+	assert!(test_str("'abc' + 'xyz'", "'abc''xyz'"));
 	assert!(test_dec("1.5 + 2.5 * 2.0", 6.5));
 	assert!(test_dec("(1.5 + 2.5) * 2.0", 8.0));
 }

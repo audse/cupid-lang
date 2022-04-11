@@ -412,6 +412,10 @@ rust.identifier.core.type.primitive {
   color: #a6428e;
 }
 
+rust.identifier.method.static {
+  font-style: italic;
+}
+
 /* Cupid Grammar */
 
 cupid-grammar.regex {

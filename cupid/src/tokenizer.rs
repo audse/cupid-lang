@@ -4,6 +4,7 @@ pub struct Tokenizer {
 	pub chars: Vec<char>,
 	pub tokens: Vec<Token>,
 	pub line: usize,
+	pub line_index: usize,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
@@ -20,17 +21,22 @@ impl Tokenizer {
 			index: 0,
 			chars: string.chars().collect(),
 			tokens: vec![],
-			line: 0,
+			line: 1,
+			line_index: 0,
 		}
 	}
 	pub fn add_token(&mut self, source: String) {
-		self.tokens.push(Token { source, index: self.index, line: self.line });
+		let index = if self.line_index > source.len() { 
+			self.line_index - source.len()
+		} else { 0 };
+		self.tokens.push(Token { source, index, line: self.line });
 	}
 	pub fn current(&self) -> &char { self.chars.get(self.index).unwrap_or(&'\0') }
 	pub fn is_done(&self) -> bool { self.index >= self.chars.len() }
 	pub fn peek(&self, amount: usize) -> Option<&char> { self.chars.get(self.index + amount) }
 	pub fn advance(&mut self) -> &char {
 		self.index += 1;
+		self.line_index += 1;
 		self.current()
 	}
 	pub fn scan(&mut self) {
@@ -42,9 +48,10 @@ impl Tokenizer {
 				'a'..='z' | 'A'..='Z' | '_' => self.identifier(c),
 				'0'..='9' => self.identifier(c),
 				'\'' | '"' => self.string(c), //"
-				' ' | '\t' | '\r' => (), // ignore whitespace
+				' ' | '\t' => (), // ignore whitespace
 				'\n' => {
 					self.line += 1;
+					self.line_index = 0;
 				}
 				_ => self.add_token(c.to_string())
 			}

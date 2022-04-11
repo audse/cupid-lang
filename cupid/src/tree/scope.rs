@@ -1,10 +1,5 @@
 use std::collections::HashMap;
-use std::fmt::{
-	Display,
-	Formatter,
-	Result,
-};
-use crate::{Symbol, Value};
+use crate::{Symbol, Value, Type};
 
 #[derive(Debug, Clone)]
 pub struct Scope {
@@ -15,16 +10,10 @@ pub struct Scope {
 #[derive(Debug, Clone)]
 pub struct SymbolValue {
 	pub value: Value,
+	pub r#type: Type,
 	pub mutable: bool,
 	pub deep_mutable: bool,
 }
-
-impl Display for Scope {
-	fn fmt(&self, f: &mut Formatter) -> Result {
-		write!(f, "CupidScope {{ storage: {:?} }}", self.storage)
-	}
-}
-
 
 impl Scope {
 
@@ -45,20 +34,44 @@ impl Scope {
 		None
 	}
 
-	pub fn set_symbol(&mut self, symbol: &Symbol, value: Value) -> Option<&Value> {
+	pub fn set_symbol(&mut self, symbol: &Symbol, value: Value) -> Result<Option<&Value>, Value> {
 		if let Some(stored_value) = self.storage.get_mut(symbol) {
 			if stored_value.mutable {
-				stored_value.value = value;
+				let setting_type = Type::from_value(&value);
+				let stored_type = Type::from_value(&stored_value.value);
+				if setting_type == stored_type {
+					stored_value.value = value;
+				} else {
+					return Err(Value::error(
+						&symbol.1[0],
+						format!(
+							"type mismatch: `{symbol}` ({stored_type}) can't be assigned `{value}` ({setting_type})",
+							setting_type = setting_type,
+							symbol = symbol.get_identifier(),
+							stored_type = stored_type,
+							value = value,
+						)
+					))
+				}
+			} else {
+				return Err(Value::error(
+					&symbol.1[0],
+					format!(
+						"variable `{symbol}` is immutable and cannot be reassigned",
+						symbol = symbol.get_identifier(),
+					)
+				))
 			}
 		}
-		self.get_symbol(symbol)
+		Ok(self.get_symbol(symbol))
 	}
 	
 	pub fn create_symbol(&mut self, symbol: &Symbol, value: Value, mutable: bool, deep_mutable: bool) -> Option<&Value> {
 		self.storage.insert(symbol.clone(), SymbolValue {
+			r#type: Type::from_value(&value),
 			value, 
 			mutable, 
-			deep_mutable
+			deep_mutable,
 		});
 		self.get_symbol(symbol)
 	}

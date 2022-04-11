@@ -1,4 +1,8 @@
 #![allow(clippy::all)]
+#![allow(unreachable_code)]
+#![allow(unused_variables)]
+#![allow(dead_code)]
+#![allow(unused_macros)]
 use crate::{
     is_identifier, is_number, is_string, is_uppercase, BiDirectionalIterator, Tokenizer, Token,
 };
@@ -191,15 +195,21 @@ impl Parser {
         }
         if !self.tokens.at_end() {
             let current_token = self.tokens.peek_back(1).unwrap();
-            return Some((Node {
-                name: "error".to_string(),
-                tokens: vec![Token { 
-                    source: arg, index: 
-                    current_token.index, line:
-                    current_token.line 
-                }],
-                children: vec![],
-            }, false));
+            return Some((
+                Node {
+                    name: "error".to_string(),
+                    tokens: vec![
+                        Token {
+                            source: arg,
+                            index: current_token.index + 1,
+                            line: current_token.line,
+                        },
+                        current_token.clone()
+                    ],
+                    children: vec![],
+                },
+                false,
+            ));
         }
         None
     }

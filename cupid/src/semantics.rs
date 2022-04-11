@@ -1,11 +1,16 @@
-use crate::{ParseNode, Expression, Declare};
+use crate::{ParseNode, Expression, Declare, Value, Type, Logger, Args};
 
 pub fn to_tree(node: &ParseNode) -> Expression {
+	let errors = collect_errors(node);
+	if errors.len() > 0 {
+		return errors[0].clone();
+	}
+	
 	match node.name.as_str() {
 		"file" => Expression::File(
 			node.children
 			.iter()
-			.map(|c| to_tree(c))
+			.map(to_tree)
 			.collect()
 		),
 		
@@ -21,7 +26,7 @@ pub fn to_tree(node: &ParseNode) -> Expression {
 		"block" => Expression::new_block(
 			node.children
 				.iter()
-				.map(|n| to_tree(n))
+				.map(to_tree)
 				.collect()
 		),
 		"if_block" => {
@@ -49,24 +54,56 @@ pub fn to_tree(node: &ParseNode) -> Expression {
 			)
 		},
 		
-		// Assignment
-		"declaration" => match to_tree(&node.children[0]) {
-			Expression::Declare(Declare { symbol, value: _, mutable, deep_mutable }) => Expression::Declare(Declare {
-				symbol,
+		"boolean_declaration"
+		| "integer_declaration"
+		| "decimal_declaration"
+		| "string_declaration"
+		| "function_declaration" => {
+			let mutable = node.tokens.len() > 0; // has `mut` keyword
+			let identifier = to_tree(&node.children[0]);
+			let value = if node.children.len() > 1 {
+				to_tree(&node.children[1])
+			} else { 
+				Expression::Empty 
+			};
+			let r#type = match node.name.as_str() {
+				"boolean_declaration" => Type::Boolean,
+				"integer_declaration" => Type::Integer,
+				"decimal_declaration" => Type::Decimal,
+				"string_declaration" => Type::String,
+				"function_declaration" => Type::Function,
+				_ => Type::None
+			};
+			Expression::new_declare(
+				identifier,
+				r#type,
 				mutable,
-				deep_mutable,
-				value: Box::new(to_tree(&node.children[1]))
-			}),
-			_ => panic!("Expected declaration")
+				false,
+				value
+			)
+		},
+		"declaration" => {
+			let value = to_tree(&node.children[1]);
+			match to_tree(&node.children[0]) {
+				Expression::Declare(Declare { symbol, value: _, mutable, deep_mutable, ..}) => Expression::Declare(Declare {
+					symbol,
+					mutable,
+					deep_mutable,
+					value: Box::new(value.clone()),
+					r#type: Type::None
+				}),
+				_ => panic!("Expected declaration")
+			}
 		},
 		"symbol_declaration" => {
 			let mutable = node.tokens[0].source.as_str() == "let";
 			let deep_mutable = node.tokens.len() > 1; // includes 'mut' keyword
 			Expression::new_declare(
 				to_tree(&node.children[0]), 
+				Type::None,
 				mutable,
 				deep_mutable,
-				Expression::Empty
+				Expression::Empty,
 			)
 		},
 		"assignment" => Expression::new_assign(
@@ -87,12 +124,18 @@ pub fn to_tree(node: &ParseNode) -> Expression {
 		
 		// Terms
 		"group" => to_tree(&node.children[0]),
+		"log" => Expression::Logger(
+			Logger(
+				node.tokens[0].clone(),
+				Args(node.children[0].children.iter().map(to_tree).collect())
+			)
+		),
 		"function" => {
 			let (params, body) = if node.children.len() > 1 {
 				(
 					node.children[0].children
 						.iter()
-						.map(|p| Expression::to_symbol(to_tree(&p)))
+						.map(|p| Expression::to_symbol(to_tree(p)))
 						.collect(),
 					to_tree(&node.children[1])
 				)
@@ -106,7 +149,7 @@ pub fn to_tree(node: &ParseNode) -> Expression {
 			let args = if node.children.len() > 1 {
 				node.children[1].children
 					.iter()
-					.map(|a| to_tree(a))
+					.map(to_tree)
 					.collect()
 			} else {
 				vec![]
@@ -140,4 +183,24 @@ pub fn to_tree(node: &ParseNode) -> Expression {
 		)),
 		_ => Expression::Empty
 	}
+}
+
+pub fn collect_errors(node: &ParseNode) -> Vec<Expression> {
+	node.children
+		.iter()
+		.filter_map(|c| if c.name.as_str() == "error" {
+			let message = c.tokens[0].source.clone().replace("<e ", "").replace('>', "").replace('\'', "");
+			Some(
+				Expression::new_node(
+					Value::error(
+						&c.tokens[1], 
+						message,
+					),
+					c.tokens.clone()
+				)
+			)	
+		} else {
+			None
+		})
+		.collect()
 }
