@@ -19,13 +19,9 @@ fn generate_rule(rule: &Rule) -> String {
 		.iter()
 		.map(|alt| generate_rule_body(rule, alt))
 		.collect();
-	
 	format!(
 		"
 		pub fn _{name}(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {{
-			if let Some(memo) = self.memoize(\"{name}\".to_string(), None) {{
-				return Some(memo);
-			}}
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {{
@@ -34,7 +30,6 @@ fn generate_rule(rule: &Rule) -> String {
 				children: vec![],
 			}};
 			{body}
-			self.make_memo(start_pos, \"{name}\".to_string(), None);
 			None
 		}}
 		",
@@ -73,12 +68,10 @@ fn generate_rule_body(rule: &Rule, items: &[AltGroup]) -> String {
 	
 	loop_string.push_str(format!(
 		"
-			let result = Some((node, {:?}));
-			return self.make_memo(start_pos, \"{}\".to_string(), result);
+			return Some((node, {:?}));
 		\n}}
 		",
-		rule.pass_through,
-		rule.name
+		rule.pass_through
 	).as_str());
 	
 	body.push_str(loop_string.as_str());

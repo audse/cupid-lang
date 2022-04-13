@@ -1,29 +1,94 @@
 ***
 Cupid Lang
 A cute new programming language full of syntactic sugar
-***
 
 # All block statements return the value of the last item
 int mut lots_of_math = {
 	int x = 1 + 2 + 3
+	log (x)
 	int y = x * 4 * 5
+	log (y)
+	log (x + y)
 	x + y
 } # 126
 
-logs ("Math!", lots_of_math)
+logs ('Math!', lots_of_math)
 
 # Functions
 fun squared = x => x * x
 int square_num = squared (12) # 144
 
 fun get_name = first, last {
-	first + " " + last
+	first + ' ' + last
 }
 
-log (get_name ("Audrey", "Barnes"))
+log (get_name ('Audrey', 'Barnes'))
 
-int mut my_int = 100
-my_int = "string"
+let my_dictionary = [
+	'a': 100,
+	'b': 200,
+	'c': 300
+]
+let my_list = ['a', 'b', 'c']
 
-str a = "abc"
-a = "xyz"
+log (my_dictionary)
+log (my_list)
+
+log (my_list.0)
+log (my_dictionary.'a')
+
+let functions = [
+	'square': x => x * x,
+	'half': x => x / 2
+]
+
+let half = functions.'half'
+log (half (10))
+
+const vars = [
+	1: 1000,
+	2: 2000,
+]
+
+let my_list = ['a', 'b', 'c']
+
+for index, value in my_list => logs (index, value)
+
+let person_a = [
+	'name': "Audrey",
+	'age': 22
+]
+
+let person_b = [
+	'name': "Jacob",
+	'age': 24
+]
+
+let people = [person_a, person_b]
+
+for person in people => for key, value in person => logs (key, value)
+
+
+let strings = ['my', 'list', 'of', 'strings']
+
+let a  = ''
+let concat = for s in strings => {
+	a = a + ' ' + s
+}
+
+log (concat)
+
+***
+
+let my_dict = [
+	a: 1,
+	b: 2,
+	c: 3,
+	d: 4,
+]
+# log (my_dict.a)
+
+my_dict.a = 10
+
+log (my_dict)
+# log (my_dict.a)

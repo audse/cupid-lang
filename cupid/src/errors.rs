@@ -1,12 +1,12 @@
 use std::fmt::{Display, Formatter, Result};
-use crate::{Token, CupidParser, to_tree, Scope, Value, Symbol, Expression};
+use crate::{Token, CupidParser, to_tree, LexicalScope, Value};
 use colored::*;
 
 pub struct FileHandler {
     pub path: String,
     pub contents: String,
     pub parser: CupidParser,
-    pub scope: Scope,
+    pub scope: LexicalScope,
     pub errors: Vec<Error>,
     pub warnings: Vec<Warning>,
 }
@@ -17,7 +17,8 @@ impl FileHandler {
         let contents = std::fs::read_to_string(path)
             .unwrap_or_else(|_| String::from("Unable to find file"));
         let parser = CupidParser::new(contents.clone());
-        let scope = Scope::new(None);
+        let mut scope = LexicalScope { scopes: vec![] };
+        scope.add();
         
         Self {
             path: path.to_string(),
@@ -39,7 +40,7 @@ impl FileHandler {
         println!("Semantics: {:#?}", semantics);
         
         let result = semantics.resolve_file(&mut self.scope);
-        result.iter().for_each(|r| println!("{}", r));
+        result.iter().for_each(|r| println!("{:?}", r));
     }
     
     pub fn run(&mut self) {
@@ -49,6 +50,9 @@ impl FileHandler {
         let semantics = to_tree(&parse_tree.unwrap().0);
         
         let result = semantics.resolve_file(&mut self.scope);
+        // for error in result {
+        //     
+        // }
         self.errors = result
             .iter()
             .filter_map(|r| match r {
@@ -67,7 +71,7 @@ impl FileHandler {
             .lines()
             .enumerate()
             .find(|(i, _l)| *i == index - 1)
-            .unwrap_or_else(|| (0, "unable to find line"))
+            .unwrap_or((0, "unable to find line"))
             .1
     }
     
@@ -143,7 +147,7 @@ impl Error {
         }
     }
     
-    pub fn string(&self, path: &String) -> String {
+    pub fn string(&self, path: &str) -> String {
         let header = "error:".bright_red().bold();
         let message = self.message.bold();
         let arrow = "  -->  ".dimmed().bold();

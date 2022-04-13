@@ -1,0 +1,15 @@
+***
+let x = 10
+int y = x + 1 * 10
+int z = y + 1 * 10
+
+logs (x, y, z)
+
+let a = 1234.5678
+***
+
+let mut i = 0
+while i < 10 => {
+	i = i + 1
+	log (i)
+}

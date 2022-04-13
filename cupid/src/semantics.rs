@@ -2,7 +2,7 @@ use crate::{ParseNode, Expression, Declare, Value, Type, Logger, Args};
 
 pub fn to_tree(node: &ParseNode) -> Expression {
 	let errors = collect_errors(node);
-	if errors.len() > 0 {
+	if !errors.is_empty() {
 		return errors[0].clone();
 	}
 	
@@ -18,8 +18,24 @@ pub fn to_tree(node: &ParseNode) -> Expression {
 		"expression" => to_tree(&node.children[0]),
 		
 		// Loops
-		// "for_loop" => (),
-		// "while_loop" => (),
+		"for_loop" =>  {
+			let (params, map, body) = {
+				(
+					node.children[0].children
+						.iter()
+						.map(|p| Expression::to_symbol(to_tree(p)))
+						.collect(),
+					to_tree(&node.children[1]),
+					to_tree(&node.children[2]),
+				)
+			};
+			Expression::new_for_in_loop(params, map, body, node.tokens[0].clone())
+		},
+		"while_loop" => Expression::new_while_loop(
+			to_tree(&node.children[0]),
+			to_tree(&node.children[1]),
+			node.tokens[0].clone()
+		),
 		// "infinite_loop" => ()
 		
 		// Blocks
@@ -59,7 +75,7 @@ pub fn to_tree(node: &ParseNode) -> Expression {
 		| "decimal_declaration"
 		| "string_declaration"
 		| "function_declaration" => {
-			let mutable = node.tokens.len() > 0; // has `mut` keyword
+			let mutable = !node.tokens.is_empty(); // has `mut` keyword
 			let identifier = to_tree(&node.children[0]);
 			let value = if node.children.len() > 1 {
 				to_tree(&node.children[1])
@@ -89,7 +105,7 @@ pub fn to_tree(node: &ParseNode) -> Expression {
 					symbol,
 					mutable,
 					deep_mutable,
-					value: Box::new(value.clone()),
+					value: Box::new(value),
 					r#type: Type::None
 				}),
 				_ => panic!("Expected declaration")
@@ -111,11 +127,24 @@ pub fn to_tree(node: &ParseNode) -> Expression {
 			to_tree(&node.children[0]),
 			to_tree(&node.children[1]),
 		),
-		"binary_op" => Expression::new_operator(
-			node.tokens[0].clone(),
+		"property_assignment" => Expression::new_property_assign(
 			to_tree(&node.children[0]),
 			to_tree(&node.children[1]),
+			node.tokens[0].clone(),
 		),
+		"binary_op" 
+		| "compare_op"
+		| "add" 
+		| "multiply" 
+		| "exponent" => if !node.tokens.is_empty() && node.children.len() > 1 {
+			Expression::new_operator(
+				node.tokens[0].clone(),
+				to_tree(&node.children[0]),
+				to_tree(&node.children[1]),
+			)
+		} else { 
+			to_tree(&node.children[0]) 
+		},
 		"unary_op" => Expression::new_operator(
 			node.tokens[0].clone(),
 			Expression::Empty,
@@ -156,6 +185,25 @@ pub fn to_tree(node: &ParseNode) -> Expression {
 			};
 			Expression::new_function_call(fun, args)
 		},
+		
+		// Structures
+		"dictionary" => {
+			let entries: Vec<(Expression, (usize, Expression))> = node.children.iter().enumerate().map(|(i, e)| {
+				(to_tree(&e.children[0]), (i, to_tree(&e.children[1])))
+			}).collect();
+			Expression::new_map(entries, node.tokens[0].clone(), Type::Dictionary)
+		},
+		"list" => {
+			let entries: Vec<(Expression, (usize, Expression))> = node.children.iter().enumerate().map(|(i, e)| {
+				(Expression::new_int_node(i as i32, vec![]), (i, to_tree(e)))
+			}).collect();
+			Expression::new_map(entries, node.tokens[0].clone(), Type::List)
+		},
+		"property_access" => {
+			let map = to_tree(&node.children[0]);
+			let term = to_tree(&node.children[1]);
+			Expression::new_property_access(map, term, node.tokens[0].clone())
+		}
 		
 		// Values
 		"boolean" => match node.tokens[0].source.as_str() {

@@ -1,4 +1,4 @@
-use crate::{Expression, Tree, Scope, Value, Token};
+use crate::{Expression, Tree, LexicalScope, Value, Token};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct Operator {
@@ -18,7 +18,7 @@ impl Operator {
 }
 
 impl Tree for Operator {
-	fn resolve(&self, scope: &mut Scope) -> Value {
+	fn resolve(&self, scope: &mut LexicalScope) -> Value {
 		let left = self.left.resolve(scope);
 		let right = self.right.resolve(scope);
 		
@@ -28,7 +28,6 @@ impl Tree for Operator {
 		if right.is_poisoned() {
 			return right;
 		}
-		
 		if left != Value::None {
 			match self.operator.source.as_str() {
 				"+" => left.add(right, &self.operator),

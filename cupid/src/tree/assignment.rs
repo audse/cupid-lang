@@ -1,4 +1,4 @@
-use crate::{Scope, Value, Expression, Symbol, Tree, Token, Type};
+use crate::{LexicalScope, Value, Expression, Symbol, Tree, Token, Type};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct Assign {
@@ -8,12 +8,11 @@ pub struct Assign {
 }
 
 impl Tree for Assign {
-	fn resolve(&self, scope: &mut Scope) -> Value {
+	fn resolve(&self, scope: &mut LexicalScope) -> Value {
 		let val = self.value.resolve(scope);
 		if val.is_poisoned() {
 			return val;
 		}
-		
 		match scope.set_symbol(&self.symbol, val.clone()) {
 			Ok(result) => match result {
 				Some(v) => v.clone(),
@@ -22,7 +21,7 @@ impl Tree for Assign {
 					format!("unable to assign `{}` to `{}`", self.symbol.0, val)
 				)
 			},
-			Err(error) => return error
+			Err(error) => error
 		}
 	}
 }
@@ -37,7 +36,7 @@ pub struct Declare {
 }
 
 impl Tree for Declare {
-	fn resolve(&self, scope: &mut Scope) -> Value {
+	fn resolve(&self, scope: &mut LexicalScope) -> Value {
     	let val = self.value.resolve(scope);
 		if val.is_poisoned() {
 			return val;

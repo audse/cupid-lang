@@ -1,4 +1,4 @@
-use crate::{Expression, Value, Scope, Tree};
+use crate::{Expression, Value, LexicalScope, Tree};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct Block {
@@ -6,11 +6,10 @@ pub struct Block {
 }
 
 impl Tree for Block {
-	fn resolve(&self, scope: &mut Scope) -> Value {
-		let mut inner_scope = scope.make_sub_scope();
+	fn resolve(&self, scope: &mut LexicalScope) -> Value {
 		let mut result = Value::None;
 		for exp in &self.expressions {
-			result = exp.resolve(&mut inner_scope);
+			result = exp.resolve(scope);
 			if result.is_poisoned() {
 				return result;
 			}
@@ -28,7 +27,7 @@ pub struct IfBlock {
 }
 
 impl Tree for IfBlock {
-	fn resolve(&self, scope: &mut Scope) -> Value {
+	fn resolve(&self, scope: &mut LexicalScope) -> Value {
 		let condition = self.condition.resolve(scope);
 		match condition {
 			Value::Boolean(b) => if b {

@@ -1,4 +1,5 @@
 // #![feature(test)]
+#![feature(box_into_inner)]
 
 // External
 #[allow(unused_imports)]

@@ -1,3 +1,5 @@
+use std::fmt::{Display, Formatter, Result};
+
 pub struct Tokenizer {
 	pub source: String,
 	pub index: usize,
@@ -57,7 +59,7 @@ impl Tokenizer {
 			}
 			self.advance();
 		}
-		
+		// println!("{}", TokenList(self.tokens.clone()));
 		self.add_token(String::from("EOF"));
 	}
 	fn line_comment(&mut self) {
@@ -86,11 +88,40 @@ impl Tokenizer {
 	}
 	fn tag(&mut self, start_char: char) {
 		let mut source = start_char.to_string();
+		
+		// tags can be either <e 'message'> or <w 'message'>
+		// error or warning
+		if let Some(c) = self.peek(1) {
+			if *c == 'e' || *c == 'w' {
+				source.push(*self.advance());
+			} else {
+				self.add_token(source);
+				return 
+			}
+		}
+		
 		while let Some(c) = self.peek(1) {
 			if *c == '>' || self.is_done() { break; }
 			source.push(*self.advance()); 
 		}
 		source.push(*self.advance()); 
 		self.add_token(source);
+	}
+}
+
+impl Display for Token {
+	fn fmt(&self, f: &mut Formatter) -> Result {
+		writeln!(f, "Token `{}` ({}:{})", self.source, self.line, self.index)
+	}
+}
+
+pub struct TokenList(Vec<Token>);
+
+impl Display for TokenList {
+	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+		_ = write!(f, "Tokens:\n");
+    	self.0.iter().for_each(|t| { _ = write!(f, "{}", t); });
+		_ = write!(f, "\n");
+		Ok(())
 	}
 }

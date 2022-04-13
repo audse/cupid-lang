@@ -1,4 +1,5 @@
 use std::fmt::{Display, Formatter, Result};
+use std::collections::HashMap;
 use crate::*;
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
@@ -14,12 +15,12 @@ pub enum Expression {
     Function(Function),
     FunctionCall(FunctionCall),
     Logger(Logger),
+    Map(Map),
+    PropertyAccess(PropertyAccess),
+    PropertyAssign(PropertyAssign),
     Empty,
-}
-
-pub struct Exp {
-    pub exp: Expression,
-    pub errors: Vec<Expression>
+    WhileLoop(WhileLoop),
+    ForInLoop(ForInLoop),
 }
 
 impl Display for Expression {
@@ -36,11 +37,8 @@ impl Expression {
         Self::Node(Node { value, tokens, })
     }
     pub fn new_string_node(string: String, tokens: Vec<Token>) -> Self {
-		// let string_slice = if string.len() > 1 {
-		// 	string[1..string.len() - 1].to_string()
-		// } else { string };
         if string.len() > 1 {
-            if let Some(first) = string.chars().nth(0) {
+            if let Some(first) = string.chars().next() {
                 if first == '"' || first == '\'' {
                     let mut new_string = string.clone();
                     new_string.remove(0);
@@ -68,7 +66,7 @@ impl Expression {
     }
 	pub fn new_symbol(identifier: Expression) -> Self {
         let (identifier, tokens) = Expression::to_value(identifier);
-		Self::Symbol(Symbol(identifier, tokens))
+		Self::Symbol(Symbol(identifier, tokens, Scope::new(None)))
 	}
     pub fn new_assign(operator: Token, symbol: Expression, value: Expression) -> Self {
         Self::Assign(Assign {
@@ -109,6 +107,45 @@ impl Expression {
 			args: Args(args),
 		})
 	}
+    pub fn new_map(entries: Vec<(Expression, (usize, Expression))>, token: Token, r#type: Type) -> Self {
+        Self::Map(Map {
+            entries: HashMap::from_iter(entries.into_iter()),
+            token,
+            r#type,
+        })
+    }
+    pub fn new_property_access(map: Expression, term: Expression, token: Token) -> Self {
+        Self::PropertyAccess(PropertyAccess {
+            map: Box::new(map),
+            term: Box::new(term),
+            operator: token
+        })
+    }
+    pub fn new_property_assign(access: Expression, value: Expression, token: Token) -> Self {
+        if let Expression::PropertyAccess(access) = access {
+            return Self::PropertyAssign(PropertyAssign {
+                access,
+                value: Box::new(value),
+                operator: token
+            });
+        }
+        unreachable!()
+    }
+    pub fn new_while_loop(condition: Expression, body: Expression, token: Token) -> Self {
+        Self::WhileLoop(WhileLoop {
+            body: Self::to_block(body),
+            condition: Box::new(condition),
+            token
+        })
+    }
+    pub fn new_for_in_loop(params: Vec<Symbol>, map: Expression, body: Expression, token: Token) -> Self {
+        Self::ForInLoop(ForInLoop {
+            params,
+            map: Box::new(map),
+            body: Self::to_block(body),
+            token
+        })
+    }
 	pub fn to_symbol(expression: Self) -> Symbol {
 		if let Expression::Symbol(symbol) = expression {
 			symbol
@@ -123,23 +160,27 @@ impl Expression {
 			panic!("Expression is not a node: {:?}", expression) 
 		}
 	}
-	pub fn to_block(expression: Self) -> Block {
-		if let Expression::Block(Block { expressions }) = expression {
-			Block { expressions }
-		} else {
-			panic!("Expected a block, got: {:?}", expression)
-		}
-	}
-    pub fn resolve_file(&self, scope: &mut Scope) -> Vec<Value> {
-        match self {
-            Self::File(x) => x.iter().map(|y| y.resolve(scope)).collect(),
-            _ => vec![Value::None]
+    pub fn to_block(expression: Self) -> Block {
+        if let Expression::Block(block) = expression {
+            block
+        } else {
+            panic!("Expected a block, got: {:?}", expression)
         }
+    }
+    pub fn resolve_file(&self, scope: &mut LexicalScope) -> Vec<Value> {
+        if let Expression::File(file) = self {
+            let mut values = vec![];
+            for exp in file {
+                values.push(exp.resolve(scope))
+            }
+            return values;
+        }
+        vec![]
     }
 }
 
 impl Tree for Expression {
-    fn resolve(&self, scope: &mut Scope) -> Value {
+    fn resolve(&self, scope: &mut LexicalScope) -> Value {
         match self {
             Self::Node(n) => n.resolve(scope),
             Self::Operator(o) => o.resolve(scope),
@@ -150,8 +191,19 @@ impl Tree for Expression {
             Self::IfBlock(b) => b.resolve(scope),
             Self::Function(b) => b.resolve(scope),
             Self::FunctionCall(b) => b.resolve(scope),
-            Self::File(x) => x.iter().map(|y| y.resolve(scope)).last().unwrap_or(Value::None),
+            Self::File(x) => {
+                let mut values = vec![];
+                for exp in x {
+                    values.push(exp.resolve(scope))
+                }
+                values.pop().unwrap_or(Value::None)
+            },
             Self::Logger(x) => x.resolve(scope),
+            Self::Map(x) => x.resolve(scope),
+            Self::PropertyAccess(x) => x.resolve(scope),
+            Self::PropertyAssign(x) => x.resolve(scope),
+            Self::WhileLoop(x) => x.resolve(scope),
+            Self::ForInLoop(x) => x.resolve(scope),
             _ => Value::None,
         }
     }

@@ -31,19 +31,21 @@
 
 ## Loops
 
-- [ ] While loop
-- [ ] For..in loop
+- [x] While loop
+- [x] For..in loop
 - [ ] Indeterminate loop
 - [ ] Break
+- [ ] Named loops
 
 ## Data structures
 
-- [ ] Array
-- [ ] Dictionary
-- [ ] Tuples
+- [x] Array
+- [x] Dictionary
+- [ ] Tuples (keywords)
 - [ ] Range
-- [ ] Property access
+- [x] Property access
 - [ ] Property assignment
+- [ ] Lightweight array that isn't a map
 
 ## Features
 
@@ -52,6 +54,11 @@
 - [ ] Array slices using range syntax e.g. `my_array[0..5]`
   - [ ] Include negative numbers
 - [ ] Rust-like iterator features
+- [ ] Modules/import/export
+
+## Standard library
+
+- [ ] Random
 
 ## Meta
 
@@ -62,3 +69,8 @@
 - [ ] LSP
 - [ ] Optimization
   - [ ] `String` to `Cow`
+- [ ] Command line tools
+  - [ ] Testing
+  - [ ] Running files
+    - [ ] "cupid play my_file.cupid"
+  - [ ] Package manager??

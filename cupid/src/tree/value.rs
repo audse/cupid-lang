@@ -1,4 +1,6 @@
 use std::fmt::{Display, Formatter, Result};
+use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
 use crate::{Symbol, Expression, Error, Token};
 
 
@@ -9,6 +11,9 @@ pub enum Type {
 	Boolean,
 	String,
 	Function,
+	Dictionary,
+	List,
+	Tuple,
 	Error,
 	None,
 }
@@ -21,6 +26,9 @@ impl Type {
 			Value::String(_) => Self::String,
 			Value::Boolean(_) => Self::Boolean,
 			Value::FunctionBody(_, _) => Self::Function,
+			Value::Dictionary(_) => Self::Dictionary,
+			Value::List(_) => Self::List,
+			Value::Tuple(_) => Self::Tuple,
 			Value::Error(_) => Self::Error,
 			_ => Self::None
 		}
@@ -41,16 +49,52 @@ impl Display for Type {
 	}
 }
 
-#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Value {
 	Integer(i32),
 	Decimal(i32, u32),
 	String(String),
 	Boolean(bool),
 	FunctionBody(Vec<Symbol>, Box<Expression>),
+	Dictionary(HashMap<Value, (usize, Value)>),
+	List(HashMap<Value, (usize, Value)>),
+	Tuple(HashMap<Value, (usize, Value)>),
 	Error(Error),
 	None,
 }
+
+impl Hash for Value {
+	fn hash<H: Hasher>(&self, state: &mut H) {
+		match self {
+			Value::Integer(x) => x.hash(state),
+			Value::String(x) => x.hash(state),
+			Value::Boolean(x) => x.hash(state),
+			Value::Error(x) => x.hash(state),
+			Value::Decimal(x, y) => {
+				x.hash(state);
+				y.hash(state);
+			},
+			Value::FunctionBody(x, y) => {
+				x.hash(state);
+				y.hash(state);
+			},
+			Value::None => (),
+			Value::Dictionary(x)
+			| Value::List(x)
+			| Value::Tuple(x) => for entry in x.iter() {
+				entry.hash(state)
+			},
+		}
+	}
+}
+
+// impl PartialEq for Value {
+// 	fn eq(&self, other: &Self) -> bool {
+// 		self == other
+// 	}
+// }
+// impl Eq for Value {}
+
 
 macro_rules! op {
 	($left:tt $op:tt $right:tt) => { $left $op $right };
@@ -77,10 +121,7 @@ impl Value {
 		Value::Error(Error::from_token(token, &message.into()))
 	}
 	pub fn is_poisoned(&self) -> bool {
-		match self {
-			Value::Error(_) => true,
-			_ => false
-		}
+		matches!(self, Value::Error(_))
 	}
 	pub fn add(&self, other: Self, operator: &Token) -> Value {
 		match (self, other) {
@@ -172,6 +213,26 @@ impl Value {
 			(x, y) => Value::error(operator, format!("Cannot compare {:?} and {:?}", x, y))
 		}
 	}
+	pub fn sort_by_index(&self) -> Vec<(usize, &Value)> {
+		match self {
+			Self::List(l)
+			| Self::Tuple(l) => {
+				let mut vec: Vec<(usize, &Value)> = l
+					.iter()
+					.map(|(key, (_, value))| {
+						if let Value::Integer(i) = key {
+							(*i as usize, value)
+						} else {
+							(0, value)
+						}
+					})
+					.collect();
+				vec.sort_by(|a, b| a.0.cmp(&b.0));
+				vec
+			},
+			_ => unreachable!()
+		}
+	}
 }
 
 impl Display for Value {
@@ -179,8 +240,29 @@ impl Display for Value {
 		match self {
 			Self::Integer(v) => write!(f, "{}", v),
 			Self::Decimal(v, w) => write!(f, "{}.{}", v, w),
-			Self::Error(e) => write!(f, "{}", e),
+			Self::Error(e) => write!(f, "{}", e), // TODO change this
 			Self::String(s) => write!(f, "{}", s),
+			Self::Dictionary(d) => {
+				_ = writeln!(f, "[");
+				for (key, (_, val)) in d.iter() {
+					_ = writeln!(f, "  {}: {}", key, val);
+				}
+				_ = writeln!(f, "]");
+				Ok(())
+			},
+			Self::List(l) => {
+				_ = write!(f, "[");
+				let vec = self.sort_by_index();
+				for (i, val) in vec {
+					if i != l.len() - 1 {
+						_ = write!(f, "{}, ", val);
+					} else {
+						_ = write!(f, "{}", val);
+					}
+				}
+				_ = write!(f, "]");
+				Ok(())
+			},
 			v => write!(f, "{:?}", v)
 		}
 	}

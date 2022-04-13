@@ -79,11 +79,20 @@
         <scope name="cupid.string">
             <expression>\"[^\"]*\"</expression>
         </scope>
+        <scope name="cupid.string">
+            <expression>\'[^\']*\'</expression>
+        </scope>
         
        
-        <scope name="cupid.storage.type">
+        <scope name="cupid.keyword.storage.type">
             <strings>
+                <string>int</string>
+                <string>dec</string>
                 <string>fun</string>
+                <string>boo</string>
+                <string>str</string>
+                <string>list</string>
+                <string>dict</string>
             </strings>
         </scope>
         

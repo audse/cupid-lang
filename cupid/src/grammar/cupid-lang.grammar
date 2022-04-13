@@ -8,8 +8,8 @@
 	| declaration
 	| symbol_declaration
 	| function
+	| property_assignment
 	| assignment
-	| operation
 	| term
 
 -~loop:
@@ -17,9 +17,9 @@
 	| while_loop
 	| infinite_loop
 
-- for_loop: ~'for' identifier ~'in' term block
-- while_loop: ~'while' expression_item block
-- infinite_loop: ~'loop' block
+- for_loop: 'for' parameters ~'in' term block
+- while_loop: 'while' expression_item block
+- infinite_loop: 'loop' block
 
 - block: 
 	if_block
@@ -35,6 +35,7 @@
 - declaration: symbol_declaration ~equal expression_item
 - symbol_declaration: keyword_variable 'mut'? identifier
 - assignment: identifier equal expression
+- property_assignment: property_access equal expression
 
 -~typed_declaration:
 	boolean_declaration
@@ -42,19 +43,29 @@
 	| decimal_declaration
 	| string_declaration
 	| function_declaration
+	| list_declaration
+	| dictionary_declaration
 
 - boolean_declaration: ~'boo' 'mut'? identifier (~'=' expression)?
 - integer_declaration: ~'int' 'mut'? identifier (~'=' expression)?
 - decimal_declaration: ~'dec' 'mut'? identifier (~'=' expression)?
 - string_declaration: ~'str' 'mut'? identifier (~'=' expression)?
 - function_declaration: ~'fun' 'mut'? identifier (~'=' expression)?
+- list_declaration: ~'list' 'mut'? identifier (~'=' expression)?
+- dictionary_declaration: ~'dict' 'mut'? identifier (~'=' expression)?
 
 -~equal: '=' !'>'
 
 -~term:
-	group
-	| log
+	log
 	| function_call
+	| property_access
+	| operation
+
+-~value:
+	group
+	| list
+	| dictionary
 	| boolean
 	| none
 	| string
@@ -73,12 +84,34 @@
 
 -~log_keyword: 'log' | 'logs' | 'log_line' | 'logs_line'
 
+- list: '[' (expression_item ',')* ']'
+- dictionary: '[' (dictionary_entry ',')* ']'
+- dictionary_entry: term ':' expression_item
+
+- property_access: value '.' require_property
+-~require_property: term | <e 'missing index or property name'>
+
 -~operation:
 	binary_op
 	| unary_op
+
+-~binary_op: compare_op
+
+- compare_op:
+	add keyword_operator compare_op
+	| add
 	
-- binary_op: term binary_operator require_expression
--~binary_operator: '+' | '-' | '*' | '/' | keyword_operator
+- add: 
+	multiply '+' add
+	| multiply '-' add
+	| multiply
+- multiply: 
+	exponent '*' multiply
+	| exponent '/' multiply
+	| exponent
+- exponent:
+	value '^' exponent
+	| value
 
 - unary_op: unary_operator require_expression
 -~unary_operator: '+' | '-'
@@ -94,6 +127,7 @@
 -~require_expression: expression_item | <e 'missing expression'>
 -~closing_paren: ~')' | <e 'missing closing parenthesis'>
 -~closing_brace: ~'}' | <e 'missing closing brace'>
+-~closing_bracket: ~']' | <e 'missing closing bracket'>
 
 -~keyword:
 	keyword_variable
@@ -127,7 +161,7 @@
 	'break'
 	| 'return'
 
--arrow: ~'=' ~'>'
+- arrow: ~'=' ~'>'
 
 - type:
 	none

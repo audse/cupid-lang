@@ -5,11 +5,14 @@ pub use assignment::*;
 mod block;
 pub use block::*;
 
+mod expression;
+pub use expression::*;
+
 mod function;
 pub use function::*;
 
-mod expression;
-pub use expression::*;
+mod r#loop;
+pub use r#loop::*;
 
 mod node;
 pub use node::*;
@@ -19,6 +22,9 @@ pub use operation::*;
 
 mod scope;
 pub use scope::*;
+
+mod structure;
+pub use structure::*;
 
 mod symbol;
 pub use symbol::*;
