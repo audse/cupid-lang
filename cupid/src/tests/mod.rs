@@ -4,19 +4,19 @@ use super::*;
 #[allow(dead_code)]
 pub fn test(input: &str, expected: Value) -> bool {
 	let mut parser = CupidParser::new(input.to_string());
-	// let parse_tree = parser._expression(None);
-	// println!("Parse Tree: {:#?}", parse_tree);
-	// 
-	// let semantics = to_tree(&parse_tree.unwrap().0);
-	// println!("Semantics: {:#?}", semantics);
-	// 
-	// let mut scope = LexicalScope { scopes: vec![] };
-	// scope.add();
-	// let result = semantics.resolve(&mut scope);
-	// println!("Result: {:#?}", result);
-	// 
-	// result.is_equal(&expected)	
-	false
+	let parse_tree = parser._expression(None);
+	println!("Parse Tree: {:#?}", parse_tree);
+	
+	let semantics = to_tree(&parse_tree.unwrap().0);
+	println!("Semantics: {:#?}", semantics);
+	
+	let mut scope = LexicalScope { scopes: vec![] };
+	scope.add();
+	use_builtin_types(&mut scope);
+	let result = semantics.resolve(&mut scope);
+	println!("Result: {:#?}", result);
+	
+	result.is_equal(&expected)
 }
 
 #[allow(dead_code)]
@@ -46,34 +46,37 @@ pub fn test_none(input: &str) -> bool {
 
 #[test]
 fn test_assignment() {
-	assert!(test_int("let x = 1", 1));
-	assert!(test_int("let x = 10 * 10", 100));
-	assert!(test_int("let x = (10 + 1) * 2", 22));
-	assert!(test_int("let x = 1", 1));
-	assert!(test_int("const y = 2", 2));
-	assert!(test_str("const mut z = 'abc'", "abc"));
-	assert!(test_boo("boo x = true", true));
 	assert!(test_int("int x = 1", 1));
-	assert!(test_str("str x = 'abc'", "abc"));
+	assert!(test_int("int x = 10 * 10", 100));
+	assert!(test_int("int x = (10 + 1) * 2", 22));
+	assert!(test_int("int x = 1", 1));
+	assert!(test_int("int y = 2", 2));
+	assert!(test_str("string mut z = 'abc'", "abc"));
+	assert!(test_boo("bool x = true", true));
+	assert!(test_int("int x = 1", 1));
+	assert!(test_str("string x = 'abc'", "abc"));
 	assert!(test_dec("dec x = -1.5", -1.5));
 }
 
 #[test]
 fn test_arrow_block() {
-	assert!(test_int("let x ==> 10 / 10  x()", 1));
+	assert!(test_int("{
+		fun div = a, b => a / b
+		int c = div(10, 10)
+	}", 1));
 }
 
 #[test]
 fn test_brace_block() {
 	assert!(test_int("{ 
-		let x = 1 
+		int mut x = 1 
 		x = x + 1 
 		x * 10 
 	}", 20));
 	assert!(test_str("{ 
-		let x = 'abc'
-		let y = 'xyz'
-		let z = x + y 
+		string x = 'abc'
+		string y = 'xyz'
+		string z = x + y 
 	}", "abcxyz"));
 }
 
@@ -88,7 +91,7 @@ fn test_if_block() {
 #[test]
 fn test_function() {
 	assert!(test_int("{
-		let x = a => a + 1 
+		fun x = a => a + 1 
 		x(100)
 	}", 101));
 }

@@ -119,9 +119,9 @@ pub struct TokenList(Vec<Token>);
 
 impl Display for TokenList {
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-		_ = write!(f, "Tokens:\n");
+		_ = writeln!(f, "Tokens:");
     	self.0.iter().for_each(|t| { _ = write!(f, "{}", t); });
-		_ = write!(f, "\n");
+		_ = writeln!(f);
 		Ok(())
 	}
 }

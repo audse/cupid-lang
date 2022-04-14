@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
-use std::collections::hash_map::Entry::Occupied;
-use crate::{Expression, Tree, Value, LexicalScope, Scope, Type, Token, Symbol};
+use crate::{Expression, Tree, Value, LexicalScope, Type, Token};
 
 #[derive(Debug, Clone)]
 pub struct Map {
@@ -11,16 +10,16 @@ pub struct Map {
 }
 
 impl Map {
+	pub fn error(&self, message: String) -> Value {
+		Value::error(&self.token, message)
+	}
 	pub fn unexpected_type_error(&self) -> Value {
-		Value::error(
-			&self.token,
-			format!("expected a dictionary, list, or tuple, not {}", self.r#type)
-		)
+		self.error(format!("expected a dictionary, list, or tuple, not {}", self.r#type))
 	}
 	pub fn unexpected_error(value: &Value, token: &Token) -> Value {
 		Value::error(
 			token, 
-			format!("expected a dictionary, list, or tuple, not {}", Type::from_value(value))
+			format!("expected a dictionary, list, or tuple, not {}", Type::from(value))
 		)
 	}
 	pub fn no_property_error(key: &Value, token: &Token) -> Value {
@@ -35,47 +34,38 @@ impl Map {
 			format!("unable to assign {} to property `{}`", key, value)
 		)
 	}
-	// fn set_or_create_property(&mut self, symbol: &Symbol, value: Value) -> Value {
-	// 	match self.inner_scope.set_symbol(symbol, value) {
-	// 		Ok(new_value) => new_value.unwrap(),
-	// 		Err(_) => {
-	// 			self.inner_scope.create_symbol(symbol, value, self.mutable, self.deep_mutable).unwrap()
-	// 		}
-	// 	}
-	// }
-	// fn set(&mut self, scope: &mut LexicalScope, term: &Expression, new_value: &Expression, token: &Token) -> Value {
-	// 	if let Occupied(entry) = self.entries.entry(term.clone()) {
-	// 		let old_value = entry.into_mut();
-	// 		*old_value = (old_value.0, new_value.clone());
-	// 		return new_value.resolve(scope)
-	// 	}
-	// 	let term = term.resolve(scope);
-	// 	Map::no_property_error(&term, token)
-	// }
 }
 
 impl Tree for Map {
 	fn resolve(&self, scope: &mut LexicalScope) -> Value {
 		// TODO error handling
+		scope.add();
 		let mut entries: HashMap<Value, (usize, Value)> = HashMap::new();
 		for (key, (index, value)) in self.entries.iter() {
 			let value = value.resolve(scope);
 			
 			// create symbols for identifier-like keys, e.g. person.name
 			if let Expression::Symbol(symbol) = key {
-				// self.set_or_create_property(symbol, value);
-				// scope.create_symbol(symbol, value.clone(), false, false);
+				let mutable = if let Some((_, mutable)) = scope.is_mutable(symbol) {
+					mutable
+				} else { false };
+				let entry_value = Value::MapEntry(*index, Box::new(value.clone()));
+				scope.create_symbol(symbol, entry_value, mutable, mutable);
+				entries.insert(
+					symbol.identifier.clone(),
+					(*index, value)
+				);
+			} else {
+				entries.insert(
+					key.resolve(scope),
+					(*index, value)
+				);
 			}
-			entries.insert(
-				key.resolve(scope),
-				(*index, value)
-			);
 		}
-		match self.r#type {
-			Type::Dictionary => Value::Dictionary(entries),
-			Type::List => Value::List(entries),
-			Type::Tuple => Value::Tuple(entries),
-			_ => self.unexpected_type_error()
+		if self.r#type.is_map() {
+			Value::wrap_map(&self.r#type, entries)
+		} else {
+			self.unexpected_type_error()
 		}
 	}
 }
@@ -106,24 +96,25 @@ pub struct PropertyAccess {
 impl Tree for PropertyAccess {
 	fn resolve(&self, scope: &mut LexicalScope) -> Value {
 		let map = self.map.resolve(scope);
-		match map {
-			Value::Dictionary(map)
-			| Value::List(map)
-			| Value::Tuple(map) => {
-				let term = self.term.resolve(scope);
-				let value = if let Some((_, value)) = map.get(&term) {
-					value.clone()
-				} else {
-					Map::no_property_error(&term, &self.operator)
-				};
-				// remove the scope added by accessing the map
-				// scope.pop();
-				value
-			},
-			_ => {
-				let term = self.term.resolve(scope);
-				Map::unexpected_error(&term, &self.operator)
+		if let Some(value) = map.inner_map() {
+			let mut token: &Token = &self.operator;
+			let property_term = if let Expression::Symbol(property_symbol) = &*self.term {
+				token = &property_symbol.token;
+				property_symbol.identifier.clone()
+			} else {
+				self.term.resolve(scope)
+			};
+			if let Some((_, map_value)) = value.get(&property_term) {
+				scope.pop();
+				map_value.clone()
+			} else {
+				scope.pop();
+				Map::no_property_error(&property_term, token)
 			}
+		} else {
+			let term = self.term.resolve(scope);
+			scope.pop();
+			Map::unexpected_error(&term, &self.operator)
 		}
 	}
 }
@@ -137,12 +128,37 @@ pub struct PropertyAssign {
 
 impl Tree for PropertyAssign {
 	fn resolve(&self, scope: &mut LexicalScope) -> Value {
-		let map = &self.access.map.resolve(scope);
-		
-		
-		// if let Expression::Map(mut map) = Box::into_inner(map_exp.clone()) {
-		// 	return map.set(scope, &*self.access.term, &*self.value, &self.operator)
-		// }
-		Map::unexpected_error(&map, &self.operator)
+		scope.add();
+		if let Expression::Symbol(map_symbol) = &*self.access.map {
+			let new_value = self.value.resolve(scope);
+			let map = &self.access.map.resolve(scope);
+			let property = &self.access.term;
+			let property_term = if let Expression::Symbol(property_symbol) = &**property {
+				property_symbol.identifier.clone()
+			} else {
+				property.resolve(scope)
+			};
+			
+			if let Some(original_hashmap) = map.inner_map() {
+				let mut new_hashmap = original_hashmap.clone();
+				new_hashmap.entry(property_term.clone()).and_modify(|e| e.1 = new_value);
+				
+				match scope.set_symbol(map_symbol, Value::wrap_map(&Type::from(map), new_hashmap)) {
+					Ok(ok_val) => if let Some(val) = ok_val {
+						scope.pop();
+						return val
+					},
+					Err(err_val) => {
+						scope.pop();
+						return err_val
+					}
+				}
+			} else {
+				scope.pop();
+				return Map::unexpected_error(map, &self.operator)
+			}
+		}
+		scope.pop();
+		Map::unexpected_error(&self.access.map.resolve(scope), &self.operator)
 	}
 }

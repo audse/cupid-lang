@@ -1,6 +1,5 @@
 use std::fmt::{Display, Formatter, Result};
-use crate::{Token, CupidParser, to_tree, LexicalScope, Value};
-use colored::*;
+use crate::*;
 
 pub struct FileHandler {
     pub path: String,
@@ -19,6 +18,7 @@ impl FileHandler {
         let parser = CupidParser::new(contents.clone());
         let mut scope = LexicalScope { scopes: vec![] };
         scope.add();
+        use_builtin_types(&mut scope);
         
         Self {
             path: path.to_string(),
@@ -127,6 +127,7 @@ impl FileHandler {
         println!("\n{}\n", vec!["-"; 60].join(""));
     }
 }
+
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct Error {

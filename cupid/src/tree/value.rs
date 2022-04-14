@@ -1,53 +1,8 @@
 use std::fmt::{Display, Formatter, Result};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
-use crate::{Symbol, Expression, Error, Token};
+use crate::{Symbol, Expression, Error, Token, Type, DICTIONARY, LIST, TUPLE};
 
-
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
-pub enum Type {
-	Integer,
-	Decimal,
-	Boolean,
-	String,
-	Function,
-	Dictionary,
-	List,
-	Tuple,
-	Error,
-	None,
-}
-
-impl Type {
-	pub fn from_value(val: &Value) -> Self {
-		match val {
-			Value::Integer(_) => Self::Integer,
-			Value::Decimal(_, _) => Self::Decimal,
-			Value::String(_) => Self::String,
-			Value::Boolean(_) => Self::Boolean,
-			Value::FunctionBody(_, _) => Self::Function,
-			Value::Dictionary(_) => Self::Dictionary,
-			Value::List(_) => Self::List,
-			Value::Tuple(_) => Self::Tuple,
-			Value::Error(_) => Self::Error,
-			_ => Self::None
-		}
-	}
-}
-
-impl Display for Type {
-	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-    	match self {
-			Type::Integer => write!(f, "integer"),
-			Type::Decimal => write!(f, "decimal"),
-			Type::Boolean => write!(f, "boolean"),
-			Type::String => write!(f, "string"),
-			Type::Function => write!(f, "function"),
-			Type::None => write!(f, "none"),
-			_ => write!(f, "unknown type"),
-		}
-	}
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Value {
@@ -59,7 +14,9 @@ pub enum Value {
 	Dictionary(HashMap<Value, (usize, Value)>),
 	List(HashMap<Value, (usize, Value)>),
 	Tuple(HashMap<Value, (usize, Value)>),
+	MapEntry(usize, Box<Value>),
 	Error(Error),
+	Type(Type),
 	None,
 }
 
@@ -84,16 +41,14 @@ impl Hash for Value {
 			| Value::Tuple(x) => for entry in x.iter() {
 				entry.hash(state)
 			},
+			Value::MapEntry(x, y) => {
+				x.hash(state);
+				y.hash(state);
+			},
+			Value::Type(x) => x.hash(state),
 		}
 	}
 }
-
-// impl PartialEq for Value {
-// 	fn eq(&self, other: &Self) -> bool {
-// 		self == other
-// 	}
-// }
-// impl Eq for Value {}
 
 
 macro_rules! op {
@@ -119,6 +74,25 @@ pub fn float_to_dec(float: f64) -> Value {
 impl Value {
 	pub fn error<S>(token: &Token, message: S) -> Value where S: Into<String> {
 		Value::Error(Error::from_token(token, &message.into()))
+	}
+	pub fn inner_map(&self) -> Option<&HashMap<Value, (usize, Value)>> {
+		match &self {
+			Self::Dictionary(m)
+			| Self::List(m) 
+			| Self::Tuple(m) => Some(m),
+			_ => None
+		}
+	}
+	pub fn wrap_map(map_type: &Type, map: HashMap<Value, (usize, Value)>) -> Self {
+		if map_type == &DICTIONARY {
+			Value::Dictionary(map)
+		} else if map_type == &LIST {
+			Value::List(map)
+		} else if map_type == &TUPLE {
+			Value::Tuple(map)
+		} else {
+			Value::Dictionary(map)
+		}
 	}
 	pub fn is_poisoned(&self) -> bool {
 		matches!(self, Value::Error(_))
@@ -243,13 +217,14 @@ impl Display for Value {
 			Self::Error(e) => write!(f, "{}", e), // TODO change this
 			Self::String(s) => write!(f, "{}", s),
 			Self::Dictionary(d) => {
-				_ = writeln!(f, "[");
+				_ = write!(f, "[ ");
 				for (key, (_, val)) in d.iter() {
-					_ = writeln!(f, "  {}: {}", key, val);
+					_ = write!(f, "{}: {}, ", key, val);
 				}
-				_ = writeln!(f, "]");
+				_ = write!(f, "]");
 				Ok(())
 			},
+			Self::MapEntry(_, v) => write!(f, "{}", v),
 			Self::List(l) => {
 				_ = write!(f, "[");
 				let vec = self.sort_by_index();

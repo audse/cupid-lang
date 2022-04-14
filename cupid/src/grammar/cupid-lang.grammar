@@ -4,9 +4,10 @@
 -~expression_item:
 	loop
 	| block
-	| typed_declaration
+	| type_definition
 	| declaration
 	| symbol_declaration
+	| typed_declaration
 	| function
 	| property_assignment
 	| assignment
@@ -37,22 +38,10 @@
 - assignment: identifier equal expression
 - property_assignment: property_access equal expression
 
--~typed_declaration:
-	boolean_declaration
-	| integer_declaration
-	| decimal_declaration
-	| string_declaration
-	| function_declaration
-	| list_declaration
-	| dictionary_declaration
+- type_definition: 'type' identifier ~'[' (type_field ',')* closing_bracket
+- type_field: type identifier | identifier identifier
 
-- boolean_declaration: ~'boo' 'mut'? identifier (~'=' expression)?
-- integer_declaration: ~'int' 'mut'? identifier (~'=' expression)?
-- decimal_declaration: ~'dec' 'mut'? identifier (~'=' expression)?
-- string_declaration: ~'str' 'mut'? identifier (~'=' expression)?
-- function_declaration: ~'fun' 'mut'? identifier (~'=' expression)?
-- list_declaration: ~'list' 'mut'? identifier (~'=' expression)?
-- dictionary_declaration: ~'dict' 'mut'? identifier (~'=' expression)?
+- typed_declaration: WORD 'mut'? identifier (~equal expression)?
 
 -~equal: '=' !'>'
 

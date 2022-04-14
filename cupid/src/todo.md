@@ -6,7 +6,18 @@
 - [x] Assignment
 - [x] Immutable
 - [ ] Deep immutable
-- [ ] Assignment type checking
+- [x] Assignment type checking
+- [ ] Deep assignment type checking
+- [ ] Rework grammar
+
+## Type system
+
+- [ ] Type declaration
+  - [x] Dictionary-style
+  - [ ] List-style
+- [ ] Enums
+- [ ] Struct declaration/impl?
+- [ ] Maybe types
 
 ## Operators
 
@@ -22,6 +33,9 @@
 - [ ] Closed scope
 - [ ] Return statement
 - [ ] Keyword args
+- [ ] Type hints
+- [ ] Callbacks
+- [ ] Default values
 
 ## Blocks
 
@@ -46,6 +60,16 @@
 - [x] Property access
 - [ ] Property assignment
 - [ ] Lightweight array that isn't a map
+- [ ] Add/remove properties
+
+## Scoping
+
+- [ ] Named scopes
+- [ ] Simple block scopes `{ # can access outer scope }`
+- [ ] Boxed scopes `box { # cannot access outer scope }`
+- [ ] Break statements
+  - [ ] `break (return_value)`
+  - [ ] `break identifier(return_value)`
 
 ## Features
 
@@ -53,24 +77,34 @@
 - [ ] Pattern matching
 - [ ] Array slices using range syntax e.g. `my_array[0..5]`
   - [ ] Include negative numbers
-- [ ] Rust-like iterator features
-- [ ] Modules/import/export
+- [ ] Variable shadowing
 
 ## Standard library
 
 - [ ] Random
+- [ ] Rust-like iterators
 
 ## Meta
 
 - [ ] Benchmarking performance
-- [ ] Error handling: create error nodes in tree
-  - [ ] A node is "poisoned" if it has an error- all other nodes that interact
-        with that node are poisoned as well
-- [ ] LSP
 - [ ] Optimization
   - [ ] `String` to `Cow`
+
+### Error handling
+
+- [ ] Differentiate between errors and warnings
+- [ ] Report errors before compiling
+
+## Ideas the future
+
+- [ ] Module import & export
+- [ ] Language server
 - [ ] Command line tools
   - [ ] Testing
-  - [ ] Running files
-    - [ ] "cupid play my_file.cupid"
-  - [ ] Package manager??
+  - [ ] Running files `cupid play my_file.cupid`
+  - [ ] Package manager
+- [ ] Formatter
+- [ ] Linter
+- [ ] Vscode extension
+- [ ] Nova extension?
+- [ ] Online playground

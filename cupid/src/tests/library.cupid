@@ -1,0 +1,4 @@
+type iterator [
+	list items,
+	fun next
+]

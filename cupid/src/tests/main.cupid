@@ -77,18 +77,36 @@ let concat = for s in strings => {
 }
 
 log (concat)
-
 ***
 
-let my_dict = [
+dict mut my_dict = [
 	a: 1,
 	b: 2,
 	c: 3,
 	d: 4,
 ]
-# log (my_dict.a)
 
 my_dict.a = 10
 
-log (my_dict)
-# log (my_dict.a)
+type person [
+	string first,
+	string last,
+	int age,
+	fun get_name,
+]
+
+person jacob = [
+	first: "jacob",
+	last: "aldred",
+	age: 24,
+	get_name: f, l => f + ' ' + l
+]
+
+log (jacob)
+
+fun full_name = jacob.get_name
+string name = full_name(jacob.first, jacob.last)
+
+log (name)
+
+# log (full_name)

@@ -21,6 +21,7 @@ pub enum Expression {
     Empty,
     WhileLoop(WhileLoop),
     ForInLoop(ForInLoop),
+    DefineType(DefineType),
 }
 
 impl Display for Expression {
@@ -66,7 +67,7 @@ impl Expression {
     }
 	pub fn new_symbol(identifier: Expression) -> Self {
         let (identifier, tokens) = Expression::to_value(identifier);
-		Self::Symbol(Symbol(identifier, tokens, Scope::new(None)))
+		Self::Symbol(Symbol { identifier, token: tokens[0].clone() })
 	}
     pub fn new_assign(operator: Token, symbol: Expression, value: Expression) -> Self {
         Self::Assign(Assign {
@@ -75,7 +76,7 @@ impl Expression {
             value: Box::new(value),
         })
     }
-    pub fn new_declare(symbol: Expression, r#type: Type, mutable: bool, deep_mutable: bool, value: Expression) -> Self {
+    pub fn new_declare(symbol: Expression, r#type: TypeSymbol, mutable: bool, deep_mutable: bool, value: Expression) -> Self {
         Self::Declare(Declare {
             symbol: Expression::to_symbol(symbol),
             value: Box::new(value),
@@ -146,6 +147,9 @@ impl Expression {
             token
         })
     }
+    pub fn new_define_type(token: Token, type_value: Type) -> Self {
+        Expression::DefineType(DefineType { token, type_value })
+    }
 	pub fn to_symbol(expression: Self) -> Symbol {
 		if let Expression::Symbol(symbol) = expression {
 			symbol
@@ -204,6 +208,7 @@ impl Tree for Expression {
             Self::PropertyAssign(x) => x.resolve(scope),
             Self::WhileLoop(x) => x.resolve(scope),
             Self::ForInLoop(x) => x.resolve(scope),
+            Self::DefineType(x) => x.resolve(scope),
             _ => Value::None,
         }
     }

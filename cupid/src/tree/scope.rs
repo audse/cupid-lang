@@ -1,7 +1,7 @@
 use std::collections::HashMap;
-use crate::{Symbol, Value, Type};
+use crate::{Symbol, Value, Type, TypeSymbol, Token};
 
-
+#[derive(Debug, Clone)]
 pub struct LexicalScope {
 	pub scopes: Vec<Scope>
 }
@@ -14,12 +14,7 @@ impl LexicalScope {
 		self.scopes.last_mut()
 	}
 	pub fn add(&mut self) -> &Scope {
-		let scope;
-		if let Some(last) = self.last_mut() {
-			scope = last.make_sub_scope();
-		} else {
-			scope = Scope::new(None)
-		}
+		let scope = Scope::new();
 		self.scopes.push(scope);
 		self.last().unwrap()
 	}
@@ -34,13 +29,25 @@ impl LexicalScope {
 		}
 		None
 	}
+	pub fn get_definition(&self, symbol: &TypeSymbol) -> Option<Type> {
+		for scope in self.scopes.iter().rev() {
+			if let Some(stored_type) = scope.get_definition(symbol) {
+				return Some(stored_type);
+			}
+		}
+		None
+	}
+	pub fn is_mutable(&self, symbol: &Symbol) -> Option<(bool, bool)> {
+		for scope in self.scopes.iter().rev() {
+			if let Some((mutable, deep_mutable)) = scope.is_mutable(symbol) {
+				return Some((mutable, deep_mutable));
+			}
+		}
+		None
+	}
 	pub fn set_symbol(&mut self, symbol: &Symbol, value: Value) -> Result<Option<Value>, Value> {
 		let current_scope = self.scopes.iter_mut().rev().find(|scope| 
-			if let Some(_) = scope.get_symbol(symbol) {
-				true
-			} else {
-				false
-			}
+			scope.get_symbol(symbol).is_some()
 		);
 		if let Some(scope) = current_scope {
 			return scope.set_symbol(symbol, value);
@@ -53,12 +60,24 @@ impl LexicalScope {
 		}
 		None
 	}
+	pub fn create_symbol_of_type(&mut self, symbol: &Symbol, value: Value, symbol_type: Type, mutable: bool, deep_mutable: bool) -> Option<Value> {
+		if let Some(scope) = self.last_mut() {
+			return scope.create_symbol_of_type(symbol, value, symbol_type, mutable, deep_mutable);
+		}
+		None
+	}
+	pub fn define_type(&mut self, symbol: &TypeSymbol, value: Type) -> Result<Type, Value> {
+		if let Some(scope) = self.last_mut() {
+			return scope.define_type(symbol, value);
+		}
+		Err(type_not_found_error(symbol, symbol.token.as_ref().unwrap()))
+	}
 }
 
 #[derive(Debug, Clone)]
 pub struct Scope {
 	pub storage: HashMap<Symbol, SymbolValue>,
-	pub parent: Option<Box<Scope>>,
+	pub definitions: HashMap<String, Type>,
 	pub closed: bool,
 }
 
@@ -70,12 +89,18 @@ pub struct SymbolValue {
 	pub deep_mutable: bool,
 }
 
+impl Default for Scope {
+	fn default() -> Self {
+		Self::new()
+	}
+}
+
 impl Scope {
 
-	pub fn new(parent: Option<Box<Scope>>) -> Self {
+	pub fn new() -> Self {
 		Self {
 			storage: HashMap::new(),
-			parent,
+			definitions: HashMap::new(),
 			closed: false,
 		}
 	}
@@ -84,90 +109,106 @@ impl Scope {
 		if let Some(stored_symbol) = self.storage.get(symbol) {
 			return Some(stored_symbol.value.clone());
 		}
-		// if let Some(stored_symbol) = self.get_parent_symbol(symbol) {
-		// 	return Some(stored_symbol);
-		// }
+		None
+	}
+	
+	pub fn get_definition(&self, symbol: &TypeSymbol) -> Option<Type> {
+		if let Some(stored_type) = self.definitions.get(&symbol.name.to_string()) {
+			return Some(stored_type.clone());
+		}
+		None
+	}
+	
+	pub fn is_mutable(&self, symbol: &Symbol) -> Option<(bool, bool)> {
+		if let Some(stored_symbol) = self.storage.get(symbol) {
+			return Some((stored_symbol.mutable, stored_symbol.deep_mutable));
+		}
 		None
 	}
 
 	pub fn set_symbol(&mut self, symbol: &Symbol, value: Value) -> Result<Option<Value>, Value> {
 		if let Some(stored_value) = self.storage.get_mut(symbol) {
-			if let Some(immutable_assign_error) = assign_to_immutable_error(symbol, &stored_value) {
+			if let Some(immutable_assign_error) = assign_to_immutable_error(symbol, stored_value) {
 				return Err(immutable_assign_error)
 			}
-			if let Some(type_mismatch_error) = assign_type_mismatch_error(symbol, &stored_value, &value) {
+			if let Some(type_mismatch_error) = assign_type_mismatch_error(symbol, stored_value, &value) {
 				return Err(type_mismatch_error)
 			}
 			stored_value.value = value;
 			return Ok(self.get_symbol(symbol))
 		}
-		// if let Some(closed_scope_error) = self.closed_scope_error(symbol) {
-		// 	return Err(closed_scope_error)
-		// }
 		Err(not_found_error(symbol))
-		// self.set_parent_symbol(symbol, value)
 	}
 	
 	pub fn create_symbol(&mut self, symbol: &Symbol, value: Value, mutable: bool, deep_mutable: bool) -> Option<Value> {
 		self.storage.insert(symbol.clone(), SymbolValue {
-			r#type: Type::from_value(&value),
+			r#type: Type::from(&value),
 			value, 
 			mutable, 
 			deep_mutable,
 		});
 		self.get_symbol(symbol)
 	}
-
-	// pub fn get_parent_symbol(&self, symbol: &Symbol) -> Option<Value> {
-	// 	if let Some(parent) = &self.parent {
-	// 		return parent.get_symbol(symbol);
-	// 	}
-	// 	None
-	// }
-	// 
-	// pub fn set_parent_symbol(&mut self, symbol: &Symbol, value: Value) -> Result<Option<Value>, Value> {
-	// 	if let Some(parent) = &mut self.parent {
-	// 		return parent.set_symbol(symbol, value);
-	// 	}
-	// 	Err(not_found_error(symbol))
-	// }
-
-	pub fn make_sub_scope(&mut self) -> Self {
-		Scope::new(Some(Box::new(self.clone())))
+	
+	pub fn create_symbol_of_type(&mut self, symbol: &Symbol, value: Value, symbol_type: Type, mutable: bool, deep_mutable: bool) -> Option<Value> {
+		self.storage.insert(symbol.clone(), SymbolValue {
+			r#type: symbol_type,
+			value, 
+			mutable, 
+			deep_mutable,
+		});
+		self.get_symbol(symbol)
 	}
 	
-	fn closed_scope_error(&self, symbol: &Symbol) -> Option<Value> {
-		if !self.closed {
-			if let Some(_) = &self.parent {
-				return None;
-			}
-			return Some(Value::error(
-				&symbol.1[0],
-				format!(
-					"`{symbol}` could not be found in the current scope",
-					symbol = symbol.get_identifier()
-				)
-			));
+	pub fn define_type(&mut self, symbol: &TypeSymbol, value: Type) -> Result<Type, Value> {
+		if self.definitions.contains_key(&symbol.name.to_string()) {
+			return Err(Value::error(&symbol.token.as_ref().unwrap(), format!("there is already a type called `{}`", symbol.name)));
+		}
+		self.definitions.insert(symbol.name.to_string().clone(), value);
+		return Ok(self.get_definition(symbol).unwrap());
+	}
+	
+	pub fn set_or_create_symbol(&mut self, symbol: &Symbol, value: Value, mutable: bool, deep_mutable: bool) -> Value {
+		if let Ok(new_symbol) = self.set_symbol(symbol, value.clone()) {
+			new_symbol.unwrap()
 		} else {
-			Some(Value::error(
-				&symbol.1[0],
-				format!(
-					"`{symbol}` is outside the current scope and can't be changed",
-					symbol = symbol.get_identifier()
-				)
-			))
+			let new_symbol = self.create_symbol(symbol, value, mutable, deep_mutable);
+			new_symbol.unwrap()
 		}
 	}
+	
+	// fn closed_scope_error(&self, symbol: &Symbol) -> Option<Value> {
+	// 	if !self.closed {
+	// 		if let Some(_) = &self.parent {
+	// 			return None;
+	// 		}
+	// 		return Some(Value::error(
+	// 			&symbol.1[0],
+	// 			format!(
+	// 				"`{symbol}` could not be found in the current scope",
+	// 				symbol = symbol.get_identifier()
+	// 			)
+	// 		));
+	// 	} else {
+	// 		Some(Value::error(
+	// 			&symbol.1[0],
+	// 			format!(
+	// 				"`{symbol}` is outside the current scope and can't be changed",
+	// 				symbol = symbol.get_identifier()
+	// 			)
+	// 		))
+	// 	}
+	// }
 }
 
 fn assign_type_mismatch_error(symbol: &Symbol, stored_symbol: &SymbolValue, assign_value: &Value) -> Option<Value> {
-	let assign_type = Type::from_value(assign_value);
-	let stored_type = Type::from_value(&stored_symbol.value);
+	let assign_type = Type::from(assign_value);
+	let stored_type = Type::from(&stored_symbol.value);
 	if assign_type == stored_type {
 		None
 	} else {
 		Some(Value::error(
-			&symbol.1[0],
+			&symbol.token,
 			format!(
 				"type mismatch: `{symbol}` ({stored_type}) can't be assigned `{value}` ({assign_type})",
 				assign_type = assign_type,
@@ -182,7 +223,7 @@ fn assign_type_mismatch_error(symbol: &Symbol, stored_symbol: &SymbolValue, assi
 fn assign_to_immutable_error(symbol: &Symbol, stored_value: &SymbolValue) -> Option<Value> {
 	if !stored_value.mutable {
 		return Some(Value::error(
-			&symbol.1[0],
+			&symbol.token,
 			format!(
 				"variable `{symbol}` is immutable and cannot be reassigned",
 				symbol = symbol.get_identifier(),
@@ -194,10 +235,20 @@ fn assign_to_immutable_error(symbol: &Symbol, stored_value: &SymbolValue) -> Opt
 
 fn not_found_error(symbol: &Symbol) -> Value {
 	Value::error(
-		&symbol.1[0],
+		&symbol.token,
 		format!(
 			"variable `{symbol}` is not defined",
 			symbol = symbol.get_identifier(),
+		)
+	)
+}
+
+fn type_not_found_error(symbol: &TypeSymbol, token: &Token) -> Value {
+	Value::error(
+		&token,
+		format!(
+			"type `{symbol}` is not defined",
+			symbol = symbol.name
 		)
 	)
 }

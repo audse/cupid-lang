@@ -7,6 +7,7 @@ pub struct Block {
 
 impl Tree for Block {
 	fn resolve(&self, scope: &mut LexicalScope) -> Value {
+		scope.add();
 		let mut result = Value::None;
 		for exp in &self.expressions {
 			result = exp.resolve(scope);
@@ -14,6 +15,7 @@ impl Tree for Block {
 				return result;
 			}
 		}
+		scope.pop();
 		result
 	}
 }

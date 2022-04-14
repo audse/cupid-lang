@@ -38,14 +38,14 @@ impl Tree for FunctionCall {
 		if let Some(fun) = scope.get_symbol(&self.fun) {
 			let (params, body) = match fun {
 				Value::FunctionBody(params, body) => (params, body),
-				_ => return Value::error(&self.fun.1[0], format!("`{}` is not a function", self.fun.get_identifier()))
+				_ => return Value::error(&self.fun.token, format!("`{}` is not a function", self.fun.get_identifier()))
 			};
 			FunctionCall::set_scope(scope, &params, args);
 			let val = body.resolve(scope);
 			scope.pop();
 			val
 		} else {
-			Value::error(&self.fun.1[0], format!("function `{}` is not defined", self.fun.get_identifier()))
+			Value::error(&self.fun.token, format!("function `{}` is not defined", self.fun.get_identifier()))
 		}
 	}
 }

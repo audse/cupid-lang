@@ -252,7 +252,7 @@ impl Parser {
         }
         self.reset_parse(&mut node, pos);
         loop {
-            use_item!(&mut node, self._typed_declaration(None), false);
+            use_item!(&mut node, self._type_definition(None), false);
 
             return Some((node, true));
         }
@@ -265,6 +265,12 @@ impl Parser {
         self.reset_parse(&mut node, pos);
         loop {
             use_item!(&mut node, self._symbol_declaration(None), false);
+
+            return Some((node, true));
+        }
+        self.reset_parse(&mut node, pos);
+        loop {
+            use_item!(&mut node, self._typed_declaration(None), false);
 
             return Some((node, true));
         }
@@ -584,6 +590,55 @@ impl Parser {
         None
     }
 
+    pub fn _type_definition(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
+        let start_pos = self.tokens.index();
+        let pos = start_pos;
+        let mut node = Node {
+            name: "type_definition".to_string(),
+            tokens: vec![],
+            children: vec![],
+        };
+        loop {
+            use_item!(&mut node, self.expect("type".to_string()), false);
+            use_item!(&mut node, self._identifier(None), false);
+            use_item!(&mut node, self.expect("[".to_string()), true);
+            loop {
+                use_item!(&mut node, self._type_field(None), false);
+                use_item!(&mut node, self.expect(",".to_string()), false);
+            }
+            use_item!(&mut node, self._closing_bracket(None), false);
+
+            return Some((node, false));
+        }
+        self.reset_parse(&mut node, pos);
+        None
+    }
+
+    pub fn _type_field(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
+        let start_pos = self.tokens.index();
+        let pos = start_pos;
+        let mut node = Node {
+            name: "type_field".to_string(),
+            tokens: vec![],
+            children: vec![],
+        };
+        loop {
+            use_item!(&mut node, self._type(None), false);
+            use_item!(&mut node, self._identifier(None), false);
+
+            return Some((node, false));
+        }
+        self.reset_parse(&mut node, pos);
+        loop {
+            use_item!(&mut node, self._identifier(None), false);
+            use_item!(&mut node, self._identifier(None), false);
+
+            return Some((node, false));
+        }
+        self.reset_parse(&mut node, pos);
+        None
+    }
+
     pub fn _typed_declaration(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
         let start_pos = self.tokens.index();
         let pos = start_pos;
@@ -593,202 +648,11 @@ impl Parser {
             children: vec![],
         };
         loop {
-            use_item!(&mut node, self._boolean_declaration(None), false);
-
-            return Some((node, true));
-        }
-        self.reset_parse(&mut node, pos);
-        loop {
-            use_item!(&mut node, self._integer_declaration(None), false);
-
-            return Some((node, true));
-        }
-        self.reset_parse(&mut node, pos);
-        loop {
-            use_item!(&mut node, self._decimal_declaration(None), false);
-
-            return Some((node, true));
-        }
-        self.reset_parse(&mut node, pos);
-        loop {
-            use_item!(&mut node, self._string_declaration(None), false);
-
-            return Some((node, true));
-        }
-        self.reset_parse(&mut node, pos);
-        loop {
-            use_item!(&mut node, self._function_declaration(None), false);
-
-            return Some((node, true));
-        }
-        self.reset_parse(&mut node, pos);
-        loop {
-            use_item!(&mut node, self._list_declaration(None), false);
-
-            return Some((node, true));
-        }
-        self.reset_parse(&mut node, pos);
-        loop {
-            use_item!(&mut node, self._dictionary_declaration(None), false);
-
-            return Some((node, true));
-        }
-        self.reset_parse(&mut node, pos);
-        None
-    }
-
-    pub fn _boolean_declaration(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
-        let start_pos = self.tokens.index();
-        let pos = start_pos;
-        let mut node = Node {
-            name: "boolean_declaration".to_string(),
-            tokens: vec![],
-            children: vec![],
-        };
-        loop {
-            use_item!(&mut node, self.expect("boo".to_string()), true);
+            use_item!(&mut node, self.expect_word(None), false);
             use_optional!(&mut node, self.expect("mut".to_string()), false);
             use_item!(&mut node, self._identifier(None), false);
             loop {
-                use_item!(&mut node, self.expect("=".to_string()), true);
-                use_item!(&mut node, self._expression(None), false);
-                break;
-            }
-            return Some((node, false));
-        }
-        self.reset_parse(&mut node, pos);
-        None
-    }
-
-    pub fn _integer_declaration(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
-        let start_pos = self.tokens.index();
-        let pos = start_pos;
-        let mut node = Node {
-            name: "integer_declaration".to_string(),
-            tokens: vec![],
-            children: vec![],
-        };
-        loop {
-            use_item!(&mut node, self.expect("int".to_string()), true);
-            use_optional!(&mut node, self.expect("mut".to_string()), false);
-            use_item!(&mut node, self._identifier(None), false);
-            loop {
-                use_item!(&mut node, self.expect("=".to_string()), true);
-                use_item!(&mut node, self._expression(None), false);
-                break;
-            }
-            return Some((node, false));
-        }
-        self.reset_parse(&mut node, pos);
-        None
-    }
-
-    pub fn _decimal_declaration(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
-        let start_pos = self.tokens.index();
-        let pos = start_pos;
-        let mut node = Node {
-            name: "decimal_declaration".to_string(),
-            tokens: vec![],
-            children: vec![],
-        };
-        loop {
-            use_item!(&mut node, self.expect("dec".to_string()), true);
-            use_optional!(&mut node, self.expect("mut".to_string()), false);
-            use_item!(&mut node, self._identifier(None), false);
-            loop {
-                use_item!(&mut node, self.expect("=".to_string()), true);
-                use_item!(&mut node, self._expression(None), false);
-                break;
-            }
-            return Some((node, false));
-        }
-        self.reset_parse(&mut node, pos);
-        None
-    }
-
-    pub fn _string_declaration(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
-        let start_pos = self.tokens.index();
-        let pos = start_pos;
-        let mut node = Node {
-            name: "string_declaration".to_string(),
-            tokens: vec![],
-            children: vec![],
-        };
-        loop {
-            use_item!(&mut node, self.expect("str".to_string()), true);
-            use_optional!(&mut node, self.expect("mut".to_string()), false);
-            use_item!(&mut node, self._identifier(None), false);
-            loop {
-                use_item!(&mut node, self.expect("=".to_string()), true);
-                use_item!(&mut node, self._expression(None), false);
-                break;
-            }
-            return Some((node, false));
-        }
-        self.reset_parse(&mut node, pos);
-        None
-    }
-
-    pub fn _function_declaration(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
-        let start_pos = self.tokens.index();
-        let pos = start_pos;
-        let mut node = Node {
-            name: "function_declaration".to_string(),
-            tokens: vec![],
-            children: vec![],
-        };
-        loop {
-            use_item!(&mut node, self.expect("fun".to_string()), true);
-            use_optional!(&mut node, self.expect("mut".to_string()), false);
-            use_item!(&mut node, self._identifier(None), false);
-            loop {
-                use_item!(&mut node, self.expect("=".to_string()), true);
-                use_item!(&mut node, self._expression(None), false);
-                break;
-            }
-            return Some((node, false));
-        }
-        self.reset_parse(&mut node, pos);
-        None
-    }
-
-    pub fn _list_declaration(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
-        let start_pos = self.tokens.index();
-        let pos = start_pos;
-        let mut node = Node {
-            name: "list_declaration".to_string(),
-            tokens: vec![],
-            children: vec![],
-        };
-        loop {
-            use_item!(&mut node, self.expect("list".to_string()), true);
-            use_optional!(&mut node, self.expect("mut".to_string()), false);
-            use_item!(&mut node, self._identifier(None), false);
-            loop {
-                use_item!(&mut node, self.expect("=".to_string()), true);
-                use_item!(&mut node, self._expression(None), false);
-                break;
-            }
-            return Some((node, false));
-        }
-        self.reset_parse(&mut node, pos);
-        None
-    }
-
-    pub fn _dictionary_declaration(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
-        let start_pos = self.tokens.index();
-        let pos = start_pos;
-        let mut node = Node {
-            name: "dictionary_declaration".to_string(),
-            tokens: vec![],
-            children: vec![],
-        };
-        loop {
-            use_item!(&mut node, self.expect("dict".to_string()), true);
-            use_optional!(&mut node, self.expect("mut".to_string()), false);
-            use_item!(&mut node, self._identifier(None), false);
-            loop {
-                use_item!(&mut node, self.expect("=".to_string()), true);
+                use_item!(&mut node, self._equal(None), true);
                 use_item!(&mut node, self._expression(None), false);
                 break;
             }
