@@ -41,7 +41,7 @@
 - type_definition: 'type' identifier ~'[' (type_field ',')* closing_bracket
 - type_field: type identifier | identifier identifier
 
-- typed_declaration: WORD 'mut'? identifier (~equal expression)?
+- typed_declaration: WORD 'mut'? identifier (~equal expression_item)?
 
 -~equal: '=' !'>'
 
@@ -49,12 +49,15 @@
 	log
 	| function_call
 	| property_access
+	| structure
 	| operation
+
+-~structure:
+	dictionary
+	| list
 
 -~value:
 	group
-	| list
-	| dictionary
 	| boolean
 	| none
 	| string
@@ -73,11 +76,12 @@
 
 -~log_keyword: 'log' | 'logs' | 'log_line' | 'logs_line'
 
-- list: '[' (expression_item ',')* ']'
-- dictionary: '[' (dictionary_entry ',')* ']'
+- list: '[' (!']' expression_item ',')* ']'
+- dictionary: '[' (!']' dictionary_entry ',')* ']'
 - dictionary_entry: term ':' expression_item
 
-- property_access: value '.' require_property
+- property_access: property_accessor '.' require_property
+-~property_accessor: structure | function_call | identifier
 -~require_property: term | <e 'missing index or property name'>
 
 -~operation:

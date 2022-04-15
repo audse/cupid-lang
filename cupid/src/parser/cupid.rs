@@ -653,7 +653,7 @@ impl Parser {
             use_item!(&mut node, self._identifier(None), false);
             loop {
                 use_item!(&mut node, self._equal(None), true);
-                use_item!(&mut node, self._expression(None), false);
+                use_item!(&mut node, self._expression_item(None), false);
                 break;
             }
             return Some((node, false));
@@ -707,7 +707,36 @@ impl Parser {
         }
         self.reset_parse(&mut node, pos);
         loop {
+            use_item!(&mut node, self._structure(None), false);
+
+            return Some((node, true));
+        }
+        self.reset_parse(&mut node, pos);
+        loop {
             use_item!(&mut node, self._operation(None), false);
+
+            return Some((node, true));
+        }
+        self.reset_parse(&mut node, pos);
+        None
+    }
+
+    pub fn _structure(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
+        let start_pos = self.tokens.index();
+        let pos = start_pos;
+        let mut node = Node {
+            name: "structure".to_string(),
+            tokens: vec![],
+            children: vec![],
+        };
+        loop {
+            use_item!(&mut node, self._dictionary(None), false);
+
+            return Some((node, true));
+        }
+        self.reset_parse(&mut node, pos);
+        loop {
+            use_item!(&mut node, self._list(None), false);
 
             return Some((node, true));
         }
@@ -725,18 +754,6 @@ impl Parser {
         };
         loop {
             use_item!(&mut node, self._group(None), false);
-
-            return Some((node, true));
-        }
-        self.reset_parse(&mut node, pos);
-        loop {
-            use_item!(&mut node, self._list(None), false);
-
-            return Some((node, true));
-        }
-        self.reset_parse(&mut node, pos);
-        loop {
-            use_item!(&mut node, self._dictionary(None), false);
 
             return Some((node, true));
         }
@@ -947,6 +964,11 @@ impl Parser {
         loop {
             use_item!(&mut node, self.expect("[".to_string()), false);
             loop {
+                use_negative_lookahead!(
+                    self,
+                    self.tokens.index(),
+                    &mut self.expect("]".to_string())
+                );
                 use_item!(&mut node, self._expression_item(None), false);
                 use_item!(&mut node, self.expect(",".to_string()), false);
             }
@@ -969,6 +991,11 @@ impl Parser {
         loop {
             use_item!(&mut node, self.expect("[".to_string()), false);
             loop {
+                use_negative_lookahead!(
+                    self,
+                    self.tokens.index(),
+                    &mut self.expect("]".to_string())
+                );
                 use_item!(&mut node, self._dictionary_entry(None), false);
                 use_item!(&mut node, self.expect(",".to_string()), false);
             }
@@ -1008,11 +1035,40 @@ impl Parser {
             children: vec![],
         };
         loop {
-            use_item!(&mut node, self._value(None), false);
+            use_item!(&mut node, self._property_accessor(None), false);
             use_item!(&mut node, self.expect(".".to_string()), false);
             use_item!(&mut node, self._require_property(None), false);
 
             return Some((node, false));
+        }
+        self.reset_parse(&mut node, pos);
+        None
+    }
+
+    pub fn _property_accessor(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
+        let start_pos = self.tokens.index();
+        let pos = start_pos;
+        let mut node = Node {
+            name: "property_accessor".to_string(),
+            tokens: vec![],
+            children: vec![],
+        };
+        loop {
+            use_item!(&mut node, self._structure(None), false);
+
+            return Some((node, true));
+        }
+        self.reset_parse(&mut node, pos);
+        loop {
+            use_item!(&mut node, self._function_call(None), false);
+
+            return Some((node, true));
+        }
+        self.reset_parse(&mut node, pos);
+        loop {
+            use_item!(&mut node, self._identifier(None), false);
+
+            return Some((node, true));
         }
         self.reset_parse(&mut node, pos);
         None

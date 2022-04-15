@@ -4,17 +4,12 @@ use super::*;
 #[allow(dead_code)]
 pub fn test(input: &str, expected: Value) -> bool {
 	let mut parser = CupidParser::new(input.to_string());
-	let parse_tree = parser._expression(None);
-	println!("Parse Tree: {:#?}", parse_tree);
-	
-	let semantics = to_tree(&parse_tree.unwrap().0);
-	println!("Semantics: {:#?}", semantics);
-	
-	let mut scope = LexicalScope { scopes: vec![] };
-	scope.add();
+	let parse_tree = parser._file(None);
+	let semantics = to_tree(&parse_tree.unwrap().0);	
+	let mut scope = LexicalScope::new();
 	use_builtin_types(&mut scope);
 	let result = semantics.resolve(&mut scope);
-	println!("Result: {:#?}", result);
+	println!("Result: {}", result);
 	
 	result.is_equal(&expected)
 }
@@ -58,6 +53,10 @@ fn test_assignment() {
 	assert!(test_dec("dec x = -1.5", -1.5));
 }
 
+/*
+Blocks
+*/
+ 
 #[test]
 fn test_arrow_block() {
 	assert!(test_int("{
@@ -89,6 +88,12 @@ fn test_if_block() {
 }
 
 #[test]
+fn test_expression() {
+	assert!(test_none("let x"));
+	assert!(test_int("-1", -1));
+}
+
+#[test]
 fn test_function() {
 	assert!(test_int("{
 		fun x = a => a + 1 
@@ -97,9 +102,12 @@ fn test_function() {
 }
 
 #[test]
-fn test_expression() {
-	assert!(test_none("let x"));
-	assert!(test_int("-1", -1));
+fn test_loop() {
+	assert!(test_int("{
+		int i = 10
+		while i > 0 => i = i - 1
+		i
+	}", 0))
 }
 
 #[test]
@@ -108,3 +116,9 @@ fn test_operation() {
 	assert!(test_dec("1.5 + 2.5 * 2.0", 6.5));
 	assert!(test_dec("(1.5 + 2.5) * 2.0", 8.0));
 }
+
+#[test]
+fn test_structure() {}
+
+#[test]
+fn test_typing() {}

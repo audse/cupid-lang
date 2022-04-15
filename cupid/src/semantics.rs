@@ -108,28 +108,6 @@ pub fn to_tree(node: &ParseNode) -> Expression {
             Expression::new_declare(identifier, type_symbol, mutable, true, value)
         },
 
-        // "boolean_declaration"
-        // | "integer_declaration"
-        // | "decimal_declaration"
-        // | "string_declaration"
-        // | "function_declaration" => {
-        //     let mutable = !node.tokens.is_empty(); // has `mut` keyword
-        //     let identifier = to_tree(&node.children[0]);
-        //     let value = if node.children.len() > 1 {
-        //         to_tree(&node.children[1])
-        //     } else {
-        //         Expression::Empty
-        //     };
-        //     let r#type = match node.name.as_str() {
-        //         "boolean_declaration" => BOOLEAN,
-        //         "integer_declaration" => INTEGER,
-        //         "decimal_declaration" => DECIMAL,
-        //         "string_declaration" => STRING,
-        //         "function_declaration" => FUNCTION,
-        //         _ => NONE,
-        //     };
-        //     Expression::new_declare(identifier, r#type, mutable, false, value)
-        // }
         "declaration" => {
             let value = to_tree(&node.children[1]);
             match to_tree(&node.children[0]) {
@@ -280,7 +258,7 @@ pub fn collect_errors(node: &ParseNode) -> Vec<Expression> {
                     .replace('>', "")
                     .replace('\'', "");
                 Some(Expression::new_node(
-                    Value::error(&c.tokens[1], message),
+                    Value::error(&c.tokens[1], message, String::new()),
                     c.tokens.clone(),
                 ))
             } else {

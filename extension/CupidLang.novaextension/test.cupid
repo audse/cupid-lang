@@ -1,8 +1,7 @@
 ***
 Cupid Lang
 A cute new programming language full of syntactic sugar
-***
-***
+
 # All block statements return the value of the last item
 int mut lots_of_math = {
 	int x = 1 + 2 + 3
@@ -78,6 +77,7 @@ let concat = for s in strings => {
 }
 
 log (concat)
+***
 
 dict mut my_dict = [
 	a: 1,
@@ -87,7 +87,7 @@ dict mut my_dict = [
 ]
 
 my_dict.a = 10
-***
+
 type person [
 	string first,
 	string last,
@@ -95,16 +95,18 @@ type person [
 	fun get_name,
 ]
 
-person mut jacob = [
+person jacob = [
 	first: "jacob",
 	last: "aldred",
 	age: 24,
 	get_name: f, l => f + ' ' + l
 ]
 
-string name = jacob.get_name(jacob.first, jacob.last)
-log (name)
+log (jacob)
 
-jacob.first = 'jay'
+fun full_name = jacob.get_name
+string name = full_name(jacob.first, jacob.last)
 
-log (jacob.get_name(jacob.first, jacob.last))
+# log (name)
+
+# log (full_name)

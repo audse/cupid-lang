@@ -1,4 +1,16 @@
 type iterator [
 	list items,
-	fun next
+	int index,
+	fun next,
+	fun peek,
 ]
+
+iterator iter = [
+	items: ['a', 'b', 'c'],
+	index: 0,
+	next: i => i = i + 1,
+	peek: i => i + 1
+]
+
+int val = iter.peek()
+log (val)

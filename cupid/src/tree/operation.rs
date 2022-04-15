@@ -42,14 +42,14 @@ impl Tree for Operator {
 				"<=" => left.less_equal(right, &self.operator),
 				op => Value::error(&self.operator, format!(
 					"Unknown binary operator: '{:?}' (evaluating {} {:?} {})", op, left, op, right
-				))
+				), String::new())
 			}
 		} else {
 			match self.operator.source.as_str() {
 				"-" => right.negative(&self.operator),
 				op => Value::error(&self.operator, format!(
 					"Unknown unary operator: '{:?}' (evaluating {} {})", op, op, right
-				))
+				), String::new())
 			}
 		}
 	}

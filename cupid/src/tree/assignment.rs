@@ -1,4 +1,4 @@
-use crate::{LexicalScope, Value, Expression, Symbol, Tree, Token, TypeSymbol, is_type};
+use crate::{LexicalScope, Value, Expression, Symbol, Tree, Token, TypeSymbol, is_type, ErrorHandler};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct Assign {
@@ -10,9 +10,8 @@ pub struct Assign {
 impl Tree for Assign {
 	fn resolve(&self, scope: &mut LexicalScope) -> Value {
 		let val = self.value.resolve(scope);
-		if val.is_poisoned() {
-			return val;
-		}
+		crate::abort_on_error!(val);
+		
 		match scope.set_symbol(&self.symbol, val.clone()) {
 			Ok(result) => match result {
 				Some(v) => v,
@@ -20,6 +19,15 @@ impl Tree for Assign {
 			},
 			Err(error) => error
 		}
+	}
+}
+
+impl ErrorHandler for Assign {
+	fn get_token(&self) -> &Token {
+    	&self.operator
+	}
+	fn get_context(&self) -> String {
+    	format!("attempting to assign value to {}", self.symbol)
 	}
 }
 
@@ -35,9 +43,8 @@ pub struct Declare {
 impl Tree for Declare {
 	fn resolve(&self, scope: &mut LexicalScope) -> Value {
     	let val = self.value.resolve(scope);
-		if val.is_poisoned() {
-			return val;
-		}
+		crate::abort_on_error!(val);
+		
 		if let Value::Type(type_value) = self.r#type.resolve(scope) {
 			if is_type(&val, &type_value) {
 				if let Some(value) = scope.create_symbol_of_type(

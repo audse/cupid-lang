@@ -40,8 +40,8 @@ impl Expression {
     pub fn new_string_node(string: String, tokens: Vec<Token>) -> Self {
         if string.len() > 1 {
             if let Some(first) = string.chars().next() {
-                if first == '"' || first == '\'' {
-                    let mut new_string = string.clone();
+                if first == '"' || first == '\'' { 
+                    let mut new_string = string.clone(); //"
                     new_string.remove(0);
                     new_string.pop();
                     return Self::new_node(Value::String(new_string), tokens);

@@ -79,6 +79,10 @@
   - [ ] Include negative numbers
 - [ ] Variable shadowing
 
+## Bugfixes
+
+- [ ] Something is wrong with groups in grammar files
+
 ## Standard library
 
 - [ ] Random

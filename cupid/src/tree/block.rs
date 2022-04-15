@@ -11,9 +11,7 @@ impl Tree for Block {
 		let mut result = Value::None;
 		for exp in &self.expressions {
 			result = exp.resolve(scope);
-			if result.is_poisoned() {
-				return result;
-			}
+			crate::abort_on_error!(result);
 		}
 		scope.pop();
 		result

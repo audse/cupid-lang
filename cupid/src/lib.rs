@@ -8,6 +8,9 @@ use colored::*;
 mod errors;
 pub use errors::*;
 
+mod file_handler;
+pub use file_handler::*;
+
 mod utils;
 pub use utils::*;
 

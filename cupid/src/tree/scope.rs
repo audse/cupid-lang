@@ -6,7 +6,20 @@ pub struct LexicalScope {
 	pub scopes: Vec<Scope>
 }
 
+impl Default for LexicalScope {
+	fn default() -> Self {
+		Self::new()
+	}
+}
+
 impl LexicalScope {
+	pub fn new() -> Self {
+		let mut scope = Self {
+			scopes: vec![]
+		};
+		scope.add();
+		scope
+	}
 	pub fn last(&self) -> Option<&Scope> {
 		self.scopes.last()
 	}
@@ -162,10 +175,11 @@ impl Scope {
 	
 	pub fn define_type(&mut self, symbol: &TypeSymbol, value: Type) -> Result<Type, Value> {
 		if self.definitions.contains_key(&symbol.name.to_string()) {
-			return Err(Value::error(&symbol.token.as_ref().unwrap(), format!("there is already a type called `{}`", symbol.name)));
+			let symbol_ref = symbol.token.as_ref().unwrap();
+			return Err(Value::error(symbol_ref, format!("there is already a type called `{}`", symbol.name), String::new()));
 		}
-		self.definitions.insert(symbol.name.to_string().clone(), value);
-		return Ok(self.get_definition(symbol).unwrap());
+		self.definitions.insert(symbol.name.to_string(), value);
+		Ok(self.get_definition(symbol).unwrap())
 	}
 	
 	pub fn set_or_create_symbol(&mut self, symbol: &Symbol, value: Value, mutable: bool, deep_mutable: bool) -> Value {
@@ -215,7 +229,7 @@ fn assign_type_mismatch_error(symbol: &Symbol, stored_symbol: &SymbolValue, assi
 				symbol = symbol.get_identifier(),
 				stored_type = stored_type,
 				value = assign_value,
-			)
+			), String::new()
 		))
 	}
 }
@@ -227,7 +241,7 @@ fn assign_to_immutable_error(symbol: &Symbol, stored_value: &SymbolValue) -> Opt
 			format!(
 				"variable `{symbol}` is immutable and cannot be reassigned",
 				symbol = symbol.get_identifier(),
-			)
+			), String::new()
 		))
 	}
 	None
@@ -239,16 +253,16 @@ fn not_found_error(symbol: &Symbol) -> Value {
 		format!(
 			"variable `{symbol}` is not defined",
 			symbol = symbol.get_identifier(),
-		)
+		), String::new()
 	)
 }
 
 fn type_not_found_error(symbol: &TypeSymbol, token: &Token) -> Value {
 	Value::error(
-		&token,
+		token,
 		format!(
 			"type `{symbol}` is not defined",
 			symbol = symbol.name
-		)
+		), String::new()
 	)
 }

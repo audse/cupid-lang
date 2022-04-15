@@ -1,8 +1,9 @@
 use std::fmt::{Display, Formatter, Result};
 use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
 use crate::{TypeSymbol, Token, Value, Symbol, Tree, LexicalScope};
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub struct Type {
 	pub symbol: TypeSymbol,
 	pub fields: Vec<(Type, Symbol)>
@@ -15,6 +16,13 @@ impl PartialEq for Type {
 }
 
 impl Eq for Type {}
+
+impl Hash for Type {
+	fn hash<H: Hasher>(&self, state: &mut H) {
+		self.symbol.hash(state);
+		self.fields.iter().for_each(|(_, s)| s.hash(state));
+	}
+}
 
 pub fn use_builtin_types(scope: &mut LexicalScope) {
 	_ = scope.define_type(&BOOLEAN.symbol, BOOLEAN);
@@ -38,6 +46,7 @@ pub const LIST: Type = Type::new_const("list");
 pub const DICTIONARY: Type = Type::new_const("dict");
 pub const TUPLE: Type = Type::new_const("tuple");
 pub const NONE: Type = Type::new_const("none");
+pub const ERROR: Type = Type::new_const("error");
 
 impl Type {
 	pub const fn new_const(name: &'static str) -> Self {
@@ -56,11 +65,12 @@ impl Type {
 			Value::Dictionary(_) => DICTIONARY,
 			Value::List(_) => LIST,
 			Value::Tuple(_) => TUPLE,
+			Value::Error(_) => ERROR,
 			_ => NONE
 		}
 	}
 	pub fn is_builtin(&self) -> bool {
-		vec![&BOOLEAN, &INTEGER, &DECIMAL, &STRING, &FUNCTION, &DICTIONARY, &LIST, &TUPLE, &NONE].contains(&self)
+		vec![&BOOLEAN, &INTEGER, &DECIMAL, &STRING, &FUNCTION, &DICTIONARY, &LIST, &TUPLE, &NONE, &ERROR].contains(&self)
 	}
 	pub fn get_name(&self) -> String {
 		self.symbol.name.to_string()
@@ -70,7 +80,7 @@ impl Type {
 	}
 	// is either a builtin map type or a struct type
 	pub fn is_map(&self) -> bool {
-		if [DICTIONARY, LIST, TUPLE].contains(&self) {
+		if [DICTIONARY, LIST, TUPLE].contains(self) {
 			true
 		} else {
 			!self.is_builtin()
@@ -109,12 +119,10 @@ pub fn is_type(value: &Value, custom_type: &Type) -> bool {
 		let should_be_builtin = custom_type.is_builtin();
 		if should_be_builtin {
 			false
+		} else if let Value::Dictionary(dict) = value {
+			is_dict_typeof(dict, custom_type)
 		} else {
-			if let Value::Dictionary(dict) = value {
-				is_dict_typeof(dict, custom_type)
-			} else {
-				false
-			}
+			false
 		}
 	}
 }
@@ -135,7 +143,7 @@ pub fn is_dict_typeof(dict: DictRef, custom_type: &Type) -> bool {
 pub fn dict_has_field(dict: DictRef, field_type: &Type, field_symbol: &Symbol) -> bool {
 	let field_identifier = &field_symbol.identifier;
 	// check that property exists
-	if let Some((_, dict_property)) = dict.get(&field_identifier) {
+	if let Some((_, dict_property)) = dict.get(field_identifier) {
 		// check that property is correct type
 		let dict_type = Type::from(dict_property);
 		&dict_type == field_type

@@ -1,10 +1,9 @@
 use std::fmt::{Display, Formatter, Result};
 use std::borrow::Cow;
 use std::hash::{Hash, Hasher};
-use crate::{Value, Tree, LexicalScope, Token};
+use crate::{Value, Tree, LexicalScope, Token, ErrorHandler};
 
 #[derive(Debug, Clone)]
-// pub struct Symbol(pub Value, pub Vec<Token>);
 pub struct Symbol  {
 	pub identifier: Value,
 	pub token: Token
@@ -38,9 +37,6 @@ impl Symbol {
 			_ => panic!("no identifier")
 		}
 	}
-	pub fn error(&self, message: String) -> Value {
-		Value::error(&self.token, message)
-	}
 	pub fn error_undefined(&self) -> Value {
 		self.error(format!("undefined: `{}` does not exist", &self.get_identifier()))
 	}
@@ -52,17 +48,31 @@ impl Symbol {
 	}
 }
 
+impl ErrorHandler for Symbol {
+	fn get_token(&self) -> &Token {
+    	&self.token
+	}
+	fn get_context(&self) -> String {
+    	format!("accessing symbol `{}`", self.get_identifier())
+	}
+}
+
+
 impl PartialEq for Symbol {
 	fn eq(&self, other: &Self) -> bool {
-    	self.identifier == other.identifier
+		self.identifier.eq(&other.identifier)
 	}
 }
 impl Eq for Symbol {}
+
 impl Hash for Symbol {
-	fn hash<H: Hasher>(&self, _: &mut H) {}
+	fn hash<H: Hasher>(&self, state: &mut H) {
+		self.identifier.hash(state);
+		self.token.hash(state);
+	}
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub struct TypeSymbol {
 	pub name: Cow<'static, str>, 
 	pub token: Option<Token>
@@ -94,9 +104,9 @@ impl TypeSymbol {
 	
 	pub fn error(&self, message: String, token: Option<Token>) -> Value {
 		if let Some(symbol_token) = &self.token {
-			Value::error(&symbol_token, message)
+			Value::error(symbol_token, message, String::new())
 		} else if let Some(error_token) = token {
-			Value::error(&error_token, message)
+			Value::error(&error_token, message, String::new())
 		} else {
 			println!("message {}", message);
 			unreachable!()
@@ -115,4 +125,12 @@ impl PartialEq for TypeSymbol {
 		self.name.eq(&other.name)
 	}
 }
+
 impl Eq for TypeSymbol {}
+
+impl Hash for TypeSymbol {
+	fn hash<H: Hasher>(&self, state: &mut H) {
+		self.name.hash(state);
+		self.token.hash(state);
+	}
+}

@@ -1,10 +1,10 @@
 use std::fmt::{Display, Formatter, Result};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
-use crate::{Symbol, Expression, Error, Token, Type, DICTIONARY, LIST, TUPLE};
+use crate::{Symbol, Expression, Error, Token, Type, LexicalScope, DICTIONARY, LIST, TUPLE};
 
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum Value {
 	Integer(i32),
 	Decimal(i32, u32),
@@ -19,6 +19,24 @@ pub enum Value {
 	Type(Type),
 	None,
 }
+
+impl PartialEq for Value {
+	fn eq(&self, other: &Self) -> bool {
+		match (self, other) {
+			(Value::Integer(x), Value::Integer(y)) => x == y,
+			(Value::String(x), Value::String(y)) => x == y,
+			(Value::Decimal(a, b), Value::Decimal(x, y)) => a == x && b == y,
+			(Value::Boolean(x), Value::Boolean(y)) => x == y,
+			(Value::FunctionBody(x, _), Value::FunctionBody(y, _)) => x == y,
+			(Value::Type(x), Value::Type(y)) => x == y,
+			(Value::None, Value::None) => true,
+			(Value::Error(_), Value::Error(_)) => false,
+			_ => false
+		}
+	}
+}
+
+impl Eq for Value {}
 
 impl Hash for Value {
 	fn hash<H: Hasher>(&self, state: &mut H) {
@@ -72,8 +90,8 @@ pub fn float_to_dec(float: f64) -> Value {
 }
 
 impl Value {
-	pub fn error<S>(token: &Token, message: S) -> Value where S: Into<String> {
-		Value::Error(Error::from_token(token, &message.into()))
+	pub fn error<S>(token: &Token, message: S, context: S) -> Value where S: Into<String> {
+		Value::Error(Error::from_token(token, &message.into(), &context.into()))
 	}
 	pub fn inner_map(&self) -> Option<&HashMap<Value, (usize, Value)>> {
 		match &self {
@@ -82,6 +100,9 @@ impl Value {
 			| Self::Tuple(m) => Some(m),
 			_ => None
 		}
+	}
+	pub fn inner_map_clone(&self) -> Option<HashMap<Value, (usize, Value)>> {
+		self.inner_map().cloned()
 	}
 	pub fn wrap_map(map_type: &Type, map: HashMap<Value, (usize, Value)>) -> Self {
 		if map_type == &DICTIONARY {
@@ -92,6 +113,16 @@ impl Value {
 			Value::Tuple(map)
 		} else {
 			Value::Dictionary(map)
+		}
+	}
+	pub fn make_scope(&self, scope: &mut LexicalScope, token: Token, mutable: bool) {
+		scope.add();
+		if let Some(map) = self.inner_map() {
+			for (key, (index, value)) in map.iter() {
+				let symbol = Symbol { identifier: key.clone(), token: token.clone() };
+				let entry_value = Value::MapEntry(*index, Box::new(value.clone()));
+				scope.create_symbol(&symbol, entry_value, mutable, mutable);
+			}
 		}
 	}
 	pub fn is_poisoned(&self) -> bool {
@@ -106,28 +137,28 @@ impl Value {
 				let y = y.as_str();
 				Self::String(op!(x + y))
 			},
-			(x, y) => Value::error(operator, format!("Cannot add {:?} to {:?}", y, x))
+			(x, y) => Value::error(operator, format!("Cannot add {:?} to {:?}", y, x), String::new())
 		}
 	}
 	pub fn subtract(&self, other: Self, operator: &Token) -> Value {
 		match (self, other) {
 			(Self::Integer(x), Self::Integer(y)) => Self::Integer(op!(x - y)),
 			(Self::Decimal(a, b), Self::Decimal(x, y)) => float_to_dec(op!(a b - x y)),
-			(x, y) => Value::error(operator, format!("Cannot subtract {:?} from {:?}", y, x))
+			(x, y) => Value::error(operator, format!("Cannot subtract {:?} from {:?}", y, x), String::new())
 		}
 	}
 	pub fn multiply(&self, other: Self, operator: &Token) -> Value {
 		match (self, other) {
 			(Self::Integer(x), Self::Integer(y)) => Self::Integer(op!(x * y)),
 			(Self::Decimal(a, b), Self::Decimal(x, y)) => float_to_dec(op!(a b * x y)),
-			(x, y) => Value::error(operator, format!("Cannot multiply {:?} and {:?}", x, y))
+			(x, y) => Value::error(operator, format!("Cannot multiply {:?} and {:?}", x, y), String::new())
 		}
 	}
 	pub fn divide(&self, other: Self, operator: &Token) -> Value {
 		match (self, other) {
 			(Self::Integer(x), Self::Integer(y)) => Self::Integer(op!(x / y)),
 			(Self::Decimal(a, b), Self::Decimal(x, y)) => float_to_dec(op!(a b / x y)),
-			(x, y) => Value::error(operator, format!("Cannot divide {:?} by {:?}", x, y))
+			(x, y) => Value::error(operator, format!("Cannot divide {:?} by {:?}", x, y), String::new())
 		}
 	}
 	pub fn negative(&self, operator: &Token) -> Value {
@@ -135,7 +166,7 @@ impl Value {
 		match self {
 			Self::Integer(x) => Self::Integer(op!(x * n)),
 			Self::Decimal(a, b) => float_to_dec(op!(a b * n 0)),
-			x => Value::error(operator, format!("Cannot make {:?} negative", x))
+			x => Value::error(operator, format!("Cannot make {:?} negative", x), String::new())
 		}
 	}
 	pub fn is_equal(&self, other: &Self) -> bool {
@@ -154,7 +185,7 @@ impl Value {
 				Self::Boolean(op!(x > y))
 			},
 			(Self::Decimal(a, b), Self::Decimal(x, y)) => Self::Boolean(op!(a b > x y)),
-			(x, y) => Value::error(operator, format!("Cannot compare {:?} and {:?}", x, y))
+			(x, y) => Value::error(operator, format!("Cannot compare {:?} and {:?}", x, y), String::new())
 		}
 	}
 	pub fn greater_equal(&self, other: Self, operator: &Token) -> Self {
@@ -164,7 +195,7 @@ impl Value {
 				Self::Boolean(op!(x >= y))
 			},
 			(Self::Decimal(a, b), Self::Decimal(x, y)) => Self::Boolean(op!(a b >= x y)),
-			(x, y) => Value::error(operator, format!("Cannot compare {:?} and {:?}", x, y))
+			(x, y) => Value::error(operator, format!("Cannot compare {:?} and {:?}", x, y), String::new())
 		}
 	}
 	pub fn less(&self, other: Self, operator: &Token) -> Self {
@@ -174,7 +205,7 @@ impl Value {
 				Self::Boolean(op!(x < y))
 			},
 			(Self::Decimal(a, b), Self::Decimal(x, y)) => Self::Boolean(op!(a b < x y)),
-			(x, y) => Value::error(operator, format!("Cannot compare {:?} and {:?}", x, y))
+			(x, y) => Value::error(operator, format!("Cannot compare {:?} and {:?}", x, y), String::new())
 		}
 	}
 	pub fn less_equal(&self, other: Self, operator: &Token) -> Self {
@@ -184,7 +215,7 @@ impl Value {
 				Self::Boolean(op!(x <= y))
 			},
 			(Self::Decimal(a, b), Self::Decimal(x, y)) => Self::Boolean(op!(a b <= x y)),
-			(x, y) => Value::error(operator, format!("Cannot compare {:?} and {:?}", x, y))
+			(x, y) => Value::error(operator, format!("Cannot compare {:?} and {:?}", x, y), String::new())
 		}
 	}
 	pub fn sort_by_index(&self) -> Vec<(usize, &Value)> {
@@ -238,6 +269,14 @@ impl Display for Value {
 				_ = write!(f, "]");
 				Ok(())
 			},
+			Self::FunctionBody(params, _) => {
+				_ = write!(f, "(fun => ");
+				for param in params.iter() {
+					_ = write!(f, "{}, ", param.identifier);
+				}
+				_ = write!(f, ")");
+				Ok(())
+			}
 			v => write!(f, "{:?}", v)
 		}
 	}
