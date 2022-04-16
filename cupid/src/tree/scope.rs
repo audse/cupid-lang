@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::{Symbol, Value, Type, TypeSymbol, Token};
+use crate::{Symbol, Value, Type, TypeSymbol, Token, is_type};
 
 #[derive(Debug, Clone)]
 pub struct LexicalScope {
@@ -89,7 +89,7 @@ impl LexicalScope {
 
 #[derive(Debug, Clone)]
 pub struct Scope {
-	pub storage: HashMap<Symbol, SymbolValue>,
+	pub storage: ScopeStorage,
 	pub definitions: HashMap<String, Type>,
 	pub closed: bool,
 }
@@ -108,6 +108,8 @@ impl Default for Scope {
 	}
 }
 
+type ScopeStorage = HashMap<Value, SymbolValue>;
+
 impl Scope {
 
 	pub fn new() -> Self {
@@ -117,9 +119,15 @@ impl Scope {
 			closed: false,
 		}
 	}
+	pub fn pretty_print_storage(&self) {
+		let items: Vec<String> = self.storage.iter().map(
+			|(k, v)|  format!("{}: {},", k.to_string(), v.value)
+		).collect();
+		println!("Scope: {:#?}", items);
+	}
 
 	pub fn get_symbol(&self, symbol: &Symbol) -> Option<Value> {
-		if let Some(stored_symbol) = self.storage.get(symbol) {
+		if let Some(stored_symbol) = self.storage.get(&symbol.identifier) {
 			return Some(stored_symbol.value.clone());
 		}
 		None
@@ -133,14 +141,14 @@ impl Scope {
 	}
 	
 	pub fn is_mutable(&self, symbol: &Symbol) -> Option<(bool, bool)> {
-		if let Some(stored_symbol) = self.storage.get(symbol) {
+		if let Some(stored_symbol) = self.storage.get(&symbol.identifier) {
 			return Some((stored_symbol.mutable, stored_symbol.deep_mutable));
 		}
 		None
 	}
 
 	pub fn set_symbol(&mut self, symbol: &Symbol, value: Value) -> Result<Option<Value>, Value> {
-		if let Some(stored_value) = self.storage.get_mut(symbol) {
+		if let Some(stored_value) = self.storage.get_mut(&symbol.identifier) {
 			if let Some(immutable_assign_error) = assign_to_immutable_error(symbol, stored_value) {
 				return Err(immutable_assign_error)
 			}
@@ -154,7 +162,7 @@ impl Scope {
 	}
 	
 	pub fn create_symbol(&mut self, symbol: &Symbol, value: Value, mutable: bool, deep_mutable: bool) -> Option<Value> {
-		self.storage.insert(symbol.clone(), SymbolValue {
+		self.storage.insert(symbol.identifier.clone(), SymbolValue {
 			r#type: Type::from(&value),
 			value, 
 			mutable, 
@@ -164,7 +172,7 @@ impl Scope {
 	}
 	
 	pub fn create_symbol_of_type(&mut self, symbol: &Symbol, value: Value, symbol_type: Type, mutable: bool, deep_mutable: bool) -> Option<Value> {
-		self.storage.insert(symbol.clone(), SymbolValue {
+		self.storage.insert(symbol.identifier.clone(), SymbolValue {
 			r#type: symbol_type,
 			value, 
 			mutable, 
@@ -216,21 +224,11 @@ impl Scope {
 }
 
 fn assign_type_mismatch_error(symbol: &Symbol, stored_symbol: &SymbolValue, assign_value: &Value) -> Option<Value> {
-	let assign_type = Type::from(assign_value);
 	let stored_type = Type::from(&stored_symbol.value);
-	if assign_type == stored_type {
+	if is_type(&assign_value, &stored_type) {
 		None
 	} else {
-		Some(Value::error(
-			&symbol.token,
-			format!(
-				"type mismatch: `{symbol}` ({stored_type}) can't be assigned `{value}` ({assign_type})",
-				assign_type = assign_type,
-				symbol = symbol.get_identifier(),
-				stored_type = stored_type,
-				value = assign_value,
-			), String::new()
-		))
+		Some(symbol.error_assign_type_mismatch(assign_value))
 	}
 }
 

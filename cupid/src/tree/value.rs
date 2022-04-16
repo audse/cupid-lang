@@ -117,11 +117,16 @@ impl Value {
 	}
 	pub fn make_scope(&self, scope: &mut LexicalScope, token: Token, mutable: bool) {
 		scope.add();
+		let self_symbol = Symbol::new_string("self".to_string(), token.clone());
+		scope.create_symbol_of_type(
+			&self_symbol, self.clone(), Type::from(self), mutable, mutable
+		);
 		if let Some(map) = self.inner_map() {
 			for (key, (index, value)) in map.iter() {
 				let symbol = Symbol { identifier: key.clone(), token: token.clone() };
 				let entry_value = Value::MapEntry(*index, Box::new(value.clone()));
-				scope.create_symbol(&symbol, entry_value, mutable, mutable);
+				let entry_type = Type::from(&value);
+				scope.create_symbol_of_type(&symbol, entry_value, entry_type, mutable, mutable);
 			}
 		}
 	}

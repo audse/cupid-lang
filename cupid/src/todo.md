@@ -15,6 +15,7 @@
 - [ ] Type declaration
   - [x] Dictionary-style
   - [ ] List-style
+  - [ ] Nested
 - [ ] Enums
 - [ ] Struct declaration/impl?
 - [ ] Maybe types
@@ -36,12 +37,14 @@
 - [ ] Type hints
 - [ ] Callbacks
 - [ ] Default values
+- [ ] No arguments
+- [ ] Call immediately
 
 ## Blocks
 
 - [x] If blocks
 - [x] Else blocks
-- [ ] Else if blocks
+- [x] Else if blocks
 
 ## Loops
 
@@ -58,9 +61,10 @@
 - [ ] Tuples (keywords)
 - [ ] Range
 - [x] Property access
-- [ ] Property assignment
+- [x] Property assignment
 - [ ] Lightweight array that isn't a map
 - [ ] Add/remove properties
+- [ ] Property chaining
 
 ## Scoping
 
@@ -78,10 +82,19 @@
 - [ ] Array slices using range syntax e.g. `my_array[0..5]`
   - [ ] Include negative numbers
 - [ ] Variable shadowing
+- [ ] Template strings `'my favorite number is {{ 30 + 7 }}'`
 
 ## Bugfixes
 
 - [ ] Something is wrong with groups in grammar files
+
+## Builtin library
+
+- [ ] String functions/properties
+  - [ ] Length
+  - [ ] Contains
+  - [ ] Replace/replace all
+- [ ] Map functions
 
 ## Standard library
 
@@ -93,11 +106,19 @@
 - [ ] Benchmarking performance
 - [ ] Optimization
   - [ ] `String` to `Cow`
+- [ ] Documentation
 
 ### Error handling
 
 - [ ] Differentiate between errors and warnings
 - [ ] Report errors before compiling
+
+## Parser
+
+- [ ] Error handling by using branching grammar syntax
+  - [ ] Write custom common errors associated with rules
+  - [ ] `recover!` macro
+- [ ] Inline start/end comments
 
 ## Ideas the future
 

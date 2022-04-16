@@ -1,16 +1,38 @@
 type iterator [
 	list items,
 	int index,
-	fun next,
 	fun peek,
+	fun log_all,
 ]
 
-iterator iter = [
+iterator mut my_iter = [
 	items: ['a', 'b', 'c'],
 	index: 0,
-	next: i => i = i + 1,
-	peek: i => i + 1
+	peek: amount => {
+		list items = self.items
+		items.(self.index + amount)
+	},
+	log_all: _ => for index, item in self.items => {
+		string comma = if index is 2 => '' else => ', '
+		log (index, ': ', item, comma)
+	}
 ]
 
-int val = iter.peek()
+
+fun map = dictionary, closure {
+	dict mut copy = dictionary
+	for key, value in dictionary => {
+		copy.key = closure (value)
+	}
+	copy
+}
+
+
+dict my_dict = [
+	a: 1,
+	b: 2,
+]
+dict val = map(my_dict, (val => val * 2))
 log (val)
+log (my_dict)
+*** todo self.next(), how to reassign whole object? ***

@@ -51,8 +51,9 @@ macro_rules! use_repeat {
 
 macro_rules! use_negative_lookahead {
     ($parser:expr, $index:expr, $method:expr) => {{
-        $parser.tokens.goto($index);
+        let index = $index;
         if let Some((_val, _pass_through)) = $method {
+            $parser.tokens.goto(index);
             break;
         }
     }};
@@ -60,9 +61,10 @@ macro_rules! use_negative_lookahead {
 
 macro_rules! use_positive_lookahead {
     ($parser:expr, $index:expr, $method:expr) => {{
-        $parser.tokens.goto($index);
+        let index = $index;
         if let Some((_val, _pass_through)) = $method {
         } else {
+            $parser.tokens.goto(index);
             break;
         }
     }};

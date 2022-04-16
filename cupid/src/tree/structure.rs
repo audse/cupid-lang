@@ -1,33 +1,12 @@
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
-use crate::{Expression, Tree, Value, LexicalScope, Type, Token, ErrorHandler, MapErrorHandler};
+use crate::{Expression, Tree, Value, LexicalScope, Type, Token, ErrorHandler, MapErrorHandler, Symbol, MAP_ENTRY};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Map {
 	pub entries: HashMap<Expression, (usize, Expression)>,
 	pub r#type: Type,
 	pub token: Token,
-}
-
-impl Map {
-	
-	pub fn make_scope(&self, scope: &mut LexicalScope) {
-		scope.add();
-		for (key, (index, value)) in self.entries.iter() {
-			let value = value.resolve(scope);
-			
-			// create symbols for identifier-like keys, e.g. person.name
-			if let Expression::Symbol(symbol) = key {
-				let mutable = if let Some((_, mutable)) = scope.is_mutable(symbol) {
-					mutable
-				} else { 
-					false 
-				};
-				let entry_value = Value::MapEntry(*index, Box::new(value.clone()));
-				scope.create_symbol(symbol, entry_value, mutable, mutable);
-			}
-		}
-	}
 }
 
 impl Tree for Map {
@@ -64,12 +43,6 @@ impl Hash for Map {
 		self.token.hash(state);
 	}
 }
-// impl PartialEq for Map {
-// 	fn eq(&self, other: &Self) -> bool {
-//     	self == other
-// 	}
-// }
-// impl Eq for Map {}
 
 impl ErrorHandler for Map {
 	fn get_token(&self) -> &Token {
@@ -94,11 +67,13 @@ impl Tree for PropertyAccess {
 		let map = crate::resolve_or_abort!(self.map, scope);
 		
 		let map_type = Type::from(&map);
-		if !map_type.is_map() {
+		let is_entry = map_type == MAP_ENTRY;
+		
+		if !map_type.is_map() && !is_entry {
 			return self.not_map_error(&map);
 		}
 		
-		map.make_scope(scope, self.operator.clone(), false);
+		map.make_scope(scope, self.operator.clone(), true);
 		
 		let deref_term = &*self.term;
 		let mut function_call: Option<Value> = None;
@@ -114,17 +89,32 @@ impl Tree for PropertyAccess {
 			crate::resolve_or_abort!(self.term, scope, { scope.pop(); })
 		};
 		
-		if let Some((_, map_value)) = map.inner_map().unwrap().get(&property_term) {
-			if let Some(function) = function_call {
-				scope.pop();
-				function
+		let entry = if !is_entry {
+			let inner_map = map.inner_map().unwrap();
+			// try to get the term from the inner scope first, e.g. `object.property`
+			if let Some((_, entry)) = inner_map.get(&property_term) {
+				entry
+			// if that fails, try to get the property from the outer scope, e.g.
+			// my_var = 1; object.my_var
 			} else {
-				scope.pop();
-				map_value.clone()
+				let term_value = crate::resolve_or_abort!(deref_term, scope);
+				if let Some((_, entry)) = inner_map.get(&term_value) {
+					entry
+				} else {
+					scope.pop();
+					return self.no_property_error(&map, &property_term);
+				}
 			}
 		} else {
+			&map
+		};
+		
+		if let Some(function) = function_call {
 			scope.pop();
-			self.no_property_error(&map, &property_term)
+			function
+		} else {
+			scope.pop();
+			entry.clone()
 		}
 	}
 }
@@ -140,6 +130,42 @@ impl ErrorHandler for PropertyAccess {
 impl MapErrorHandler for PropertyAccess {}
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
+pub struct InternalPropertyAccess {
+	pub operator: Token,
+	pub term: Box<Expression>,
+}
+
+impl Tree for InternalPropertyAccess {
+	fn resolve(&self, scope: &mut LexicalScope) -> Value {
+		if let Expression::Symbol(symbol) = &*self.term {
+			let map_entry = crate::resolve_or_abort!(self.term, scope);
+			if let Value::MapEntry(_, map_value) = map_entry {
+				*map_value
+			} else {
+				self.undefined_error(symbol.get_identifier())
+			}
+		} else {
+			let map_entry = crate::resolve_or_abort!(self.term, scope);
+			if let Value::MapEntry(_, map_value) = map_entry {
+				*map_value
+			} else {
+				self.error(format!("unable to find property {} in map", self.term))
+			}
+		}
+	}
+}
+
+impl ErrorHandler for InternalPropertyAccess {
+	fn get_token(&self) -> &Token {
+		&self.operator
+	}
+	fn get_context(&self) -> String {
+		format!("accessing property `{}` within self", self.term)
+	}
+}
+impl MapErrorHandler for InternalPropertyAccess {}
+
+#[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct PropertyAssign {
 	pub access: PropertyAccess,
 	pub value: Box<Expression>,
@@ -149,12 +175,11 @@ pub struct PropertyAssign {
 impl Tree for PropertyAssign {
 	fn resolve(&self, scope: &mut LexicalScope) -> Value {
 		if let Expression::Symbol(map_symbol) = &*self.access.map {
+			
 			let new_value = crate::resolve_or_abort!(self.value, scope);
-			// let new_value = self.value.resolve(scope);
-			// let map = &self.access.map.resolve(scope);
 			let map = crate::resolve_or_abort!(&self.access.map, scope);
 			
-			map.make_scope(scope, self.operator.clone(), false);
+			map.make_scope(scope, self.operator.clone(), true);
 			let property = &self.access.term;
 			let property_term = if let Expression::Symbol(property_symbol) = &**property {
 				property_symbol.identifier.clone()
@@ -164,7 +189,13 @@ impl Tree for PropertyAssign {
 			
 			if let Some(original_hashmap) = map.inner_map() {
 				let mut new_hashmap = original_hashmap.clone();
-				new_hashmap.entry(property_term).and_modify(|e| e.1 = new_value);
+				
+				if new_hashmap.contains_key(&property_term) {
+					new_hashmap.entry(property_term).and_modify(|e| e.1 = new_value);
+				} else {
+					let property_value = crate::resolve_or_abort!(property, scope);
+					new_hashmap.entry(property_value).and_modify(|e| e.1 = new_value);
+				}
 				
 				match scope.set_symbol(map_symbol, Value::wrap_map(&Type::from(&map), new_hashmap)) {
 					Ok(ok_val) => if let Some(val) = ok_val {
@@ -195,3 +226,58 @@ impl ErrorHandler for PropertyAssign {
 	}
 }
 impl MapErrorHandler for PropertyAssign {}
+
+#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+pub struct InternalPropertyAssign {
+	pub access: InternalPropertyAccess,
+	pub value: Box<Expression>,
+	pub operator: Token,
+}
+
+impl Tree for InternalPropertyAssign {
+	fn resolve(&self, scope: &mut LexicalScope) -> Value {
+		let new_value = crate::resolve_or_abort!(self.value, scope);
+
+		let property = &self.access.term;
+		let property_term = if let Expression::Symbol(property_symbol) = &**property {
+			property_symbol.identifier.clone()
+		} else {
+			crate::resolve_or_abort!(property, scope)
+		};
+		
+		let self_symbol = Symbol::new_string("self".to_string(), self.operator.clone());
+		if let Some(original_hashmap) = scope.get_symbol(&self_symbol) {
+			
+			if let Some(mut new_hashmap) = original_hashmap.inner_map_clone() {
+				new_hashmap.entry(property_term.clone()).and_modify(|e| e.1 = new_value);
+				
+				match scope.set_symbol(&self_symbol, Value::wrap_map(&Type::from(&original_hashmap), new_hashmap)) {
+					Ok(ok_val) => if let Some(val) = ok_val {
+						scope.pop();
+						return val;
+					},
+					Err(err_val) => {
+						scope.pop();
+						return err_val;
+					}
+				}
+				self.no_property_error(&self_symbol.identifier, &property_term)
+				
+			} else {
+				self.not_map_error(&original_hashmap)
+			}
+		} else {
+			self.undefined_error("self".to_string())
+		}
+	}
+}
+
+impl ErrorHandler for InternalPropertyAssign {
+	fn get_token(&self) -> &Token {
+		&self.operator
+	}
+	fn get_context(&self) -> String {
+		format!("assigning {} to property {}` of self", self.value, self.access.term)
+	}
+}
+impl MapErrorHandler for InternalPropertyAssign {}

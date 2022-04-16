@@ -28,13 +28,28 @@ pub struct IfBlock {
 
 impl Tree for IfBlock {
 	fn resolve(&self, scope: &mut LexicalScope) -> Value {
-		let condition = self.condition.resolve(scope);
+		let condition = crate::resolve_or_abort!(self.condition, scope);
+		let has_else_if = self.else_if_bodies.len() > 0;
+		let has_else = self.else_body.is_some();
 		match condition {
-			Value::Boolean(b) => if b {
-				self.body.resolve(scope)
-			} else if self.else_body.is_some() {
-				self.else_body.as_ref().unwrap().resolve(scope)
-			} else { Value::None },
+			Value::Boolean(b) => {
+				if b {
+					return crate::resolve_or_abort!(self.body, scope)
+				}
+				if has_else_if {
+					for body in &self.else_if_bodies {
+						if let Value::Boolean(condition) = crate::resolve_or_abort!(body.0, scope) {
+							if condition {
+								return crate::resolve_or_abort!(body.1, scope);
+							}
+						}
+					}
+				}
+				if has_else {
+					return crate::resolve_or_abort!(self.else_body.as_ref().unwrap(), scope);
+				}
+				Value::None
+			},
 			_ => Value::None
 		}
 	}

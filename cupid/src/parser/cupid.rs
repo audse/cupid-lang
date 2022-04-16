@@ -51,8 +51,9 @@ macro_rules! use_repeat {
 
 macro_rules! use_negative_lookahead {
     ($parser:expr, $index:expr, $method:expr) => {{
-        $parser.tokens.goto($index);
+        let index = $index;
         if let Some((_val, _pass_through)) = $method {
+            $parser.tokens.goto(index);
             break;
         }
     }};
@@ -60,9 +61,10 @@ macro_rules! use_negative_lookahead {
 
 macro_rules! use_positive_lookahead {
     ($parser:expr, $index:expr, $method:expr) => {{
-        $parser.tokens.goto($index);
+        let index = $index;
         if let Some((_val, _pass_through)) = $method {
         } else {
+            $parser.tokens.goto(index);
             break;
         }
     }};
@@ -228,6 +230,12 @@ impl Parser {
             return Some((node, false));
         }
         self.reset_parse(&mut node, pos);
+        loop {
+            use_item!(&mut node, self._comment(None), false);
+
+            return Some((node, false));
+        }
+        self.reset_parse(&mut node, pos);
         None
     }
 
@@ -277,6 +285,12 @@ impl Parser {
         self.reset_parse(&mut node, pos);
         loop {
             use_item!(&mut node, self._function(None), false);
+
+            return Some((node, true));
+        }
+        self.reset_parse(&mut node, pos);
+        loop {
+            use_item!(&mut node, self._internal_property_assignment(None), false);
 
             return Some((node, true));
         }
@@ -571,6 +585,25 @@ impl Parser {
         None
     }
 
+    pub fn _internal_property_assignment(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
+        let start_pos = self.tokens.index();
+        let pos = start_pos;
+        let mut node = Node {
+            name: "internal_property_assignment".to_string(),
+            tokens: vec![],
+            children: vec![],
+        };
+        loop {
+            use_item!(&mut node, self._internal_property_access(None), false);
+            use_item!(&mut node, self._equal(None), false);
+            use_item!(&mut node, self._expression(None), false);
+
+            return Some((node, false));
+        }
+        self.reset_parse(&mut node, pos);
+        None
+    }
+
     pub fn _property_assignment(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
         let start_pos = self.tokens.index();
         let pos = start_pos;
@@ -695,18 +728,6 @@ impl Parser {
         }
         self.reset_parse(&mut node, pos);
         loop {
-            use_item!(&mut node, self._function_call(None), false);
-
-            return Some((node, true));
-        }
-        self.reset_parse(&mut node, pos);
-        loop {
-            use_item!(&mut node, self._property_access(None), false);
-
-            return Some((node, true));
-        }
-        self.reset_parse(&mut node, pos);
-        loop {
             use_item!(&mut node, self._structure(None), false);
 
             return Some((node, true));
@@ -759,6 +780,24 @@ impl Parser {
         }
         self.reset_parse(&mut node, pos);
         loop {
+            use_item!(&mut node, self._function_call(None), false);
+
+            return Some((node, true));
+        }
+        self.reset_parse(&mut node, pos);
+        loop {
+            use_item!(&mut node, self._internal_property_access(None), false);
+
+            return Some((node, true));
+        }
+        self.reset_parse(&mut node, pos);
+        loop {
+            use_item!(&mut node, self._property_access(None), false);
+
+            return Some((node, true));
+        }
+        self.reset_parse(&mut node, pos);
+        loop {
             use_item!(&mut node, self._boolean(None), false);
 
             return Some((node, true));
@@ -790,12 +829,6 @@ impl Parser {
         self.reset_parse(&mut node, pos);
         loop {
             use_item!(&mut node, self._identifier(None), false);
-
-            return Some((node, true));
-        }
-        self.reset_parse(&mut node, pos);
-        loop {
-            use_item!(&mut node, self._comment(None), false);
 
             return Some((node, true));
         }
@@ -909,7 +942,7 @@ impl Parser {
         };
         loop {
             loop {
-                use_item!(&mut node, self._term(None), false);
+                use_item!(&mut node, self._expression_item(None), false);
                 use_item!(&mut node, self.expect(",".to_string()), true);
             }
             return Some((node, false));
@@ -964,12 +997,12 @@ impl Parser {
         loop {
             use_item!(&mut node, self.expect("[".to_string()), false);
             loop {
+                use_item!(&mut node, self._expression_item(None), false);
                 use_negative_lookahead!(
                     self,
                     self.tokens.index(),
                     &mut self.expect("]".to_string())
                 );
-                use_item!(&mut node, self._expression_item(None), false);
                 use_item!(&mut node, self.expect(",".to_string()), false);
             }
             use_item!(&mut node, self.expect("]".to_string()), false);
@@ -991,12 +1024,12 @@ impl Parser {
         loop {
             use_item!(&mut node, self.expect("[".to_string()), false);
             loop {
+                use_item!(&mut node, self._dictionary_entry(None), false);
                 use_negative_lookahead!(
                     self,
                     self.tokens.index(),
                     &mut self.expect("]".to_string())
                 );
-                use_item!(&mut node, self._dictionary_entry(None), false);
                 use_item!(&mut node, self.expect(",".to_string()), false);
             }
             use_item!(&mut node, self.expect("]".to_string()), false);
@@ -1019,6 +1052,25 @@ impl Parser {
             use_item!(&mut node, self._term(None), false);
             use_item!(&mut node, self.expect(":".to_string()), false);
             use_item!(&mut node, self._expression_item(None), false);
+
+            return Some((node, false));
+        }
+        self.reset_parse(&mut node, pos);
+        None
+    }
+
+    pub fn _internal_property_access(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
+        let start_pos = self.tokens.index();
+        let pos = start_pos;
+        let mut node = Node {
+            name: "internal_property_access".to_string(),
+            tokens: vec![],
+            children: vec![],
+        };
+        loop {
+            use_item!(&mut node, self.expect("self".to_string()), false);
+            use_item!(&mut node, self.expect(".".to_string()), false);
+            use_item!(&mut node, self._require_property(None), false);
 
             return Some((node, false));
         }
@@ -1071,6 +1123,12 @@ impl Parser {
             return Some((node, true));
         }
         self.reset_parse(&mut node, pos);
+        loop {
+            use_item!(&mut node, self.expect("self".to_string()), false);
+
+            return Some((node, true));
+        }
+        self.reset_parse(&mut node, pos);
         None
     }
 
@@ -1083,7 +1141,7 @@ impl Parser {
             children: vec![],
         };
         loop {
-            use_item!(&mut node, self._term(None), false);
+            use_item!(&mut node, self._value(None), false);
 
             return Some((node, true));
         }
@@ -1151,16 +1209,27 @@ impl Parser {
         };
         loop {
             use_item!(&mut node, self._add(None), false);
-            use_item!(&mut node, self._keyword_operator(None), false);
-            use_item!(&mut node, self._compare_op(None), false);
+            use_optional!(&mut node, self._compare_suffix(None), false);
 
             return Some((node, false));
         }
         self.reset_parse(&mut node, pos);
-        loop {
-            use_item!(&mut node, self._add(None), false);
+        None
+    }
 
-            return Some((node, false));
+    pub fn _compare_suffix(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
+        let start_pos = self.tokens.index();
+        let pos = start_pos;
+        let mut node = Node {
+            name: "compare_suffix".to_string(),
+            tokens: vec![],
+            children: vec![],
+        };
+        loop {
+            use_item!(&mut node, self._keyword_operator(None), false);
+            use_item!(&mut node, self._compare_op(None), false);
+
+            return Some((node, true));
         }
         self.reset_parse(&mut node, pos);
         None
@@ -1176,24 +1245,34 @@ impl Parser {
         };
         loop {
             use_item!(&mut node, self._multiply(None), false);
+            use_optional!(&mut node, self._add_suffix(None), false);
+
+            return Some((node, false));
+        }
+        self.reset_parse(&mut node, pos);
+        None
+    }
+
+    pub fn _add_suffix(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
+        let start_pos = self.tokens.index();
+        let pos = start_pos;
+        let mut node = Node {
+            name: "add_suffix".to_string(),
+            tokens: vec![],
+            children: vec![],
+        };
+        loop {
             use_item!(&mut node, self.expect("+".to_string()), false);
             use_item!(&mut node, self._add(None), false);
 
-            return Some((node, false));
+            return Some((node, true));
         }
         self.reset_parse(&mut node, pos);
         loop {
-            use_item!(&mut node, self._multiply(None), false);
             use_item!(&mut node, self.expect("-".to_string()), false);
             use_item!(&mut node, self._add(None), false);
 
-            return Some((node, false));
-        }
-        self.reset_parse(&mut node, pos);
-        loop {
-            use_item!(&mut node, self._multiply(None), false);
-
-            return Some((node, false));
+            return Some((node, true));
         }
         self.reset_parse(&mut node, pos);
         None
@@ -1209,24 +1288,34 @@ impl Parser {
         };
         loop {
             use_item!(&mut node, self._exponent(None), false);
+            use_optional!(&mut node, self._multiply_suffix(None), false);
+
+            return Some((node, false));
+        }
+        self.reset_parse(&mut node, pos);
+        None
+    }
+
+    pub fn _multiply_suffix(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
+        let start_pos = self.tokens.index();
+        let pos = start_pos;
+        let mut node = Node {
+            name: "mutliply_suffix".to_string(),
+            tokens: vec![],
+            children: vec![],
+        };
+        loop {
             use_item!(&mut node, self.expect("*".to_string()), false);
             use_item!(&mut node, self._multiply(None), false);
 
-            return Some((node, false));
+            return Some((node, true));
         }
         self.reset_parse(&mut node, pos);
         loop {
-            use_item!(&mut node, self._exponent(None), false);
             use_item!(&mut node, self.expect("/".to_string()), false);
             use_item!(&mut node, self._multiply(None), false);
 
-            return Some((node, false));
-        }
-        self.reset_parse(&mut node, pos);
-        loop {
-            use_item!(&mut node, self._exponent(None), false);
-
-            return Some((node, false));
+            return Some((node, true));
         }
         self.reset_parse(&mut node, pos);
         None
@@ -1242,16 +1331,27 @@ impl Parser {
         };
         loop {
             use_item!(&mut node, self._value(None), false);
-            use_item!(&mut node, self.expect("^".to_string()), false);
-            use_item!(&mut node, self._exponent(None), false);
+            use_optional!(&mut node, self._exponent_suffix(None), false);
 
             return Some((node, false));
         }
         self.reset_parse(&mut node, pos);
-        loop {
-            use_item!(&mut node, self._value(None), false);
+        None
+    }
 
-            return Some((node, false));
+    pub fn _exponent_suffix(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
+        let start_pos = self.tokens.index();
+        let pos = start_pos;
+        let mut node = Node {
+            name: "exponent_suffix".to_string(),
+            tokens: vec![],
+            children: vec![],
+        };
+        loop {
+            use_item!(&mut node, self.expect("^".to_string()), false);
+            use_item!(&mut node, self._exponent(None), false);
+
+            return Some((node, true));
         }
         self.reset_parse(&mut node, pos);
         None

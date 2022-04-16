@@ -1,5 +1,5 @@
 - file: expression+
-- expression: expression_item
+- expression: expression_item | comment
 
 -~expression_item:
 	loop
@@ -9,6 +9,7 @@
 	| symbol_declaration
 	| typed_declaration
 	| function
+	| internal_property_assignment
 	| property_assignment
 	| assignment
 	| term
@@ -36,6 +37,7 @@
 - declaration: symbol_declaration ~equal expression_item
 - symbol_declaration: keyword_variable 'mut'? identifier
 - assignment: identifier equal expression
+- internal_property_assignment: internal_property_access equal expression
 - property_assignment: property_access equal expression
 
 - type_definition: 'type' identifier ~'[' (type_field ',')* closing_bracket
@@ -47,8 +49,6 @@
 
 -~term:
 	log
-	| function_call
-	| property_access
 	| structure
 	| operation
 
@@ -58,13 +58,15 @@
 
 -~value:
 	group
+	| function_call
+	| internal_property_access
+	| property_access
 	| boolean
 	| none
 	| string
 	| decimal
 	| number
 	| identifier
-	| comment
 
 - group: ~'(' expression_item closing_paren
 - function: parameters block
@@ -72,17 +74,18 @@
 
 - log: log_keyword ~'(' arguments closing_paren
 - function_call: identifier ~'(' arguments closing_paren
-- arguments: (term ~',')*
+- arguments: (expression_item ~',')*
 
 -~log_keyword: 'log' | 'logs' | 'log_line' | 'logs_line'
 
-- list: '[' (!']' expression_item ',')* ']'
-- dictionary: '[' (!']' dictionary_entry ',')* ']'
+- list: '[' (expression_item !']' ',')* ']'
+- dictionary: '[' (dictionary_entry !']' ',')* ']'
 - dictionary_entry: term ':' expression_item
 
+- internal_property_access: 'self' '.' require_property
 - property_access: property_accessor '.' require_property
--~property_accessor: structure | function_call | identifier
--~require_property: term | <e 'missing index or property name'>
+-~property_accessor: structure | function_call | identifier | 'self'
+-~require_property: value | <e 'missing index or property name'>
 
 -~operation:
 	binary_op
@@ -90,21 +93,17 @@
 
 -~binary_op: compare_op
 
-- compare_op:
-	add keyword_operator compare_op
-	| add
-	
-- add: 
-	multiply '+' add
-	| multiply '-' add
-	| multiply
-- multiply: 
-	exponent '*' multiply
-	| exponent '/' multiply
-	| exponent
-- exponent:
-	value '^' exponent
-	| value
+- compare_op: add compare_suffix?
+-~compare_suffix: keyword_operator compare_op
+
+- add: multiply add_suffix?
+-~add_suffix: '+' add | '-' add
+
+- multiply: exponent multiply_suffix?
+-~multiply_suffix: '*' multiply | '/' multiply
+
+- exponent: value exponent_suffix?
+-~exponent_suffix: '^' exponent
 
 - unary_op: unary_operator require_expression
 -~unary_operator: '+' | '-'

@@ -17,7 +17,9 @@ pub enum Expression {
     Logger(Logger),
     Map(Map),
     PropertyAccess(PropertyAccess),
+    InternalPropertyAccess(InternalPropertyAccess),
     PropertyAssign(PropertyAssign),
+    InternalPropertyAssign(InternalPropertyAssign),
     Empty,
     WhileLoop(WhileLoop),
     ForInLoop(ForInLoop),
@@ -122,9 +124,25 @@ impl Expression {
             operator: token
         })
     }
+    pub fn new_internal_property_access(term: Expression, token: Token) -> Self {
+        Self::InternalPropertyAccess(InternalPropertyAccess {
+            term: Box::new(term),
+            operator: token
+        })
+    }
     pub fn new_property_assign(access: Expression, value: Expression, token: Token) -> Self {
         if let Expression::PropertyAccess(access) = access {
             return Self::PropertyAssign(PropertyAssign {
+                access,
+                value: Box::new(value),
+                operator: token
+            });
+        }
+        unreachable!()
+    }
+    pub fn new_internal_property_assign(access: Expression, value: Expression, token: Token) -> Self {
+        if let Expression::InternalPropertyAccess(access) = access {
+            return Self::InternalPropertyAssign(InternalPropertyAssign {
                 access,
                 value: Box::new(value),
                 operator: token
@@ -205,7 +223,9 @@ impl Tree for Expression {
             Self::Logger(x) => x.resolve(scope),
             Self::Map(x) => x.resolve(scope),
             Self::PropertyAccess(x) => x.resolve(scope),
+            Self::InternalPropertyAccess(x) => x.resolve(scope),
             Self::PropertyAssign(x) => x.resolve(scope),
+            Self::InternalPropertyAssign(x) => x.resolve(scope),
             Self::WhileLoop(x) => x.resolve(scope),
             Self::ForInLoop(x) => x.resolve(scope),
             Self::DefineType(x) => x.resolve(scope),

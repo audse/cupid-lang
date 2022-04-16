@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter, Result};
 use std::borrow::Cow;
 use std::hash::{Hash, Hasher};
-use crate::{Value, Tree, LexicalScope, Token, ErrorHandler};
+use crate::{Value, Tree, LexicalScope, Token, ErrorHandler, Type};
 
 #[derive(Debug, Clone)]
 pub struct Symbol  {
@@ -41,10 +41,10 @@ impl Symbol {
 		self.error(format!("undefined: `{}` does not exist", &self.get_identifier()))
 	}
 	pub fn error_unable_to_assign(&self, assign_value: &Value) -> Value {
-		self.error(format!("cannot assign {} to {}", assign_value, self))
+		self.error(format!("cannot assign {} ({}) to {}", assign_value, Type::from(assign_value), self))
 	}
 	pub fn error_assign_type_mismatch(&self, assign_value: &Value) -> Value {
-		self.error(format!("type mismatch: cannot assign {} to {}", assign_value, self))
+		self.error(format!("type mismatch: cannot assign {} ({}) to {}", Type::from(assign_value), assign_value, self))
 	}
 }
 
@@ -60,7 +60,7 @@ impl ErrorHandler for Symbol {
 
 impl PartialEq for Symbol {
 	fn eq(&self, other: &Self) -> bool {
-		self.identifier.eq(&other.identifier)
+		self.identifier == other.identifier
 	}
 }
 impl Eq for Symbol {}
@@ -116,7 +116,7 @@ impl TypeSymbol {
 		self.error(format!("undefined: {} does not exist", &self), None)
 	}
 	pub fn error_assign_type_mismatch(&self, assign_value: &Value, token: Token) -> Value {
-		self.error(format!("type mismatch: cannot assign {} to {}", assign_value, self), Some(token))
+		self.error(format!("type mismatch: cannot assign {:#} ({}) to {}", assign_value, Type::from(assign_value), self), Some(token))
 	}
 }
 

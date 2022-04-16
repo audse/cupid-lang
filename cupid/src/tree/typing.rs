@@ -47,6 +47,7 @@ pub const DICTIONARY: Type = Type::new_const("dict");
 pub const TUPLE: Type = Type::new_const("tuple");
 pub const NONE: Type = Type::new_const("none");
 pub const ERROR: Type = Type::new_const("error");
+pub const MAP_ENTRY: Type = Type::new_const("map_entry");
 
 impl Type {
 	pub const fn new_const(name: &'static str) -> Self {
@@ -65,6 +66,7 @@ impl Type {
 			Value::Dictionary(_) => DICTIONARY,
 			Value::List(_) => LIST,
 			Value::Tuple(_) => TUPLE,
+			Value::MapEntry(_, _) => MAP_ENTRY,
 			Value::Error(_) => ERROR,
 			_ => NONE
 		}
@@ -145,8 +147,7 @@ pub fn dict_has_field(dict: DictRef, field_type: &Type, field_symbol: &Symbol) -
 	// check that property exists
 	if let Some((_, dict_property)) = dict.get(field_identifier) {
 		// check that property is correct type
-		let dict_type = Type::from(dict_property);
-		&dict_type == field_type
+		is_type(dict_property, field_type)
 	} else {
 		false
 	}

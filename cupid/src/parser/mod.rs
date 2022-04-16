@@ -9,6 +9,11 @@ mod cupid;
 pub use self::cupid::{Parser as CupidParser, Node as ParseNode};
 mod grammar;
 
+// mod parser_macros;
+// pub use parser_macros::*;
+
+// mod cupid_macro;
+// pub use cupid_macro::{Parser as MacroParser, Node as ParseNode};
 
 const BASE_PATH: &str = "src/parser/parser_base.rs";
 const PLACEHOLDER: &str = "/*RULES*/";

@@ -7,7 +7,11 @@ pub struct Tokenizer {
 	pub tokens: Vec<Token>,
 	pub line: usize,
 	pub line_index: usize,
+	pub bracket_stack: Vec<char>,
 }
+
+const OPEN: [char; 3] = ['[', '(', '{'];
+const CLOSE: [char; 3] = [']', ')', '}'];
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Token {
@@ -25,6 +29,7 @@ impl Tokenizer {
 			tokens: vec![],
 			line: 1,
 			line_index: 0,
+			bracket_stack: vec![],
 		}
 	}
 	pub fn add_token(&mut self, source: String) {
@@ -42,8 +47,11 @@ impl Tokenizer {
 		self.current()
 	}
 	pub fn scan(&mut self) {
+		
 		while !self.is_done() {
 			let c = *self.current();
+			self.handle_bracket(c);
+			
 			match c {
 				'#' => self.line_comment(),
 				'<' => self.tag(c),
@@ -59,7 +67,6 @@ impl Tokenizer {
 			}
 			self.advance();
 		}
-		// println!("{}", TokenList(self.tokens.clone()));
 		self.add_token(String::from("EOF"));
 	}
 	fn line_comment(&mut self) {
@@ -106,6 +113,29 @@ impl Tokenizer {
 		}
 		source.push(*self.advance()); 
 		self.add_token(source);
+	}
+	pub fn handle_bracket(&mut self, c: char) {		
+		if OPEN.contains(&c) {
+			self.bracket_stack.push(c);
+		}
+		if CLOSE.contains(&c) {
+			let match_index = OPEN.iter().position(|i| *i == c);
+			if let Some(i) = match_index {
+				let last_bracket = self.bracket_stack.last().unwrap_or(&'\0');
+				let close_match_index = CLOSE.iter().position(|i| *i == *last_bracket);
+				if let Some(close_index) = close_match_index {
+					if *last_bracket != OPEN[i] {
+						self.add_token(format!(
+							"<e 'Expected closing bracket `{}`, not `{}`'>", 
+							CLOSE[close_index],
+							c
+						))
+					} else {
+						self.bracket_stack.pop();
+					}
+				}
+			}
+		}
 	}
 }
 

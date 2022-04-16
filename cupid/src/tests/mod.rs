@@ -3,15 +3,21 @@ use super::*;
 
 #[allow(dead_code)]
 pub fn test(input: &str, expected: Value) -> bool {
-	let mut parser = CupidParser::new(input.to_string());
-	let parse_tree = parser._file(None);
-	let semantics = to_tree(&parse_tree.unwrap().0);	
-	let mut scope = LexicalScope::new();
-	use_builtin_types(&mut scope);
-	let result = semantics.resolve(&mut scope);
+	let mut handler = FileHandler::from(input);
+	let result = handler.run_and_return().pop().unwrap();
 	println!("Result: {}", result);
-	
 	result.is_equal(&expected)
+}
+
+#[allow(dead_code)]
+pub fn test_error(input: &str) -> bool {
+	let mut handler = FileHandler::from(input);
+	let result = handler.run_and_return().pop().unwrap();
+	if let Value::Error(_) = result {
+		true
+	} else {
+		false
+	}
 }
 
 #[allow(dead_code)]
@@ -51,6 +57,21 @@ fn test_assignment() {
 	assert!(test_int("int x = 1", 1));
 	assert!(test_str("string x = 'abc'", "abc"));
 	assert!(test_dec("dec x = -1.5", -1.5));
+	assert!(test_none("let x"));
+	assert!(test_error("
+		# throws immutable error
+		int x = 1
+		x = 100
+	"));
+	assert!(test_error("
+		# throws type mismatch error
+		int x = 1
+		x = 'abc'
+	"));
+	assert!(test_error("
+		# throws undefined error
+		x = 1
+	"));
 }
 
 /*
@@ -85,12 +106,19 @@ fn test_if_block() {
 	assert!(test_none("if true not true { 10 }"));
 	assert!(test_int("if true not true { 10 } else { 5 }", 5));
 	assert!(test_int("if 2 > 1 => 2 else => 1", 2));
-}
-
-#[test]
-fn test_expression() {
-	assert!(test_none("let x"));
-	assert!(test_int("-1", -1));
+	assert!(test_str("
+		int my_num = 8
+		if my_num is 1 => '1'
+		else if my_num < 10 => 'between 1 and 10'
+		else => '10+'
+	", "between 1 and 10"));
+	assert!(test_str("
+		int my_num = 8
+		if my_num is 1 => '1'
+		else if my_num is 2 => '2'
+		else if my_num not 3 => 'not 3'
+		else => 'something else'
+	", "not 3"));
 }
 
 #[test]
@@ -99,15 +127,34 @@ fn test_function() {
 		fun x = a => a + 1 
 		x(100)
 	}", 101));
+	assert!(test_int("{
+		fun pythagorean = a, b => a * a + b * b
+		pythagorean(2, 3)
+	}", 13));
+	assert!(test_error("{
+		# throws wrong num of arguments error
+		fun x = a => a + 1 
+		x(100, 100)
+	}"));
+	assert!(test_error("{
+		# throws wrong num of arguments error
+		fun x = a => a + 1 
+		x()
+	}"));
 }
 
 #[test]
 fn test_loop() {
 	assert!(test_int("{
-		int i = 10
+		int mut i = 10
 		while i > 0 => i = i - 1
 		i
-	}", 0))
+	}", 0));
+	assert!(test_str("{
+		string mut abc = ''
+		for letter in ['a', 'b', 'c'] => abc = abc + letter
+		abc
+	}", "abc"));
 }
 
 #[test]
@@ -115,10 +162,92 @@ fn test_operation() {
 	assert!(test_str("'abc' + 'xyz'", "abcxyz"));
 	assert!(test_dec("1.5 + 2.5 * 2.0", 6.5));
 	assert!(test_dec("(1.5 + 2.5) * 2.0", 8.0));
+	assert!(test_int("1 + 10 * 10 / 10", 11));
+	assert!(test_int("-1", -1));
 }
 
 #[test]
-fn test_structure() {}
+fn test_list() {
+	assert!(test_int("{
+		list nums = [0, 1, 2, 3]
+		nums.1
+	}", 1));
+	assert!(test_int("{
+		int index = 1
+		list nums = [0, 1, 2, 3]
+		nums.index
+	}", 1));
+	assert!(test_int("{
+		int index = 100
+		list nums = [0, 1, 2, 3]
+		nums.(index / 100)
+	}", 1));
+	assert!(test_error("
+		# throws type mismatch error
+	   list x = [a: 1, b: 2]
+	"));
+}
 
 #[test]
-fn test_typing() {}
+fn test_dict() {
+	assert!(test_int("{
+		dict nums = [first: 0, second: 1, third: 2]
+		nums.first
+	}", 0));
+	assert!(test_str("string jay = {
+		dict name = [
+			first: 'Jacob',
+			last: 'A.',
+		]
+		fun make_name = n {
+			string mut accum = ''
+			for key, val in n {
+				accum = accum + ' ' + val
+				log (accum)
+			}
+			accum
+		}
+		make_name(name)
+	}", " Jacob A."));
+	assert!(test_error("
+		# throws type mismatch error
+	   list x = [a: 1, b: 2]
+	"));
+	assert!(test_error("
+		# throws no property error
+	   dict x = [a: 1, b: 2]
+	   x.c
+	"));
+}
+
+#[test]
+fn test_typing() {
+	assert!(test_int("{
+		type int_list [
+			list ints
+		]
+		int_list my_list = [
+			ints: [0, 1, 2]
+		]
+		list ints = my_list.ints
+		ints.0
+	}", 0));
+	assert!(test_error("
+		# throws type mismatch error
+		type int_list [
+			list ints
+		]
+		int_list my_list = [
+			ints: [a: 0, b: 1, c: 2]
+		]
+	"));
+	assert!(test_int("
+		type do [
+			fun something
+		]
+		do random = [
+			something: a => a + 12345
+		]
+		random.something(12345)
+	", 24690));
+}

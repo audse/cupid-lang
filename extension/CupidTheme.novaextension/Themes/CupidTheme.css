@@ -439,3 +439,21 @@ cupid-grammar.identifier.method {
   font-weight: bold;
   font-style: normal;
 }
+
+/* Cupid */
+
+cupid.storage.type {
+  font-weight: bold;
+}
+
+cupid.identifier.property {
+  font-style: italic;
+}
+
+cupid.property.definition {
+  font-weight: bold;
+}
+
+cupid.property {
+  color: rgb(102, 122, 139);
+}

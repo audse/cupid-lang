@@ -148,6 +148,11 @@ pub fn to_tree(node: &ParseNode) -> Expression {
             to_tree(&node.children[1]),
             node.tokens[0].clone(),
         ),
+        "internal_property_assignment" => Expression::new_internal_property_assign(
+            to_tree(&node.children[0]),
+            to_tree(&node.children[1]),
+            node.tokens[0].clone(),
+        ),
         "binary_op" | "compare_op" | "add" | "multiply" | "exponent" => {
             if !node.tokens.is_empty() && node.children.len() > 1 {
                 Expression::new_operator(
@@ -214,7 +219,11 @@ pub fn to_tree(node: &ParseNode) -> Expression {
                 .map(|(i, e)| (Expression::new_int_node(i as i32, vec![]), (i, to_tree(e))))
                 .collect();
             Expression::new_map(entries, node.tokens[0].clone(), LIST)
-        }
+        },
+        "internal_property_access" => {
+            let term = to_tree(&node.children[0]);
+            Expression::new_internal_property_access(term, node.tokens[0].clone())
+        },
         "property_access" => {
             let map = to_tree(&node.children[0]);
             let term = to_tree(&node.children[1]);

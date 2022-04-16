@@ -14,18 +14,35 @@ impl FileHandler {
 	pub fn new(path: &str) -> Self {
 		let contents = std::fs::read_to_string(path)
 			.unwrap_or_else(|_| String::from("Unable to find file"));
-		let parser = CupidParser::new(contents.clone());
-		let mut scope = LexicalScope::default();
-		use_builtin_types(&mut scope);
-		
+		let (parser, scope, errors, warnings) = FileHandler::build(&contents);
 		Self {
 			path: path.to_string(),
 			contents,
 			parser,
 			scope,
-			errors: vec![],
-			warnings: vec![],
+			errors,
+			warnings
 		}
+	}
+	
+	pub fn from(string: &str) -> Self {
+		let contents = string.to_string();
+		let (parser, scope, errors, warnings) = FileHandler::build(&contents);
+		Self {
+			path: String::new(),
+			contents,
+			parser,
+			scope,
+			errors,
+			warnings
+		}
+	}
+	
+	pub fn build(contents: &str) -> (CupidParser, LexicalScope, Vec<Error>, Vec<Warning>) {
+		let parser = CupidParser::new(contents.to_string());
+		let mut scope = LexicalScope::default();
+		use_builtin_types(&mut scope);
+		(parser, scope, vec![], vec![])
 	}
 	
 	pub fn run_debug(&mut self) {
@@ -38,7 +55,15 @@ impl FileHandler {
 		println!("Semantics: {:#?}", semantics);
 		
 		let result = semantics.resolve_file(&mut self.scope);
-		result.iter().for_each(|r| println!("{:?}", r));
+		print!("\n\nResults:");
+		result.iter().for_each(|r| println!("\n{:?}", r));
+	}
+	
+	pub fn run_and_return(&mut self) -> Vec<Value> {
+		let parse_tree = self.parser._file(None);        
+		let semantics = to_tree(&parse_tree.unwrap().0);
+		
+		semantics.resolve_file(&mut self.scope)
 	}
 	
 	pub fn run(&mut self) {
@@ -48,9 +73,6 @@ impl FileHandler {
 		let semantics = to_tree(&parse_tree.unwrap().0);
 		
 		let result = semantics.resolve_file(&mut self.scope);
-		// for error in result {
-		//     
-		// }
 		self.errors = result
 			.iter()
 			.filter_map(|r| match r {
@@ -99,12 +121,21 @@ impl FileHandler {
 			underline_indent = underline_indent,
 			underline = vec!["^"; e.source.len()].join("").red().bold()
 		);
+		let context = format!("\n\t{} {}",
+			"additional context:".to_string().bold(),
+			if e.context.len() > 0 { 
+				e.context.to_string()
+			} else { 
+				"none provided".to_string()
+			}.italic()
+		);
 		return format!(
-			"{error}\t{overline}\n\t{line}\n\t{underline}",
+			"{error}\n\t{overline}\n\t{line}\n\t{underline}\n{context}",
 			error = e.string(&self.path),
 			overline = overline,
 			line = line,
 			underline = underline,
+			context = context
 		);
 	}
 	
@@ -114,8 +145,10 @@ impl FileHandler {
 	}
 	
 	pub fn report_build_complete(&self) {
-		let error_message = format!("{} errors", self.errors.len()).red();
-		let warning_message = format!("{} warnings", self.warnings.len()).yellow();
+		let num_errors = self.errors.len();
+		let num_warnings = self.warnings.len();
+		let error_message = format!("{} {}", num_errors, pluralize(num_errors, "error")).red();
+		let warning_message = format!("{} {}", num_warnings, pluralize(num_warnings, "warning")).yellow();
 		let build_message = format!(
 			"Build finished with {} and {}.", 
 			error_message, 
