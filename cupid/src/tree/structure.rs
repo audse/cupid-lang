@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
-use crate::{Expression, Tree, Value, LexicalScope, Type, Token, ErrorHandler, MapErrorHandler, Symbol, MAP_ENTRY};
+use crate::{Expression, Tree, Value, LexicalScope, Type, Token, ErrorHandler, MapErrorHandler, Symbol, SymbolFinder, MAP_ENTRY};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Map {
@@ -53,6 +53,63 @@ impl ErrorHandler for Map {
 	}
 }
 impl MapErrorHandler for Map {}
+
+#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+pub struct Range {
+	pub start: Box<Expression>,
+	pub end: Box<Expression>,
+	pub inclusive: (bool, bool),
+	pub token: Token,
+}
+
+impl Range {
+	pub fn not_integers_error(&self, start: Type, end: Type) -> Value {
+		self.error(format!(
+			"type mismatch: ranges must be constructed from integers, not {} .. {}",
+			start,
+			end
+		))
+	}
+}
+
+impl Tree for Range {
+	fn resolve(&self, scope: &mut LexicalScope) -> Value {
+		let mut entries: HashMap<Value, (usize, Value)> = HashMap::new();
+		let start = crate::resolve_or_abort!(self.start, scope);
+		let end = crate::resolve_or_abort!(self.end, scope);
+		
+		let (include_start, include_end) = self.inclusive;
+		if let (&Value::Integer(start_val), &Value::Integer(end_val)) = (&start, &end) {
+			let s = if include_start { start_val } else { start_val + 1 };
+			let e = if include_end { end_val } else { end_val - 1 } + 1;
+			let range: Vec<i32> = (s..e).collect();
+			for (index, item) in range.iter().enumerate() {
+				let entry = Value::Integer(*item);
+				entries.insert(Value::Integer(index as i32), (index, entry));
+			}
+			Value::List(entries)
+		} else {
+			self.not_integers_error(Type::from(&start), Type::from(&end))
+		}
+	}
+}
+
+impl ErrorHandler for Range {
+	fn get_token(&self) -> &Token {
+		&self.token
+	}
+	fn get_context(&self) -> String {
+		let (include_start, include_end) = self.inclusive;
+		format!(
+			"creating a range between start {} ({}) and end {} ({})",
+			self.start,
+			if include_start { "inclusive" } else { "exclusive" },
+			self.end,
+			if include_end { "inclusive" } else { "exclusive" },
+		)
+	}
+}
+impl MapErrorHandler for Range {}
 
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]

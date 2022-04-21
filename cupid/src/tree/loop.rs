@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::{Expression, Value, LexicalScope, Tree, Token, Block, Symbol, ErrorHandler, MapErrorHandler, Type};
+use crate::{Expression, Value, LexicalScope, ScopeContext, Tree, Token, Block, Symbol, ErrorHandler, MapErrorHandler, Type, SymbolFinder};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct WhileLoop {
@@ -12,21 +12,28 @@ impl Tree for WhileLoop {
 	fn resolve(&self, scope: &mut LexicalScope) -> Value {
 		let mut value = Value::None;
 		loop {
-			let condition = crate::resolve_or_abort!(self.condition, scope);
+			scope.add(ScopeContext::Loop);
+			let condition = crate::resolve_or_abort!(self.condition, scope, { scope.pop(); });
 			if let Value::Boolean(condition_value) = condition {
 				if !condition_value {
 					break;
 				}
-				value = self.body.resolve(scope);
-				crate::abort_on_error!(value);
+				value = crate::resolve_or_abort!(self.body, scope, { scope.pop(); });
+				if let Value::Break(break_value) = value {
+					value = *break_value;
+					break;
+				}
 			} else {
+				scope.pop();
 				return self.error(format!(
 					"a while loop condition must evaluate to a boolean, not {} ({})",
 					condition,
 					Type::from(&condition)
 				))
 			}
+			scope.pop();
 		}
+		scope.pop();
 		value
 	}
 }
@@ -66,7 +73,7 @@ impl Tree for ForInLoop {
 		let num_params = self.params.len();
 		let mut result = Value::None;
 		for (key, (index, value)) in iter.iter() {
-			_ = scope.add();
+			_ = scope.add(ScopeContext::Loop);
 			
 			let args = if num_params == 1 {
 				vec![(self.params[0].clone(), value.clone())]
@@ -89,7 +96,12 @@ impl Tree for ForInLoop {
 				scope.create_symbol(&symbol, value.clone(), true, true);
 			}
 			
-			result = crate::resolve_or_abort!(self.body, scope, { scope.pop(); });			
+			result = crate::resolve_or_abort!(self.body, scope, { scope.pop(); });
+			if let Value::Break(break_result) = result {
+				result = *break_result;
+				scope.pop();
+				break
+			}
 			scope.pop();
 		}
 		result
@@ -105,4 +117,26 @@ impl ErrorHandler for ForInLoop {
 		format!("attempting to construct a for..in loop with params {}", params.join(", "))
 	}
 }
+
 impl MapErrorHandler for ForInLoop {}
+
+#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+pub struct Break {
+	pub token: Token,
+	pub value: Box<Expression>,
+}
+
+impl Tree for Break {
+	fn resolve(&self, scope: &mut LexicalScope) -> Value {
+		Value::Break(Box::new(self.value.resolve(scope)))
+	}
+}
+
+impl ErrorHandler for Break {
+	fn get_token(&self) -> &Token {
+		&self.token
+	}
+	fn get_context(&self) -> String {
+		format!("breaking from loop with value {}", self.value)
+	}
+}

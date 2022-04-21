@@ -1,7 +1,9 @@
 use std::fmt::{Display, Formatter, Result};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
-use crate::{Symbol, Expression, Error, Token, Type, LexicalScope, DICTIONARY, LIST, TUPLE};
+use crate::{Symbol, Expression, Error, Token, Type, ScopeContext, LexicalScope, TypeSymbol, SymbolFinder, DICTIONARY, LIST, TUPLE};
+use std::ops::{Add, Sub, Mul, Neg, Div};
+use std::cmp::Ordering;
 
 
 #[derive(Debug, Clone)]
@@ -10,14 +12,114 @@ pub enum Value {
 	Decimal(i32, u32),
 	String(String),
 	Boolean(bool),
-	FunctionBody(Vec<Symbol>, Box<Expression>),
+	FunctionBody(Vec<(TypeSymbol, Symbol)>, Box<Expression>),
 	Dictionary(HashMap<Value, (usize, Value)>),
 	List(HashMap<Value, (usize, Value)>),
 	Tuple(HashMap<Value, (usize, Value)>),
 	MapEntry(usize, Box<Value>),
 	Error(Error),
 	Type(Type),
+	Break(Box<Value>),
+	Return(Box<Value>),
+	Continue,
 	None,
+}
+
+impl Add for Value {
+	type Output = Self;
+	fn add(self, rhs: Self) -> Self::Output {
+    	match (self, rhs) {
+			(Value::Integer(x), Value::Integer(y)) => Value::Integer(x + y),
+			(Value::Decimal(x, y), Value::Decimal(a, b)) => float_to_dec(dec_to_float(x, y) + dec_to_float(a, b)),
+			(Value::String(mut x), Value::String(y)) => {
+				x.push_str(y.as_str());
+				Value::String(x)
+			},
+			(Value::Dictionary(mut x), Value::Dictionary(y)) => {
+				y.into_iter().for_each(|(entry, (_, value))| {
+					x.insert(entry, (x.len(), value));
+				});
+				Value::Dictionary(x)
+			},
+			(Value::List(mut x), Value::List(y)) => {
+				y.into_iter().for_each(|(entry, (_, value))| {
+					x.insert(entry, (x.len(), value));
+				});
+				Value::List(x)
+			},
+			(Value::Tuple(mut x), Value::Tuple(y)) => {
+				y.into_iter().for_each(|(entry, (_, value))| {
+					x.insert(entry, (x.len(), value));
+				});
+				Value::Tuple(x)
+			},
+			_ => Value::None,
+		}
+	}
+}
+
+impl Sub for Value {
+	type Output = Self;
+	fn sub(self, rhs: Self) -> Self::Output {
+		match (self, rhs) {
+			(Value::Integer(x), Value::Integer(y)) => Value::Integer(x - y),
+			(Value::Decimal(x, y), Value::Decimal(a, b)) => float_to_dec(dec_to_float(x, y) - dec_to_float(a, b)),
+			_ => Value::None
+		}
+	}
+}
+
+impl Mul for Value {
+	type Output = Self;
+	fn mul(self, rhs: Self) -> Self::Output {
+		match (self, rhs) {
+			(Value::Integer(x), Value::Integer(y)) => Value::Integer(x * y),
+			(Value::Decimal(x, y), Value::Decimal(a, b)) => float_to_dec(dec_to_float(x, y) * dec_to_float(a, b)),
+			_ => Value::None
+		}
+	}
+}
+
+impl Div for Value {
+	type Output = Self;
+	fn div(self, rhs: Self) -> Self::Output {
+		match (self, rhs) {
+			(Value::Integer(x), Value::Integer(y)) => Value::Integer(x / y),
+			(Value::Decimal(x, y), Value::Decimal(a, b)) => float_to_dec(dec_to_float(x, y) / dec_to_float(a, b)),
+			_ => Value::None
+		}
+	}
+}
+
+impl Neg for Value {
+	type Output = Self;
+	fn neg(self) -> Self::Output {
+		match self {
+			Value::Integer(x) => Value::Integer(-x),
+			Value::Decimal(x, y) => float_to_dec(-dec_to_float(x, y)),
+			_ => Value::None
+		}
+	}
+}
+
+impl PartialOrd for Value {
+	fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+		match (self, other) {
+			(Value::Integer(x), Value::Integer(y)) => Some(x.cmp(y)),
+			(Value::Decimal(x, y), Value::Decimal(a, b)) => {
+				let x = dec_to_float(*x, *y);
+				let y = dec_to_float(*a, *b);
+				if x > y {
+					Some(Ordering::Greater)
+				} else if x == y {
+					Some(Ordering::Equal)
+				} else {
+					Some(Ordering::Less)
+				}
+			},
+			_ => None
+		}
+	}
 }
 
 impl PartialEq for Value {
@@ -31,6 +133,7 @@ impl PartialEq for Value {
 			(Value::Type(x), Value::Type(y)) => x == y,
 			(Value::None, Value::None) => true,
 			(Value::Error(_), Value::Error(_)) => false,
+			(Value::Break(x), Value::Break(y)) => x == y,
 			_ => false
 		}
 	}
@@ -64,19 +167,13 @@ impl Hash for Value {
 				y.hash(state);
 			},
 			Value::Type(x) => x.hash(state),
+			Value::Break(x) => x.hash(state),
+			Value::Return(x) => x.hash(state),
+			Value::Continue => (),
 		}
 	}
 }
 
-
-macro_rules! op {
-	($left:tt $op:tt $right:tt) => { $left $op $right };
-	($left:tt $op:tt $right:tt ?) => { $left $op $right };
-
-	($left_front:tt $left_back:tt $op:tt $right_front:tt $right_back:tt) => {
-		dec_to_float(*$left_front, *$left_back) $op dec_to_float($right_front, $right_back)
-	}
-}
 
 pub fn dec_to_float(front: i32, back: u32) -> f64 {
 	format!("{}.{}", front, back).parse::<f64>().unwrap()
@@ -116,7 +213,7 @@ impl Value {
 		}
 	}
 	pub fn make_scope(&self, scope: &mut LexicalScope, token: Token, mutable: bool) {
-		scope.add();
+		scope.add(ScopeContext::Map);
 		let self_symbol = Symbol::new_string("self".to_string(), token.clone());
 		scope.create_symbol_of_type(
 			&self_symbol, self.clone(), Type::from(self), mutable, mutable
@@ -132,96 +229,6 @@ impl Value {
 	}
 	pub fn is_poisoned(&self) -> bool {
 		matches!(self, Value::Error(_))
-	}
-	pub fn add(&self, other: Self, operator: &Token) -> Value {
-		match (self, other) {
-			(Self::Integer(x), Self::Integer(y)) => Self::Integer(op!(x + y)),
-			(Self::Decimal(a, b), Self::Decimal(x, y)) => float_to_dec(op!(a b + x y)),
-			(Self::String(x), Self::String(y)) => {
-				let x = x.to_owned();
-				let y = y.as_str();
-				Self::String(op!(x + y))
-			},
-			(x, y) => Value::error(operator, format!("Cannot add {:?} to {:?}", y, x), String::new())
-		}
-	}
-	pub fn subtract(&self, other: Self, operator: &Token) -> Value {
-		match (self, other) {
-			(Self::Integer(x), Self::Integer(y)) => Self::Integer(op!(x - y)),
-			(Self::Decimal(a, b), Self::Decimal(x, y)) => float_to_dec(op!(a b - x y)),
-			(x, y) => Value::error(operator, format!("Cannot subtract {:?} from {:?}", y, x), String::new())
-		}
-	}
-	pub fn multiply(&self, other: Self, operator: &Token) -> Value {
-		match (self, other) {
-			(Self::Integer(x), Self::Integer(y)) => Self::Integer(op!(x * y)),
-			(Self::Decimal(a, b), Self::Decimal(x, y)) => float_to_dec(op!(a b * x y)),
-			(x, y) => Value::error(operator, format!("Cannot multiply {:?} and {:?}", x, y), String::new())
-		}
-	}
-	pub fn divide(&self, other: Self, operator: &Token) -> Value {
-		match (self, other) {
-			(Self::Integer(x), Self::Integer(y)) => Self::Integer(op!(x / y)),
-			(Self::Decimal(a, b), Self::Decimal(x, y)) => float_to_dec(op!(a b / x y)),
-			(x, y) => Value::error(operator, format!("Cannot divide {:?} by {:?}", x, y), String::new())
-		}
-	}
-	pub fn negative(&self, operator: &Token) -> Value {
-		let n = -1;
-		match self {
-			Self::Integer(x) => Self::Integer(op!(x * n)),
-			Self::Decimal(a, b) => float_to_dec(op!(a b * n 0)),
-			x => Value::error(operator, format!("Cannot make {:?} negative", x), String::new())
-		}
-	}
-	pub fn is_equal(&self, other: &Self) -> bool {
-		op!(self == other)
-	}
-	pub fn equal(&self, other: &Self) -> Self {
-		Self::Boolean(op!(self == other))
-	}
-	pub fn not_equal(&self, other: &Self) -> Self {
-		Self::Boolean(op!(self != other))
-	}
-	pub fn greater(&self, other: Self, operator: &Token) -> Self {
-		match (self, other) {
-			(Self::Integer(x), Self::Integer(y)) => {
-				let y = &y;
-				Self::Boolean(op!(x > y))
-			},
-			(Self::Decimal(a, b), Self::Decimal(x, y)) => Self::Boolean(op!(a b > x y)),
-			(x, y) => Value::error(operator, format!("Cannot compare {:?} and {:?}", x, y), String::new())
-		}
-	}
-	pub fn greater_equal(&self, other: Self, operator: &Token) -> Self {
-		match (self, other) {
-			(Self::Integer(x), Self::Integer(y)) => {
-				let y = &y;
-				Self::Boolean(op!(x >= y))
-			},
-			(Self::Decimal(a, b), Self::Decimal(x, y)) => Self::Boolean(op!(a b >= x y)),
-			(x, y) => Value::error(operator, format!("Cannot compare {:?} and {:?}", x, y), String::new())
-		}
-	}
-	pub fn less(&self, other: Self, operator: &Token) -> Self {
-		match (self, other) {
-			(Self::Integer(x), Self::Integer(y)) => {
-				let y = &y;
-				Self::Boolean(op!(x < y))
-			},
-			(Self::Decimal(a, b), Self::Decimal(x, y)) => Self::Boolean(op!(a b < x y)),
-			(x, y) => Value::error(operator, format!("Cannot compare {:?} and {:?}", x, y), String::new())
-		}
-	}
-	pub fn less_equal(&self, other: Self, operator: &Token) -> Self {
-		match (self, other) {
-			(Self::Integer(x), Self::Integer(y)) => {
-				let y = &y;
-				Self::Boolean(op!(x <= y))
-			},
-			(Self::Decimal(a, b), Self::Decimal(x, y)) => Self::Boolean(op!(a b <= x y)),
-			(x, y) => Value::error(operator, format!("Cannot compare {:?} and {:?}", x, y), String::new())
-		}
 	}
 	pub fn sort_by_index(&self) -> Vec<(usize, &Value)> {
 		match self {
@@ -277,7 +284,7 @@ impl Display for Value {
 			Self::FunctionBody(params, _) => {
 				_ = write!(f, "(fun => ");
 				for param in params.iter() {
-					_ = write!(f, "{}, ", param.identifier);
+					_ = write!(f, "({}) {}, ", param.0.name, param.1.identifier);
 				}
 				_ = write!(f, ")");
 				Ok(())

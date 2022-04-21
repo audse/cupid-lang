@@ -6,9 +6,7 @@
 - [x] Assignment
 - [x] Immutable
 - [ ] Deep immutable
-- [x] Assignment type checking
-- [ ] Deep assignment type checking
-- [ ] Rework grammar
+- [x] Rework grammar
 
 ## Type system
 
@@ -16,9 +14,17 @@
   - [x] Dictionary-style
   - [ ] List-style
   - [ ] Nested
+  - [ ] Alias
 - [ ] Enums
 - [ ] Struct declaration/impl?
 - [ ] Maybe types
+- [ ] Map types `dict (string, int)` or `list (int)` etc.
+- [ ] Generics
+
+### Type checker
+
+- [ ] Assignment type checking
+- [ ] Deep assignment type checking
 
 ## Operators
 
@@ -32,12 +38,13 @@
 - [x] Block functions
 - [ ] Function chaining
 - [ ] Closed scope
-- [ ] Return statement
+- [x] Return statement
 - [ ] Keyword args
-- [ ] Type hints
+- [x] Typed parameters
+- [ ] Return type
 - [ ] Callbacks
-- [ ] Default values
-- [ ] No arguments
+- [ ] Default values (allow fewer/skipped args)
+- [x] No arguments
 - [ ] Call immediately
 
 ## Blocks
@@ -51,8 +58,12 @@
 - [x] While loop
 - [x] For..in loop
 - [ ] Indeterminate loop
-- [ ] Break
 - [ ] Named loops
+- [ ] Break statements
+  - [x] `break`
+  - [x] `break (return_value)`
+  - [ ] `break identifier(return_value)`
+  - [x] Continue
 
 ## Data structures
 
@@ -60,20 +71,24 @@
 - [x] Dictionary
 - [ ] Tuples (keywords)
 - [ ] Range
+  - [x] Numbers
+  - [ ] Step
+  - [ ] Characters
 - [x] Property access
 - [x] Property assignment
 - [ ] Lightweight array that isn't a map
 - [ ] Add/remove properties
 - [ ] Property chaining
+- [ ] Self keyword
+  - [x] Reference inner properties
+  - [ ] Mutate inner properties
 
 ## Scoping
 
 - [ ] Named scopes
-- [ ] Simple block scopes `{ # can access outer scope }`
-- [ ] Boxed scopes `box { # cannot access outer scope }`
-- [ ] Break statements
-  - [ ] `break (return_value)`
-  - [ ] `break identifier(return_value)`
+- [x] Simple block scopes `{ # can access outer scope }`
+- [x] Boxed scopes `box { # cannot access outer scope }`
+- [ ] No global scope?
 
 ## Features
 
@@ -83,10 +98,12 @@
   - [ ] Include negative numbers
 - [ ] Variable shadowing
 - [ ] Template strings `'my favorite number is {{ 30 + 7 }}'`
+- [ ] Escape keywords like Rusts `r#type` (only better ...)
 
 ## Bugfixes
 
 - [ ] Something is wrong with groups in grammar files
+- [ ] An empty map `[]` could be a dict or a list or anything- type inference?
 
 ## Builtin library
 

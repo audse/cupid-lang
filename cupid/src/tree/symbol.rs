@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter, Result};
 use std::borrow::Cow;
 use std::hash::{Hash, Hasher};
-use crate::{Value, Tree, LexicalScope, Token, ErrorHandler, Type};
+use crate::{Value, Tree, LexicalScope, Token, ErrorHandler, Type, SymbolFinder};
 
 #[derive(Debug, Clone)]
 pub struct Symbol  {
@@ -43,8 +43,14 @@ impl Symbol {
 	pub fn error_unable_to_assign(&self, assign_value: &Value) -> Value {
 		self.error(format!("cannot assign {} ({}) to {}", assign_value, Type::from(assign_value), self))
 	}
-	pub fn error_assign_type_mismatch(&self, assign_value: &Value) -> Value {
-		self.error(format!("type mismatch: cannot assign {} ({}) to {}", Type::from(assign_value), assign_value, self))
+	pub fn error_assign_type_mismatch(&self, assign_value: &Value, current_type: &TypeSymbol) -> Value {
+		self.error(format!(
+			"type mismatch: cannot assign {} ({}) to {} ({})", 
+			Type::from(assign_value), 
+			assign_value, 
+			self,
+			&current_type
+		))
 	}
 }
 

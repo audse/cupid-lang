@@ -1,13 +1,16 @@
 - file: expression+
-- expression: expression_item | comment
+- expression: statement | expression_item | comment
+
+-~statement:
+	type_definition
+	| typed_declaration
 
 -~expression_item:
 	loop
 	| block
-	| type_definition
-	| declaration
-	| symbol_declaration
-	| typed_declaration
+	| break
+	| return
+	| continue
 	| function
 	| internal_property_assignment
 	| property_assignment
@@ -19,23 +22,24 @@
 	| while_loop
 	| infinite_loop
 
-- for_loop: 'for' parameters ~'in' term block
+- for_loop: 'for' for_loop_parameters ~'in' term block
+- for_loop_parameters: (identifier ~',')*
 - while_loop: 'while' expression_item block
 - infinite_loop: 'loop' block
 
 - block: 
 	if_block
+	| box_block
 	| brace_block
 	| arrow_block
 	
 - if_block: ~'if' expression block else_if_block* else_block?
 - else_if_block: ~'else' ~'if' expression block
 - else_block: ~'else' block
+- box_block: ~'box' brace_block
 -~brace_block: ~'{' expression* closing_brace
 -~arrow_block: ~arrow require_expression
 
-- declaration: symbol_declaration ~equal expression_item
-- symbol_declaration: keyword_variable 'mut'? identifier
 - assignment: identifier equal expression
 - internal_property_assignment: internal_property_access equal expression
 - property_assignment: property_access equal expression
@@ -43,7 +47,9 @@
 - type_definition: 'type' identifier ~'[' (type_field ',')* closing_bracket
 - type_field: type identifier | identifier identifier
 
-- typed_declaration: WORD 'mut'? identifier (~equal expression_item)?
+- typed_declaration: builtin_typed_declaration | custom_typed_declaration
+-~builtin_typed_declaration: type 'mut'? identifier (~equal expression_item)?
+-~custom_typed_declaration: identifier 'mut'? identifier (~equal expression_item)?
 
 -~equal: '=' !'>'
 
@@ -55,12 +61,16 @@
 -~structure:
 	dictionary
 	| list
+	| range
 
 -~value:
-	group
-	| function_call
+	function_call
 	| internal_property_access
 	| property_access
+	| atom
+
+-~atom:
+	group
 	| boolean
 	| none
 	| string
@@ -70,7 +80,8 @@
 
 - group: ~'(' expression_item closing_paren
 - function: parameters block
-- parameters: (identifier ~',')*
+- parameters:  ~'_' | (annotated_parameter ~',')*
+- annotated_parameter: type identifier | identifier identifier
 
 - log: log_keyword ~'(' arguments closing_paren
 - function_call: identifier ~'(' arguments closing_paren
@@ -81,6 +92,17 @@
 - list: '[' (expression_item !']' ',')* ']'
 - dictionary: '[' (dictionary_entry !']' ',')* ']'
 - dictionary_entry: term ':' expression_item
+
+- range: 
+	range_inclusive_inclusive
+	| range_inclusive_exclusive
+	| range_exclusive_inclusive
+	| range_exclusive_exclusive
+
+- range_inclusive_inclusive: '[' atom ~'.' ~'.' atom ']'
+- range_inclusive_exclusive: '[' atom ~'.' ~'.' ']' atom
+- range_exclusive_inclusive: atom '[' ~'.' ~'.' atom ']'
+- range_exclusive_exclusive: atom '[' ~'.' ~'.' ']' atom
 
 - internal_property_access: 'self' '.' require_property
 - property_access: property_accessor '.' require_property
@@ -108,6 +130,10 @@
 - unary_op: unary_operator require_expression
 -~unary_operator: '+' | '-'
 
+- break: 'break' expression_item?
+- return: 'return' expression_item?
+- continue: 'continue'
+
 - boolean: 'true' | 'false'
 - none: 'none'
 - identifier: !keyword WORD
@@ -124,15 +150,20 @@
 -~keyword:
 	keyword_variable
 	| keyword_operator
-	| keyword_control
+	| reserved_word
 	| type
 	| boolean
 	| none
-	| 'for'
+
+-~reserved_word:
+	'for'
 	| 'while'
 	| 'else'
 	| 'if'
 	| 'loop'
+	| 'box'
+	| 'break'
+	| 'return'
 
 -~keyword_variable:
 	'let'
@@ -148,10 +179,6 @@
 	| '>' '='
 	| '<'
 	| '<' '='
-
--~keyword_control:
-	'break'
-	| 'return'
 
 - arrow: ~'=' ~'>'
 

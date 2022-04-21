@@ -19,38 +19,39 @@ impl Operator {
 
 impl Tree for Operator {
 	fn resolve(&self, scope: &mut LexicalScope) -> Value {
-		let left = self.left.resolve(scope);
-		let right = self.right.resolve(scope);
+		let left = crate::resolve_or_abort!(self.left, scope);
+		let right = crate::resolve_or_abort!(self.right, scope);
 		
-		if left.is_poisoned() {
-			return left;
-		}
-		if right.is_poisoned() {
-			return right;
-		}
-		if left != Value::None {
-			match self.operator.source.as_str() {
-				"+" => left.add(right, &self.operator),
-				"-" => left.subtract(right, &self.operator),
-				"*" => left.multiply(right, &self.operator),
-				"/" => left.divide(right, &self.operator),
-				"is" => left.equal(&right),
-				"not" => left.not_equal(&right),
-				">" => left.greater(right, &self.operator),
-				">=" => left.greater_equal(right, &self.operator),
-				"<" => left.less(right, &self.operator),
-				"<=" => left.less_equal(right, &self.operator),
+		let return_val = if left != Value::None {
+			 match self.operator.source.as_str() {
+				"+" => left + right,
+				"-" => left - right,
+				"*" => left * right,
+				"/" => left / right,
+				"is" | "==" => Value::Boolean(left == right),
+				"not" | "!=" => Value::Boolean(left != right),
+				">" => Value::Boolean(left > right),
+				">=" => Value::Boolean(left >= right),
+				"<" => Value::Boolean(left < right),
+				"<=" => Value::Boolean(left <= right),
 				op => Value::error(&self.operator, format!(
 					"Unknown binary operator: '{:?}' (evaluating {} {:?} {})", op, left, op, right
 				), String::new())
 			}
 		} else {
 			match self.operator.source.as_str() {
-				"-" => right.negative(&self.operator),
+				"-" => -right,
 				op => Value::error(&self.operator, format!(
 					"Unknown unary operator: '{:?}' (evaluating {} {})", op, op, right
 				), String::new())
 			}
+		};
+		if return_val == Value::None {
+			Value::error(&self.operator, format!(
+				"Unable to evaluate: (evaluating {} {:?} {})", self.left, &self.operator, self.right
+			), String::new())
+		} else {
+			return_val
 		}
 	}
 }

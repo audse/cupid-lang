@@ -1,10 +1,10 @@
 use std::fmt::{Display, Formatter, Result};
-use crate::{Symbol, LexicalScope, Value, Expression, Tree, Token, ErrorHandler, FUNCTION};
+use crate::{Symbol, LexicalScope, Value, Expression, ScopeContext, Tree, Token, ErrorHandler, TypeSymbol, SymbolFinder, FUNCTION};
 use crate::utils::{pluralize, pluralize_word};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct Function {
-	pub params: Vec<Symbol>,
+	pub params: Vec<(TypeSymbol, Symbol)>,
 	pub body: Box<Expression>,
 }
 
@@ -35,7 +35,7 @@ impl Display for Args {
 
 impl Tree for FunctionCall {
 	fn resolve(&self, scope: &mut LexicalScope) -> Value {
-		scope.add();
+		scope.add(ScopeContext::Function);
 		
 		let mut args: Vec<Value> = vec![];
 		for arg in &self.args.0 {
@@ -63,7 +63,13 @@ impl Tree for FunctionCall {
 				return self.num_arguments_error(params.len(), args.len());
 			}
 			FunctionCall::set_scope(scope, &params, args);
-			let val = body.resolve(scope);
+			let mut val = body.resolve(scope);
+			
+			// unbox from return value
+			if let Value::Return(return_val) = val {
+				val = *return_val;
+			}
+			
 			scope.pop();
 			val
 		} else {
@@ -74,10 +80,12 @@ impl Tree for FunctionCall {
 }
 
 impl FunctionCall {
-	fn set_scope(inner_scope: &mut LexicalScope, params: &[Symbol], args: Vec<Value>) {
+	fn set_scope(inner_scope: &mut LexicalScope, params: &[(TypeSymbol, Symbol)], args: Vec<Value>) {
 		for (index, param) in params.iter().enumerate() {
 			let arg = &args[index];
-			inner_scope.create_symbol(param, arg.clone(), true, true);
+			if let Value::Type(t) = param.0.resolve(inner_scope) {
+				inner_scope.create_symbol_of_type(&param.1, arg.clone(), t, true, true);
+			};
 		}
 	}
 	fn num_arguments_error(&self, num_params: usize, num_args: usize) -> Value {
@@ -135,3 +143,24 @@ impl Tree for Logger {
 }
 
 
+#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+pub struct Return {
+	pub value: Box<Expression>,
+	pub token: Token,
+}
+
+impl Tree for Return {
+	fn resolve(&self, scope: &mut LexicalScope) -> Value {
+    	let value = crate::resolve_or_abort!(self.value, scope);
+		Value::Return(Box::new(value))
+	}
+}
+
+impl ErrorHandler for Return {
+	fn get_context(&self) -> String {
+    	format!("returning with expression {}", self.value)
+	}
+	fn get_token(&self) -> &Token {
+    	&self.token
+	}
+}

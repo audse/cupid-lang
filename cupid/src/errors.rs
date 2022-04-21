@@ -118,7 +118,7 @@ macro_rules! abort_on_error {
 }
 
 macro_rules! resolve_or_abort {
-    ($val:expr, $scope:ident) => {{
+    ($val:expr, $scope:expr) => {{
         let val = $val.resolve($scope);
         if val.is_poisoned() {
             return val;

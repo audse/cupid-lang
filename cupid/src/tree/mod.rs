@@ -29,11 +29,8 @@ pub use structure::*;
 mod symbol;
 pub use symbol::*;
 
-mod typing;
-pub use typing::*;
+mod type_system;
+pub use type_system::*;
 
 mod value;
 pub use value::*;
-
-mod value_trait;
-// pub use value_trait::*;

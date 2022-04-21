@@ -6,6 +6,7 @@ use crate::*;
 pub enum Expression {
     File(Vec<Expression>),
     Block(Block),
+    BoxBlock(BoxBlock),
     IfBlock(IfBlock),
     Operator(Operator),
     Assign(Assign),
@@ -16,6 +17,7 @@ pub enum Expression {
     FunctionCall(FunctionCall),
     Logger(Logger),
     Map(Map),
+    Range(Range),
     PropertyAccess(PropertyAccess),
     InternalPropertyAccess(InternalPropertyAccess),
     PropertyAssign(PropertyAssign),
@@ -24,6 +26,8 @@ pub enum Expression {
     WhileLoop(WhileLoop),
     ForInLoop(ForInLoop),
     DefineType(DefineType),
+    Break(Break),
+    Return(Return),
 }
 
 impl Display for Expression {
@@ -90,6 +94,9 @@ impl Expression {
     pub fn new_block(expressions: Vec<Expression>) -> Self {
         Self::Block(Block { expressions })
     }
+    pub fn new_box_block(expressions: Vec<Expression>) -> Self {
+        Self::BoxBlock(BoxBlock { expressions })
+    }
     pub fn new_if_block(condition: Expression, body: Block, else_if_bodies: Vec<(Expression, Block)>, else_body: Option<Block>) -> Self {
         Self::IfBlock(IfBlock {
             condition: Box::new(condition),
@@ -98,7 +105,7 @@ impl Expression {
             else_body,
         })
     }
-	pub fn new_function(params: Vec<Symbol>, body: Expression) -> Self {
+	pub fn new_function(params: Vec<(TypeSymbol, Symbol)>, body: Expression) -> Self {
 		Expression::Function(Function {
 			params,
 			body: Box::new(body),
@@ -115,6 +122,14 @@ impl Expression {
             entries: HashMap::from_iter(entries.into_iter()),
             token,
             r#type,
+        })
+    }
+    pub fn new_range(start: Expression, end: Expression, inclusive: (bool, bool), token: Token) -> Self {
+        Self::Range(Range {
+            start: Box::new(start),
+            end: Box::new(end),
+            inclusive,
+            token
         })
     }
     pub fn new_property_access(map: Expression, term: Expression, token: Token) -> Self {
@@ -158,6 +173,7 @@ impl Expression {
         })
     }
     pub fn new_for_in_loop(params: Vec<Symbol>, map: Expression, body: Expression, token: Token) -> Self {
+        
         Self::ForInLoop(ForInLoop {
             params,
             map: Box::new(map),
@@ -167,6 +183,15 @@ impl Expression {
     }
     pub fn new_define_type(token: Token, type_value: Type) -> Self {
         Expression::DefineType(DefineType { token, type_value })
+    }
+    pub fn new_break(token: Token, value: Expression) -> Self {
+        Expression::Break(Break { token, value: Box::new(value) })
+    }
+    pub fn new_return(token: Token, value: Expression) -> Self {
+        Expression::Return(Return { token, value: Box::new(value) })
+    }
+    pub fn new_continue(token: Token) -> Self {
+        Self::new_node(Value::Continue, vec![token])
     }
 	pub fn to_symbol(expression: Self) -> Symbol {
 		if let Expression::Symbol(symbol) = expression {
@@ -210,6 +235,7 @@ impl Tree for Expression {
             Self::Assign(a) => a.resolve(scope),
             Self::Declare(a) => a.resolve(scope),
             Self::Block(b) => b.resolve(scope),
+            Self::BoxBlock(b) => b.resolve(scope),
             Self::IfBlock(b) => b.resolve(scope),
             Self::Function(b) => b.resolve(scope),
             Self::FunctionCall(b) => b.resolve(scope),
@@ -222,6 +248,7 @@ impl Tree for Expression {
             },
             Self::Logger(x) => x.resolve(scope),
             Self::Map(x) => x.resolve(scope),
+            Self::Range(x) => x.resolve(scope),
             Self::PropertyAccess(x) => x.resolve(scope),
             Self::InternalPropertyAccess(x) => x.resolve(scope),
             Self::PropertyAssign(x) => x.resolve(scope),
@@ -229,6 +256,8 @@ impl Tree for Expression {
             Self::WhileLoop(x) => x.resolve(scope),
             Self::ForInLoop(x) => x.resolve(scope),
             Self::DefineType(x) => x.resolve(scope),
+            Self::Break(x) => x.resolve(scope),
+            Self::Return(x) => x.resolve(scope),
             _ => Value::None,
         }
     }

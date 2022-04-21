@@ -1,4 +1,4 @@
-use crate::{LexicalScope, Value, Expression, Symbol, Tree, Token, TypeSymbol, is_type, ErrorHandler};
+use crate::{LexicalScope, Value, Expression, Symbol, Tree, Token, TypeSymbol, ErrorHandler, SymbolFinder, TypeChecker};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct Assign {
@@ -46,7 +46,7 @@ impl Tree for Declare {
 		crate::abort_on_error!(val);
 		
 		if let Value::Type(type_value) = self.r#type.resolve(scope) {
-			if is_type(&val, &type_value) {
+			if scope.is_type(&val, &type_value.symbol) {
 				if let Some(value) = scope.create_symbol_of_type(
 					&self.symbol,
 					val.clone(), 

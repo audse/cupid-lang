@@ -6,7 +6,7 @@ pub fn test(input: &str, expected: Value) -> bool {
 	let mut handler = FileHandler::from(input);
 	let result = handler.run_and_return().pop().unwrap();
 	println!("Result: {}", result);
-	result.is_equal(&expected)
+	result == expected
 }
 
 #[allow(dead_code)]
@@ -57,7 +57,6 @@ fn test_assignment() {
 	assert!(test_int("int x = 1", 1));
 	assert!(test_str("string x = 'abc'", "abc"));
 	assert!(test_dec("dec x = -1.5", -1.5));
-	assert!(test_none("let x"));
 	assert!(test_error("
 		# throws immutable error
 		int x = 1
@@ -81,7 +80,7 @@ Blocks
 #[test]
 fn test_arrow_block() {
 	assert!(test_int("{
-		fun div = a, b => a / b
+		fun div = int a, int b => a / b
 		int c = div(10, 10)
 	}", 1));
 }
@@ -98,6 +97,23 @@ fn test_brace_block() {
 		string y = 'xyz'
 		string z = x + y 
 	}", "abcxyz"));
+}
+
+#[test]
+fn test_box_block() {
+	assert!(test_error("
+		int x = 1
+		box { x * 10 }
+	"));
+	assert!(test_int("
+		int z = 1000
+		int y = box { 
+			int z = 10
+			int x = 1
+			x * z 
+		}
+		y
+	", 10));
 }
 
 #[test]
@@ -124,23 +140,37 @@ fn test_if_block() {
 #[test]
 fn test_function() {
 	assert!(test_int("{
-		fun x = a => a + 1 
+		fun x = int a => a + 1 
 		x(100)
 	}", 101));
 	assert!(test_int("{
-		fun pythagorean = a, b => a * a + b * b
+		fun pythagorean = int a, int b => a * a + b * b
 		pythagorean(2, 3)
 	}", 13));
 	assert!(test_error("{
 		# throws wrong num of arguments error
-		fun x = a => a + 1 
+		fun x = int a => a + 1 
 		x(100, 100)
 	}"));
 	assert!(test_error("{
 		# throws wrong num of arguments error
-		fun x = a => a + 1 
+		fun x = int a => a + 1 
 		x()
 	}"));
+	assert!(test_int("
+		fun square = int a {
+			if a is 100 => return 0
+			a * a
+		}
+		square (10)
+	", 100));
+	assert!(test_int("
+		fun square = int a {
+			if a is 100 => return 0
+			a * a
+		}
+		square (100)
+	", 0));
 }
 
 #[test]
@@ -155,6 +185,25 @@ fn test_loop() {
 		for letter in ['a', 'b', 'c'] => abc = abc + letter
 		abc
 	}", "abc"));
+	assert!(test_int("
+		int mut i = 10
+		while i > 0 {
+			i = i - 1
+			if i is 5 {
+				i = 100
+				break i
+			}
+		}
+		i
+	", 100));
+	assert!(test_int("
+		list nums = [1, 2, 3]
+		int n = for num in nums {
+			if num > 2 => break num
+			num
+		}
+		n
+	", 3));
 }
 
 #[test]
@@ -199,7 +248,7 @@ fn test_dict() {
 			first: 'Jacob',
 			last: 'A.',
 		]
-		fun make_name = n {
+		fun make_name = dict n {
 			string mut accum = ''
 			for key, val in n {
 				accum = accum + ' ' + val
@@ -218,6 +267,26 @@ fn test_dict() {
 	   dict x = [a: 1, b: 2]
 	   x.c
 	"));
+}
+
+#[test]
+fn test_range() {
+	assert!(test_int("{
+		list nums = [0..3]
+		nums.0
+	}", 0));
+	assert!(test_int("{
+		list nums = 0[..3]
+		nums.0
+	}", 1));
+	assert!(test_int("{
+		list nums = [0..]3
+		nums.2
+	}", 2));
+	assert!(test_int("{
+		list nums = 0[..]3
+		nums.0
+	}", 1));
 }
 
 #[test]
@@ -246,7 +315,7 @@ fn test_typing() {
 			fun something
 		]
 		do random = [
-			something: a => a + 12345
+			something: int a => a + 12345
 		]
 		random.something(12345)
 	", 24690));

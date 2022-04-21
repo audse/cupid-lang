@@ -6,7 +6,6 @@ pub fn to_tree(node: &ParseNode) -> Expression {
     if !errors.is_empty() {
         return errors[0].clone();
     }
-
     match node.name.as_str() {
         "file" => Expression::File(node.children.iter().map(to_tree).collect()),
 
@@ -37,6 +36,7 @@ pub fn to_tree(node: &ParseNode) -> Expression {
 
         // Blocks
         "block" => Expression::new_block(node.children.iter().map(to_tree).collect()),
+        "box_block" => Expression::new_box_block(node.children.iter().map(to_tree).collect()),
         "if_block" => {
             let else_if_bodies = node
                 .children
@@ -70,18 +70,15 @@ pub fn to_tree(node: &ParseNode) -> Expression {
             let type_name = identifier.tokens[0].source.clone();
             let symbol = TypeSymbol::new(type_name, identifier.tokens[0].clone());
             
-			let fields: Vec<(Type, Symbol)> = node.children
+			let fields: Vec<(TypeSymbol, Symbol)> = node.children
 				.iter()
 				.filter_map(|n| 
 					if n.name.as_str() == "type_field" {
                         let field_symbol = &n.children[0];
-						let field_type = Type {
-							symbol: TypeSymbol::new(
-                                field_symbol.tokens[0].source.clone(), 
-                                field_symbol.tokens[0].clone()
-                            ),
-							fields: vec![]
-						};
+						let field_type = TypeSymbol::new(
+                            field_symbol.tokens[0].source.clone(), 
+                            field_symbol.tokens[0].clone()
+                        );
 						let field_name = Expression::to_symbol(to_tree(&n.children[1]));
 						Some((field_type, field_name))
 					} else { 
@@ -96,11 +93,11 @@ pub fn to_tree(node: &ParseNode) -> Expression {
 		},
         
         "typed_declaration" => {
-            let var_type = &node.tokens[0];
-            let mutable = node.tokens.len() > 1;
-            let identifier = to_tree(&node.children[0]);
-            let value = if node.children.len() > 1 {
-                to_tree(&node.children[1])
+            let var_type = &node.children[0].tokens[0];
+            let identifier = to_tree(&node.children[1]);
+            let mutable = node.tokens.len() > 0;
+            let value = if node.children.len() > 2 {
+                to_tree(&node.children[2])
             } else {
                 Expression::Empty
             };
@@ -108,36 +105,6 @@ pub fn to_tree(node: &ParseNode) -> Expression {
             Expression::new_declare(identifier, type_symbol, mutable, true, value)
         },
 
-        "declaration" => {
-            let value = to_tree(&node.children[1]);
-            match to_tree(&node.children[0]) {
-                Expression::Declare(Declare {
-                    symbol,
-                    value: _,
-                    mutable,
-                    deep_mutable,
-                    ..
-                }) => Expression::Declare(Declare {
-                    symbol,
-                    mutable,
-                    deep_mutable,
-                    value: Box::new(value),
-                    r#type: NONE.symbol,
-                }),
-                _ => panic!("Expected declaration"),
-            }
-        }
-        "symbol_declaration" => {
-            let mutable = node.tokens[0].source.as_str() == "let";
-            let deep_mutable = node.tokens.len() > 1; // includes 'mut' keyword
-            Expression::new_declare(
-                to_tree(&node.children[0]),
-                NONE.symbol,
-                mutable,
-                deep_mutable,
-                Expression::Empty,
-            )
-        }
         "assignment" => Expression::new_assign(
             node.tokens[0].clone(),
             to_tree(&node.children[0]),
@@ -169,6 +136,31 @@ pub fn to_tree(node: &ParseNode) -> Expression {
             Expression::Empty,
             to_tree(&node.children[0]),
         ),
+        
+        "break" => {
+            let value = if node.children.len() > 0 {
+                to_tree(&node.children[0])
+            } else {
+                Expression::Empty
+            };
+            Expression::new_break(
+                node.tokens[0].clone(), 
+                value
+            )
+        },
+        
+        "return" => {
+            let value = if node.children.len() > 0 {
+                to_tree(&node.children[0])
+            } else {
+                Expression::Empty
+            };
+            Expression::new_return(
+                node.tokens[0].clone(), 
+                value
+            )
+        },
+        "continue" => Expression::new_continue(node.tokens[0].clone()),
 
         // Terms
         "group" => to_tree(&node.children[0]),
@@ -182,7 +174,14 @@ pub fn to_tree(node: &ParseNode) -> Expression {
                     node.children[0]
                         .children
                         .iter()
-                        .map(|p| Expression::to_symbol(to_tree(p)))
+                        .map(|p| {
+                            let (param_type, identifier) = (
+                                &p.children[0].tokens[0], 
+                                Expression::to_symbol(to_tree(&p.children[1]))
+                            );
+                            let type_symbol = TypeSymbol::new(param_type.source.clone(), param_type.clone());
+                            (type_symbol, identifier)
+                        })
                         .collect(),
                     to_tree(&node.children[1]),
                 )
@@ -190,7 +189,7 @@ pub fn to_tree(node: &ParseNode) -> Expression {
                 (vec![], to_tree(&node.children[0]))
             };
             Expression::new_function(params, body)
-        }
+        },
         "function_call" => {
             let fun = to_tree(&node.children[0]);
             let args = if node.children.len() > 1 {
@@ -199,7 +198,7 @@ pub fn to_tree(node: &ParseNode) -> Expression {
                 vec![]
             };
             Expression::new_function_call(fun, args)
-        }
+        },
 
         // Structures
         "dictionary" => {
@@ -220,6 +219,22 @@ pub fn to_tree(node: &ParseNode) -> Expression {
                 .collect();
             Expression::new_map(entries, node.tokens[0].clone(), LIST)
         },
+        "range" => {
+            let range = &node.children[0];
+            let (include_start, include_end) = match range.name.as_str() {
+                "range_inclusive_inclusive" => (true, true),
+                "range_inclusive_exclusive" => (true, false),
+                "range_exclusive_inclusive" => (false, true),
+                "range_exclusive_exclusive" | _ => (false, false),
+            };
+            Expression::new_range(
+                to_tree(&range.children[0]), 
+                to_tree(&range.children[1]),
+                (include_start, include_end),
+                range.tokens[0].clone()
+            )
+        }
+        
         "internal_property_access" => {
             let term = to_tree(&node.children[0]);
             Expression::new_internal_property_access(term, node.tokens[0].clone())

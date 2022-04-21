@@ -40,8 +40,7 @@ impl FileHandler {
 	
 	pub fn build(contents: &str) -> (CupidParser, LexicalScope, Vec<Error>, Vec<Warning>) {
 		let parser = CupidParser::new(contents.to_string());
-		let mut scope = LexicalScope::default();
-		use_builtin_types(&mut scope);
+		let scope = LexicalScope::default();
 		(parser, scope, vec![], vec![])
 	}
 	

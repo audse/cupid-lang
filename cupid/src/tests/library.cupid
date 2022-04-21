@@ -8,7 +8,7 @@ type iterator [
 iterator mut my_iter = [
 	items: ['a', 'b', 'c'],
 	index: 0,
-	peek: amount => {
+	peek: int amount => {
 		list items = self.items
 		items.(self.index + amount)
 	},
@@ -18,11 +18,10 @@ iterator mut my_iter = [
 	}
 ]
 
-
-fun map = dictionary, closure {
+fun map = dict dictionary, fun function {
 	dict mut copy = dictionary
 	for key, value in dictionary => {
-		copy.key = closure (value)
+		copy.key = function (value)
 	}
 	copy
 }
@@ -32,7 +31,27 @@ dict my_dict = [
 	a: 1,
 	b: 2,
 ]
-dict val = map(my_dict, (val => val * 2))
-log (val)
-log (my_dict)
-*** todo self.next(), how to reassign whole object? ***
+
+dict val = map (my_dict, int val => val * 2)
+
+type dictionary [
+	dict entries,
+	fun size,
+	fun has_key,
+	fun keys,
+	fun values,
+]
+
+dictionary new_dict = [
+	entries: [a: 1, b: 2, c: 3],
+	
+	size: _ => for i, _, _ in self.entries => i + 1,
+	
+	has_key: string key => for k, _ in self.entries {
+		if key is k => break true 
+		else => false
+	},
+	
+	keys: _ => [],
+	values: _ => []
+]

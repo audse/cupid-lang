@@ -1,4 +1,4 @@
-use crate::{Expression, Value, LexicalScope, Tree};
+use crate::{Expression, Value, LexicalScope, Tree, ScopeContext};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct Block {
@@ -7,11 +7,25 @@ pub struct Block {
 
 impl Tree for Block {
 	fn resolve(&self, scope: &mut LexicalScope) -> Value {
-		scope.add();
+		scope.add(ScopeContext::Block);
 		let mut result = Value::None;
+		
 		for exp in &self.expressions {
-			result = exp.resolve(scope);
-			crate::abort_on_error!(result);
+			result = crate::resolve_or_abort!(exp, scope);
+			if let Expression::Break(_) = exp {
+				break
+			}
+			if let Value::Break(_) = result {
+				break
+			}
+			if let Value::Return(_) = result {
+				if scope.within_function() {
+					break
+				}
+			}
+			if let Value::Continue = result {
+				break
+			}
 		}
 		scope.pop();
 		result
@@ -52,5 +66,22 @@ impl Tree for IfBlock {
 			},
 			_ => Value::None
 		}
+	}
+}
+
+#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+pub struct BoxBlock {
+	pub expressions: Vec<Expression>,
+}
+
+impl Tree for BoxBlock {
+	fn resolve(&self, _scope: &mut LexicalScope) -> Value {
+		let mut inner_scope = LexicalScope::new(ScopeContext::Boxed);
+		let mut result = Value::None;
+		for exp in &self.expressions {
+			result = crate::resolve_or_abort!(exp, &mut inner_scope);
+		}
+		inner_scope.pop();
+		result
 	}
 }
