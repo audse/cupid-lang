@@ -7,7 +7,7 @@ use clap::Parser;
 struct Cli {
     pattern: String,
     
-    #[clap(default_value_t = String::from("library.cupid"))]
+    #[clap(default_value_t = String::from("stdlib.cupid"))]
     path: String,
     
     #[clap(short, long)]

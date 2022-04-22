@@ -1,0 +1,10 @@
+*** Cupid Standard Library v0.1.0 ***
+
+type str = array (char)
+
+str a = \a, \b, \c
+***
+a = 1, 2, 3
+
+log (a)
+***

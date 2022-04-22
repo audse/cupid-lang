@@ -219,7 +219,7 @@
             </scope>
             
             <scope name="cupid.definition.variable">
-                <expression>([A-Za-z_]+)\s+(([A-Za-z_]+)\s+)?([A-Za-z_]\w*)\s*(?=\=)</expression>
+                <expression>([A-Za-z_]\w*)\s+(([A-Za-z_]\w*)\s+)?([A-Za-z_]\w*)\s*(?=\=)</expression>
                 <capture number="1" name="cupid.storage.type" />
                 <capture number="2" name="cupid.keyword.modifier" />
                 <capture number="3" name="cupid.identifier.variable" />

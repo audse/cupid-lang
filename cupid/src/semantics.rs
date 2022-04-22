@@ -63,37 +63,61 @@ pub fn to_tree(node: &ParseNode) -> Expression {
                 else_if_bodies,
                 else_body,
             )
-        }
-		
-		"type_definition" => {
+        },
+        
+        "type_definition" => {
             let identifier = &node.children[0];
             let type_name = identifier.tokens[0].source.clone();
-            let symbol = TypeSymbol::new(type_name, identifier.tokens[0].clone());
+            let symbol = TypeSymbol::new(type_name, vec![], identifier.tokens[0].clone(), false);
             
-			let fields: Vec<(TypeSymbol, Symbol)> = node.children
-				.iter()
-				.filter_map(|n| 
-					if n.name.as_str() == "type_field" {
+            let fields: Vec<(TypeSymbol, Option<Symbol>)> = node.children
+                .iter()
+                .filter_map(|n| 
+                    if n.name.as_str() == "type_field" {
                         let field_symbol = &n.children[0];
-						let field_type = TypeSymbol::new(
+                        let field_type = TypeSymbol::new(
                             field_symbol.tokens[0].source.clone(), 
-                            field_symbol.tokens[0].clone()
+                            vec![],
+                            field_symbol.tokens[0].clone(),
+                            false
                         );
-						let field_name = Expression::to_symbol(to_tree(&n.children[1]));
-						Some((field_type, field_name))
-					} else { 
-						None 
-					})
-				.collect();
-			let new_type = Type {
-				symbol,
-				fields,
-			};
-			Expression::new_define_type(node.tokens[0].clone(), new_type)
-		},
+                        let field_name = Expression::to_symbol(to_tree(&n.children[1]));
+                        Some((field_type, Some(field_name)))
+                    } else { 
+                        None 
+                    })
+                .collect();
+            let new_type = Type::Product(ProductType {
+                symbol: symbol.clone(),
+                fields,
+            });
+            Expression::new_define_type(node.tokens[0].clone(), symbol, new_type)
+        },
+        
+        "type_alias_definition" => {
+            let identifier = &node.children[0];
+            let type_name = identifier.tokens[0].source.clone();
+            let symbol = TypeSymbol::new(type_name, vec![], identifier.tokens[0].clone(), false);
+            
+            let fields: Vec<(TypeSymbol, Option<Symbol>)> = node.children
+                .iter()
+                .filter_map(|n| {
+                    if let Expression::TypeSymbol(symbol) = to_tree(n) {
+                        Some((symbol, None))
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            let new_type = Type::Product(ProductType {
+                symbol: symbol.clone(),
+                fields,
+            });
+            Expression::new_define_type(node.tokens[0].clone(), symbol, new_type)
+        },
         
         "typed_declaration" => {
-            let var_type = &node.children[0].tokens[0];
+            let type_symbol = Expression::to_type_symbol(to_tree(&node.children[0]));
             let identifier = to_tree(&node.children[1]);
             let mutable = node.tokens.len() > 0;
             let value = if node.children.len() > 2 {
@@ -101,8 +125,30 @@ pub fn to_tree(node: &ParseNode) -> Expression {
             } else {
                 Expression::Empty
             };
-            let type_symbol = TypeSymbol::new(var_type.source.clone(), var_type.clone());
             Expression::new_declare(identifier, type_symbol, mutable, true, value)
+        },
+        
+        "type_hint" => {
+            let main_type = &node.children[0].tokens[0];
+            let nested_types: Vec<TypeSymbol> = if node.children.len() > 1 {
+                node.children[1]
+                    .children
+                    .iter()
+                    .filter_map(|t| {
+                        let symbol = to_tree(t);
+                        if let Expression::TypeSymbol(s) = symbol {
+                            Some(s)
+                        } else if let Expression::Symbol(s) = symbol {
+                            Some(TypeSymbol::new(s.identifier.to_string(), vec![], s.token, false))
+                        } else {
+                            None
+                        }
+                    })
+                    .collect()
+            } else {
+                vec![]
+            };
+            Expression::new_type_symbol(main_type.source.clone(), main_type.clone(), nested_types)
         },
 
         "assignment" => Expression::new_assign(
@@ -120,6 +166,26 @@ pub fn to_tree(node: &ParseNode) -> Expression {
             to_tree(&node.children[1]),
             node.tokens[0].clone(),
         ),
+        "op_assignment" => {
+            let symbol = to_tree(&node.children[0]);
+            let operator = node.tokens[0].clone();
+            let value = to_tree(&node.children[1]);
+            Expression::new_assign(
+                operator.clone(),
+                symbol.clone(),
+                Expression::new_operator(operator, symbol, value)
+            )
+        },
+        "op_increment_assignment" => {
+            let symbol = to_tree(&node.children[0]);
+            let operator = node.tokens[0].clone();
+            let value = Expression::new_int_node(1, vec![operator.clone()]);
+            Expression::new_assign(
+                operator.clone(),
+                symbol.clone(),
+                Expression::new_operator(operator, symbol, value)
+            )
+        },
         "binary_op" | "compare_op" | "add" | "multiply" | "exponent" => {
             if !node.tokens.is_empty() && node.children.len() > 1 {
                 Expression::new_operator(
@@ -176,10 +242,10 @@ pub fn to_tree(node: &ParseNode) -> Expression {
                         .iter()
                         .map(|p| {
                             let (param_type, identifier) = (
-                                &p.children[0].tokens[0], 
+                                &p.children[0].children[0].tokens[0], 
                                 Expression::to_symbol(to_tree(&p.children[1]))
                             );
-                            let type_symbol = TypeSymbol::new(param_type.source.clone(), param_type.clone());
+                            let type_symbol = TypeSymbol::new(param_type.source.clone(), vec![], param_type.clone(), false);
                             (type_symbol, identifier)
                         })
                         .collect(),
@@ -233,7 +299,8 @@ pub fn to_tree(node: &ParseNode) -> Expression {
                 (include_start, include_end),
                 range.tokens[0].clone()
             )
-        }
+        },
+        "array" => Expression::new_array(node.children.iter().map(to_tree).collect()),
         
         "internal_property_access" => {
             let term = to_tree(&node.children[0]);
@@ -242,8 +309,11 @@ pub fn to_tree(node: &ParseNode) -> Expression {
         "property_access" => {
             let map = to_tree(&node.children[0]);
             let term = to_tree(&node.children[1]);
-            Expression::new_property_access(map, term, node.tokens[0].clone())
-        }
+            // Expression::new_property_access(map, term, node.tokens[0].clone())
+            Expression::new_array_access(map, term, node.tokens[0].clone())
+        },
+        
+        "type" => Expression::new_type_symbol(node.tokens[0].source.clone(), node.tokens[0].clone(), vec![]),
 
         // Values
         "boolean" => match node.tokens[0].source.as_str() {
@@ -252,6 +322,7 @@ pub fn to_tree(node: &ParseNode) -> Expression {
             _ => Expression::Empty,
         },
         "none" => Expression::new_none_node(node.tokens.clone()),
+        "char" => Expression::new_char_node(node.tokens[1].source.clone(), vec![node.tokens[0].clone()]),
         "string" => Expression::new_string_node(node.tokens[0].source.clone(), node.tokens.clone()),
         "decimal" => Expression::new_dec_node(
             node.tokens[0].source.parse::<i32>().unwrap_or(0),

@@ -55,3 +55,24 @@ dictionary new_dict = [
 	keys: _ => [],
 	values: _ => []
 ]
+
+***
+type array [
+	list entries,
+	fun push,
+	fun append,
+]
+
+array new_array = [
+	entries: [0],
+	append: list e => {
+		self.entries + e
+	},
+	push: int entry => {
+		list new = [entry]
+		self.entries + new
+		# FIXME self.entries + [entry] doesn't work
+	},
+]
+***
+

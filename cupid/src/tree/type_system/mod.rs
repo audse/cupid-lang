@@ -4,5 +4,11 @@ pub use builtin::*;
 mod checker;
 pub use checker::*;
 
-mod typing;
-pub use typing::*;
+mod product_type;
+pub use product_type::*;
+
+mod sum_type;
+pub use sum_type::*;
+
+mod types;
+pub use types::*;

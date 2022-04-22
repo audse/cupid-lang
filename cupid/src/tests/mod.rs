@@ -64,13 +64,37 @@ fn test_assignment() {
 	"));
 	assert!(test_error("
 		# throws type mismatch error
-		int x = 1
+		int mut x = 1
 		x = 'abc'
 	"));
 	assert!(test_error("
 		# throws undefined error
 		x = 1
 	"));
+}
+
+#[test]
+fn test_operator_assignment() {
+	assert!(test_int("
+		int mut x = 0
+		x += 1
+	", 1));
+	assert!(test_int("
+		int mut x = 0
+		x -= 1
+	", -1));
+	assert!(test_int("
+		int mut x = 0
+		x *= 1
+	", 0));
+	assert!(test_int("
+		int mut x = 0
+		x++
+	", 1));
+	assert!(test_int("
+		int mut x = 0
+		x --
+	", -1));
 }
 
 /*
@@ -213,6 +237,10 @@ fn test_operation() {
 	assert!(test_dec("(1.5 + 2.5) * 2.0", 8.0));
 	assert!(test_int("1 + 10 * 10 / 10", 11));
 	assert!(test_int("-1", -1));
+	assert!(test_int("2 ^ 2", 4));
+	assert!(test_int("2 % 2", 0));
+	assert!(test_int("2 and 3", 3));
+	assert!(test_int("-2 or 2", 2));
 }
 
 #[test]

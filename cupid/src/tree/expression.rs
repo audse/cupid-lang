@@ -13,12 +13,15 @@ pub enum Expression {
     Declare(Declare),
     Node(Node),
     Symbol(Symbol),
+    TypeSymbol(TypeSymbol),
     Function(Function),
     FunctionCall(FunctionCall),
     Logger(Logger),
+    Array(Array),
     Map(Map),
     Range(Range),
     PropertyAccess(PropertyAccess),
+    ArrayAccess(ArrayAccess),
     InternalPropertyAccess(InternalPropertyAccess),
     PropertyAssign(PropertyAssign),
     InternalPropertyAssign(InternalPropertyAssign),
@@ -56,6 +59,10 @@ impl Expression {
         }
         Self::new_node(Value::String(string), tokens)
     }
+    pub fn new_char_node(string: String, tokens: Vec<Token>) -> Self {
+        let c = string.chars().next().unwrap_or('\0');
+        Self::new_node(Value::Char(c), tokens)
+    }
     pub fn new_int_node(int: i32, tokens: Vec<Token>) -> Self {
         Self::new_node(Value::Integer(int), tokens)
     }
@@ -71,10 +78,13 @@ impl Expression {
     pub fn new_operator(operator: Token, left: Expression, right: Expression) -> Self {
         Self::Operator(Operator::new(operator, left, right))
     }
-	pub fn new_symbol(identifier: Expression) -> Self {
+    pub fn new_symbol(identifier: Expression) -> Self {
         let (identifier, tokens) = Expression::to_value(identifier);
-		Self::Symbol(Symbol { identifier, token: tokens[0].clone() })
-	}
+        Self::Symbol(Symbol { identifier, token: tokens[0].clone() })
+    }
+    pub fn new_type_symbol(name: String, token: Token, fields: Vec<TypeSymbol>) -> Self {
+        Self::TypeSymbol(TypeSymbol::new(name, fields, token, false))
+    }
     pub fn new_assign(operator: Token, symbol: Expression, value: Expression) -> Self {
         Self::Assign(Assign {
             operator,
@@ -117,6 +127,9 @@ impl Expression {
 			args: Args(args),
 		})
 	}
+    pub fn new_array(items: Vec<Expression>) -> Self {
+        Self::Array(Array { items })
+    }
     pub fn new_map(entries: Vec<(Expression, (usize, Expression))>, token: Token, r#type: Type) -> Self {
         Self::Map(Map {
             entries: HashMap::from_iter(entries.into_iter()),
@@ -137,6 +150,13 @@ impl Expression {
             map: Box::new(map),
             term: Box::new(term),
             operator: token
+        })
+    }
+    pub fn new_array_access(array: Expression, term: Expression, token: Token) -> Self {
+        Self::ArrayAccess(ArrayAccess {
+            array: Box::new(array),
+            term: Box::new(term),
+            token
         })
     }
     pub fn new_internal_property_access(term: Expression, token: Token) -> Self {
@@ -173,7 +193,6 @@ impl Expression {
         })
     }
     pub fn new_for_in_loop(params: Vec<Symbol>, map: Expression, body: Expression, token: Token) -> Self {
-        
         Self::ForInLoop(ForInLoop {
             params,
             map: Box::new(map),
@@ -181,8 +200,8 @@ impl Expression {
             token
         })
     }
-    pub fn new_define_type(token: Token, type_value: Type) -> Self {
-        Expression::DefineType(DefineType { token, type_value })
+    pub fn new_define_type(token: Token, type_symbol: TypeSymbol, type_value: Type) -> Self {
+        Expression::DefineType(DefineType { token, type_symbol, type_value })
     }
     pub fn new_break(token: Token, value: Expression) -> Self {
         Expression::Break(Break { token, value: Box::new(value) })
@@ -193,13 +212,20 @@ impl Expression {
     pub fn new_continue(token: Token) -> Self {
         Self::new_node(Value::Continue, vec![token])
     }
-	pub fn to_symbol(expression: Self) -> Symbol {
-		if let Expression::Symbol(symbol) = expression {
-			symbol
-		} else { 
-			panic!("Node is not a symbol: {:?}", expression) 
-		}
-	}
+    pub fn to_symbol(expression: Self) -> Symbol {
+        if let Expression::Symbol(symbol) = expression {
+            symbol
+        } else { 
+            panic!("Node is not a symbol: {:?}", expression) 
+        }
+    }
+    pub fn to_type_symbol(expression: Self) -> TypeSymbol {
+        if let Expression::TypeSymbol(symbol) = expression {
+            symbol
+        } else { 
+            panic!("Node is not a type symbol: {:?}", expression) 
+        }
+    }
 	pub fn to_value(expression: Self) -> (Value, Vec<Token>) {
 		if let Expression::Node(Node { value, tokens }) = expression {
 			(value, tokens)
@@ -250,6 +276,8 @@ impl Tree for Expression {
             Self::Map(x) => x.resolve(scope),
             Self::Range(x) => x.resolve(scope),
             Self::PropertyAccess(x) => x.resolve(scope),
+            Self::ArrayAccess(x) => x.resolve(scope),
+            Self::Array(x) => x.resolve(scope),
             Self::InternalPropertyAccess(x) => x.resolve(scope),
             Self::PropertyAssign(x) => x.resolve(scope),
             Self::InternalPropertyAssign(x) => x.resolve(scope),

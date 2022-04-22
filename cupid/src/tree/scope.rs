@@ -14,6 +14,7 @@ impl Default for LexicalScope {
 
 pub trait SymbolFinder {
 	fn get_symbol(&self, symbol: &Symbol) -> Option<Value>;
+	fn get_symbol_type(&self, symbol: &Symbol) -> Option<Type>;
 	fn get_definition(&self, symbol: &TypeSymbol) -> Option<Type>;
 	fn set_symbol(&mut self, symbol: &Symbol, value: Value) -> Result<Option<Value>, Value>;
 	fn create_symbol(&mut self, symbol: &Symbol, value: Value, mutable: bool, deep_mutable: bool) -> Option<Value>;
@@ -53,6 +54,16 @@ impl LexicalScope {
 		}
 		false
 	}
+	pub fn pretty_print_storage(&self) {
+		for scope in self.scopes.iter().rev() {
+			scope.pretty_print_storage();
+		}
+	}
+	pub fn pretty_print_definitions(&self) {
+		for scope in self.scopes.iter().rev() {
+			scope.pretty_print_definitions();
+		}
+	}
 	// fn assign_type_mismatch_error(&self, symbol: &Symbol, value: &Value) -> Result<(), Value> {
 	// 	if let Some(symbol_value) = self.get_symbol(&symbol) {
 	// 		if self.is_type(value, &symbol_value.r#type.symbol) {
@@ -69,6 +80,14 @@ impl SymbolFinder for LexicalScope {
 		for scope in self.scopes.iter().rev() {
 			if let Some(value) = scope.get_symbol(symbol) {
 				return Some(value);
+			}
+		}
+		None
+	}
+	fn get_symbol_type(&self, symbol: &Symbol) -> Option<Type> {
+		for scope in self.scopes.iter().rev() {
+			if let Some(symbol_type) = scope.get_symbol_type(symbol) {
+				return Some(symbol_type);
 			}
 		}
 		None
@@ -165,20 +184,28 @@ impl Scope {
 		}
 	}
 	pub fn pretty_print_storage(&self) {
-		let items: Vec<String> = self.storage.iter().map(
-			|(k, v)|  format!("{}: {},", k.to_string(), v.value)
-		).collect();
+		let items: Vec<String> = self.storage
+			.iter()
+			.map(|(k, v)|  format!("{}: {}", k.to_string(), v.value))
+			.collect();
+		println!("Scope: {:#?}", items);
+	}
+	pub fn pretty_print_definitions(&self) {
+		let items: Vec<String> = self.definitions
+			.iter()
+			.map(|(k, v)|  format!("{}: {}", k.to_string(), v))
+			.collect();
 		println!("Scope: {:#?}", items);
 	}
 	
-	fn set_or_create_symbol(&mut self, symbol: &Symbol, value: Value, mutable: bool, deep_mutable: bool) -> Value {
-		if let Ok(new_symbol) = self.set_symbol(symbol, value.clone()) {
-			new_symbol.unwrap()
-		} else {
-			let new_symbol = self.create_symbol(symbol, value, mutable, deep_mutable);
-			new_symbol.unwrap()
-		}
-	}
+	// fn set_or_create_symbol(&mut self, symbol: &Symbol, value: Value, mutable: bool, deep_mutable: bool) -> Value {
+	// 	if let Ok(new_symbol) = self.set_symbol(symbol, value.clone()) {
+	// 		new_symbol.unwrap()
+	// 	} else {
+	// 		let new_symbol = self.create_symbol(symbol, value, mutable, deep_mutable);
+	// 		new_symbol.unwrap()
+	// 	}
+	// }
 }
 
 impl SymbolFinder for Scope {
@@ -186,6 +213,12 @@ impl SymbolFinder for Scope {
 	fn get_symbol(&self, symbol: &Symbol) -> Option<Value> {
 		if let Some(stored_symbol) = self.storage.get(&symbol.identifier) {
 			return Some(stored_symbol.value.clone());
+		}
+		None
+	}
+	fn get_symbol_type(&self, symbol: &Symbol) -> Option<Type> {
+		if let Some(stored_symbol) = self.storage.get(&symbol.identifier) {
+			return Some(stored_symbol.r#type.clone());
 		}
 		None
 	}

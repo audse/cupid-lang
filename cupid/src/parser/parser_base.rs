@@ -147,6 +147,17 @@ impl Parser {
     }
     
     #[inline]
+    fn expect_letter(&mut self, _arg: Option<String>) -> Option<(Node, bool)> {
+        if let Some(next) = self.tokens.peek(0) {
+            if next.source.len() == 1 {
+                let token = self.tokens.next().unwrap();
+                return Some((node_from_token(token, "letter".to_string()), true));
+            }
+        }
+        None
+    }
+    
+    #[inline]
     fn expect_number(&mut self, _arg: Option<String>) -> Option<(Node, bool)> {
         if let Some(next) = self.tokens.peek(0) {
             if is_number(&next.source) {

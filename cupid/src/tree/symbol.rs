@@ -43,7 +43,7 @@ impl Symbol {
 	pub fn error_unable_to_assign(&self, assign_value: &Value) -> Value {
 		self.error(format!("cannot assign {} ({}) to {}", assign_value, Type::from(assign_value), self))
 	}
-	pub fn error_assign_type_mismatch(&self, assign_value: &Value, current_type: &TypeSymbol) -> Value {
+	pub fn error_assign_type_mismatch(&self, assign_value: &Value, current_type: &Type) -> Value {
 		self.error(format!(
 			"type mismatch: cannot assign {} ({}) to {} ({})", 
 			Type::from(assign_value), 
@@ -81,7 +81,9 @@ impl Hash for Symbol {
 #[derive(Debug, Clone)]
 pub struct TypeSymbol {
 	pub name: Cow<'static, str>, 
-	pub token: Option<Token>
+	pub arguments: Vec<TypeSymbol>,
+	pub token: Option<Token>,
+	pub generic: bool,
 }
 
 impl Display for TypeSymbol {
@@ -101,11 +103,14 @@ impl Tree for TypeSymbol {
 }
 
 impl TypeSymbol {
-	pub fn new(identifier: String, token: Token) -> Self {
-		Self { name: Cow::Owned(identifier), token: Some(token) }
+	pub fn new<T>(identifier: T, fields: Vec<TypeSymbol>, token: Token, generic: bool) -> Self where T: Into<String> {
+		Self { name: Cow::Owned(identifier.into()), arguments: fields, token: Some(token), generic }
 	}
 	pub const fn new_const(value: &'static str) -> Self {
-		Self { name: Cow::Borrowed(value), token: None }
+		Self { name: Cow::Borrowed(value), token: None, arguments: vec![], generic: false }
+	}
+	pub const fn new_const_generic(value: &'static str) -> Self {
+		Self { name: Cow::Borrowed(value), token: None, arguments: vec![], generic: true }
 	}
 	
 	pub fn error(&self, message: String, token: Option<Token>) -> Value {

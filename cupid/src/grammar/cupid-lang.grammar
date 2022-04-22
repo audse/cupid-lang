@@ -1,8 +1,9 @@
 - file: expression+
-- expression: statement | expression_item | comment
+- expression: comment | statement | expression_item
 
 -~statement:
 	type_definition
+	| type_alias_definition
 	| typed_declaration
 
 -~expression_item:
@@ -14,7 +15,10 @@
 	| function
 	| internal_property_assignment
 	| property_assignment
+	| op_assignment
+	| op_increment_assignment
 	| assignment
+	| array
 	| term
 
 -~loop:
@@ -44,12 +48,19 @@
 - internal_property_assignment: internal_property_access equal expression
 - property_assignment: property_access equal expression
 
-- type_definition: 'type' identifier ~'[' (type_field ',')* closing_bracket
-- type_field: type identifier | identifier identifier
+- op_assignment: identifier operator equal expression
+-~operator: '+' | '-' | '*' | '/' | '^' | '%'
+- op_increment_assignment: identifier '+' '+' | identifier '-' '-'
 
-- typed_declaration: builtin_typed_declaration | custom_typed_declaration
--~builtin_typed_declaration: type 'mut'? identifier (~equal expression_item)?
--~custom_typed_declaration: identifier 'mut'? identifier (~equal expression_item)?
+- type_definition: 'type' identifier equal ~'[' (type_field ',')* closing_bracket
+- type_alias_definition: 'type' identifier equal type_hint
+- type_field: type_hint identifier
+
+- typed_declaration: type_hint 'mut'? identifier (~equal expression_item)?
+
+- type_hint: type_id type_hint_details?
+-~type_hint_details: '('  (type_hint ',')* ')'
+-~type_id: type | identifier
 
 -~equal: '=' !'>'
 
@@ -67,6 +78,7 @@
 	function_call
 	| internal_property_access
 	| property_access
+	| unary_op
 	| atom
 
 -~atom:
@@ -74,6 +86,7 @@
 	| boolean
 	| none
 	| string
+	| char
 	| decimal
 	| number
 	| identifier
@@ -81,7 +94,7 @@
 - group: ~'(' expression_item closing_paren
 - function: parameters block
 - parameters:  ~'_' | (annotated_parameter ~',')*
-- annotated_parameter: type identifier | identifier identifier
+- annotated_parameter: type_hint identifier
 
 - log: log_keyword ~'(' arguments closing_paren
 - function_call: identifier ~'(' arguments closing_paren
@@ -89,6 +102,7 @@
 
 -~log_keyword: 'log' | 'logs' | 'log_line' | 'logs_line'
 
+- array: (term ~',')+
 - list: '[' (expression_item !']' ',')* ']'
 - dictionary: '[' (dictionary_entry !']' ',')* ']'
 - dictionary_entry: term ':' expression_item
@@ -109,9 +123,7 @@
 -~property_accessor: structure | function_call | identifier | 'self'
 -~require_property: value | <e 'missing index or property name'>
 
--~operation:
-	binary_op
-	| unary_op
+-~operation: binary_op
 
 -~binary_op: compare_op
 
@@ -122,13 +134,12 @@
 -~add_suffix: '+' add | '-' add
 
 - multiply: exponent multiply_suffix?
--~multiply_suffix: '*' multiply | '/' multiply
+-~multiply_suffix: '*' multiply | '/' multiply | '%' multiply
 
 - exponent: value exponent_suffix?
 -~exponent_suffix: '^' exponent
 
-- unary_op: unary_operator require_expression
--~unary_operator: '+' | '-'
+- unary_op: '+' value | '-' value
 
 - break: 'break' expression_item?
 - return: 'return' expression_item?
@@ -137,6 +148,7 @@
 - boolean: 'true' | 'false'
 - none: 'none'
 - identifier: !keyword WORD
+- char: '\\' LETTER 
 - string: STRING
 - decimal: NUMBER ~'.' NUMBER
 - number: NUMBER
@@ -193,6 +205,8 @@
 	| 'list'
 	| 'dict'
 	| 'tuple'
+	| 'char'
+	| 'array'
 	
 -~comment_delimiter: '*' '*' '*'
 -~comment_content: ANY !comment_delimiter

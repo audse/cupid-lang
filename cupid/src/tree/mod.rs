@@ -1,3 +1,5 @@
+mod array;
+pub use array::*;
 
 mod assignment;
 pub use assignment::*;

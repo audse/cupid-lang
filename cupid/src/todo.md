@@ -20,17 +20,24 @@
 - [ ] Maybe types
 - [ ] Map types `dict (string, int)` or `list (int)` etc.
 - [ ] Generics
+- [ ] Type casting
 
 ### Type checker
 
-- [ ] Assignment type checking
+- [x] Assignment type checking
 - [ ] Deep assignment type checking
 
 ## Operators
 
-- [ ] Exponent
-- [ ] Operator assignment
+- [x] Exponent
+- [x] Modulus
+- [x] Operator assignment
+  - [x] `x++`
+  - [x] `x--`
 - [ ] Compare data structures
+- [x] Logical and
+- [x] Logical or
+- [ ] Negation
 
 ## Functions
 

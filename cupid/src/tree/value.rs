@@ -2,7 +2,7 @@ use std::fmt::{Display, Formatter, Result};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use crate::{Symbol, Expression, Error, Token, Type, ScopeContext, LexicalScope, TypeSymbol, SymbolFinder, DICTIONARY, LIST, TUPLE};
-use std::ops::{Add, Sub, Mul, Neg, Div};
+use std::ops::{Add, Sub, Mul, Neg, Div, Rem, BitAnd, BitOr};
 use std::cmp::Ordering;
 
 
@@ -10,6 +10,8 @@ use std::cmp::Ordering;
 pub enum Value {
 	Integer(i32),
 	Decimal(i32, u32),
+	Char(char),
+	Array(Vec<Box<Value>>),
 	String(String),
 	Boolean(bool),
 	FunctionBody(Vec<(TypeSymbol, Symbol)>, Box<Expression>),
@@ -42,16 +44,20 @@ impl Add for Value {
 				Value::Dictionary(x)
 			},
 			(Value::List(mut x), Value::List(y)) => {
-				y.into_iter().for_each(|(entry, (_, value))| {
-					x.insert(entry, (x.len(), value));
+				y.into_iter().for_each(|(_, (_, value))| {
+					x.insert(Value::Integer(x.len() as i32), (x.len(), value));
 				});
 				Value::List(x)
 			},
 			(Value::Tuple(mut x), Value::Tuple(y)) => {
-				y.into_iter().for_each(|(entry, (_, value))| {
-					x.insert(entry, (x.len(), value));
+				y.into_iter().for_each(|(_, (_, value))| {
+					x.insert(Value::Integer(x.len() as i32), (x.len(), value));
 				});
 				Value::Tuple(x)
+			},
+			(Value::Array(mut x), Value::Array(mut y)) => {
+				x.append(&mut y);
+				Value::Array(x)
 			},
 			_ => Value::None,
 		}
@@ -102,6 +108,42 @@ impl Neg for Value {
 	}
 }
 
+impl Rem for Value {
+	type Output = Self;
+	fn rem(self, rhs: Self) -> Self::Output {
+    	match (self, rhs) {
+			(Value::Integer(x), Value::Integer(y)) => Value::Integer(x % y),
+			(Value::Decimal(x, y), Value::Decimal(a, b)) => float_to_dec(dec_to_float(x, y) % dec_to_float(a, b)),
+			_ => Value::None
+		}
+	}
+}
+
+impl BitAnd for Value {
+	type Output = Self;
+	fn bitand(self, rhs: Self) -> Self::Output {
+		let left_truthy = self.is_truthy();
+		let right_truthy = rhs.is_truthy();
+		if left_truthy && right_truthy {
+			rhs
+		} else {
+			self
+		}
+	}
+}
+
+impl BitOr for Value {
+	type Output = Self;
+	fn bitor(self, rhs: Self) -> Self::Output {
+		let left_truthy = self.is_truthy();
+		if left_truthy {
+			self
+		} else {
+			rhs
+		}
+	}
+}
+
 impl PartialOrd for Value {
 	fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
 		match (self, other) {
@@ -147,6 +189,8 @@ impl Hash for Value {
 			Value::Integer(x) => x.hash(state),
 			Value::String(x) => x.hash(state),
 			Value::Boolean(x) => x.hash(state),
+			Value::Char(x) => x.hash(state),
+			Value::Array(x) => x.hash(state),
 			Value::Error(x) => x.hash(state),
 			Value::Decimal(x, y) => {
 				x.hash(state);
@@ -230,24 +274,53 @@ impl Value {
 	pub fn is_poisoned(&self) -> bool {
 		matches!(self, Value::Error(_))
 	}
-	pub fn sort_by_index(&self) -> Vec<(usize, &Value)> {
+	pub fn is_truthy(&self) -> bool {
+		match self {
+			Value::Integer(x) => *x > 0,
+			Value::Decimal(x, y) => dec_to_float(*x, *y) > 0.0,
+			Value::Dictionary(x)
+			| Value::List(x)
+			| Value::Tuple(x) => x.len() > 0,
+			Value::Boolean(x) => *x,
+			_ => false
+		}
+	}
+	pub fn sort_by_index(&self) -> Vec<(&Value, (usize, &Value))> {
 		match self {
 			Self::List(l)
-			| Self::Tuple(l) => {
-				let mut vec: Vec<(usize, &Value)> = l
+			| Self::Tuple(l)
+			| Self::Dictionary(l) => {
+				let mut vec: Vec<(&Value, (usize, &Value))> = l
 					.iter()
 					.map(|(key, (_, value))| {
 						if let Value::Integer(i) = key {
-							(*i as usize, value)
+							(key, (*i as usize, value))
 						} else {
-							(0, value)
+							(key, (0, value))
 						}
 					})
 					.collect();
-				vec.sort_by(|a, b| a.0.cmp(&b.0));
+				vec.sort_by(|a, b| a.1.0.cmp(&b.1.0));
 				vec
 			},
 			_ => unreachable!()
+		}
+	}
+	pub fn pow(&self, right: &Self, operator: &Token) -> Self {
+		match (self, right) {
+			(Value::Integer(x), Value::Integer(y)) => {
+				if let Some(z) = x.checked_pow(*y as u32) {
+					Value::Integer(z)
+				} else {
+					Value::error(operator, format!("Overflow raising {} to the power of {}", x, y), String::new())
+				}
+			},
+			(Value::Decimal(a, b), Value::Decimal(x, y)) => float_to_dec(dec_to_float(*a, *b).powf(dec_to_float(*x, *y))),
+			(x, y) => Value::error(
+				operator, 
+				format!("Unable to raise {} ({}) to the power of {} ({})", x, Type::from(x), y, Type::from(y)), 
+				String::new()
+			)
 		}
 	}
 }
@@ -256,37 +329,45 @@ impl Display for Value {
 	fn fmt(&self, f: &mut Formatter) -> Result {
 		match self {
 			Self::Integer(v) => write!(f, "{}", v),
+			Self::Char(x) => write!(f, "{}", x),
 			Self::Decimal(v, w) => write!(f, "{}.{}", v, w),
 			Self::Error(e) => write!(f, "{}", e), // TODO change this
 			Self::String(s) => write!(f, "{}", s),
-			Self::Dictionary(d) => {
-				_ = write!(f, "[ ");
-				for (key, (_, val)) in d.iter() {
-					_ = write!(f, "{}: {}, ", key, val);
-				}
+			Self::Dictionary(_) => {
+				_ = write!(f, "[");
+				let entries: Vec<String> = self.sort_by_index()
+					.iter()
+					.map(|(k, (_, v))| format!("{}: {}", k, v))
+					.collect();
+				_ = write!(f, "{}", entries.join(", "));
 				_ = write!(f, "]");
 				Ok(())
 			},
 			Self::MapEntry(_, v) => write!(f, "{}", v),
-			Self::List(l) => {
+			Self::List(_) => {
 				_ = write!(f, "[");
-				let vec = self.sort_by_index();
-				for (i, val) in vec {
-					if i != l.len() - 1 {
-						_ = write!(f, "{}, ", val);
-					} else {
-						_ = write!(f, "{}", val);
-					}
-				}
+				let entries: Vec<String> = self.sort_by_index()
+					.iter()
+					.map(|(_, (_, v))| format!("{}", v))
+					.collect();
+				_ = write!(f, "{}", entries.join(", "));
 				_ = write!(f, "]");
 				Ok(())
 			},
+			Self::Array(array) => {
+				let entries: Vec<String> = array
+					.iter()
+					.map(|item| item.to_string())
+					.collect();
+				_ = write!(f, "{}", entries.join(", "));
+				Ok(())
+			},
 			Self::FunctionBody(params, _) => {
-				_ = write!(f, "(fun => ");
-				for param in params.iter() {
-					_ = write!(f, "({}) {}, ", param.0.name, param.1.identifier);
-				}
-				_ = write!(f, ")");
+				let params: Vec<String> = params
+					.iter()
+					.map(|p| format!("{} {}", p.0.name, p.1.identifier))
+					.collect();
+				_ = write!(f, "fun ({}) => todo", params.join(","));
 				Ok(())
 			}
 			v => write!(f, "{:?}", v)
