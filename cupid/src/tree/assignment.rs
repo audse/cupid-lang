@@ -51,6 +51,7 @@ impl Tree for Declare {
     	let val = crate::resolve_or_abort!(self.value, scope);
 		if let Value::Type(mut stored_type) = self.r#type.resolve(scope) {
 			stored_type.apply_arguments(&self.r#type.arguments);
+			println!("{stored_type}");
 			if scope.can_assign(&val, &stored_type) {
 				if let Some(value) = scope.create_symbol_of_type(
 					&self.symbol,

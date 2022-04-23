@@ -65,30 +65,58 @@ pub fn to_tree(node: &ParseNode) -> Expression {
             )
         },
         
+        "type_symbol" => {
+            let (identifier, generics) = if node.children.len() > 1 {
+                (&node.children[1], Some(&node.children[0]))
+            } else {
+                (&node.children[0], None)
+            };
+            let token = node.tokens[0].clone();
+            let generics: Vec<TypeSymbol> = if let Some(generics) = generics {
+                generics.children
+                    .iter()
+                    .map(|g| TypeSymbol::new(
+                        g.tokens[0].source.clone(),
+                        vec![],
+                        g.tokens[0].clone(),
+                        true
+                    ))
+                    .collect()
+            } else {
+                vec![]
+            };
+            Expression::new_type_symbol(identifier.tokens[0].source.clone(), token, generics)
+        }
+        
         "type_definition" => {
-            let identifier = &node.children[0];
-            let type_name = identifier.tokens[0].source.clone();
-            let symbol = TypeSymbol::new(type_name, vec![], identifier.tokens[0].clone(), false);
-            
-            let fields: Vec<(TypeSymbol, Option<Symbol>)> = node.children
-                .iter()
-                .filter_map(|n| 
-                    if n.name.as_str() == "type_field" {
-                        if let Expression::TypeSymbol(field_symbol) = to_tree(&n.children[0]) {
-                            let field_name = Expression::to_symbol(to_tree(&n.children[1]));
-                            Some((field_symbol, Some(field_name)))
-                        } else {
-                            None
-                        }
-                    } else { 
-                        None 
-                    })
-                .collect();
-            let new_type = Type::Product(ProductType {
-                symbol: symbol.clone(),
-                fields,
-            });
-            Expression::new_define_type(node.tokens[0].clone(), symbol, new_type)
+            if let Expression::TypeSymbol(mut symbol) = to_tree(&node.children[0]) {
+                
+                let fields: Vec<(TypeSymbol, Option<Symbol>)> = node.children
+                    .iter()
+                    .filter_map(|n| 
+                        if n.name.as_str() == "type_field" {
+                            let field_type = to_tree(&n.children[0]);
+                            if let Expression::TypeSymbol(field_symbol) = field_type {
+                                let field_name = Expression::to_symbol(to_tree(&n.children[1]));
+                                Some((field_symbol, Some(field_name)))
+                            } else {
+                                None
+                            }
+                        } else { 
+                            None 
+                        })
+                    .collect();
+                let mut new_type = ProductType {
+                    symbol: symbol.clone(),
+                    fields,
+                };
+                new_type.symbol.arguments = vec![];
+                let mut new_type = Type::Product(new_type);
+                new_type.apply_arguments(&mut symbol.arguments);
+                Expression::new_define_type(node.tokens[0].clone(), new_type)
+            } else {
+                Expression::Empty
+            }
         },
         
         "type_alias_definition" => {
@@ -134,9 +162,9 @@ pub fn to_tree(node: &ParseNode) -> Expression {
         "type_hint" => {
             let main_type = &node.children[0].tokens[0];
             let nested_types: Vec<TypeSymbol> = if node.children.len() > 1 {
-                node.children[1]
-                    .children
+                node.children
                     .iter()
+                    .skip(1)
                     .filter_map(|t| {
                         let symbol = to_tree(t);
                         if let Expression::TypeSymbol(s) = symbol {

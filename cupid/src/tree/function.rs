@@ -47,13 +47,6 @@ impl Tree for FunctionCall {
 		if let Some(fun) = scope.get_symbol(&self.fun) {
 			let (params, body) = match fun {
 				Value::FunctionBody(params, body) => (params, body),
-				Value::MapEntry(_, function) => match *function {
-					Value::FunctionBody(params, body) => (params, body),
-					_ => {
-						scope.pop();
-						return self.type_error(&function, FUNCTION);
-					}
-				} 
 				_ => {
 					scope.pop();
 					return self.type_error(&fun, FUNCTION);

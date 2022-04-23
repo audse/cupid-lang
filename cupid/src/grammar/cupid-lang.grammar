@@ -8,7 +8,6 @@
 	| break
 	| return
 	| continue
-	#| internal_property_assignment
 	| property_assignment
 	| op_assignment
 	| op_increment_assignment
@@ -58,16 +57,18 @@
 -~arrow_block: ~arrow expression
 
 - assignment: identifier equal require_term
-#- internal_property_assignment: internal_property_access equal require_term
 - property_assignment: property_access equal require_term
 
 - op_assignment: identifier operator equal require_term
 -~operator: '+' | '-' | '*' | '/' | '^' | '%'
 - op_increment_assignment: identifier '+' '+' | identifier '-' '-'
 
-- type_definition: 'type' identifier equal ~'[' (type_field ',')* closing_bracket
-- type_alias_definition: 'type' identifier equal type_hint
+- type_definition: type_symbol equal ~'[' (type_field ',')* closing_bracket
+- type_alias_definition: type_symbol equal type_hint
+
+- type_symbol: 'type' generics? identifier
 - type_field: type_hint identifier
+- generics: '[' (identifier ',')* ']'
 
 - typed_declaration: type_hint 'mut'? identifier (~equal require_term)?
 
@@ -76,18 +77,6 @@
 -~type_id: type | identifier
 
 -~equal: '=' !'>'
-
-#-~structure:
-#	dictionary
-#	| list
-#	| range
-
-#-~value:
-	#function_call
-	#| internal_property_access
-	#| property_access
-	#| unary_op
-	#| atom
 
 -~atom:
 	group
@@ -114,25 +103,20 @@
 
 - array:  (operation !')' !']' ~',')+
 
-#- list: '[' (term !']' ',')* ']'
-#- dictionary: '[' (dictionary_entry !']' ',')* ']'
-#- dictionary_entry: term ':' term
-
 - map: '[' (map_entry !']' ',')* ']'
 - map_entry: atom ':' term_escaped_array
 
-# - range: 
-#	range_inclusive_inclusive
-#	| range_inclusive_exclusive
-#	| range_exclusive_inclusive
-#	| range_exclusive_exclusive
+- range: 
+	range_inclusive_inclusive
+	| range_inclusive_exclusive
+	| range_exclusive_inclusive
+	| range_exclusive_exclusive
 
-# - range_inclusive_inclusive: '[' atom ~'.' ~'.' atom ']'
-# - range_inclusive_exclusive: '[' atom ~'.' ~'.' ']' atom
-# - range_exclusive_inclusive: atom '[' ~'.' ~'.' atom ']'
-# - range_exclusive_exclusive: atom '[' ~'.' ~'.' ']' atom
+- range_inclusive_inclusive: '[' atom ~'.' ~'.' atom ']'
+- range_inclusive_exclusive: '[' atom ~'.' ~'.' ']' atom
+- range_exclusive_inclusive: atom '[' ~'.' ~'.' atom ']'
+- range_exclusive_exclusive: atom '[' ~'.' ~'.' ']' atom
 
-# - internal_property_access: 'self' '.' require_property
 - property_access: property_accessor '.' require_property
 -~property_accessor: map | function_call | identifier | 'self'
 -~require_property: atom | <e 'missing index or property identifier'>
@@ -223,9 +207,6 @@
 	| 'string'
 	| 'fun'
 	| 'maybe'
-	| 'list'
-	| 'dict'
-	| 'tuple'
 	| 'char'
 	| 'array'
 	

@@ -1,5 +1,4 @@
 use std::fmt::{Display, Formatter, Result};
-use std::collections::HashMap;
 use crate::*;
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
@@ -19,12 +18,7 @@ pub enum Expression {
     Logger(Logger),
     Array(Array),
     Map(Map),
-    // Range(Range),
-    // PropertyAccess(PropertyAccess),
     Property(Property),
-    // InternalPropertyAccess(InternalPropertyAccess),
-    // PropertyAssign(PropertyAssign),
-    // InternalPropertyAssign(InternalPropertyAssign),
     Empty,
     WhileLoop(WhileLoop),
     ForInLoop(ForInLoop),
@@ -143,13 +137,6 @@ impl Expression {
     pub fn new_array(items: Vec<Expression>) -> Self {
         Self::Array(Array { items })
     }
-    // pub fn new_map(entries: Vec<(Expression, (usize, Expression))>, token: Token, r#type: Type) -> Self {
-    //     Self::Map(Map {
-    //         entries: HashMap::from_iter(entries.into_iter()),
-    //         token,
-    //         r#type,
-    //     })
-    // }
     pub fn new_map(items: Vec<(Expression, Expression)>, token: Token, product_type: Option<TypeSymbol>) -> Self {
         Self::Map(Map {
             items,
@@ -157,28 +144,6 @@ impl Expression {
             product_type
         })
     }
-    // pub fn new_range(start: Expression, end: Expression, inclusive: (bool, bool), token: Token) -> Self {
-    //     Self::Range(Range {
-    //         start: Box::new(start),
-    //         end: Box::new(end),
-    //         inclusive,
-    //         token
-    //     })
-    // }
-    // pub fn new_property_access(map: Expression, term: Expression, token: Token) -> Self {
-    //     Self::PropertyAccess(PropertyAccess {
-    //         map: Box::new(map),
-    //         term: Box::new(term),
-    //         operator: token
-    //     })
-    // }
-    // pub fn new_array_access(array: Expression, term: Expression, token: Token) -> Self {
-    //     Self::ArrayAccess(ArrayAccess {
-    //         array: Box::new(array),
-    //         term: Box::new(term),
-    //         token
-    //     })
-    // }
     pub fn new_property(map: Expression, term: Expression, token: Token) -> Self {
         Self::Property(Property {
             map: Box::new(map),
@@ -186,32 +151,6 @@ impl Expression {
             token
         })
     }
-    // pub fn new_internal_property_access(term: Expression, token: Token) -> Self {
-    //     Self::InternalPropertyAccess(InternalPropertyAccess {
-    //         term: Box::new(term),
-    //         operator: token
-    //     })
-    // }
-    // pub fn new_property_assign(access: Expression, value: Expression, token: Token) -> Self {
-    //     if let Expression::PropertyAccess(access) = access {
-    //         return Self::PropertyAssign(PropertyAssign {
-    //             access,
-    //             value: Box::new(value),
-    //             operator: token
-    //         });
-    //     }
-    //     unreachable!()
-    // }
-    // pub fn new_internal_property_assign(access: Expression, value: Expression, token: Token) -> Self {
-    //     if let Expression::InternalPropertyAccess(access) = access {
-    //         return Self::InternalPropertyAssign(InternalPropertyAssign {
-    //             access,
-    //             value: Box::new(value),
-    //             operator: token
-    //         });
-    //     }
-    //     unreachable!()
-    // }
     pub fn new_while_loop(condition: Expression, body: Expression, token: Token) -> Self {
         Self::WhileLoop(WhileLoop {
             body: Self::to_block(body),
@@ -227,8 +166,8 @@ impl Expression {
             token
         })
     }
-    pub fn new_define_type(token: Token, type_symbol: TypeSymbol, type_value: Type) -> Self {
-        Expression::DefineType(DefineType { token, type_symbol, type_value })
+    pub fn new_define_type(token: Token, type_value: Type) -> Self {
+        Expression::DefineType(DefineType { token, type_symbol: type_value.get_symbol().clone(), type_value })
     }
     pub fn new_define_type_alias(token: Token, type_symbol: TypeSymbol, arguments: Vec<TypeSymbol>) -> Self {
         Expression::DefineTypeAlias(DefineTypeAlias { token, type_symbol, arguments })
@@ -304,13 +243,8 @@ impl Tree for Expression {
             },
             Self::Logger(x) => x.resolve(scope),
             Self::Map(x) => x.resolve(scope),
-            // Self::Range(x) => x.resolve(scope),
-            // Self::PropertyAccess(x) => x.resolve(scope),
             Self::Property(x) => x.resolve(scope),
             Self::Array(x) => x.resolve(scope),
-            // Self::InternalPropertyAccess(x) => x.resolve(scope),
-            // Self::PropertyAssign(x) => x.resolve(scope),
-            // Self::InternalPropertyAssign(x) => x.resolve(scope),
             Self::WhileLoop(x) => x.resolve(scope),
             Self::ForInLoop(x) => x.resolve(scope),
             Self::DefineType(x) => x.resolve(scope),

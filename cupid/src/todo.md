@@ -11,15 +11,15 @@
 ## Type system
 
 - [ ] Type declaration
-  - [ ] Dictionary-style
-  - [ ] List-style
+  - [x] Product (struct)
+  - [ ] Union (enum)
   - [ ] Nested
   - [x] Alias
 - [ ] Enums
-- [ ] Struct declaration/impl?
+- [ ] Impl
 - [ ] Maybe types
-- [ ] Map types
-  - [ ] `dict (string, int)`
+- [x] Map types
+  - [x] `dict (string, int)`
   - [x] `array (int)`
 - [ ] Generics
 - [ ] Type casting
@@ -80,16 +80,16 @@
 - [x] Dictionary
 - [ ] Tuples (keywords)
 - [ ] Range
-  - [x] Numbers
+  - [ ] Numbers
   - [ ] Step
   - [ ] Characters
 - [x] Property access
-- [x] Property assignment
-- [ ] Lightweight array that isn't a map
+- [ ] Property assignment
+- [x] Lightweight array that isn't a map
 - [ ] Add/remove properties
 - [ ] Property chaining
 - [ ] Self keyword
-  - [x] Reference inner properties
+  - [ ] Reference inner properties
   - [ ] Mutate inner properties
 
 ## Scoping
@@ -105,7 +105,7 @@
 - [ ] Pattern matching
 - [ ] Array slices using range syntax e.g. `my_array[0..5]`
   - [ ] Include negative numbers
-- [ ] Variable shadowing
+- [x] Variable shadowing
 - [ ] Template strings `'my favorite number is {{ 30 + 7 }}'`
 - [ ] Escape keywords like Rusts `r#type` (only better ...)
 

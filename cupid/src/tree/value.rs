@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter, Result};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
-use crate::{Symbol, Expression, Error, Token, Type, ScopeContext, LexicalScope, TypeSymbol, SymbolFinder, DICTIONARY, LIST, TUPLE};
+use crate::{Symbol, Expression, Error, Token, Type, TypeSymbol};
 use std::ops::{Add, Sub, Mul, Neg, Div, Rem, BitAnd, BitOr};
 use std::cmp::Ordering;
 
@@ -15,10 +15,6 @@ pub enum Value {
 	String(String),
 	Boolean(bool),
 	FunctionBody(Vec<(TypeSymbol, Symbol)>, Box<Expression>),
-	Dictionary(HashMap<Value, (usize, Value)>),
-	List(HashMap<Value, (usize, Value)>),
-	Tuple(HashMap<Value, (usize, Value)>),
-	MapEntry(usize, Box<Value>),
 	Error(Error),
 	Type(Type),
 	Break(Box<Value>),
@@ -39,23 +35,11 @@ impl Add for Value {
 				x.push_str(y.as_str());
 				Value::String(x)
 			},
-			(Value::Dictionary(mut x), Value::Dictionary(y)) => {
+			(Value::Map(mut x), Value::Map(y)) => {
 				y.into_iter().for_each(|(entry, (_, value))| {
 					x.insert(entry, (x.len(), value));
 				});
-				Value::Dictionary(x)
-			},
-			(Value::List(mut x), Value::List(y)) => {
-				y.into_iter().for_each(|(_, (_, value))| {
-					x.insert(Value::Integer(x.len() as i32), (x.len(), value));
-				});
-				Value::List(x)
-			},
-			(Value::Tuple(mut x), Value::Tuple(y)) => {
-				y.into_iter().for_each(|(_, (_, value))| {
-					x.insert(Value::Integer(x.len() as i32), (x.len(), value));
-				});
-				Value::Tuple(x)
+				Value::Map(x)
 			},
 			(Value::Array(mut x), Value::Array(mut y)) => {
 				x.append(&mut y);
@@ -204,15 +188,8 @@ impl Hash for Value {
 				y.hash(state);
 			},
 			Value::None => (),
-			Value::Dictionary(x)
-			| Value::List(x)
-			| Value::Tuple(x)
-			| Value::Map(x) => for entry in x.iter() {
+			Value::Map(x) => for entry in x.iter() {
 				entry.hash(state)
-			},
-			Value::MapEntry(x, y) => {
-				x.hash(state);
-				y.hash(state);
 			},
 			Value::Type(x) => x.hash(state),
 			Value::Break(x) => x.hash(state),
@@ -244,43 +221,6 @@ impl Value {
 	pub fn error<S>(token: &Token, message: S, context: S) -> Value where S: Into<String> {
 		Value::Error(Error::from_token(token, &message.into(), &context.into()))
 	}
-	pub fn inner_map(&self) -> Option<&HashMap<Value, (usize, Value)>> {
-		match &self {
-			Self::Dictionary(m)
-			| Self::List(m) 
-			| Self::Tuple(m) => Some(m),
-			_ => None
-		}
-	}
-	pub fn inner_map_clone(&self) -> Option<HashMap<Value, (usize, Value)>> {
-		self.inner_map().cloned()
-	}
-	pub fn wrap_map(map_type: &Type, map: HashMap<Value, (usize, Value)>) -> Self {
-		if map_type == &DICTIONARY {
-			Value::Dictionary(map)
-		} else if map_type == &LIST {
-			Value::List(map)
-		} else if map_type == &TUPLE {
-			Value::Tuple(map)
-		} else {
-			Value::Dictionary(map)
-		}
-	}
-	pub fn make_scope(&self, scope: &mut LexicalScope, token: Token, mutable: bool) {
-		scope.add(ScopeContext::Map);
-		let self_symbol = Symbol::new_string("self".to_string(), token.clone());
-		scope.create_symbol_of_type(
-			&self_symbol, self.clone(), Type::from(self), mutable, mutable
-		);
-		if let Some(map) = self.inner_map() {
-			for (key, (index, value)) in map.iter() {
-				let symbol = Symbol { identifier: key.clone(), token: token.clone() };
-				let entry_value = Value::MapEntry(*index, Box::new(value.clone()));
-				let entry_type = Type::from(&value);
-				scope.create_symbol_of_type(&symbol, entry_value, entry_type, mutable, mutable);
-			}
-		}
-	}
 	pub fn is_poisoned(&self) -> bool {
 		matches!(self, Value::Error(_))
 	}
@@ -288,32 +228,11 @@ impl Value {
 		match self {
 			Value::Integer(x) => *x > 0,
 			Value::Decimal(x, y) => dec_to_float(*x, *y) > 0.0,
-			Value::Dictionary(x)
-			| Value::List(x)
-			| Value::Tuple(x) => x.len() > 0,
+			Value::Map(x) => x.len() > 0,
+			Value::Array(x) => x.len() > 0,
+			Value::ProductMap(_, x) => x.len() > 0,
 			Value::Boolean(x) => *x,
 			_ => false
-		}
-	}
-	pub fn sort_by_index(&self) -> Vec<(&Value, (usize, &Value))> {
-		match self {
-			Self::List(l)
-			| Self::Tuple(l)
-			| Self::Dictionary(l) => {
-				let mut vec: Vec<(&Value, (usize, &Value))> = l
-					.iter()
-					.map(|(key, (_, value))| {
-						if let Value::Integer(i) = key {
-							(key, (*i as usize, value))
-						} else {
-							(key, (0, value))
-						}
-					})
-					.collect();
-				vec.sort_by(|a, b| a.1.0.cmp(&b.1.0));
-				vec
-			},
-			_ => unreachable!()
 		}
 	}
 	pub fn pow(&self, right: &Self, operator: &Token) -> Self {
@@ -343,23 +262,6 @@ impl Display for Value {
 			Self::Decimal(v, w) => write!(f, "{}.{}", v, w),
 			Self::Error(e) => write!(f, "{}", e), // TODO change this
 			Self::String(s) => write!(f, "{}", s),
-			Self::Dictionary(_) => {
-				let entries: Vec<String> = self.sort_by_index()
-					.iter()
-					.map(|(k, (_, v))| format!("{}: {}", k, v))
-					.collect();
-				_ = write!(f, "[{}]", entries.join(", "));
-				Ok(())
-			},
-			Self::MapEntry(_, v) => write!(f, "{}", v),
-			Self::List(_) => {
-				let entries: Vec<String> = self.sort_by_index()
-					.iter()
-					.map(|(_, (_, v))| format!("{}", v))
-					.collect();
-				_ = write!(f, "[{}]", entries.join(", "));
-				Ok(())
-			},
 			Self::Array(array) => {
 				let entries: Vec<String> = array
 					.iter()

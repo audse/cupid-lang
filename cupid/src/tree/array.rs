@@ -1,4 +1,4 @@
-use crate::{Expression, Value, Tree, LexicalScope, ErrorHandler, Token, Type};
+use crate::{Expression, Value, Tree, LexicalScope};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct Array {
