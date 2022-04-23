@@ -74,15 +74,12 @@ pub fn to_tree(node: &ParseNode) -> Expression {
                 .iter()
                 .filter_map(|n| 
                     if n.name.as_str() == "type_field" {
-                        let field_symbol = &n.children[0];
-                        let field_type = TypeSymbol::new(
-                            field_symbol.tokens[0].source.clone(), 
-                            vec![],
-                            field_symbol.tokens[0].clone(),
-                            false
-                        );
-                        let field_name = Expression::to_symbol(to_tree(&n.children[1]));
-                        Some((field_type, Some(field_name)))
+                        if let Expression::TypeSymbol(field_symbol) = to_tree(&n.children[0]) {
+                            let field_name = Expression::to_symbol(to_tree(&n.children[1]));
+                            Some((field_symbol, Some(field_name)))
+                        } else {
+                            None
+                        }
                     } else { 
                         None 
                     })
@@ -99,21 +96,18 @@ pub fn to_tree(node: &ParseNode) -> Expression {
             let type_name = identifier.tokens[0].source.clone();
             let symbol = TypeSymbol::new(type_name, vec![], identifier.tokens[0].clone(), false);
             
-            let fields: Vec<(TypeSymbol, Option<Symbol>)> = node.children
+            let arguments: Vec<TypeSymbol> = node.children
                 .iter()
                 .filter_map(|n| {
                     if let Expression::TypeSymbol(symbol) = to_tree(n) {
-                        Some((symbol, None))
+                        Some(symbol)
                     } else {
                         None
                     }
                 })
                 .collect();
-            let new_type = Type::Product(ProductType {
-                symbol: symbol.clone(),
-                fields,
-            });
-            Expression::new_define_type(node.tokens[0].clone(), symbol, new_type)
+            
+            Expression::new_define_type_alias(node.tokens[0].clone(), symbol, arguments)
         },
         
         "typed_declaration" => {
@@ -121,7 +115,16 @@ pub fn to_tree(node: &ParseNode) -> Expression {
             let identifier = to_tree(&node.children[1]);
             let mutable = node.tokens.len() > 0;
             let value = if node.children.len() > 2 {
-                to_tree(&node.children[2])
+                let new_val = to_tree(&node.children[2]);
+                if let Expression::Map(map) = &new_val {
+                    if type_symbol.name != "map" {
+                        Expression::new_map(map.items.clone(), map.token.clone(), Some(type_symbol.clone()))
+                    } else {
+                        new_val
+                    }
+                } else {
+                    new_val
+                }
             } else {
                 Expression::Empty
             };
@@ -156,16 +159,16 @@ pub fn to_tree(node: &ParseNode) -> Expression {
             to_tree(&node.children[0]),
             to_tree(&node.children[1]),
         ),
-        "property_assignment" => Expression::new_property_assign(
-            to_tree(&node.children[0]),
-            to_tree(&node.children[1]),
-            node.tokens[0].clone(),
-        ),
-        "internal_property_assignment" => Expression::new_internal_property_assign(
-            to_tree(&node.children[0]),
-            to_tree(&node.children[1]),
-            node.tokens[0].clone(),
-        ),
+        // "property_assignment" => Expression::new_property_assign(
+        //     to_tree(&node.children[0]),
+        //     to_tree(&node.children[1]),
+        //     node.tokens[0].clone(),
+        // ),
+        // "internal_property_assignment" => Expression::new_internal_property_assign(
+        //     to_tree(&node.children[0]),
+        //     to_tree(&node.children[1]),
+        //     node.tokens[0].clone(),
+        // ),
         "op_assignment" => {
             let symbol = to_tree(&node.children[0]);
             let operator = node.tokens[0].clone();
@@ -267,50 +270,57 @@ pub fn to_tree(node: &ParseNode) -> Expression {
         },
 
         // Structures
-        "dictionary" => {
-            let entries: Vec<(Expression, (usize, Expression))> = node
-                .children
+        // "dictionary" => {
+        //     let entries: Vec<(Expression, (usize, Expression))> = node
+        //         .children
+        //         .iter()
+        //         .enumerate()
+        //         .map(|(i, e)| (to_tree(&e.children[0]), (i, to_tree(&e.children[1]))))
+        //         .collect();
+        //     Expression::new_map(entries, node.tokens[0].clone(), DICTIONARY)
+        // }
+        // "list" => {
+        //     let entries: Vec<(Expression, (usize, Expression))> = node
+        //         .children
+        //         .iter()
+        //         .enumerate()
+        //         .map(|(i, e)| (Expression::new_int_node(i as i32, vec![]), (i, to_tree(e))))
+        //         .collect();
+        //     Expression::new_map(entries, node.tokens[0].clone(), LIST)
+        // },
+        // "range" => {
+        //     let range = &node.children[0];
+        //     let (include_start, include_end) = match range.name.as_str() {
+        //         "range_inclusive_inclusive" => (true, true),
+        //         "range_inclusive_exclusive" => (true, false),
+        //         "range_exclusive_inclusive" => (false, true),
+        //         "range_exclusive_exclusive" | _ => (false, false),
+        //     };
+        //     Expression::new_range(
+        //         to_tree(&range.children[0]), 
+        //         to_tree(&range.children[1]),
+        //         (include_start, include_end),
+        //         range.tokens[0].clone()
+        //     )
+        // },
+        "map" => {
+            let entries = node.children
                 .iter()
-                .enumerate()
-                .map(|(i, e)| (to_tree(&e.children[0]), (i, to_tree(&e.children[1]))))
+                .map(|item| (to_tree(&item.children[0]), to_tree(&item.children[1])))
                 .collect();
-            Expression::new_map(entries, node.tokens[0].clone(), DICTIONARY)
-        }
-        "list" => {
-            let entries: Vec<(Expression, (usize, Expression))> = node
-                .children
-                .iter()
-                .enumerate()
-                .map(|(i, e)| (Expression::new_int_node(i as i32, vec![]), (i, to_tree(e))))
-                .collect();
-            Expression::new_map(entries, node.tokens[0].clone(), LIST)
-        },
-        "range" => {
-            let range = &node.children[0];
-            let (include_start, include_end) = match range.name.as_str() {
-                "range_inclusive_inclusive" => (true, true),
-                "range_inclusive_exclusive" => (true, false),
-                "range_exclusive_inclusive" => (false, true),
-                "range_exclusive_exclusive" | _ => (false, false),
-            };
-            Expression::new_range(
-                to_tree(&range.children[0]), 
-                to_tree(&range.children[1]),
-                (include_start, include_end),
-                range.tokens[0].clone()
-            )
+            Expression::new_map(entries, node.tokens[0].clone(), None)
         },
         "array" => Expression::new_array(node.children.iter().map(to_tree).collect()),
         
-        "internal_property_access" => {
-            let term = to_tree(&node.children[0]);
-            Expression::new_internal_property_access(term, node.tokens[0].clone())
-        },
+        // "internal_property_access" => {
+        //     let term = to_tree(&node.children[0]);
+        //     Expression::new_internal_property_access(term, node.tokens[0].clone())
+        // },
         "property_access" => {
             let map = to_tree(&node.children[0]);
             let term = to_tree(&node.children[1]);
             // Expression::new_property_access(map, term, node.tokens[0].clone())
-            Expression::new_array_access(map, term, node.tokens[0].clone())
+            Expression::new_property(map, term, node.tokens[0].clone())
         },
         
         "type" => Expression::new_type_symbol(node.tokens[0].source.clone(), node.tokens[0].clone(), vec![]),

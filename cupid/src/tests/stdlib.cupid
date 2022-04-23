@@ -1,10 +1,22 @@
 *** Cupid Standard Library v0.1.0 ***
 
-type str = array (char)
+map [string, int] test = [
+	a: 1,
+	b: 2
+]
 
-str a = \a, \b, \c
-***
-a = 1, 2, 3
+log (test)
+log (test.b)
 
-log (a)
-***
+type dictionary = [
+	map [A, B] entries,
+	fun insert,
+	fun remove,
+	fun keys,
+	fun values
+]
+
+fun div = int a, int b => a / b
+int c = div(10, 10)
+
+log (c)

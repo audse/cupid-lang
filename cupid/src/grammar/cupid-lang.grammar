@@ -1,25 +1,38 @@
 - file: expression+
-- expression: comment | statement | expression_item
+- expression: comment | statement | term
 
 -~statement:
 	type_definition
 	| type_alias_definition
 	| typed_declaration
-
--~expression_item:
-	loop
-	| block
 	| break
 	| return
 	| continue
-	| function
-	| internal_property_assignment
+	#| internal_property_assignment
 	| property_assignment
 	| op_assignment
 	| op_increment_assignment
 	| assignment
+	| log
+
+-~term:
+	loop
+	| block
+	| function
+	| function_call
+	| map
 	| array
-	| term
+	| operation
+	| atom
+	
+-~term_escaped_array:
+	loop
+	| block
+	| function
+	| '[' array ']'
+	| operation
+	| function_call
+	| atom
 
 -~loop:
 	for_loop
@@ -28,7 +41,7 @@
 
 - for_loop: 'for' for_loop_parameters ~'in' term block
 - for_loop_parameters: (identifier ~',')*
-- while_loop: 'while' expression_item block
+- while_loop: 'while' term block
 - infinite_loop: 'loop' block
 
 - block: 
@@ -37,18 +50,18 @@
 	| brace_block
 	| arrow_block
 	
-- if_block: ~'if' expression block else_if_block* else_block?
-- else_if_block: ~'else' ~'if' expression block
+- if_block: ~'if' term block else_if_block* else_block?
+- else_if_block: ~'else' ~'if' term block
 - else_block: ~'else' block
 - box_block: ~'box' brace_block
 -~brace_block: ~'{' expression* closing_brace
--~arrow_block: ~arrow require_expression
+-~arrow_block: ~arrow expression
 
-- assignment: identifier equal expression
-- internal_property_assignment: internal_property_access equal expression
-- property_assignment: property_access equal expression
+- assignment: identifier equal require_term
+#- internal_property_assignment: internal_property_access equal require_term
+- property_assignment: property_access equal require_term
 
-- op_assignment: identifier operator equal expression
+- op_assignment: identifier operator equal require_term
 -~operator: '+' | '-' | '*' | '/' | '^' | '%'
 - op_increment_assignment: identifier '+' '+' | identifier '-' '-'
 
@@ -56,33 +69,30 @@
 - type_alias_definition: 'type' identifier equal type_hint
 - type_field: type_hint identifier
 
-- typed_declaration: type_hint 'mut'? identifier (~equal expression_item)?
+- typed_declaration: type_hint 'mut'? identifier (~equal require_term)?
 
 - type_hint: type_id type_hint_details?
--~type_hint_details: '('  (type_hint ',')* ')'
+-~type_hint_details: '['  (type_hint ',')* ']'
 -~type_id: type | identifier
 
 -~equal: '=' !'>'
 
--~term:
-	log
-	| structure
-	| operation
+#-~structure:
+#	dictionary
+#	| list
+#	| range
 
--~structure:
-	dictionary
-	| list
-	| range
-
--~value:
-	function_call
-	| internal_property_access
-	| property_access
-	| unary_op
-	| atom
+#-~value:
+	#function_call
+	#| internal_property_access
+	#| property_access
+	#| unary_op
+	#| atom
 
 -~atom:
 	group
+	| property_access
+	| unary_op
 	| boolean
 	| none
 	| string
@@ -91,37 +101,41 @@
 	| number
 	| identifier
 
-- group: ~'(' expression_item closing_paren
+- group: ~'(' term closing_paren
 - function: parameters block
 - parameters:  ~'_' | (annotated_parameter ~',')*
 - annotated_parameter: type_hint identifier
 
 - log: log_keyword ~'(' arguments closing_paren
 - function_call: identifier ~'(' arguments closing_paren
-- arguments: (expression_item ~',')*
+- arguments: (term_escaped_array ~',')*
 
 -~log_keyword: 'log' | 'logs' | 'log_line' | 'logs_line'
 
-- array: (term ~',')+
-- list: '[' (expression_item !']' ',')* ']'
-- dictionary: '[' (dictionary_entry !']' ',')* ']'
-- dictionary_entry: term ':' expression_item
+- array:  (operation !')' !']' ~',')+
 
-- range: 
-	range_inclusive_inclusive
-	| range_inclusive_exclusive
-	| range_exclusive_inclusive
-	| range_exclusive_exclusive
+#- list: '[' (term !']' ',')* ']'
+#- dictionary: '[' (dictionary_entry !']' ',')* ']'
+#- dictionary_entry: term ':' term
 
-- range_inclusive_inclusive: '[' atom ~'.' ~'.' atom ']'
-- range_inclusive_exclusive: '[' atom ~'.' ~'.' ']' atom
-- range_exclusive_inclusive: atom '[' ~'.' ~'.' atom ']'
-- range_exclusive_exclusive: atom '[' ~'.' ~'.' ']' atom
+- map: '[' (map_entry !']' ',')* ']'
+- map_entry: atom ':' term_escaped_array
 
-- internal_property_access: 'self' '.' require_property
+# - range: 
+#	range_inclusive_inclusive
+#	| range_inclusive_exclusive
+#	| range_exclusive_inclusive
+#	| range_exclusive_exclusive
+
+# - range_inclusive_inclusive: '[' atom ~'.' ~'.' atom ']'
+# - range_inclusive_exclusive: '[' atom ~'.' ~'.' ']' atom
+# - range_exclusive_inclusive: atom '[' ~'.' ~'.' atom ']'
+# - range_exclusive_exclusive: atom '[' ~'.' ~'.' ']' atom
+
+# - internal_property_access: 'self' '.' require_property
 - property_access: property_accessor '.' require_property
--~property_accessor: structure | function_call | identifier | 'self'
--~require_property: value | <e 'missing index or property name'>
+-~property_accessor: map | function_call | identifier | 'self'
+-~require_property: atom | <e 'missing index or property identifier'>
 
 -~operation: binary_op
 
@@ -136,13 +150,13 @@
 - multiply: exponent multiply_suffix?
 -~multiply_suffix: '*' multiply | '/' multiply | '%' multiply
 
-- exponent: value exponent_suffix?
+- exponent: atom exponent_suffix?
 -~exponent_suffix: '^' exponent
 
-- unary_op: '+' value | '-' value
+- unary_op: '+' atom | '-' atom
 
-- break: 'break' expression_item?
-- return: 'return' expression_item?
+- break: 'break' term?
+- return: 'return' term?
 - continue: 'continue'
 
 - boolean: 'true' | 'false'
@@ -154,7 +168,7 @@
 - number: NUMBER
 
 # Error handling
--~require_expression: expression_item | <e 'missing expression'>
+-~require_term: term | <e 'missing expression'>
 -~closing_paren: ~')' | <e 'missing closing parenthesis'>
 -~closing_brace: ~'}' | <e 'missing closing brace'>
 -~closing_bracket: ~']' | <e 'missing closing bracket'>
@@ -172,10 +186,17 @@
 	| 'while'
 	| 'else'
 	| 'if'
+	| 'mut'
 	| 'loop'
 	| 'box'
 	| 'break'
 	| 'return'
+	| 'continue'
+	| 'type'
+	| 'log'
+	| 'logs'
+	| 'log_line'
+	| 'logs_line'
 
 -~keyword_variable:
 	'let'

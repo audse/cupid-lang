@@ -1,5 +1,5 @@
 use std::fmt::{Display, Formatter, Result};
-use crate::{TypeSymbol, SumType, Token, Value, ProductType, Tree, Symbol, LexicalScope, SymbolFinder};
+use crate::{TypeSymbol, SumType, Token, Value, ProductType, Tree, Symbol, LexicalScope, SymbolFinder, ErrorHandler};
 use super::builtin::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -15,6 +15,12 @@ impl Type {
 			fields
 		})
 	}
+	pub fn new_product(name: &str, fields: Vec<(TypeSymbol, Option<Symbol>)>) -> Self {
+		Self::Product(ProductType {
+			symbol: TypeSymbol::new_simple(name, vec![]),
+			fields
+		})
+	}
 	pub fn from(value: &Value) -> Type {
 		match value {
 			Value::Boolean(_) => BOOLEAN,
@@ -27,27 +33,54 @@ impl Type {
 				} else {
 					GENERIC
 				};
-				Type::new_const_product("array", vec![(inner_type, None)])
+				Type::new_product("array", vec![(inner_type, None)])
 			},
+			Value::Map(m) => {
+				let (key_type, value_type) = {
+					if let Some((key, (_, value))) = m.iter().next() {
+						(
+							Type::from(&key).get_symbol().clone(), 
+							Type::from(&value).get_symbol().clone()
+						)
+					} else {
+						(GENERIC, GENERIC)
+					}
+				};
+				Type::new_product("map", vec![(key_type, None), (value_type, None)])
+			},
+			Value::ProductMap(symbol, m) => {
+				let fields: Vec<(TypeSymbol, Option<Symbol>)> = {
+					m.iter().map(|(key, value)| {
+						let symbol = match Type::from(&value) {
+							Type::Product(product_type) => product_type,
+							_ => unreachable!()
+						};
+						(symbol.to_symbol(), Some(key.clone()))
+					})
+					.collect()
+				};
+				Type::new_product(&symbol.name, fields)
+			},
+			
 			Value::String(_) => STRING,
 			Value::FunctionBody(_, _) => FUNCTION,
-			Value::Dictionary(_) => DICTIONARY,
-			Value::List(_) => LIST,
-			Value::Tuple(_) => TUPLE,
+			// Value::Dictionary(_) => DICTIONARY,
+			// Value::List(_) => LIST,
+			// Value::Tuple(_) => TUPLE,
 			Value::MapEntry(_, _) => MAP_ENTRY,
 			Value::Error(_) => ERROR,
 			_ => NONE
 		}
 	}
 	pub fn is_builtin(&self) -> bool {
+		// todo: account for generics
 		vec![&BOOLEAN, &INTEGER, &DECIMAL, &STRING, &FUNCTION, &DICTIONARY, &LIST, &TUPLE, &NONE, &ARRAY, &CHAR, &ERROR].contains(&self)
 	}
 	// is either a builtin map type or a struct type
 	pub fn is_map(&self) -> bool {
-		if [DICTIONARY, LIST, TUPLE].contains(self) {
-			true
-		} else {
-			!self.is_builtin()
+		match self {
+			Type::Product(map) => !self.is_builtin() || ["map", "array"].contains(&map.get_name().as_str()),
+			_ => false
 		}
 	}
 	pub fn get_symbol(&self) -> &TypeSymbol {
@@ -59,6 +92,9 @@ impl Type {
 	pub fn eq_approx(&self, other: &Self) -> bool {
 		match (self, other) {
 			(Self::Product(left), Self::Product(right)) => {
+				if left.get_name() != right.get_name() && self.is_builtin() {
+					return false;
+				}
 				for (i, field) in left.fields.iter().enumerate() {
 					if field.0.generic {
 						continue;
@@ -109,5 +145,40 @@ impl Tree for DefineType {
 			Ok(new_type) => Value::Type(new_type),
 			Err(error) => error
 		}
+	}
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub struct DefineTypeAlias {
+	pub token: Token,
+	pub type_symbol: TypeSymbol,
+	pub arguments: Vec<TypeSymbol>,
+}
+
+impl Tree for DefineTypeAlias {
+	fn resolve(&self, scope: &mut LexicalScope) -> Value {
+		if let Some(mut stored_type) = scope.get_definition(&self.arguments[0]) {
+			stored_type.apply_arguments(&self.arguments[0].arguments);
+			match scope.define_type(&self.type_symbol, stored_type) {
+				Ok(new_type) => Value::Type(new_type),
+				Err(error) => error
+			}
+		} else {
+			self.error(format!("cannot create a type alias for a non-existent type ({})", self.arguments[0]))
+		}
+	}
+}
+
+impl ErrorHandler for DefineTypeAlias {
+	fn get_token(&self) -> &Token {
+		&self.token
+	}
+	fn get_context(&self) -> String {
+		let args: Vec<String> = self.arguments.iter().map(|a| a.to_string()).collect();
+		format!(
+			"defining a type alias for {} with arguments {:?}", 
+			self.type_symbol, 
+			args.join(", ")
+		)
 	}
 }

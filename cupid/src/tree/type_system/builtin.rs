@@ -1,4 +1,4 @@
-use crate::{ LexicalScope, Type, SymbolFinder, TypeSymbol, SumType };
+use crate::{ LexicalScope, Type, SymbolFinder, TypeSymbol };
 
 pub fn use_builtin_types(scope: &mut LexicalScope) {
 	_ = scope.define_type(&BOOLEAN.get_symbol(), BOOLEAN);
@@ -12,6 +12,10 @@ pub fn use_builtin_types(scope: &mut LexicalScope) {
 	_ = scope.define_type(
 		&ARRAY.get_symbol(), 
 		Type::new_const_product("array", vec![(GENERIC, None)])
+	);
+	_ = scope.define_type(
+		&MAP.get_symbol(), 
+		Type::new_const_product("map", vec![(GENERIC, None), (GENERIC, None)])
 	);
 	
 	_ = scope.define_type(&FUNCTION.get_symbol(), FUNCTION);
@@ -32,6 +36,8 @@ pub const ERROR: Type = Type::new_const_product("error", vec![]);
 pub const GENERIC: TypeSymbol = TypeSymbol::new_const_generic("T");
 
 pub const ARRAY: Type = Type::new_const_product("array", vec![]);
+pub const MAP: Type = Type::new_const_product("map", vec![]);
+
 pub const FUNCTION: Type = Type::new_const_product("fun", vec![]);
 pub const LIST: Type = Type::new_const_product("list", vec![]);
 pub const DICTIONARY: Type = Type::new_const_product("dict", vec![]);

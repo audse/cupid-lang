@@ -23,6 +23,8 @@ pub enum Value {
 	Type(Type),
 	Break(Box<Value>),
 	Return(Box<Value>),
+	Map(HashMap<Value, (usize, Value)>),
+	ProductMap(Box<TypeSymbol>, HashMap<Symbol, Value>),
 	Continue,
 	None,
 }
@@ -168,6 +170,7 @@ impl PartialEq for Value {
 	fn eq(&self, other: &Self) -> bool {
 		match (self, other) {
 			(Value::Integer(x), Value::Integer(y)) => x == y,
+			(Value::Char(x), Value::Char(y)) => x == y,
 			(Value::String(x), Value::String(y)) => x == y,
 			(Value::Decimal(a, b), Value::Decimal(x, y)) => a == x && b == y,
 			(Value::Boolean(x), Value::Boolean(y)) => x == y,
@@ -203,7 +206,8 @@ impl Hash for Value {
 			Value::None => (),
 			Value::Dictionary(x)
 			| Value::List(x)
-			| Value::Tuple(x) => for entry in x.iter() {
+			| Value::Tuple(x)
+			| Value::Map(x) => for entry in x.iter() {
 				entry.hash(state)
 			},
 			Value::MapEntry(x, y) => {
@@ -213,6 +217,12 @@ impl Hash for Value {
 			Value::Type(x) => x.hash(state),
 			Value::Break(x) => x.hash(state),
 			Value::Return(x) => x.hash(state),
+			Value::ProductMap(x, y) => {
+				x.hash(state);
+				for entry in y.iter() {
+					entry.hash(state)
+				}
+			},
 			Value::Continue => (),
 		}
 	}
@@ -334,32 +344,44 @@ impl Display for Value {
 			Self::Error(e) => write!(f, "{}", e), // TODO change this
 			Self::String(s) => write!(f, "{}", s),
 			Self::Dictionary(_) => {
-				_ = write!(f, "[");
 				let entries: Vec<String> = self.sort_by_index()
 					.iter()
 					.map(|(k, (_, v))| format!("{}: {}", k, v))
 					.collect();
-				_ = write!(f, "{}", entries.join(", "));
-				_ = write!(f, "]");
+				_ = write!(f, "[{}]", entries.join(", "));
 				Ok(())
 			},
 			Self::MapEntry(_, v) => write!(f, "{}", v),
 			Self::List(_) => {
-				_ = write!(f, "[");
 				let entries: Vec<String> = self.sort_by_index()
 					.iter()
 					.map(|(_, (_, v))| format!("{}", v))
 					.collect();
-				_ = write!(f, "{}", entries.join(", "));
-				_ = write!(f, "]");
+				_ = write!(f, "[{}]", entries.join(", "));
 				Ok(())
 			},
 			Self::Array(array) => {
 				let entries: Vec<String> = array
 					.iter()
-					.map(|item| item.to_string())
+					.map(|item| format!("{}", *item))
 					.collect();
-				_ = write!(f, "{}", entries.join(", "));
+				_ = write!(f, "[{}]", entries.join(", "));
+				Ok(())
+			},
+			Self::Map(map) => {
+				let entries: Vec<String> = map
+					.iter()
+					.map(|(key, (_, value))| format!("{key}: {value}"))
+					.collect();
+				_ = write!(f, "[{}]", entries.join(", "));
+				Ok(())
+			},
+			Self::ProductMap(symbol, map) => {
+				let entries: Vec<String> = map
+					.iter()
+					.map(|(key, value)| format!("{}: {value}", key.get_identifier()))
+					.collect();
+				_ = write!(f, "{symbol}: [{}]", entries.join(", "));
 				Ok(())
 			},
 			Self::FunctionBody(params, _) => {

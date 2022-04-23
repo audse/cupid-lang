@@ -59,17 +59,24 @@ impl Tree for ForInLoop {
 	fn resolve(&self, scope: &mut LexicalScope) -> Value {
 		
 		let map = crate::resolve_or_abort!(self.map, scope);
+		let iter = match map {
+			Value::Map(m) => {
+				let mut iter: Vec<(Value, (usize, Value))> = m.into_iter().collect();
+				iter.sort_by(|(_, (a_index, _)), (_, (b_index, _))| a_index.cmp(b_index));
+				iter
+			},
+			Value::Array(m) => {
+				let mut iter: Vec<(Value, (usize, Value))> = m
+					.into_iter()
+					.enumerate()
+					.map(|(i, item)| (Value::Integer(i as i32), (i, *item)))
+					.collect();
+				iter.sort_by(|(_, (a_index, _)), (_, (b_index, _))| a_index.cmp(b_index));
+				iter
+			},
+			_ => return self.not_map_error(&map)
+		};
 		
-		let map_type = Type::from(&map);
-		if !map_type.is_map() {
-			return self.not_map_error(&map);
-		}
-		
-		let inner_map: HashMap<Value, (usize, Value)> = map.inner_map_clone().unwrap();
-		
-		let mut iter: Vec<(Value, (usize, Value))> = inner_map.into_iter().collect();
-		iter.sort_by(|(_, (a_index, _)), (_, (b_index, _))| a_index.cmp(b_index));
-				
 		let num_params = self.params.len();
 		let mut result = Value::None;
 		for (key, (index, value)) in iter.iter() {

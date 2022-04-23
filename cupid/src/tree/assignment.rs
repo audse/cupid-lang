@@ -1,4 +1,4 @@
-use crate::{LexicalScope, Value, Expression, Symbol, Tree, Type, ProductType, Token, TypeSymbol, ErrorHandler, SymbolFinder, TypeChecker};
+use crate::{LexicalScope, Value, Expression, Symbol, Tree, Token, TypeSymbol, ErrorHandler, SymbolFinder, TypeChecker};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct Assign {
@@ -11,7 +11,6 @@ impl Tree for Assign {
 	fn resolve(&self, scope: &mut LexicalScope) -> Value {
 		let val = crate::resolve_or_abort!(self.value, scope);
 		if let Some(symbol_type) = scope.get_symbol_type(&self.symbol) {
-			println!("{symbol_type}");
 			if scope.can_assign(&val, &symbol_type) {
 				match scope.set_symbol(&self.symbol, val.clone()) {
 					Ok(result) => match result {
@@ -34,7 +33,7 @@ impl ErrorHandler for Assign {
     	&self.operator
 	}
 	fn get_context(&self) -> String {
-    	format!("attempting to assign value to {}", self.symbol)
+    	format!("\n\t  attempting to assign to {} \n\t  value: {}", self.symbol, self.value)
 	}
 }
 
@@ -52,7 +51,6 @@ impl Tree for Declare {
     	let val = crate::resolve_or_abort!(self.value, scope);
 		if let Value::Type(mut stored_type) = self.r#type.resolve(scope) {
 			stored_type.apply_arguments(&self.r#type.arguments);
-			
 			if scope.can_assign(&val, &stored_type) {
 				if let Some(value) = scope.create_symbol_of_type(
 					&self.symbol,
@@ -77,9 +75,9 @@ impl ErrorHandler for Declare {
 	}
 	fn get_context(&self) -> String {
     	format!(
-			"declaring {} variable {} ({}) with value {}", 
-			self.r#type, 
-			self.symbol, 
+			"\n\t  declaring variable `{}` ({}, {}) \n\t  with value: {}",  
+			self.symbol.get_identifier(), 
+			self.r#type,
 			if self.mutable { "mutable" } else { "immutable" },
 			self.value
 		)

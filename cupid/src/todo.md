@@ -11,14 +11,16 @@
 ## Type system
 
 - [ ] Type declaration
-  - [x] Dictionary-style
+  - [ ] Dictionary-style
   - [ ] List-style
   - [ ] Nested
-  - [ ] Alias
+  - [x] Alias
 - [ ] Enums
 - [ ] Struct declaration/impl?
 - [ ] Maybe types
-- [ ] Map types `dict (string, int)` or `list (int)` etc.
+- [ ] Map types
+  - [ ] `dict (string, int)`
+  - [x] `array (int)`
 - [ ] Generics
 - [ ] Type casting
 
@@ -143,6 +145,7 @@
   - [ ] Write custom common errors associated with rules
   - [ ] `recover!` macro
 - [ ] Inline start/end comments
+- [ ] Lookbehind (for array)
 
 ## Ideas the future
 

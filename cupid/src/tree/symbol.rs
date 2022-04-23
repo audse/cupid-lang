@@ -106,6 +106,9 @@ impl TypeSymbol {
 	pub fn new<T>(identifier: T, fields: Vec<TypeSymbol>, token: Token, generic: bool) -> Self where T: Into<String> {
 		Self { name: Cow::Owned(identifier.into()), arguments: fields, token: Some(token), generic }
 	}
+	pub fn new_simple<T>(identifier: T, fields: Vec<TypeSymbol>) -> Self where T: Into<String> {
+		Self { name: Cow::Owned(identifier.into()), arguments: fields, token: None, generic: false }
+	}
 	pub const fn new_const(value: &'static str) -> Self {
 		Self { name: Cow::Borrowed(value), token: None, arguments: vec![], generic: false }
 	}
@@ -133,7 +136,17 @@ impl TypeSymbol {
 
 impl PartialEq for TypeSymbol {
 	fn eq(&self, other: &Self) -> bool {
-		self.name.eq(&other.name)
+		let eq = self.name.eq(&other.name);
+		for (i, arg) in self.arguments.iter().enumerate() {
+			if other.arguments.len() > i {
+				if arg != &other.arguments[i] {
+					return false;
+				}
+			} else {
+				return false;
+			}
+		}
+		eq
 	}
 }
 

@@ -31,6 +31,11 @@ fn test_dec(input: &str, expected: f64) -> bool {
 }
 
 #[allow(dead_code)]
+fn test_char(input: &str, expected: char) -> bool {
+	test(input, Value::Char(expected))
+}
+
+#[allow(dead_code)]
 fn test_str(input: &str, expected: &str) -> bool {
 	test(input, Value::String(String::from(expected)))
 }
@@ -204,11 +209,11 @@ fn test_loop() {
 		while i > 0 => i = i - 1
 		i
 	}", 0));
-	assert!(test_str("{
+	assert!(test_str("
 		string mut abc = ''
-		for letter in ['a', 'b', 'c'] => abc = abc + letter
+		for letter in 'a', 'b', 'c' => abc = abc + letter
 		abc
-	}", "abc"));
+	", "abc"));
 	assert!(test_int("
 		int mut i = 10
 		while i > 0 {
@@ -221,7 +226,7 @@ fn test_loop() {
 		i
 	", 100));
 	assert!(test_int("
-		list nums = [1, 2, 3]
+		array [int] nums = 1, 2, 3
 		int n = for num in nums {
 			if num > 2 => break num
 			num
@@ -243,108 +248,107 @@ fn test_operation() {
 	assert!(test_int("-2 or 2", 2));
 }
 
-#[test]
-fn test_list() {
-	assert!(test_int("{
-		list nums = [0, 1, 2, 3]
-		nums.1
-	}", 1));
-	assert!(test_int("{
-		int index = 1
-		list nums = [0, 1, 2, 3]
-		nums.index
-	}", 1));
-	assert!(test_int("{
-		int index = 100
-		list nums = [0, 1, 2, 3]
-		nums.(index / 100)
-	}", 1));
-	assert!(test_error("
-		# throws type mismatch error
-	   list x = [a: 1, b: 2]
-	"));
-}
-
-#[test]
-fn test_dict() {
-	assert!(test_int("{
-		dict nums = [first: 0, second: 1, third: 2]
-		nums.first
-	}", 0));
-	assert!(test_str("string jay = {
-		dict name = [
-			first: 'Jacob',
-			last: 'A.',
-		]
-		fun make_name = dict n {
-			string mut accum = ''
-			for key, val in n {
-				accum = accum + ' ' + val
-				log (accum)
-			}
-			accum
-		}
-		make_name(name)
-	}", " Jacob A."));
-	assert!(test_error("
-		# throws type mismatch error
-	   list x = [a: 1, b: 2]
-	"));
-	assert!(test_error("
-		# throws no property error
-	   dict x = [a: 1, b: 2]
-	   x.c
-	"));
-}
-
-#[test]
-fn test_range() {
-	assert!(test_int("{
-		list nums = [0..3]
-		nums.0
-	}", 0));
-	assert!(test_int("{
-		list nums = 0[..3]
-		nums.0
-	}", 1));
-	assert!(test_int("{
-		list nums = [0..]3
-		nums.2
-	}", 2));
-	assert!(test_int("{
-		list nums = 0[..]3
-		nums.0
-	}", 1));
-}
+// #[test]
+// fn test_list() {
+// 	assert!(test_int("{
+// 		list nums = [0, 1, 2, 3]
+// 		nums.1
+// 	}", 1));
+// 	assert!(test_int("{
+// 		int index = 1
+// 		list nums = [0, 1, 2, 3]
+// 		nums.index
+// 	}", 1));
+// 	assert!(test_int("{
+// 		int index = 100
+// 		list nums = [0, 1, 2, 3]
+// 		nums.(index / 100)
+// 	}", 1));
+// 	assert!(test_error("
+// 		# throws type mismatch error
+// 	   list x = [a: 1, b: 2]
+// 	"));
+// }
+// 
+// #[test]
+// fn test_dict() {
+// 	assert!(test_int("{
+// 		dict nums = [first: 0, second: 1, third: 2]
+// 		nums.first
+// 	}", 0));
+// 	assert!(test_str("string jay = {
+// 		dict name = [
+// 			first: 'Jacob',
+// 			last: 'A.',
+// 		]
+// 		fun make_name = dict n {
+// 			string mut accum = ''
+// 			for key, val in n {
+// 				accum = accum + ' ' + val
+// 				log (accum)
+// 			}
+// 			accum
+// 		}
+// 		make_name(name)
+// 	}", " Jacob A."));
+// 	assert!(test_error("
+// 		# throws type mismatch error
+// 	   list x = [a: 1, b: 2]
+// 	"));
+// 	assert!(test_error("
+// 		# throws no property error
+// 	   dict x = [a: 1, b: 2]
+// 	   x.c
+// 	"));
+// }
+// 
+// #[test]
+// fn test_range() {
+// 	assert!(test_int("{
+// 		list nums = [0..3]
+// 		nums.0
+// 	}", 0));
+// 	assert!(test_int("{
+// 		list nums = 0[..3]
+// 		nums.0
+// 	}", 1));
+// 	assert!(test_int("{
+// 		list nums = [0..]3
+// 		nums.2
+// 	}", 2));
+// 	assert!(test_int("{
+// 		list nums = 0[..]3
+// 		nums.0
+// 	}", 1));
+// }
 
 #[test]
 fn test_typing() {
-	assert!(test_int("{
-		type int_list [
-			list ints
-		]
-		int_list my_list = [
-			ints: [0, 1, 2]
-		]
-		list ints = my_list.ints
-		ints.0
-	}", 0));
-	assert!(test_error("
-		# throws type mismatch error
-		type int_list [
-			list ints
-		]
-		int_list my_list = [
-			ints: [a: 0, b: 1, c: 2]
-		]
-	"));
 	assert!(test_int("
-		type do [
-			fun something
-		]
-		do random = [
-			something: int a => a + 12345
-		]
-		random.something(12345)
-	", 24690));
+		type int_alias = int
+		int_alias my_int = -10
+	", -10));
+	assert!(test_int("
+		type int_list = array [int]
+		int_list my_list = 0, 1, 2
+		my_list.0
+	", 0));
+	assert!(test_char(r"
+		type char_list = array [char]
+		char_list my_list = \a, \b, \c
+		my_list.0
+	", 'a'));
+	assert!(test_error(r"
+		type char_list = array [char]
+		char_list mut my_list = \a, \b, \c
+		my_list = 1, 2, 3
+	"));
+	assert!(test_char(r"
+		type char_list = array [array [char]]
+		array [char] a = \a, \b
+		array [char] b = \x, \y
+		char_list z = a, b
+		array [char] first = z.0
+		first.0
+	", 'a'))
 }
