@@ -1,10 +1,25 @@
 *** Cupid Standard Library v0.1.0 ***
 
-type [K, V] dict = [
-	map [K, V] entries
-]
+type char
+type int
+type dec
+type bool
+type array
+type map
+type fun
+# 
+# type [k, v] map_struct = [
+# 	map [k, v] entries
+# ]
+# 
+# type [a, b] another = [
+# 	map_struct [k: a, v: b] entries
+# ]
+# 
+# log (another)
 
-dict [string, int] test = [
-	'a': 1,
-	'b': 2
-]
+fun [int] squared = int num => num * num
+
+int a = squared(10)
+
+log (a)

@@ -12,7 +12,7 @@ pub enum Expression {
     Declare(Declare),
     Node(Node),
     Symbol(Symbol),
-    TypeSymbol(TypeSymbol),
+    TypeSymbol(Symbol),
     Function(Function),
     FunctionCall(FunctionCall),
     Logger(Logger),
@@ -26,6 +26,12 @@ pub enum Expression {
     DefineTypeAlias(DefineTypeAlias),
     Break(Break),
     Return(Return),
+    BuiltInType(BuiltInType),
+    DefineStruct(DefineStruct),
+    ArrayTypeHint(ArrayTypeHint),
+    MapTypeHint(MapTypeHint),
+    StructTypeHint(StructTypeHint),
+    FunctionTypeHint(FunctionTypeHint),
 }
 
 impl Display for Expression {
@@ -89,9 +95,6 @@ impl Expression {
         let (identifier, tokens) = Expression::to_value(identifier);
         Self::Symbol(Symbol { identifier, token: tokens[0].clone() })
     }
-    pub fn new_type_symbol(name: String, token: Token, fields: Vec<TypeSymbol>) -> Self {
-        Self::TypeSymbol(TypeSymbol::new(name, fields, token, false))
-    }
     pub fn new_assign(operator: Token, symbol: Expression, value: Expression) -> Self {
         Self::Assign(Assign {
             operator,
@@ -99,11 +102,11 @@ impl Expression {
             value: Box::new(value),
         })
     }
-    pub fn new_declare(symbol: Expression, r#type: TypeSymbol, mutable: bool, deep_mutable: bool, value: Expression) -> Self {
+    pub fn new_declare(symbol: Expression, r#type: Expression, mutable: bool, deep_mutable: bool, value: Expression) -> Self {
         Self::Declare(Declare {
             symbol: Expression::to_symbol(symbol),
             value: Box::new(value),
-            r#type,
+            r#type: Box::new(r#type),
 			mutable,
 			deep_mutable,
         })
@@ -122,7 +125,7 @@ impl Expression {
             else_body,
         })
     }
-	pub fn new_function(params: Vec<(TypeSymbol, Symbol)>, body: Expression) -> Self {
+	pub fn new_function(params: Vec<(Expression, Symbol)>, body: Expression) -> Self {
 		Expression::Function(Function {
 			params,
 			body: Box::new(body),
@@ -137,7 +140,7 @@ impl Expression {
     pub fn new_array(items: Vec<Expression>) -> Self {
         Self::Array(Array { items })
     }
-    pub fn new_map(items: Vec<(Expression, Expression)>, token: Token, product_type: Option<TypeSymbol>) -> Self {
+    pub fn new_map(items: Vec<(Expression, Expression)>, token: Token, product_type: Option<Symbol>) -> Self {
         Self::Map(Map {
             items,
             token,
@@ -166,10 +169,13 @@ impl Expression {
             token
         })
     }
-    pub fn new_define_type(token: Token, type_value: Type) -> Self {
-        Expression::DefineType(DefineType { token, type_symbol: type_value.get_symbol().clone(), type_value })
+    pub fn new_define_type(token: Token, type_symbol: Symbol, type_value: TypeKind) -> Self {
+        Expression::DefineType(DefineType { token, type_symbol, type_value })
     }
-    pub fn new_define_type_alias(token: Token, type_symbol: TypeSymbol, arguments: Vec<TypeSymbol>) -> Self {
+    pub fn new_define_struct(token: Token, symbol: Symbol, members: Vec<(Symbol, Expression)>, generics: Vec<Symbol>) -> Self {
+        Expression::DefineStruct(DefineStruct { token, symbol, members, generics })
+    }
+    pub fn new_define_type_alias(token: Token, type_symbol: Symbol, arguments: Vec<TypeKind>) -> Self {
         Expression::DefineTypeAlias(DefineTypeAlias { token, type_symbol, arguments })
     }
     pub fn new_break(token: Token, value: Expression) -> Self {
@@ -186,13 +192,6 @@ impl Expression {
             symbol
         } else { 
             panic!("Node is not a symbol: {:?}", expression) 
-        }
-    }
-    pub fn to_type_symbol(expression: Self) -> TypeSymbol {
-        if let Expression::TypeSymbol(symbol) = expression {
-            symbol
-        } else { 
-            panic!("Node is not a type symbol: {:?}", expression) 
         }
     }
 	pub fn to_value(expression: Self) -> (Value, Vec<Token>) {
@@ -251,6 +250,12 @@ impl Tree for Expression {
             Self::DefineTypeAlias(x) => x.resolve(scope),
             Self::Break(x) => x.resolve(scope),
             Self::Return(x) => x.resolve(scope),
+            Self::BuiltInType(x) => x.resolve(scope),
+            Self::DefineStruct(x) => x.resolve(scope),
+            Self::ArrayTypeHint(x) => x.resolve(scope),
+            Self::MapTypeHint(x) => x.resolve(scope),
+            Self::StructTypeHint(x) => x.resolve(scope),
+            Self::FunctionTypeHint(x) => x.resolve(scope),
             _ => Value::None,
         }
     }

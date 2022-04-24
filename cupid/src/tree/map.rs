@@ -1,11 +1,11 @@
 use std::collections::HashMap;
-use crate::{Expression, TypeSymbol, Value, Tree, LexicalScope, Token};
+use crate::{Expression, Symbol, Value, Tree, LexicalScope, Token};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct Map {
 	pub items: Vec<(Expression, Expression)>,
 	pub token: Token,
-	pub product_type: Option<TypeSymbol>,
+	pub product_type: Option<Symbol>,
 }
 
 impl Tree for Map {
@@ -74,9 +74,9 @@ impl Tree for Map {
 // 		self.error(format!(
 // 			"type mismatch: {} ({}) is not a map, and cannot be accessed by {} ({})",
 // 			map,
-// 			Type::from(map),
+// 			TypeKind::from_value(map),
 // 			accessor,
-// 			Type::from(accessor)
+// 			TypeKind::from_value(accessor)
 // 		))
 // 	}
 // 	fn no_property_error(&self, map: &Value, accessor: &Value) -> Value {

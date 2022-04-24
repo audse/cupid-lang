@@ -1,0 +1,6 @@
+type char
+type int
+type dec
+type array
+type map
+type fun

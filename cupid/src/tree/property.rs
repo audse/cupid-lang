@@ -1,4 +1,4 @@
-use crate::{Expression, Value, Tree, LexicalScope, ErrorHandler, Token, Type};
+use crate::{Expression, Value, Tree, LexicalScope, ErrorHandler, Token, TypeKind};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct Property {
@@ -62,14 +62,14 @@ impl Property {
 	fn bad_access_error(&self, accessor: &Value) -> Value {
 		self.error(format!(
 			"type mismatch: array items can only be accessed with integers, not with {} ({})", 
-			Type::from(accessor), 
+			TypeKind::from_value(accessor), 
 			accessor
 		))
 	}
 	fn bad_map_access_error(&self, accessor: &Value) -> Value {
 		self.error(format!(
 			"type mismatch: product type members can only be accessed with identifier names, not with {} ({})", 
-			Type::from(accessor), 
+			TypeKind::from_value(accessor), 
 			accessor
 		))
 	}
@@ -77,9 +77,9 @@ impl Property {
 		self.error(format!(
 			"type mismatch: {} ({}) is not an array or map, and cannot be accessed by {} ({})",
 			array,
-			Type::from(array),
+			TypeKind::from_value(array),
 			accessor,
-			Type::from(accessor)
+			TypeKind::from_value(accessor)
 		))
 	}
 	fn no_property_error(&self, map: &Value, accessor: &Value) -> Value {

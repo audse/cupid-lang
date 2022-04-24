@@ -65,6 +65,11 @@ impl FileHandler {
 		semantics.resolve_file(&mut self.scope)
 	}
 	
+	pub fn parse(&mut self) -> Expression {
+		let parse_tree = self.parser._file(None);
+		to_tree(&parse_tree.unwrap().0)
+	}
+	
 	pub fn run(&mut self) {
 		self.report_build_started();
 		

@@ -1,4 +1,4 @@
-use crate::{LexicalScope, Value, Expression, Symbol, Tree, Token, TypeSymbol, ErrorHandler, SymbolFinder, TypeChecker};
+use crate::{LexicalScope, Value, Expression, Symbol, Tree, Token, ErrorHandler, SymbolFinder, Type};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct Assign {
@@ -11,16 +11,12 @@ impl Tree for Assign {
 	fn resolve(&self, scope: &mut LexicalScope) -> Value {
 		let val = crate::resolve_or_abort!(self.value, scope);
 		if let Some(symbol_type) = scope.get_symbol_type(&self.symbol) {
-			if scope.can_assign(&val, &symbol_type) {
-				match scope.set_symbol(&self.symbol, val.clone()) {
-					Ok(result) => match result {
-						Some(v) => v,
-						None => self.symbol.error_unable_to_assign(&val)
-					},
-					Err(error) => error
-				}
-			} else {
-				self.symbol.error_assign_type_mismatch(&val, &symbol_type)
+			match scope.set_symbol(&self.symbol, val.clone()) {
+				Ok(result) => match result {
+					Some(v) => v,
+					None => self.symbol.error_unable_to_assign(&val)
+				},
+				Err(error) => error
 			}
 		} else {
 			self.symbol.error_unable_to_assign(&val)
@@ -41,7 +37,7 @@ impl ErrorHandler for Assign {
 pub struct Declare {
 	pub symbol: Symbol,
 	pub value: Box<Expression>,
-	pub r#type: TypeSymbol,
+	pub r#type: Box<Expression>,
 	pub mutable: bool,
 	pub deep_mutable: bool,
 }
@@ -49,22 +45,21 @@ pub struct Declare {
 impl Tree for Declare {
 	fn resolve(&self, scope: &mut LexicalScope) -> Value {
     	let val = crate::resolve_or_abort!(self.value, scope);
-		if let Value::Type(mut stored_type) = self.r#type.resolve(scope) {
-			stored_type.apply_arguments(&self.r#type.arguments);
-			println!("{stored_type}");
-			if scope.can_assign(&val, &stored_type) {
-				if let Some(value) = scope.create_symbol_of_type(
-					&self.symbol,
-					val.clone(), 
-					stored_type, 
-					self.mutable, 
-					self.deep_mutable
-				) {
-					return value;
-				}
+		let symbol_type = crate::resolve_or_abort!(self.r#type, scope);
+		if let Value::Type(stored_type) = symbol_type {
+			if let Some(value) = scope.create_symbol_of_type(
+				&self.symbol,
+				val.clone(), 
+				stored_type, 
+				self.mutable, 
+				self.deep_mutable
+			) {
+				return value;
 			}
-			self.r#type.error_assign_type_mismatch(&val, self.symbol.token.clone())
+			println!("here");
+			self.unable_to_assign_error(self.symbol.get_identifier(), val)
 		} else {
+			println!("{}", self.r#type);
 			self.unable_to_assign_error(self.symbol.get_identifier(), val)
 		}
 	}

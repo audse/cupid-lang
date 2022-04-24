@@ -55,11 +55,11 @@ pub trait ErrorHandler {
     fn get_token(&self) -> &Token;
     fn get_context(&self) -> String;
     
-    fn type_error(&self, value: &Value, expected: Type) -> Value {
+    fn type_error(&self, value: &Value, expected: TypeKind) -> Value {
         self.error(format!(
             "type mismatch: expected {}, found {}",
             expected,
-            Type::from(value)
+            TypeKind::from_value(value)
         ))
     }
     fn undefined_error(&self, identifier: String) -> Value {
@@ -85,10 +85,10 @@ pub trait MapErrorHandler: ErrorHandler {
         self.error(format!(
             "type mismatch: expected dictionary, list, or tuple, not {} ({})",
             value,
-            Type::from(value)
+            TypeKind::from_value(value)
         ))
     }
-    fn not_map_type_error(&self, other_type: &Type) -> Value {
+    fn not_map_type_error(&self, other_type: TypeKind) -> Value {
         self.error(format!(
             "type mismatch: expected dictionary, list, or tuple, not {}",
             other_type

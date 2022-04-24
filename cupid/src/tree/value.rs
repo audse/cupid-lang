@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter, Result};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
-use crate::{Symbol, Expression, Error, Token, Type, TypeSymbol};
+use crate::{TypeKind, Symbol, Expression, Error, Token, Type};
 use std::ops::{Add, Sub, Mul, Neg, Div, Rem, BitAnd, BitOr};
 use std::cmp::Ordering;
 
@@ -14,13 +14,13 @@ pub enum Value {
 	Array(Vec<Box<Value>>),
 	String(String),
 	Boolean(bool),
-	FunctionBody(Vec<(TypeSymbol, Symbol)>, Box<Expression>),
+	FunctionBody(Vec<(Value, Symbol)>, Box<Expression>),
 	Error(Error),
-	Type(Type),
+	Type(TypeKind),
 	Break(Box<Value>),
 	Return(Box<Value>),
 	Map(HashMap<Value, (usize, Value)>),
-	ProductMap(Box<TypeSymbol>, HashMap<Symbol, Value>),
+	ProductMap(Box<Symbol>, HashMap<Symbol, Value>),
 	Continue,
 	None,
 }
@@ -247,7 +247,7 @@ impl Value {
 			(Value::Decimal(a, b), Value::Decimal(x, y)) => float_to_dec(dec_to_float(*a, *b).powf(dec_to_float(*x, *y))),
 			(x, y) => Value::error(
 				operator, 
-				format!("Unable to raise {} ({}) to the power of {} ({})", x, Type::from(x), y, Type::from(y)), 
+				format!("Unable to raise {} ({}) to the power of {} ({})", x, TypeKind::from_value(x), y, TypeKind::from_value(y)), 
 				String::new()
 			)
 		}
@@ -289,11 +289,12 @@ impl Display for Value {
 			Self::FunctionBody(params, _) => {
 				let params: Vec<String> = params
 					.iter()
-					.map(|p| format!("{} {}", p.0.name, p.1.identifier))
+					.map(|p| format!("{} {}", p.0, p.1.identifier))
 					.collect();
-				_ = write!(f, "fun ({}) => todo", params.join(","));
+				_ = write!(f, "fun ({})", params.join(","));
 				Ok(())
-			}
+			},
+			Self::Type(type_kind) => write!(f, "{}", type_kind),
 			v => write!(f, "{:?}", v)
 		}
 	}

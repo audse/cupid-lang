@@ -1,16 +1,20 @@
 use std::fmt::{Display, Formatter, Result};
-use crate::{Symbol, LexicalScope, Value, Expression, ScopeContext, Tree, Token, ErrorHandler, TypeSymbol, SymbolFinder, FUNCTION};
+use crate::{Symbol, LexicalScope, Value, Expression, ScopeContext, Tree, Token, ErrorHandler, SymbolFinder, TypeKind};
 use crate::utils::{pluralize, pluralize_word};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct Function {
-	pub params: Vec<(TypeSymbol, Symbol)>,
+	pub params: Vec<(Expression, Symbol)>,
 	pub body: Box<Expression>,
 }
 
 impl Tree for Function {
-	fn resolve(&self, _scope: &mut LexicalScope) -> Value {
-		Value::FunctionBody(self.params.clone(), self.body.clone())
+	fn resolve(&self, scope: &mut LexicalScope) -> Value {
+		let params: Vec<(Value, Symbol)> = self.params
+			.iter()
+			.map(|(type_exp, symbol)| (type_exp.resolve(scope), symbol.clone()))
+			.collect();
+		Value::FunctionBody(params, self.body.clone())
 	}
 }
 
@@ -49,7 +53,8 @@ impl Tree for FunctionCall {
 				Value::FunctionBody(params, body) => (params, body),
 				_ => {
 					scope.pop();
-					return self.type_error(&fun, FUNCTION);
+					// return self.type_error(&fun, FUNCTION);
+					return self.undefined_error("".to_string())
 				}
 			};
 			if args.len() != params.len() {
@@ -73,11 +78,11 @@ impl Tree for FunctionCall {
 }
 
 impl FunctionCall {
-	fn set_scope(inner_scope: &mut LexicalScope, params: &[(TypeSymbol, Symbol)], args: Vec<Value>) {
+	fn set_scope(inner_scope: &mut LexicalScope, params: &[(Value, Symbol)], args: Vec<Value>) {
 		for (index, param) in params.iter().enumerate() {
 			let arg = &args[index];
-			if let Value::Type(t) = param.0.resolve(inner_scope) {
-				inner_scope.create_symbol_of_type(&param.1, arg.clone(), t, true, true);
+			if let Value::Type(t) = &param.0 {
+				inner_scope.create_symbol_of_type(&param.1, arg.clone(), t.clone(), true, true);
 			};
 		}
 	}

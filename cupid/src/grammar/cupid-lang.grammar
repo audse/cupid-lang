@@ -2,8 +2,8 @@
 - expression: comment | statement | term
 
 -~statement:
-	type_definition
-	| type_alias_definition
+	struct_type_definition
+	| builtin_type_definition
 	| typed_declaration
 	| break
 	| return
@@ -63,18 +63,32 @@
 -~operator: '+' | '-' | '*' | '/' | '^' | '%'
 - op_increment_assignment: identifier '+' '+' | identifier '-' '-'
 
-- type_definition: type_symbol equal ~'[' (type_field ',')* closing_bracket
-- type_alias_definition: type_symbol equal type_hint
+- builtin_type_definition: 'type' WORD
 
-- type_symbol: 'type' generics? identifier
-- type_field: type_hint identifier
-- generics: '[' (identifier ',')* ']'
+# - type_definition: type_symbol equal ~'[' (type_field ',')* closing_bracket
+# - type_alias_definition: type_symbol equal type_hint
+
+- struct_type_definition: type_symbol ~equal '[' (struct_member ~',')* closing_bracket
+- struct_member: type_hint identifier
+
+-~type_symbol: 'type' generics? identifier
+- generics: '[' (identifier ',')* closing_bracket
 
 - typed_declaration: type_hint 'mut'? identifier (~equal require_term)?
 
-- type_hint: type_id type_hint_details?
--~type_hint_details: '['  (type_hint ',')* ']'
--~type_id: type | identifier
+-~type_hint:
+	array_type_hint
+	| function_type_hint
+	| map_type_hint
+	| struct_type_hint
+	| primitive_type_hint
+
+- array_type_hint: 'array' '[' type_hint closing_bracket
+- map_type_hint: 'map' '[' type_hint ',' type_hint closing_bracket
+- function_type_hint: 'fun' '[' type_hint closing_bracket
+- struct_type_hint: identifier '[' (struct_member_type_hint ',')* closing_bracket
+- struct_member_type_hint: identifier ':' type_hint
+- primitive_type_hint: identifier
 
 -~equal: '=' !'>'
 
@@ -161,7 +175,6 @@
 	keyword_variable
 	| keyword_operator
 	| reserved_word
-	| type
 	| boolean
 	| none
 
