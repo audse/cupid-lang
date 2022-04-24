@@ -8,21 +8,37 @@ pub struct MapType {
 }
 
 impl Type for MapType {
-	fn apply_arguments(&mut self, arguments: &[GenericType]) -> Result<(), ()> {
-		if arguments.len() > 0 {
-			if let Some(key_type) = TypeKind::replace_generic(&mut *self.key_type, &arguments[0]) {
-				self.key_type = key_type;
-			} else {
-				return Err(());
-			}
-		}
-		if arguments.len() > 1 {
-			if let Some(value_type) = TypeKind::replace_generic(&mut *self.value_type, &arguments[1]) {
-				self.value_type = value_type;
-			} else {
-				return Err(());
-			}
-		}
+	fn apply_arguments(&mut self, arguments: &[GenericType]) -> Result<(), String> {
+		match &*self.key_type {
+			TypeKind::Generic(key_generic) => {
+				let arg = arguments.iter().find(|arg| arg.identifier == key_generic.identifier);
+				if let Some(arg) = arg {
+					if let Some(arg) = &arg.type_value {
+						self.key_type = arg.clone();
+					} else {
+						return Err(format!("generic unresolved: no argument was provided for map key ({key_generic})"));
+					}
+				} else {
+					return Err(format!("generic unresolved: no argument was provided for map key ({key_generic})"));
+				}
+			},
+			_ => {}
+		};
+		match &*self.value_type {
+			TypeKind::Generic(value_generic) => {
+				let arg = arguments.iter().find(|arg| arg.identifier == value_generic.identifier);
+				if let Some(arg) = arg {
+					if let Some(arg) = &arg.type_value {
+						self.value_type = arg.clone();
+					} else {
+						return Err(format!("generic unresolved: no argument was provided for map value ({value_generic})"));
+					}
+				} else {
+					return Err(format!("generic unresolved: no argument was provided for map value ({value_generic})"));
+				}
+			},
+			_ => {}
+		};
 		Ok(())
 	}
 	fn convert_primitives_to_generics(&mut self, generics: &[GenericType]) {

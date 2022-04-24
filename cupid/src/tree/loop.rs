@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::{Expression, Value, LexicalScope, ScopeContext, Tree, Token, Block, Symbol, ErrorHandler, MapErrorHandler, TypeKind, SymbolFinder};
+use crate::{Expression, Value, LexicalScope, ScopeContext, Tree, Token, Block, Symbol, ErrorHandler, MapErrorHandler, TypeKind, SymbolFinder, GenericType};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct WhileLoop {
@@ -59,6 +59,7 @@ impl Tree for ForInLoop {
 	fn resolve(&self, scope: &mut LexicalScope) -> Value {
 		
 		let map = crate::resolve_or_abort!(self.map, scope);
+		
 		let iter = match map {
 			Value::Map(m) => {
 				let mut iter: Vec<(Value, (usize, Value))> = m.into_iter().collect();
@@ -83,24 +84,25 @@ impl Tree for ForInLoop {
 			_ = scope.add(ScopeContext::Loop);
 			
 			let args = if num_params == 1 {
-				vec![(self.params[0].clone(), value.clone())]
+				vec![(self.params[0].clone(), value.clone(), "v")]
 			} else if num_params == 2 {
 				vec![
-					(self.params[0].clone(), key.clone()), 
-					(self.params[1].clone(), value.clone())
+					(self.params[0].clone(), key.clone(), "k"), 
+					(self.params[1].clone(), value.clone(), "v")
 				]
 			} else if num_params == 3 {
 				vec![
-					(self.params[0].clone(), Value::Integer(*index as i32)), 
-					(self.params[1].clone(), key.clone()), 
-					(self.params[2].clone(), value.clone())
+					(self.params[0].clone(), Value::Integer(*index as i32), "i"), 
+					(self.params[1].clone(), key.clone(), "k"), 
+					(self.params[2].clone(), value.clone(), "v")
 				]
 			} else {
 				vec![]
 			};
 			
-			for (symbol, value) in args {
-				scope.create_symbol(&symbol, value.clone(), true, true);
+			for (symbol, value, id) in args {
+				let generic = TypeKind::Generic(GenericType::new(id, None));
+				scope.create_symbol(&symbol, value.clone(), generic, false, false);
 			}
 			
 			result = crate::resolve_or_abort!(self.body, scope, { scope.pop(); });

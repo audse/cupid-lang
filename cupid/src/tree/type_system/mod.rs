@@ -1,3 +1,6 @@
+mod alias_type;
+pub use alias_type::*;
+
 mod array_type;
 pub use array_type::*;
 
@@ -33,15 +36,16 @@ pub enum TypeKind {
 	Map(MapType),
 	Primitive(PrimitiveType),
 	Struct(StructType),
+	Alias(AliasType),
 }
 
 impl TypeKind {
-	pub fn from_value(value: &Value) -> Self {
+	pub fn from_value(value: &Value) -> &str {
 		match value {
-			// Value::Boolean(_) => BOOLEAN,
-			// Value::Integer(_) => INTEGER,
-			// Value::Char(_) => CHAR,
-			// Value::Decimal(_, _) => DECIMAL,
+			Value::Boolean(_) => "bool",
+			Value::Integer(_) => "int",
+			Value::Char(_) => "char",
+			Value::Decimal(_, _) => "dec",
 			
 			_ => unreachable!()
 		}
@@ -62,7 +66,7 @@ impl TypeKind {
 }
 
 impl Type for TypeKind {
-	fn apply_arguments(&mut self, arguments: &[GenericType]) -> Result<(), ()> {
+	fn apply_arguments(&mut self, arguments: &[GenericType]) -> Result<(), String> {
 		match self {
 			Self::Primitive(x) => x.apply_arguments(arguments),
 			Self::Array(x) => x.apply_arguments(arguments),
@@ -70,6 +74,7 @@ impl Type for TypeKind {
 			Self::Generic(x) => x.apply_arguments(arguments),
 			Self::Struct(x) => x.apply_arguments(arguments),
 			Self::Map(x) => x.apply_arguments(arguments),
+			Self::Alias(x) => x.apply_arguments(arguments),
 		}
 	}
 	fn convert_primitives_to_generics(&mut self, generics: &[GenericType]) {
@@ -80,12 +85,13 @@ impl Type for TypeKind {
 			Self::Generic(x) => x.convert_primitives_to_generics(generics),
 			Self::Struct(x) => x.convert_primitives_to_generics(generics),
 			Self::Map(x) => x.convert_primitives_to_generics(generics),
+			Self::Alias(x) => x.convert_primitives_to_generics(generics),
 		}
 	}
 }
 
 pub trait Type {
-	fn apply_arguments(&mut self, _arguments: &[GenericType]) -> Result<(), ()> {
+	fn apply_arguments(&mut self, _arguments: &[GenericType]) -> Result<(), String> {
 		Ok(())
 	}
 	fn convert_primitives_to_generics(&mut self, _generics: &[GenericType]) {}
@@ -105,7 +111,8 @@ impl Display for TypeKind {
 					.map(|(symbol, member)| format!("{symbol}: {member}"))
 					.collect();
 				write!(f, "type [{:#?}]", members.join(", "))
-			}
+			},
+			Self::Alias(x) => write!(f, "type [{}]", x.true_type),
 		}
 	}
 }
@@ -119,9 +126,3 @@ impl Display for TypeKind {
 // 
 // impl Type for SumType {}
 // 
-// #[derive(Debug, Clone)]
-// pub struct AliasType {
-// 	pub true_type: dyn Type
-// }
-// 
-// impl Type for AliasType {}

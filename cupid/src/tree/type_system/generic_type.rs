@@ -1,3 +1,4 @@
+use std::fmt::{Display, Formatter, Result as DisplayResult};
 use std::borrow::Cow;
 use std::hash::{Hash, Hasher};
 use crate::{TypeKind, Type};
@@ -31,5 +32,11 @@ impl Hash for GenericType {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		self.identifier.hash(state);
 		self.type_value.hash(state);
+	}
+}
+
+impl Display for GenericType {
+	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
+		write!(f, "<{}>", self.identifier)
 	}
 }

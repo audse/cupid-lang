@@ -7,12 +7,14 @@ pub struct ArrayType {
 }
 
 impl Type for ArrayType {
-	fn apply_arguments(&mut self, arguments: &[GenericType]) -> Result<(), ()> {
+	fn apply_arguments(&mut self, arguments: &[GenericType]) -> Result<(), String> {
 		if arguments.len() > 0 {
 			if let Some(element_type) = TypeKind::replace_generic(&mut  *self.element_type, &arguments[0]) {
 				self.element_type = element_type;
 			} else {
-				return Err(());
+				let element_type = &self.element_type;
+				let generic = &arguments[0];
+				return Err(format!("either the element type ({element_type}) of this array is not generic, or the generic given  ({generic}) doesn't match"));
 			}
 		}
 		Ok(())

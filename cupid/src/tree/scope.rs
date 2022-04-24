@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::{TypeKind, Symbol, Value, Token};
+use crate::{TypeKind, Symbol, Value};
 
 #[derive(Debug, Clone)]
 pub struct LexicalScope {
@@ -16,8 +16,7 @@ pub trait SymbolFinder {
 	fn get_symbol(&self, symbol: &Symbol) -> Option<Value>;
 	fn get_symbol_type(&self, symbol: &Symbol) -> Option<TypeKind>;
 	fn set_symbol(&mut self, symbol: &Symbol, value: Value) -> Result<Option<Value>, Value>;
-	fn create_symbol(&mut self, symbol: &Symbol, value: Value, mutable: bool, deep_mutable: bool) -> Option<Value>;
-	fn create_symbol_of_type(&mut self, symbol: &Symbol, value: Value, symbol_type: TypeKind, mutable: bool, deep_mutable: bool) -> Option<Value>;
+	fn create_symbol(&mut self, symbol: &Symbol, value: Value, symbol_type: TypeKind, mutable: bool, deep_mutable: bool) -> Option<Value>;
 	fn define_type(&mut self, symbol: &Symbol, value: TypeKind) -> Option<Value>;
 	fn is_mutable(&self, symbol: &Symbol) -> Option<(bool, bool)>;
 }
@@ -92,15 +91,9 @@ impl SymbolFinder for LexicalScope {
 		}
 		Err(not_found_error(symbol))
 	}
-	fn create_symbol(&mut self, symbol: &Symbol, value: Value, mutable: bool, deep_mutable: bool) -> Option<Value> {
+	fn create_symbol(&mut self, symbol: &Symbol, value: Value, symbol_type: TypeKind, mutable: bool, deep_mutable: bool) -> Option<Value> {
 		if let Some(scope) = self.last_mut() {
-			return scope.create_symbol(symbol, value, mutable, deep_mutable);
-		}
-		None
-	}
-	fn create_symbol_of_type(&mut self, symbol: &Symbol, value: Value, symbol_type: TypeKind, mutable: bool, deep_mutable: bool) -> Option<Value> {
-		if let Some(scope) = self.last_mut() {
-			return scope.create_symbol_of_type(symbol, value, symbol_type, mutable, deep_mutable);
+			return scope.create_symbol(symbol, value, symbol_type, mutable, deep_mutable);
 		}
 		None
 	}
@@ -226,17 +219,7 @@ impl SymbolFinder for Scope {
 		Err(not_found_error(symbol))
 	}
 	
-	fn create_symbol(&mut self, symbol: &Symbol, value: Value, mutable: bool, deep_mutable: bool) -> Option<Value> {
-		self.storage.insert(symbol.identifier.clone(), SymbolValue::SymbolVal(SymbolVal {
-			r#type: TypeKind::from_value(&value),
-			value, 
-			mutable, 
-			deep_mutable,
-		}));
-		self.get_symbol(symbol)
-	}
-	
-	fn create_symbol_of_type(&mut self, symbol: &Symbol, value: Value, symbol_type: TypeKind, mutable: bool, deep_mutable: bool) -> Option<Value> {
+	fn create_symbol(&mut self, symbol: &Symbol, value: Value, symbol_type: TypeKind, mutable: bool, deep_mutable: bool) -> Option<Value> {
 		self.storage.insert(symbol.identifier.clone(), SymbolValue::SymbolVal(SymbolVal {
 			r#type: symbol_type,
 			value, 
@@ -278,18 +261,8 @@ fn not_found_error(symbol: &Symbol) -> Value {
 	Value::error(
 		&symbol.token,
 		format!(
-			"variable `{symbol}` is not defined",
+			"`{symbol}` is not defined",
 			symbol = symbol.get_identifier(),
-		), String::new()
-	)
-}
-
-fn type_not_found_error(symbol: &Symbol, token: &Token) -> Value {
-	Value::error(
-		token,
-		format!(
-			"type `{symbol}` is not defined",
-			symbol = symbol.identifier
 		), String::new()
 	)
 }

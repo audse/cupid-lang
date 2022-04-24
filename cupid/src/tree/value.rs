@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter, Result};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
-use crate::{TypeKind, Symbol, Expression, Error, Token, Type};
+use crate::{TypeKind, Symbol, Expression, Error, Token};
 use std::ops::{Add, Sub, Mul, Neg, Div, Rem, BitAnd, BitOr};
 use std::cmp::Ordering;
 

@@ -82,7 +82,7 @@ impl FunctionCall {
 		for (index, param) in params.iter().enumerate() {
 			let arg = &args[index];
 			if let Value::Type(t) = &param.0 {
-				inner_scope.create_symbol_of_type(&param.1, arg.clone(), t.clone(), true, true);
+				inner_scope.create_symbol(&param.1, arg.clone(), t.clone(), true, true);
 			};
 		}
 	}

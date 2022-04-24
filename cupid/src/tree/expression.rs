@@ -23,7 +23,7 @@ pub enum Expression {
     WhileLoop(WhileLoop),
     ForInLoop(ForInLoop),
     DefineType(DefineType),
-    DefineTypeAlias(DefineTypeAlias),
+    DefineAlias(DefineAlias),
     Break(Break),
     Return(Return),
     BuiltInType(BuiltInType),
@@ -175,8 +175,8 @@ impl Expression {
     pub fn new_define_struct(token: Token, symbol: Symbol, members: Vec<(Symbol, Expression)>, generics: Vec<Symbol>) -> Self {
         Expression::DefineStruct(DefineStruct { token, symbol, members, generics })
     }
-    pub fn new_define_type_alias(token: Token, type_symbol: Symbol, arguments: Vec<TypeKind>) -> Self {
-        Expression::DefineTypeAlias(DefineTypeAlias { token, type_symbol, arguments })
+    pub fn new_define_type_alias(token: Token, symbol: Symbol, true_type: Expression, generics: Vec<Symbol>) -> Self {
+        Expression::DefineAlias(DefineAlias { token, symbol, true_type: Box::new(true_type), generics })
     }
     pub fn new_break(token: Token, value: Expression) -> Self {
         Expression::Break(Break { token, value: Box::new(value) })
@@ -247,7 +247,7 @@ impl Tree for Expression {
             Self::WhileLoop(x) => x.resolve(scope),
             Self::ForInLoop(x) => x.resolve(scope),
             Self::DefineType(x) => x.resolve(scope),
-            Self::DefineTypeAlias(x) => x.resolve(scope),
+            Self::DefineAlias(x) => x.resolve(scope),
             Self::Break(x) => x.resolve(scope),
             Self::Return(x) => x.resolve(scope),
             Self::BuiltInType(x) => x.resolve(scope),

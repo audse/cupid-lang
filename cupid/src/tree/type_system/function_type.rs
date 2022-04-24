@@ -7,12 +7,23 @@ pub struct FunctionType {
 }
 
 impl Type for FunctionType {
-	fn apply_arguments(&mut self, arguments: &[GenericType]) -> Result<(), ()> {
+	fn apply_arguments(&mut self, arguments: &[GenericType]) -> Result<(), String> {
 		if arguments.len() > 0 {
-			if let Some(return_type) = TypeKind::replace_generic(&mut *self.return_type, &arguments[0]) {
-				self.return_type = return_type;
-			} else {
-				return Err(());
+			match &*self.return_type {
+				TypeKind::Generic(return_generic) => {
+					let arg = arguments.iter().find(|arg| arg.identifier == return_generic.identifier);
+					if let Some(arg) = arg {
+						if let Some(arg) = &arg.type_value {
+							self.return_type = arg.clone();
+							return Ok(())
+						} else {
+							return Err(format!("generic mismatch (function): the return type is generic, and a generic was provided (expected a concrete type)"))
+						}
+					} else {
+						return Err(format!("generic mismatch (function): the return type is generic, but no matching type argument was provided. expected [{return_generic}: ...]"))
+					}
+				},
+				_ => {}
 			}
 		}
 		Ok(())

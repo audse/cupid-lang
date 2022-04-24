@@ -7,11 +7,11 @@ pub struct StructType {
 }
 
 impl Type for StructType {
-	fn apply_arguments(&mut self, arguments: &[GenericType]) -> Result<(), ()> {
+	fn apply_arguments(&mut self, arguments: &[GenericType]) -> Result<(), String> {
 		for (_, member) in self.members.iter_mut() {
 			match member.apply_arguments(arguments) {
 				Ok(_) => continue,
-				Err(_) => return Err(())
+				Err(msg) => return Err(msg)
 			}
 		}
 		Ok(())
@@ -85,8 +85,6 @@ impl DefineStruct {
 	}
 }
 
-
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct StructTypeHint {
 	pub token: Token,
@@ -115,7 +113,7 @@ impl Tree for StructTypeHint {
 				.collect();
 			match struct_type.apply_arguments(&member_args) {
 				Ok(_) => Value::Type(struct_type),
-				Err(_) => self.error("trouble applying arguments")
+				Err(msg) => self.error(msg)
 			}
 		} else {
 			self.error("not a struct")

@@ -2,8 +2,7 @@
 - expression: comment | statement | term
 
 -~statement:
-	struct_type_definition
-	| builtin_type_definition
+	type_definition
 	| typed_declaration
 	| break
 	| return
@@ -20,17 +19,8 @@
 	| function
 	| function_call
 	| map
-	| array
+	| bracket_array
 	| operation
-	| atom
-	
--~term_escaped_array:
-	loop
-	| block
-	| function
-	| '[' array ']'
-	| operation
-	| function_call
 	| atom
 
 -~loop:
@@ -56,25 +46,36 @@
 -~brace_block: ~'{' expression* closing_brace
 -~arrow_block: ~arrow expression
 
-- assignment: identifier equal require_term
-- property_assignment: property_access equal require_term
+# separating this to allow arrays w/o brackets when assigning/declaring, but not when nested
+-~assignment_value: array | require_term
 
-- op_assignment: identifier operator equal require_term
+- assignment: identifier equal assignment_value
+- property_assignment: property_access equal assignment_value
+
+- op_assignment: identifier operator equal assignment_value
 -~operator: '+' | '-' | '*' | '/' | '^' | '%'
 - op_increment_assignment: identifier '+' '+' | identifier '-' '-'
 
-- builtin_type_definition: 'type' WORD
+-~type_definition:
+	builtin_type_definition
+	| struct_type_definition
+	| sum_type_definition
+	| alias_type_definition
 
-# - type_definition: type_symbol equal ~'[' (type_field ',')* closing_bracket
-# - type_alias_definition: type_symbol equal type_hint
+- builtin_type_definition: 'type' WORD !'='
 
 - struct_type_definition: type_symbol ~equal '[' (struct_member ~',')* closing_bracket
 - struct_member: type_hint identifier
 
+- sum_type_definition: type_symbol ~equal '[' (sum_member ~',')* closing_bracket
+- sum_member: type_hint
+
+- alias_type_definition: type_symbol ~equal type_hint
+
 -~type_symbol: 'type' generics? identifier
 - generics: '[' (identifier ',')* closing_bracket
 
-- typed_declaration: type_hint 'mut'? identifier (~equal require_term)?
+- typed_declaration: type_hint 'mut'? identifier (~equal assignment_value)?
 
 -~type_hint:
 	array_type_hint
@@ -86,9 +87,11 @@
 - array_type_hint: 'array' '[' type_hint closing_bracket
 - map_type_hint: 'map' '[' type_hint ',' type_hint closing_bracket
 - function_type_hint: 'fun' '[' type_hint closing_bracket
-- struct_type_hint: identifier '[' (struct_member_type_hint ',')* closing_bracket
-- struct_member_type_hint: identifier ':' type_hint
 - primitive_type_hint: identifier
+
+- struct_type_hint: identifier '[' (struct_member_type_hint ',')* ']'
+- struct_member_type_hint: identifier ':' type_hint
+
 
 -~equal: '=' !'>'
 
@@ -111,14 +114,15 @@
 
 - log: log_keyword ~'(' arguments closing_paren
 - function_call: identifier ~'(' arguments closing_paren
-- arguments: (term_escaped_array ~',')*
+- arguments: (term ~',')*
 
 -~log_keyword: 'log' | 'logs' | 'log_line' | 'logs_line'
 
+-~bracket_array: '[' array? ']'
 - array:  (operation !')' !']' ~',')+
 
 - map: '[' (map_entry !']' ',')* ']'
-- map_entry: atom ':' term_escaped_array
+- map_entry: atom ':' term
 
 - range: 
 	range_inclusive_inclusive
@@ -211,17 +215,6 @@
 	| '<' '='
 
 - arrow: ~'=' ~'>'
-
-- type:
-	none
-	| 'bool'
-	| 'int'
-	| 'dec'
-	| 'string'
-	| 'fun'
-	| 'maybe'
-	| 'char'
-	| 'array'
 	
 -~comment_delimiter: '*' '*' '*'
 -~comment_content: ANY !comment_delimiter

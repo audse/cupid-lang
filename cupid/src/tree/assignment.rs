@@ -47,7 +47,7 @@ impl Tree for Declare {
     	let val = crate::resolve_or_abort!(self.value, scope);
 		let symbol_type = crate::resolve_or_abort!(self.r#type, scope);
 		if let Value::Type(stored_type) = symbol_type {
-			if let Some(value) = scope.create_symbol_of_type(
+			if let Some(value) = scope.create_symbol(
 				&self.symbol,
 				val.clone(), 
 				stored_type, 
@@ -56,10 +56,8 @@ impl Tree for Declare {
 			) {
 				return value;
 			}
-			println!("here");
 			self.unable_to_assign_error(self.symbol.get_identifier(), val)
 		} else {
-			println!("{}", self.r#type);
 			self.unable_to_assign_error(self.symbol.get_identifier(), val)
 		}
 	}

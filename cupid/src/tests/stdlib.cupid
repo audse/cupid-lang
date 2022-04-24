@@ -7,19 +7,27 @@ type bool
 type array
 type map
 type fun
-# 
-# type [k, v] map_struct = [
-# 	map [k, v] entries
-# ]
-# 
-# type [a, b] another = [
-# 	map_struct [k: a, v: b] entries
-# ]
-# 
-# log (another)
 
-fun [int] squared = int num => num * num
+type [k, v] dict = [
+	map [k, v] entries,
+	fun [v] pop,
+	fun [int] size
+]
 
-int a = squared(10)
+dict [k: int, v: int] num_map = [
+	entries: [
+		1: 10,
+		2: 20,
+		3: 30
+	],
+	pop: _ => {},
+	size: _ => {},
+]
 
-log (a)
+array [char] unbracketed = \a, \b, \c
+
+type string = array [char]
+
+string new_string = \h, \e, \l, \l, \o
+
+log (new_string)

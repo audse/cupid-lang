@@ -21,6 +21,19 @@ pub fn to_tree(node: &ParseNode) -> Expression {
                 }
             })
         },
+        
+        "alias_type_definition" => {
+            let generics = get_generics(&node);
+            let (type_symbol, type_hint) = if generics.len() > 0 {
+                (&node.children[1], &node.children[2])
+            } else {
+                (&node.children[0], &node.children[1])
+            };
+            let type_symbol = Expression::to_symbol(to_tree(&type_symbol));
+            let type_hint = to_tree(type_hint);
+            Expression::new_define_type_alias(node.tokens[0].clone(), type_symbol, type_hint, generics)
+        },
+        
         "struct_type_definition" => {
             let generics = get_generics(&node);
             let type_symbol = if generics.len() > 0 {
@@ -301,8 +314,6 @@ pub fn to_tree(node: &ParseNode) -> Expression {
             // Expression::new_property_access(map, term, node.tokens[0].clone())
             Expression::new_property(map, term, node.tokens[0].clone())
         },
-        
-        // "type" => Expression::new_type_symbol(node.tokens[0].source.clone(), node.tokens[0].clone(), vec![]),
 
         // Values
         "boolean" => match node.tokens[0].source.as_str() {
