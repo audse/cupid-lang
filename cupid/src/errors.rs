@@ -59,7 +59,7 @@ pub trait ErrorHandler {
         self.error(format!(
             "type mismatch: expected {}, found {}",
             expected,
-            TypeKind::from_value(value)
+            TypeKind::infer(value)
         ))
     }
     fn undefined_error(&self, identifier: String) -> Value {
@@ -78,6 +78,9 @@ pub trait ErrorHandler {
     fn error<S>(&self, message: S) -> Value where S: Into<String> {
         Value::error(self.get_token(), message.into(), self.get_context())
     }
+    fn error_context<S>(&self, message: S, context: S) -> Value where S: Into<String> {
+        Value::error(self.get_token(), message.into(), context.into())
+    }
 }
 
 pub trait MapErrorHandler: ErrorHandler {
@@ -85,7 +88,7 @@ pub trait MapErrorHandler: ErrorHandler {
         self.error(format!(
             "type mismatch: expected dictionary, list, or tuple, not {} ({})",
             value,
-            TypeKind::from_value(value)
+            TypeKind::infer(value)
         ))
     }
     fn not_map_type_error(&self, other_type: TypeKind) -> Value {

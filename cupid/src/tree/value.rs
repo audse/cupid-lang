@@ -20,7 +20,6 @@ pub enum Value {
 	Break(Box<Value>),
 	Return(Box<Value>),
 	Map(HashMap<Value, (usize, Value)>),
-	ProductMap(Box<Symbol>, HashMap<Symbol, Value>),
 	Continue,
 	None,
 }
@@ -194,12 +193,6 @@ impl Hash for Value {
 			Value::Type(x) => x.hash(state),
 			Value::Break(x) => x.hash(state),
 			Value::Return(x) => x.hash(state),
-			Value::ProductMap(x, y) => {
-				x.hash(state);
-				for entry in y.iter() {
-					entry.hash(state)
-				}
-			},
 			Value::Continue => (),
 		}
 	}
@@ -230,7 +223,6 @@ impl Value {
 			Value::Decimal(x, y) => dec_to_float(*x, *y) > 0.0,
 			Value::Map(x) => x.len() > 0,
 			Value::Array(x) => x.len() > 0,
-			Value::ProductMap(_, x) => x.len() > 0,
 			Value::Boolean(x) => *x,
 			_ => false
 		}
@@ -247,7 +239,7 @@ impl Value {
 			(Value::Decimal(a, b), Value::Decimal(x, y)) => float_to_dec(dec_to_float(*a, *b).powf(dec_to_float(*x, *y))),
 			(x, y) => Value::error(
 				operator, 
-				format!("Unable to raise {} ({}) to the power of {} ({})", x, TypeKind::from_value(x), y, TypeKind::from_value(y)), 
+				format!("Unable to raise {} ({}) to the power of {} ({})", x, TypeKind::infer(x), y, TypeKind::infer(y)), 
 				String::new()
 			)
 		}
@@ -276,14 +268,6 @@ impl Display for Value {
 					.map(|(key, (_, value))| format!("{key}: {value}"))
 					.collect();
 				_ = write!(f, "[{}]", entries.join(", "));
-				Ok(())
-			},
-			Self::ProductMap(symbol, map) => {
-				let entries: Vec<String> = map
-					.iter()
-					.map(|(key, value)| format!("{}: {value}", key.get_identifier()))
-					.collect();
-				_ = write!(f, "{symbol}: [{}]", entries.join(", "));
 				Ok(())
 			},
 			Self::FunctionBody(params, _) => {

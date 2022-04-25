@@ -1,4 +1,4 @@
-use crate::{LexicalScope, Value, Expression, Symbol, Tree, Token, ErrorHandler, SymbolFinder, Type};
+use crate::{LexicalScope, Value, Expression, Symbol, Tree, Token, ErrorHandler, SymbolFinder};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct Assign {
@@ -10,7 +10,7 @@ pub struct Assign {
 impl Tree for Assign {
 	fn resolve(&self, scope: &mut LexicalScope) -> Value {
 		let val = crate::resolve_or_abort!(self.value, scope);
-		if let Some(symbol_type) = scope.get_symbol_type(&self.symbol) {
+		if let Some(_symbol_type) = scope.get_symbol_type(&self.symbol) {
 			match scope.set_symbol(&self.symbol, val.clone()) {
 				Ok(result) => match result {
 					Some(v) => v,
@@ -37,7 +37,7 @@ impl ErrorHandler for Assign {
 pub struct Declare {
 	pub symbol: Symbol,
 	pub value: Box<Expression>,
-	pub r#type: Box<Expression>,
+	pub value_type: Box<Expression>,
 	pub mutable: bool,
 	pub deep_mutable: bool,
 }
@@ -45,7 +45,7 @@ pub struct Declare {
 impl Tree for Declare {
 	fn resolve(&self, scope: &mut LexicalScope) -> Value {
     	let val = crate::resolve_or_abort!(self.value, scope);
-		let symbol_type = crate::resolve_or_abort!(self.r#type, scope);
+		let symbol_type = crate::resolve_or_abort!(self.value_type, scope);
 		if let Value::Type(stored_type) = symbol_type {
 			if let Some(value) = scope.create_symbol(
 				&self.symbol,
@@ -71,7 +71,7 @@ impl ErrorHandler for Declare {
     	format!(
 			"\n\t  declaring variable `{}` ({}, {}) \n\t  with value: {}",  
 			self.symbol.get_identifier(), 
-			self.r#type,
+			self.value_type,
 			if self.mutable { "mutable" } else { "immutable" },
 			self.value
 		)

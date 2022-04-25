@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use crate::{Expression, Value, LexicalScope, ScopeContext, Tree, Token, Block, Symbol, ErrorHandler, MapErrorHandler, TypeKind, SymbolFinder, GenericType};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
@@ -28,7 +27,7 @@ impl Tree for WhileLoop {
 				return self.error(format!(
 					"a while loop condition must evaluate to a boolean, not {} ({})",
 					condition,
-					TypeKind::from_value(&condition)
+					TypeKind::infer(&condition)
 				))
 			}
 			scope.pop();

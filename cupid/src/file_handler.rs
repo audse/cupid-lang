@@ -13,7 +13,7 @@ impl FileHandler {
 	
 	pub fn new(path: &str) -> Self {
 		let contents = std::fs::read_to_string(path)
-			.unwrap_or_else(|_| String::from("Unable to find file"));
+				.unwrap_or_else(|_| String::from("Unable to find file"));
 		let (parser, scope, errors, warnings) = FileHandler::build(&contents);
 		Self {
 			path: path.to_string(),
@@ -44,7 +44,18 @@ impl FileHandler {
 		(parser, scope, vec![], vec![])
 	}
 	
+	pub fn use_stdlib(&mut self) {
+		let stdlib = std::fs::read_to_string("src/tests/stdlib/typedef.cupid")
+			.unwrap_or_else(|_| String::from("Unable to find file"));
+		let mut parser = CupidParser::new(stdlib);
+		let parse_tree = parser._file(None);
+		let semantics = to_tree(&parse_tree.unwrap().0);
+		semantics.resolve_file(&mut self.scope);
+	}
+	
 	pub fn run_debug(&mut self) {
+		self.use_stdlib();
+		
 		println!("Contents: {:?}", self.contents);
 		
 		let parse_tree = self.parser._file(None);
@@ -59,6 +70,8 @@ impl FileHandler {
 	}
 	
 	pub fn run_and_return(&mut self) -> Vec<Value> {
+		self.use_stdlib();
+		
 		let parse_tree = self.parser._file(None);        
 		let semantics = to_tree(&parse_tree.unwrap().0);
 		
@@ -72,6 +85,8 @@ impl FileHandler {
 	
 	pub fn run(&mut self) {
 		self.report_build_started();
+		
+		self.use_stdlib();
 		
 		let parse_tree = self.parser._file(None);        
 		let semantics = to_tree(&parse_tree.unwrap().0);

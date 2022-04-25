@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter, Result};
 // use std::borrow::Cow;
 use std::hash::{Hash, Hasher};
-use crate::{Value, Tree, LexicalScope, Token, ErrorHandler, Type, SymbolFinder, TypeKind};
+use crate::{Value, Tree, LexicalScope, Token, ErrorHandler, SymbolFinder, TypeKind};
 
 #[derive(Debug, Clone)]
 pub struct Symbol  {
@@ -41,16 +41,13 @@ impl Symbol {
 		self.error(format!("undefined: `{}` does not exist", &self.get_identifier()))
 	}
 	pub fn error_unable_to_assign(&self, assign_value: &Value) -> Value {
-		self.error(format!("cannot assign {} ({}) to {}", assign_value, TypeKind::from_value(assign_value), self))
+		self.error(format!("cannot assign {} ({}) to {}", assign_value, TypeKind::infer(assign_value), self))
 	}
 	pub fn error_assign_type_mismatch(&self, assign_value: &Value, current_type: TypeKind) -> Value {
-		self.error(format!(
-			"type mismatch: cannot assign {} ({}) to {} ({})", 
-			TypeKind::from_value(assign_value), 
-			assign_value, 
-			self,
-			&current_type
-		))
+		self.error_context(
+			format!("type mismatch: variable `{}` is a different type than the given value.", self.identifier),
+			format!("\n\t\texpecting: {current_type}\n\t\tfound:     {}", TypeKind::infer(assign_value))
+		)
 	}
 }
 

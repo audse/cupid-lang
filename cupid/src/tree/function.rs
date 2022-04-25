@@ -1,5 +1,5 @@
 use std::fmt::{Display, Formatter, Result};
-use crate::{Symbol, LexicalScope, Value, Expression, ScopeContext, Tree, Token, ErrorHandler, SymbolFinder, TypeKind};
+use crate::{Symbol, LexicalScope, Value, Expression, ScopeContext, Tree, Token, ErrorHandler, SymbolFinder};
 use crate::utils::{pluralize, pluralize_word};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]

@@ -1,4 +1,5 @@
 use std::hash::{Hash, Hasher};
+use std::fmt::{Display, Formatter, Result as DisplayResult};
 use crate::{TypeKind, Type, GenericType, Tree, Value, ErrorHandler, Expression, Token};
 
 #[derive(Debug, Clone)]
@@ -46,6 +47,12 @@ impl Eq for ArrayType {}
 impl Hash for ArrayType {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		self.element_type.hash(state);
+	}
+}
+
+impl Display for ArrayType {
+	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
+		write!(f, "array [{}]", self.element_type)
 	}
 }
 

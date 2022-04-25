@@ -1,9 +1,28 @@
+use std::fmt::{Display, Formatter, Result as DisplayResult};
 use std::hash::{Hash, Hasher};
-use crate::{TypeKind, Type, Symbol, GenericType, Expression, Tree, Value, SymbolFinder, ErrorHandler, Token};
+use crate::{TypeKind, Type, Symbol, GenericType, Expression, Tree, Value, SymbolFinder, ErrorHandler, Token, ScopeContext};
 
 #[derive(Debug, Clone)]
 pub struct StructType {
 	pub members: Vec<(Symbol, TypeKind)>,
+}
+
+impl StructType {
+	pub fn is_map_equal(&self, other: &Value) -> bool {
+		// todo
+		match other {
+			Value::Map(x) => {
+				x.iter().all(|(key, (_, value))| {
+					if let Some((_, member_type)) = self.members.iter().find(|(symbol, _)| &symbol.identifier == key)  {
+						member_type.is_equal(&value)
+					} else {
+						false
+					}
+				})
+			},
+			_ => false
+		}
+	}
 }
 
 impl Type for StructType {
@@ -37,6 +56,16 @@ impl Hash for StructType {
 	}
 }
 
+impl Display for StructType {
+	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
+		let members: Vec<String> = self.members
+			.iter()
+			.map(|(symbol, member)| format!("{symbol}: {member}"))
+			.collect();
+		write!(f, "[{}]", members.join(", "))
+	}
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct DefineStruct {
 	pub token: Token,
@@ -47,10 +76,14 @@ pub struct DefineStruct {
 
 impl Tree for DefineStruct {
 	fn resolve(&self, scope: &mut crate::LexicalScope) -> Value {
+		scope.add(ScopeContext::Map);
+		self.define_generics(scope);
+		
 		let members: Vec<(Symbol, TypeKind)> = self.members
 			.iter()
 			.filter_map(|(symbol, exp)| {
-				if let Value::Type(mut member_type) = exp.resolve(scope) {
+				let val_type = exp.resolve(scope);
+				if let Value::Type(mut member_type) = val_type {
 					member_type.convert_primitives_to_generics(&self.resolve_generics());
 					Some((symbol.clone(), member_type))
 				} else {
@@ -59,6 +92,7 @@ impl Tree for DefineStruct {
 			})
 			.collect();
 		let new_struct = TypeKind::Struct(StructType { members });
+		scope.pop();
 		if let Some(new_struct) = scope.define_type(&self.symbol, new_struct) {
 			new_struct
 		} else {
@@ -82,6 +116,15 @@ impl DefineStruct {
 			.iter()
 			.map(|g| GenericType::new(&g.get_identifier(), None))
 			.collect()
+	}
+	fn define_generics(&self, scope: &mut crate::LexicalScope) {
+		let generics: Vec<(&Symbol, GenericType)> = self.generics
+			.iter()
+			.map(|g| (g, GenericType::new(&g.get_identifier(), None)))
+			.collect();
+		for (symbol, generic) in generics {
+			scope.define_type(symbol, TypeKind::Generic(generic));
+		}
 	}
 }
 

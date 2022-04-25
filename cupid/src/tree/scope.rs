@@ -124,14 +124,14 @@ pub struct Scope {
 
 #[derive(Debug, Clone)]
 pub enum SymbolValue {
-	SymbolVal(SymbolVal),
-	TypeValue(TypeKind),
+	Variable(Variable),
+	Type(TypeKind),
 }
 
 #[derive(Debug, Clone)]
-pub struct SymbolVal {
+pub struct Variable {
 	pub value: Value,
-	pub r#type: TypeKind,
+	pub value_type: TypeKind,
 	pub mutable: bool,
 	pub deep_mutable: bool,
 }
@@ -139,8 +139,8 @@ pub struct SymbolVal {
 impl SymbolValue {
 	pub fn get_string(&self) -> String {
 		match self {
-			SymbolValue::SymbolVal(v) => v.value.to_string(),
-			SymbolValue::TypeValue(t) => t.to_string()
+			SymbolValue::Variable(v) => v.value.to_string(),
+			SymbolValue::Type(t) => t.to_string()
 		}
 	}
 }
@@ -176,8 +176,8 @@ impl SymbolFinder for Scope {
 	fn get_symbol(&self, symbol: &Symbol) -> Option<Value> {
 		if let Some(stored_symbol) = self.storage.get(&symbol.identifier) {
 			return match stored_symbol {
-				SymbolValue::SymbolVal(symbol_value) => Some(symbol_value.value.clone()),
-				SymbolValue::TypeValue(type_value) => Some(Value::Type(type_value.clone()))
+				SymbolValue::Variable(symbol_value) => Some(symbol_value.value.clone()),
+				SymbolValue::Type(type_value) => Some(Value::Type(type_value.clone()))
 			}
 		}
 		None
@@ -185,8 +185,8 @@ impl SymbolFinder for Scope {
 	fn get_symbol_type(&self, symbol: &Symbol) -> Option<TypeKind> {
 		if let Some(stored_symbol) = self.storage.get(&symbol.identifier) {
 			return match stored_symbol {
-				SymbolValue::SymbolVal(symbol_value) => Some(symbol_value.r#type.clone()),
-				SymbolValue::TypeValue(_) => None
+				SymbolValue::Variable(symbol_value) => Some(symbol_value.value_type.clone()),
+				SymbolValue::Type(_) => None
 			}
 		}
 		None
@@ -194,8 +194,8 @@ impl SymbolFinder for Scope {
 	fn is_mutable(&self, symbol: &Symbol) -> Option<(bool, bool)> {
 		if let Some(stored_symbol) = self.storage.get(&symbol.identifier) {
 			return match stored_symbol {
-				SymbolValue::SymbolVal(symbol_value) => Some((symbol_value.mutable, symbol_value.deep_mutable)),
-				SymbolValue::TypeValue(type_value) => None
+				SymbolValue::Variable(symbol_value) => Some((symbol_value.mutable, symbol_value.deep_mutable)),
+				SymbolValue::Type(_) => None
 			};
 		}
 		None
@@ -207,10 +207,14 @@ impl SymbolFinder for Scope {
 				return Err(immutable_assign_error)
 			}
 			match stored_value {
-				SymbolValue::SymbolVal(symbol_value) => {
-					symbol_value.value = new_value;
+				SymbolValue::Variable(symbol_value) => {
+					if symbol_value.value_type.is_equal(&new_value) {
+						symbol_value.value = new_value;
+					} else {
+						return Err(symbol.error_assign_type_mismatch(&new_value, symbol_value.value_type.clone()))
+					}
 				},
-				SymbolValue::TypeValue(_) => {
+				SymbolValue::Type(_) => {
 					return Err(symbol.error_unable_to_assign(&new_value))
 				}
 			}
@@ -219,23 +223,28 @@ impl SymbolFinder for Scope {
 		Err(not_found_error(symbol))
 	}
 	
-	fn create_symbol(&mut self, symbol: &Symbol, value: Value, symbol_type: TypeKind, mutable: bool, deep_mutable: bool) -> Option<Value> {
-		self.storage.insert(symbol.identifier.clone(), SymbolValue::SymbolVal(SymbolVal {
-			r#type: symbol_type,
-			value, 
-			mutable, 
-			deep_mutable,
-		}));
+	fn create_symbol(&mut self, symbol: &Symbol, value: Value, value_type: TypeKind, mutable: bool, deep_mutable: bool) -> Option<Value> {
+		if value_type.is_equal(&value) {
+			self.storage.insert(symbol.identifier.clone(), SymbolValue::Variable(Variable {
+				value_type,
+				value, 
+				mutable, 
+				deep_mutable,
+			}));
+		} else {
+			return Some(symbol.error_assign_type_mismatch(&value, value_type.clone()))
+		}
 		self.get_symbol(symbol)
 	}
+	
 	fn define_type(&mut self, symbol: &Symbol, value: TypeKind) -> Option<Value> {
-		self.storage.insert(symbol.identifier.clone(), SymbolValue::TypeValue(value));
+		self.storage.insert(symbol.identifier.clone(), SymbolValue::Type(value));
 		self.get_symbol(symbol)
 	}
 }
 
 fn assign_to_immutable_error(symbol: &Symbol, stored_value: &SymbolValue) -> Option<Value> {
-	if let SymbolValue::SymbolVal(SymbolVal { value: _, r#type: _, mutable, deep_mutable: _ }) = stored_value {
+	if let SymbolValue::Variable(Variable { value: _, value_type: _, mutable, deep_mutable: _ }) = stored_value {
 		if !mutable {
 			return Some(Value::error(
 				&symbol.token,
@@ -250,7 +259,7 @@ fn assign_to_immutable_error(symbol: &Symbol, stored_value: &SymbolValue) -> Opt
 		return Some(Value::error(
 			&symbol.token,
 			format!(
-				"variable `{symbol}` is a type and cannot be reassigned",
+				"`{symbol}` is a type and cannot be reassigned",
 				symbol = symbol.get_identifier(),
 			), String::new()
 		))

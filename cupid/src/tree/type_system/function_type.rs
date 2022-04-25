@@ -43,8 +43,9 @@ impl Type for FunctionType {
 
 impl PartialEq for FunctionType {
 	fn eq(&self, other: &Self) -> bool {
-		match &*self.return_type {
-			TypeKind::Generic(GenericType	{ identifier: _, type_value: _ }) => true,
+		match (&*self.return_type, &*other.return_type) {
+			(TypeKind::Generic(GenericType	{ identifier: _, type_value: _ }), _) => true,
+			(_, TypeKind::Generic(GenericType	{ identifier: _, type_value: _ })) => true,
 			_ => self.return_type == other.return_type
 		}
 	}

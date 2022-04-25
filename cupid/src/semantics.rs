@@ -62,6 +62,28 @@ pub fn to_tree(node: &ParseNode) -> Expression {
             Expression::new_define_struct(node.tokens[0].clone(), type_symbol, members, generics)
         },
         
+        "sum_type_definition" => {
+            let generics = get_generics(&node);
+            let type_symbol = if generics.len() > 0 {
+                &node.children[1]
+            } else {
+                &node.children[0]
+            };
+            let type_symbol = Expression::to_symbol(to_tree(&type_symbol));
+            let members: Vec<Expression> = node.children
+                .iter()
+                .skip(1)
+                .filter_map(|member| {
+                    if member.name.as_str() == "sum_member" {
+                        Some(to_tree(&member.children[0]))
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            Expression::new_define_sum(node.tokens[0].clone(), type_symbol, members, generics)
+        },
+        
         "array_type_hint" => Expression::ArrayTypeHint(
             ArrayTypeHint {
                 token: node.tokens[0].clone(),
@@ -106,11 +128,7 @@ pub fn to_tree(node: &ParseNode) -> Expression {
             )
         },
         
-        "primitive_type_hint" => {
-            let token = &node.children[0].tokens[0];
-            let type_hint = TypeKind::Primitive(PrimitiveType::new(&token.source.as_str()));
-            Expression::new_node(Value::Type(type_hint), vec![token.clone()])
-        },
+        "primitive_type_hint" => to_tree(&node.children[0]),
 
         // Loops
         "for_loop" => {
@@ -183,11 +201,17 @@ pub fn to_tree(node: &ParseNode) -> Expression {
             to_tree(&node.children[0]),
             to_tree(&node.children[1]),
         ),
-        // "property_assignment" => Expression::new_property_assign(
-        //     to_tree(&node.children[0]),
-        //     to_tree(&node.children[1]),
-        //     node.tokens[0].clone(),
-        // ),
+        "property_assignment" => {
+            if let Expression::Property(property) = to_tree(&node.children[0]) {
+                Expression::new_property_assign(
+                    property,
+                    to_tree(&node.children[1]),
+                    node.tokens[0].clone(),
+                )
+            } else {
+                Expression::Empty
+            }
+        },
         // "internal_property_assignment" => Expression::new_internal_property_assign(
         //     to_tree(&node.children[0]),
         //     to_tree(&node.children[1]),
@@ -300,7 +324,7 @@ pub fn to_tree(node: &ParseNode) -> Expression {
                 .iter()
                 .map(|item| (to_tree(&item.children[0]), to_tree(&item.children[1])))
                 .collect();
-            Expression::new_map(entries, node.tokens[0].clone(), None)
+            Expression::new_map(entries, node.tokens[0].clone())
         },
         "array" => Expression::new_array(node.children.iter().map(to_tree).collect()),
         

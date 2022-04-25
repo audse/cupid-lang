@@ -64,10 +64,10 @@
 
 - builtin_type_definition: 'type' WORD !'='
 
-- struct_type_definition: type_symbol ~equal '[' (struct_member ~',')* closing_bracket
+- struct_type_definition: type_symbol ~equal '[' (struct_member ~',')* ~']'
 - struct_member: type_hint identifier
 
-- sum_type_definition: type_symbol ~equal '[' (sum_member ~',')* closing_bracket
+- sum_type_definition: type_symbol ~equal '[' (sum_member ~',')* ~']'
 - sum_member: type_hint
 
 - alias_type_definition: type_symbol ~equal type_hint

@@ -920,7 +920,7 @@ use_item!(&mut node, self.expect("[".to_string()), false);
 loop { 
 use_item!(&mut node, self._struct_member(None), false);
 use_item!(&mut node, self.expect(",".to_string()), true);
-}use_item!(&mut node, self._closing_bracket(None), false);
+}use_item!(&mut node, self.expect("]".to_string()), true);
 
 			return Some((node, false));
 		
@@ -963,7 +963,7 @@ use_item!(&mut node, self.expect("[".to_string()), false);
 loop { 
 use_item!(&mut node, self._sum_member(None), false);
 use_item!(&mut node, self.expect(",".to_string()), true);
-}use_item!(&mut node, self._closing_bracket(None), false);
+}use_item!(&mut node, self.expect("]".to_string()), true);
 
 			return Some((node, false));
 		

@@ -12,7 +12,9 @@ impl Tree for BuiltInType {
 			"bool"
 			| "char"
 			| "int"
-			| "dec" => TypeKind::Primitive(PrimitiveType::new(&name)),
+			| "dec"
+			| "nothing"
+			| "string" => TypeKind::Primitive(PrimitiveType::new(&name)),
 			"array" => {
 				let generic = TypeKind::Generic(GenericType::new("e", None));
 				TypeKind::Array(ArrayType { element_type: Box::new(generic) })

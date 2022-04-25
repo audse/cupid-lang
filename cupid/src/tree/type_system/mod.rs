@@ -22,9 +22,13 @@ pub use primitive_type::*;
 mod struct_type;
 pub use struct_type::*;
 
+mod sum_type;
+pub use sum_type::*;
+
 mod types;
 pub use types::*;
 
+// use std::hash::{Hash, Hasher};
 use std::fmt::{Display, Formatter, Result as DisplayResult};
 use crate::Value;
 
@@ -36,18 +40,56 @@ pub enum TypeKind {
 	Map(MapType),
 	Primitive(PrimitiveType),
 	Struct(StructType),
+	Sum(SumType),
 	Alias(AliasType),
 }
 
 impl TypeKind {
-	pub fn from_value(value: &Value) -> &str {
+	pub fn new_primitive(identifier: &str) -> Self {
+		Self::Primitive(PrimitiveType::new(identifier))
+	}
+	pub fn new_array(element_type: Self) -> Self {
+		Self::Array(ArrayType { element_type: Box::new(element_type) })
+	}
+	pub fn new_map(key_type: Self, value_type: Self) -> Self {
+		Self::Map(MapType { key_type: Box::new(key_type), value_type: Box::new(value_type) })
+	}
+	pub fn new_generic(identifier: &str) -> Self {
+		Self::Generic(GenericType::new(identifier, None))
+	}
+	pub fn new_function() -> Self {
+		Self::Function(FunctionType { return_type: Box::new(Self::new_generic("r")) })
+	}
+	pub fn infer(value: &Value) -> Self {
 		match value {
-			Value::Boolean(_) => "bool",
-			Value::Integer(_) => "int",
-			Value::Char(_) => "char",
-			Value::Decimal(_, _) => "dec",
-			
-			_ => unreachable!()
+			Value::Boolean(_) => Self::new_primitive("bool"),
+			Value::Integer(_) =>  Self::new_primitive("int"),
+			Value::Char(_) => Self::new_primitive("char"),
+			Value::Decimal(_, _) => Self::new_primitive("dec"),
+			Value::String(_) => Self::new_primitive("string"),
+			Value::None => Self::new_primitive("nothing"),
+			Value::FunctionBody(_, _) => Self::new_function(),
+			Value::Array(array) => {
+				if array.len() > 0 {
+					let element_type = TypeKind::infer(&array[0]);
+					Self::new_array(element_type)
+				} else {
+					Self::new_array(Self::new_generic("e"))
+				}
+			},
+			Value::Map(map) => {
+				if let Some((key, (_, value))) = map.iter().nth(0) {
+					let key_type = TypeKind::infer(key);
+					let value_type = TypeKind::infer(value);
+					Self::new_map(key_type, value_type)
+				} else {
+					Self::new_map(Self::new_generic("k"), Self::new_generic("v"))
+				}
+			},
+			x => {
+				println!("Cannot infer type of {:?}", x);
+				unreachable!()
+			}
 		}
 	}
 	
@@ -63,6 +105,20 @@ impl TypeKind {
 			_ => None
 		}
 	}
+	
+	pub fn is_equal(&self, other: &Value) -> bool {
+		match (self, TypeKind::infer(other)) {
+			(_, Self::Alias(y)) => y.true_type.is_equal(other),
+			(Self::Alias(x), _) => x.true_type.is_equal(other),
+			(_, Self::Sum(y)) => y.contains(other),
+			(Self::Sum(x), _) => x.contains(other),
+			(Self::Struct(x), Self::Map(_)) => x.is_map_equal(other),
+			(Self::Map(_), Self::Struct(y)) => y.is_map_equal(other),
+			(_, Self::Generic(_)) => true,
+			(Self::Generic(_), _) => true,
+			(x, y) => x == &y,
+		}
+	}
 }
 
 impl Type for TypeKind {
@@ -75,6 +131,7 @@ impl Type for TypeKind {
 			Self::Struct(x) => x.apply_arguments(arguments),
 			Self::Map(x) => x.apply_arguments(arguments),
 			Self::Alias(x) => x.apply_arguments(arguments),
+			Self::Sum(x) => x.apply_arguments(arguments),
 		}
 	}
 	fn convert_primitives_to_generics(&mut self, generics: &[GenericType]) {
@@ -86,6 +143,7 @@ impl Type for TypeKind {
 			Self::Struct(x) => x.convert_primitives_to_generics(generics),
 			Self::Map(x) => x.convert_primitives_to_generics(generics),
 			Self::Alias(x) => x.convert_primitives_to_generics(generics),
+			Self::Sum(x) => x.convert_primitives_to_generics(generics),
 		}
 	}
 }
@@ -108,21 +166,35 @@ impl Display for TypeKind {
 			Self::Struct(x) => {
 				let members: Vec<String> = x.members
 					.iter()
-					.map(|(symbol, member)| format!("{symbol}: {member}"))
+					.map(|(symbol, member)| format!("{}: {member}", symbol.identifier))
 					.collect();
-				write!(f, "type [{:#?}]", members.join(", "))
+				write!(f, "[{}]", members.join(", "))
 			},
-			Self::Alias(x) => write!(f, "type [{}]", x.true_type),
+			Self::Sum(x) => {
+				let members: Vec<String> = x.types
+					.iter()
+					.map(|member| member.to_string())
+					.collect();
+				write!(f, "one of [{}]", members.join(", "))
+			},
+			Self::Alias(x) => write!(f, "alias of {}", x.true_type),
 		}
 	}
 }
-
-// TODO
-
-// #[derive(Debug, Clone)]
-// pub struct SumType {
-// 	pub members: Vec<dyn Type>,
+// 
+// impl Eq for TypeKind {}
+// 
+// impl Hash for TypeKind {
+// 	fn hash<H: Hasher>(&self, state: &mut H) {
+// 		match self {
+// 			Self::Primitive(x) => x.hash(state),
+// 			Self::Array(x) => x.hash(state),
+// 			Self::Function(x) => x.hash(state),
+// 			Self::Generic(x) => x.hash(state),
+// 			Self::Struct(x) => x.hash(state),
+// 			Self::Map(x) => x.hash(state),
+// 			Self::Alias(x) => x.hash(state),
+// 			Self::Sum(x) => x.hash(state),
+// 		}
+// 	}
 // }
-// 
-// impl Type for SumType {}
-// 

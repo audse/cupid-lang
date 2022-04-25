@@ -1,42 +1,27 @@
 use std::collections::HashMap;
-use crate::{Expression, Symbol, Value, Tree, LexicalScope, Token};
+use crate::{Expression, Value, Tree, LexicalScope, Token};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct Map {
 	pub items: Vec<(Expression, Expression)>,
 	pub token: Token,
-	pub product_type: Option<Symbol>,
 }
 
 impl Tree for Map {
 	fn resolve(&self, scope: &mut LexicalScope) -> Value {
-		if !self.product_type.is_some() {
-			let items = self.items
-				.iter()
-				.enumerate()
-				.map(|(i, (k, v))| {
-					let key = if let Expression::Symbol(symbol) = k {
-						symbol.identifier.clone()
-					} else {
-						k.resolve(scope)
-					};
-					let value = v.resolve(scope);
-					(key, (i, value)) 
-				});
-			Value::Map(HashMap::from_iter(items))
-		} else {
-			let items = self.items
-				.iter()
-				.enumerate()
-				.filter_map(|(_, (k, v))| {
-					if let Expression::Symbol(symbol) = k {
-						Some((symbol.clone(), v.resolve(scope)))
-					} else {
-						None
-					}
-				});
-			Value::ProductMap(Box::new(self.product_type.as_ref().unwrap().clone()), HashMap::from_iter(items))
-		}
+		let items = self.items
+			.iter()
+			.enumerate()
+			.map(|(i, (k, v))| {
+				let key = if let Expression::Symbol(symbol) = k {
+					symbol.identifier.clone()
+				} else {
+					k.resolve(scope)
+				};
+				let value = v.resolve(scope);
+				(key, (i, value)) 
+			});
+		Value::Map(HashMap::from_iter(items))
 	}
 }
 // 
@@ -74,9 +59,9 @@ impl Tree for Map {
 // 		self.error(format!(
 // 			"type mismatch: {} ({}) is not a map, and cannot be accessed by {} ({})",
 // 			map,
-// 			TypeKind::from_value(map),
+// 			TypeKind::infer(map),
 // 			accessor,
-// 			TypeKind::from_value(accessor)
+// 			TypeKind::infer(accessor)
 // 		))
 // 	}
 // 	fn no_property_error(&self, map: &Value, accessor: &Value) -> Value {

@@ -1,6 +1,10 @@
+
 type char
 type int
 type dec
+type bool
 type array
 type map
 type fun
+type nothing
+type string

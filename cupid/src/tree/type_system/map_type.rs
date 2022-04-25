@@ -1,4 +1,5 @@
 use std::hash::{Hash, Hasher};
+use std::fmt::{Display, Formatter, Result as DisplayResult};
 use crate::{TypeKind, Type, GenericType, ErrorHandler, Token, Expression, Tree, Value};
 
 #[derive(Debug, Clone)]
@@ -84,6 +85,12 @@ impl Hash for MapType {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		self.key_type.hash(state);
 		self.value_type.hash(state);
+	}
+}
+
+impl Display for MapType {
+	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
+		write!(f, "map [{}, {}]", self.key_type, self.value_type)
 	}
 }
 

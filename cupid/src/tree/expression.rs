@@ -28,10 +28,12 @@ pub enum Expression {
     Return(Return),
     BuiltInType(BuiltInType),
     DefineStruct(DefineStruct),
+    DefineSum(DefineSum),
     ArrayTypeHint(ArrayTypeHint),
     MapTypeHint(MapTypeHint),
     StructTypeHint(StructTypeHint),
     FunctionTypeHint(FunctionTypeHint),
+    PropertyAssign(PropertyAssign),
 }
 
 impl Display for Expression {
@@ -102,11 +104,11 @@ impl Expression {
             value: Box::new(value),
         })
     }
-    pub fn new_declare(symbol: Expression, r#type: Expression, mutable: bool, deep_mutable: bool, value: Expression) -> Self {
+    pub fn new_declare(symbol: Expression, value_type: Expression, mutable: bool, deep_mutable: bool, value: Expression) -> Self {
         Self::Declare(Declare {
             symbol: Expression::to_symbol(symbol),
             value: Box::new(value),
-            r#type: Box::new(r#type),
+            value_type: Box::new(value_type),
 			mutable,
 			deep_mutable,
         })
@@ -140,11 +142,10 @@ impl Expression {
     pub fn new_array(items: Vec<Expression>) -> Self {
         Self::Array(Array { items })
     }
-    pub fn new_map(items: Vec<(Expression, Expression)>, token: Token, product_type: Option<Symbol>) -> Self {
+    pub fn new_map(items: Vec<(Expression, Expression)>, token: Token) -> Self {
         Self::Map(Map {
             items,
-            token,
-            product_type
+            token
         })
     }
     pub fn new_property(map: Expression, term: Expression, token: Token) -> Self {
@@ -175,6 +176,9 @@ impl Expression {
     pub fn new_define_struct(token: Token, symbol: Symbol, members: Vec<(Symbol, Expression)>, generics: Vec<Symbol>) -> Self {
         Expression::DefineStruct(DefineStruct { token, symbol, members, generics })
     }
+    pub fn new_define_sum(token: Token, symbol: Symbol, types: Vec<Expression>, generics: Vec<Symbol>) -> Self {
+        Expression::DefineSum(DefineSum { token, symbol, types, generics })
+    }
     pub fn new_define_type_alias(token: Token, symbol: Symbol, true_type: Expression, generics: Vec<Symbol>) -> Self {
         Expression::DefineAlias(DefineAlias { token, symbol, true_type: Box::new(true_type), generics })
     }
@@ -183,6 +187,9 @@ impl Expression {
     }
     pub fn new_return(token: Token, value: Expression) -> Self {
         Expression::Return(Return { token, value: Box::new(value) })
+    }
+    pub fn new_property_assign(property: Property, value: Expression, operator: Token) -> Self {
+        Expression::PropertyAssign(PropertyAssign { property, value: Box::new(value), operator })
     }
     pub fn new_continue(token: Token) -> Self {
         Self::new_node(Value::Continue, vec![token])
@@ -252,10 +259,12 @@ impl Tree for Expression {
             Self::Return(x) => x.resolve(scope),
             Self::BuiltInType(x) => x.resolve(scope),
             Self::DefineStruct(x) => x.resolve(scope),
+            Self::DefineSum(x) => x.resolve(scope),
             Self::ArrayTypeHint(x) => x.resolve(scope),
             Self::MapTypeHint(x) => x.resolve(scope),
             Self::StructTypeHint(x) => x.resolve(scope),
             Self::FunctionTypeHint(x) => x.resolve(scope),
+            Self::PropertyAssign(x) => x.resolve(scope),
             _ => Value::None,
         }
     }

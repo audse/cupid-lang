@@ -10,24 +10,51 @@
 
 ## Type system
 
-- [ ] Type declaration
+- [x] Type declaration
   - [x] Product (struct)
-  - [ ] Union (enum)
-  - [ ] Nested
+  - [x] Sum (enum)
+  - [x] Nested
   - [x] Alias
-- [ ] Enums
-- [ ] Impl
 - [ ] Maybe types
 - [x] Map types
   - [x] `dict (string, int)`
   - [x] `array (int)`
-- [ ] Generics
+- [x] Generics
 - [ ] Type casting
+- [ ] First-class types
+  - [ ] Pass as values/args
+  - [x] Log
+  - [ ] Builtin functions e.g. typeof
+- [ ] Sum type variants
+- [ ] Tagged sum type variants
+- [ ] Gradual typing
+
+### Traits
+```
+type my_struct = [
+  int my_data,
+  fun [int] do_something
+]
+
+use default with my_struct [
+  do_something: self => self.my_data
+]
+
+trait [t] add [
+  fun [t] add 
+]
+
+use add with my_struct [
+  add: self, my_struct other => self.my_data + other
+]
+```
 
 ### Type checker
 
 - [x] Assignment type checking
-- [ ] Deep assignment type checking
+  - [x] Approximate
+- [x] Deep assignment type checking
+- [ ] Property assignment check
 
 ## Operators
 
@@ -40,6 +67,7 @@
 - [x] Logical and
 - [x] Logical or
 - [ ] Negation
+- [ ] Operator overloading
 
 ## Functions
 
@@ -50,7 +78,7 @@
 - [x] Return statement
 - [ ] Keyword args
 - [x] Typed parameters
-- [ ] Return type
+- [x] Return type
 - [ ] Callbacks
 - [ ] Default values (allow fewer/skipped args)
 - [x] No arguments
@@ -74,7 +102,7 @@
   - [ ] `break identifier(return_value)`
   - [x] Continue
 
-## Data structures
+## Values
 
 - [x] Array
 - [x] Dictionary
@@ -91,6 +119,10 @@
 - [ ] Self keyword
   - [ ] Reference inner properties
   - [ ] Mutate inner properties
+- [ ] Number/string types
+  - [ ] Irrational numbers
+  - [ ] UTF-8, 16, etc
+  - [ ] Signed/unsigned numbers
 
 ## Scoping
 
@@ -98,6 +130,7 @@
 - [x] Simple block scopes `{ # can access outer scope }`
 - [x] Boxed scopes `box { # cannot access outer scope }`
 - [ ] No global scope?
+- [ ] Inject standard library stuff into boxed scopes
 
 ## Features
 
@@ -126,6 +159,7 @@
 
 - [ ] Random
 - [ ] Rust-like iterators
+- [ ] Constants such as PI
 
 ## Meta
 

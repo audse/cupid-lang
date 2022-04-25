@@ -211,7 +211,7 @@ fn test_loop() {
 	}", 0));
 	assert!(test_str("
 		string mut abc = ''
-		for letter in 'a', 'b', 'c' => abc = abc + letter
+		for letter in ['a', 'b', 'c'] => abc = abc + letter
 		abc
 	", "abc"));
 	assert!(test_int("
