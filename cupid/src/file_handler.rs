@@ -66,7 +66,7 @@ impl FileHandler {
 		
 		let result = semantics.resolve_file(&mut self.scope);
 		print!("\n\nResults:");
-		result.iter().for_each(|r| println!("\n{:?}", r));
+		result.iter().for_each(|r| println!("\n{}", r));
 	}
 	
 	pub fn run_and_return(&mut self) -> Vec<Value> {

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt::{Display, Formatter, Result as DisplayResult};
 use std::hash::{Hash, Hasher};
 use crate::{TypeKind, Type, Symbol, GenericType, Expression, Tree, Value, SymbolFinder, ErrorHandler, Token, ScopeContext};
@@ -5,6 +6,7 @@ use crate::{TypeKind, Type, Symbol, GenericType, Expression, Tree, Value, Symbol
 #[derive(Debug, Clone)]
 pub struct StructType {
 	pub members: Vec<(Symbol, TypeKind)>,
+	pub implement: HashMap<Value, Value>
 }
 
 impl StructType {
@@ -91,7 +93,10 @@ impl Tree for DefineStruct {
 				}
 			})
 			.collect();
-		let new_struct = TypeKind::Struct(StructType { members });
+		let new_struct = TypeKind::Struct(StructType { 
+			members,
+			implement: HashMap::new()
+		});
 		scope.pop();
 		if let Some(new_struct) = scope.define_type(&self.symbol, new_struct) {
 			new_struct

@@ -1,15 +1,50 @@
-***
-let x = 10
-int y = x + 1 * 10
-int z = y + 1 * 10
+type number = [
+	int,
+	dec,
+]
 
-logs (x, y, z)
-
-let a = 1234.5678
-***
-
-let mut i = 0
-while i < 10 => {
-	i = i + 1
-	log (i)
+use int {
+	fun [int] sq = self => self = self ^ 2
+	fun [int] abs = self => {
+		if self > 0 => self
+		else => -self
+	}
 }
+
+type [v] iter = [
+	array [v] entries,
+	int i
+]
+
+use [v] iter {
+
+	fun [int]
+	size = _ => {
+		for i, _ in self.entries => i + 1
+	}
+
+	fun [maybe [value: v]]
+	next = _ => {
+		self.i += 1
+		(self.entries).(self.i)
+	}
+	
+	fun [maybe [value: v]] 
+	peek = int amount => {
+		(self.entries).(self.i + amount)
+	}
+	
+}
+
+
+int mut myint = 10
+myint.sq()
+log (myint)
+
+iter [v: int] mut myiter = [
+	entries: [10, 20, 30, 40, 50],
+	i: 0
+]
+
+log (myiter.next())
+log (myiter)

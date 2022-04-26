@@ -8,3 +8,11 @@ type map
 type fun
 type nothing
 type string
+
+type [t] yes = t
+type no = nothing
+
+type [value] maybe = [
+	yes [t: value],
+	no
+]

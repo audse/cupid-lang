@@ -129,6 +129,28 @@ pub fn to_tree(node: &ParseNode) -> Expression {
         },
         
         "primitive_type_hint" => to_tree(&node.children[0]),
+        
+        "implement_block" => {
+            let token = node.tokens[0].clone();
+            let identifier = Symbol::new_string(node.tokens[1].source.clone(), node.tokens[1].clone());
+            let generics = get_generics(&node);
+            // let identifier = if generics.len() > 0 {
+            //     to_tree(&node.children[1])
+            // } else {
+            //     to_tree(&node.children[0])
+            // };
+            let declarations: Vec<Expression> = node.children
+                .iter()
+                .filter_map(|n| {
+                    if n.name.as_str() == "typed_declaration" {
+                        Some(to_tree(&n))
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            Expression::Implement(Implement::new(token, identifier, declarations))
+        }
 
         // Loops
         "for_loop" => {
@@ -209,7 +231,7 @@ pub fn to_tree(node: &ParseNode) -> Expression {
                     node.tokens[0].clone(),
                 )
             } else {
-                Expression::Empty
+                panic!("expected a property")
             }
         },
         // "internal_property_assignment" => Expression::new_internal_property_assign(
@@ -217,6 +239,34 @@ pub fn to_tree(node: &ParseNode) -> Expression {
         //     to_tree(&node.children[1]),
         //     node.tokens[0].clone(),
         // ),
+        "property_op_assignment" => {
+            let property_exp = to_tree(&node.children[0]);
+            if let Expression::Property(property) = property_exp.clone() {
+                let operator = node.tokens[0].clone();
+                let value = to_tree(&node.children[1]);
+                Expression::new_property_assign(
+                    property,
+                    Expression::new_operator(operator, property_exp, value),
+                    node.tokens[0].clone(),
+                )
+            } else {
+                panic!("expected a property")
+            }
+        },
+        "property_op_increment_assignment" => {
+            let property_exp = to_tree(&node.children[0]);
+            if let Expression::Property(property) = property_exp.clone() {
+                let operator = node.tokens[0].clone();
+                let value = Expression::new_int_node(1, vec![operator.clone()]);
+                Expression::new_property_assign(
+                    property,
+                    Expression::new_operator(operator, property_exp, value),
+                    node.tokens[0].clone(),
+                )
+            } else {
+                panic!("expected a property")
+            }
+        },
         "op_assignment" => {
             let symbol = to_tree(&node.children[0]);
             let operator = node.tokens[0].clone();
@@ -286,6 +336,7 @@ pub fn to_tree(node: &ParseNode) -> Expression {
             Args(node.children[0].children.iter().map(to_tree).collect()),
         )),
         "function" => {
+            
             let (params, body) = if node.children.len() > 1 {
                 (
                     node.children[0]
@@ -333,10 +384,14 @@ pub fn to_tree(node: &ParseNode) -> Expression {
         //     Expression::new_internal_property_access(term, node.tokens[0].clone())
         // },
         "property_access" => {
-            let map = to_tree(&node.children[0]);
-            let term = to_tree(&node.children[1]);
-            // Expression::new_property_access(map, term, node.tokens[0].clone())
-            Expression::new_property(map, term, node.tokens[0].clone())
+            if node.children.len() > 1 {
+                let map = to_tree(&node.children[0]);
+                let term = to_tree(&node.children[1]);
+                
+                Expression::new_property(map, term, node.tokens[0].clone())
+            } else {
+                to_tree(&node.children[0])
+            }
         },
 
         // Values

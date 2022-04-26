@@ -25,9 +25,9 @@ impl Tree for Symbol {
 }
 
 impl Symbol {
-	pub fn new_string(identifier: String, token: Token) -> Self {
+	pub fn new_string<S>(identifier: S, token: Token) -> Self where S: Into<String> {
 		Self {
-			identifier: Value::String(identifier), 
+			identifier: Value::String(identifier.into()), 
 			token
 		}
 	}
@@ -41,7 +41,10 @@ impl Symbol {
 		self.error(format!("undefined: `{}` does not exist", &self.get_identifier()))
 	}
 	pub fn error_unable_to_assign(&self, assign_value: &Value) -> Value {
-		self.error(format!("cannot assign {} ({}) to {}", assign_value, TypeKind::infer(assign_value), self))
+		self.error_context(
+			format!("cannot assign {} to {}", assign_value, self.identifier),
+			format!("assigning value type {}", TypeKind::infer(assign_value))
+		)
 	}
 	pub fn error_assign_type_mismatch(&self, assign_value: &Value, current_type: TypeKind) -> Value {
 		self.error_context(

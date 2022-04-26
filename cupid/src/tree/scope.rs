@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::{TypeKind, Symbol, Value};
+use crate::{TypeKind, Symbol, Value, ErrorHandler};
 
 #[derive(Debug, Clone)]
 pub struct LexicalScope {
@@ -14,10 +14,12 @@ impl Default for LexicalScope {
 
 pub trait SymbolFinder {
 	fn get_symbol(&self, symbol: &Symbol) -> Option<Value>;
+	fn get_symbol_from_value(&self, symbol: &Value) -> Option<Value>;
 	fn get_symbol_type(&self, symbol: &Symbol) -> Option<TypeKind>;
 	fn set_symbol(&mut self, symbol: &Symbol, value: Value) -> Result<Option<Value>, Value>;
 	fn create_symbol(&mut self, symbol: &Symbol, value: Value, symbol_type: TypeKind, mutable: bool, deep_mutable: bool) -> Option<Value>;
 	fn define_type(&mut self, symbol: &Symbol, value: TypeKind) -> Option<Value>;
+	fn implement_type(&mut self, symbol: &Symbol, new_value: TypeKind) -> Option<Value>;
 	fn is_mutable(&self, symbol: &Symbol) -> Option<(bool, bool)>;
 }
 
@@ -66,6 +68,14 @@ impl SymbolFinder for LexicalScope {
 		}
 		None
 	}
+	fn get_symbol_from_value(&self, symbol: &Value) -> Option<Value> {
+		for scope in self.scopes.iter().rev() {
+			if let Some(value) = scope.get_symbol_from_value(symbol) {
+				return Some(value);
+			}
+		}
+		None
+	}
 	fn get_symbol_type(&self, symbol: &Symbol) -> Option<TypeKind> {
 		for scope in self.scopes.iter().rev() {
 			if let Some(symbol_type) = scope.get_symbol_type(symbol) {
@@ -90,6 +100,14 @@ impl SymbolFinder for LexicalScope {
 			return scope.set_symbol(symbol, value);
 		}
 		Err(not_found_error(symbol))
+	}
+	fn implement_type(&mut self, symbol: &Symbol, new_value: TypeKind) -> Option<Value> {
+		for scope in self.scopes.iter_mut().rev() {
+			if let Some(_) = scope.get_symbol(symbol) {
+				return scope.implement_type(symbol, new_value);
+			}
+		}
+		None
 	}
 	fn create_symbol(&mut self, symbol: &Symbol, value: Value, symbol_type: TypeKind, mutable: bool, deep_mutable: bool) -> Option<Value> {
 		if let Some(scope) = self.last_mut() {
@@ -182,6 +200,15 @@ impl SymbolFinder for Scope {
 		}
 		None
 	}
+	fn get_symbol_from_value(&self, symbol: &Value) -> Option<Value> {
+		if let Some(stored_symbol) = self.storage.get(&symbol) {
+			return match stored_symbol {
+				SymbolValue::Variable(symbol_value) => Some(symbol_value.value.clone()),
+				SymbolValue::Type(type_value) => Some(Value::Type(type_value.clone()))
+			}
+		}
+		None
+	}
 	fn get_symbol_type(&self, symbol: &Symbol) -> Option<TypeKind> {
 		if let Some(stored_symbol) = self.storage.get(&symbol.identifier) {
 			return match stored_symbol {
@@ -214,13 +241,29 @@ impl SymbolFinder for Scope {
 						return Err(symbol.error_assign_type_mismatch(&new_value, symbol_value.value_type.clone()))
 					}
 				},
-				SymbolValue::Type(_) => {
-					return Err(symbol.error_unable_to_assign(&new_value))
+				SymbolValue::Type(t) => {
+					return Err(symbol.error_context(
+						"cannot assign an value to an existing type: {t}",
+						format!("attempting to assign value {new_value} to type {t}").as_str()
+					))
 				}
 			}
 			return Ok(self.get_symbol(symbol))
 		}
 		Err(not_found_error(symbol))
+	}
+	
+	fn implement_type(&mut self, symbol: &Symbol, new_value: TypeKind) -> Option<Value> {
+		self.storage.entry(symbol.identifier.clone())
+			.and_modify(|entry| {
+				match &entry {
+					SymbolValue::Type(_) => {
+						*entry = SymbolValue::Type(new_value);
+					},
+					_ => panic!()
+				};
+			});
+		self.get_symbol(symbol)
 	}
 	
 	fn create_symbol(&mut self, symbol: &Symbol, value: Value, value_type: TypeKind, mutable: bool, deep_mutable: bool) -> Option<Value> {
@@ -262,7 +305,7 @@ fn assign_to_immutable_error(symbol: &Symbol, stored_value: &SymbolValue) -> Opt
 				"`{symbol}` is a type and cannot be reassigned",
 				symbol = symbol.get_identifier(),
 			), String::new()
-		))
+		));
 	}
 }
 

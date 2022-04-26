@@ -34,6 +34,7 @@ pub enum Expression {
     StructTypeHint(StructTypeHint),
     FunctionTypeHint(FunctionTypeHint),
     PropertyAssign(PropertyAssign),
+    Implement(Implement),
 }
 
 impl Display for Expression {
@@ -265,6 +266,7 @@ impl Tree for Expression {
             Self::StructTypeHint(x) => x.resolve(scope),
             Self::FunctionTypeHint(x) => x.resolve(scope),
             Self::PropertyAssign(x) => x.resolve(scope),
+            Self::Implement(x) => x.resolve(scope),
             _ => Value::None,
         }
     }

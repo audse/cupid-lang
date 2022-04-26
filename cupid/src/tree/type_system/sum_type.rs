@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt::{Display, Formatter, Result as DisplayResult};
 use std::hash::{Hash, Hasher};
 use crate::{TypeKind, Type, Symbol, GenericType, Expression, Tree, Value, SymbolFinder, ErrorHandler, Token, ScopeContext};
@@ -5,6 +6,7 @@ use crate::{TypeKind, Type, Symbol, GenericType, Expression, Tree, Value, Symbol
 #[derive(Debug, Clone)]
 pub struct SumType {
 	pub types: Vec<TypeKind>,
+	pub implement: HashMap<Value, Value>
 }
 
 impl SumType {
@@ -73,7 +75,10 @@ impl Tree for DefineSum {
 				}
 			})
 			.collect();
-		let new_sum = TypeKind::Sum(SumType { types });
+		let new_sum = TypeKind::Sum(SumType { 
+			types,
+			implement: HashMap::new()
+		});
 		scope.pop();
 		if let Some(new_sum) = scope.define_type(&self.symbol, new_sum) {
 			new_sum

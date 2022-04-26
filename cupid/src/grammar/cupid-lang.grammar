@@ -7,17 +7,18 @@
 	| break
 	| return
 	| continue
-	| property_assignment
 	| op_assignment
 	| op_increment_assignment
 	| assignment
+	| property_assignment
+	| property_op_assignment
+	| property_op_increment_assignment
 	| log
 
 -~term:
 	loop
 	| block
 	| function
-	| function_call
 	| map
 	| bracket_array
 	| operation
@@ -34,7 +35,8 @@
 - infinite_loop: 'loop' block
 
 - block: 
-	if_block
+	implement_block
+	| if_block
 	| box_block
 	| brace_block
 	| arrow_block
@@ -52,9 +54,13 @@
 - assignment: identifier equal assignment_value
 - property_assignment: property_access equal assignment_value
 
+- property_op_assignment: property_access operator equal assignment_value
+- property_op_increment_assignment: property_access increment_operator
+
 - op_assignment: identifier operator equal assignment_value
 -~operator: '+' | '-' | '*' | '/' | '^' | '%'
-- op_increment_assignment: identifier '+' '+' | identifier '-' '-'
+- op_increment_assignment: identifier increment_operator
+-~increment_operator: '+' '+' | '-' '-'
 
 -~type_definition:
 	builtin_type_definition
@@ -92,12 +98,15 @@
 - struct_type_hint: identifier '[' (struct_member_type_hint ',')* ']'
 - struct_member_type_hint: identifier ':' type_hint
 
+- implement_block: 'use' generics? WORD '{' typed_declaration* closing_brace
+#- implement_trait_block: 'use' identifier 'with' identifier brace_block
+
 
 -~equal: '=' !'>'
 
 -~atom:
-	group
-	| property_access
+	function_call
+	| group
 	| unary_op
 	| boolean
 	| none
@@ -109,7 +118,8 @@
 
 - group: ~'(' term closing_paren
 - function: parameters block
-- parameters:  ~'_' | (annotated_parameter ~',')*
+- parameters: (parameter ~',')*
+-~parameter: ~'_' | ~'self' | annotated_parameter
 - annotated_parameter: type_hint identifier
 
 - log: log_keyword ~'(' arguments closing_paren
@@ -135,9 +145,9 @@
 - range_exclusive_inclusive: atom '[' ~'.' ~'.' atom ']'
 - range_exclusive_exclusive: atom '[' ~'.' ~'.' ']' atom
 
-- property_access: property_accessor '.' require_property
--~property_accessor: map | function_call | identifier | 'self'
--~require_property: atom | <e 'missing index or property identifier'>
+#- property_access: property_accessor '.' require_property
+#-~property_accessor: map | function_call | group | identifier | 'self'
+#-~require_property: function_call | property_access | atom | <e 'missing index or property identifier'>
 
 -~operation: binary_op
 
@@ -152,8 +162,11 @@
 - multiply: exponent multiply_suffix?
 -~multiply_suffix: '*' multiply | '/' multiply | '%' multiply
 
-- exponent: atom exponent_suffix?
+- exponent: property_access exponent_suffix?
 -~exponent_suffix: '^' exponent
+
+- property_access: atom property_access_suffix?
+-~property_access_suffix: '.' property_access
 
 - unary_op: '+' atom | '-' atom
 
@@ -198,6 +211,8 @@
 	| 'logs'
 	| 'log_line'
 	| 'logs_line'
+	| 'use'
+	| 'trait'
 
 -~keyword_variable:
 	'let'

@@ -30,7 +30,7 @@ pub use types::*;
 
 // use std::hash::{Hash, Hasher};
 use std::fmt::{Display, Formatter, Result as DisplayResult};
-use crate::Value;
+use crate::{Value, Symbol};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TypeKind {
@@ -86,6 +86,7 @@ impl TypeKind {
 					Self::new_map(Self::new_generic("k"), Self::new_generic("v"))
 				}
 			},
+			Value::Type(t) => t.clone(),
 			x => {
 				println!("Cannot infer type of {:?}", x);
 				unreachable!()
@@ -117,6 +118,18 @@ impl TypeKind {
 			(_, Self::Generic(_)) => true,
 			(Self::Generic(_), _) => true,
 			(x, y) => x == &y,
+		}
+	}
+	
+	pub fn get_implemented_symbol(&self, symbol: &Value) -> Option<Value> {
+		match self {
+			Self::Primitive(x) => {
+				x.implement.get(symbol).cloned()
+			},
+			Self::Alias(x) => x.implement.get(symbol).cloned(),
+			Self::Struct(x) => x.implement.get(symbol).cloned(),
+			Self::Sum(x) => x.implement.get(symbol).cloned(),
+			_ => None
 		}
 	}
 }
@@ -158,26 +171,34 @@ pub trait Type {
 impl Display for TypeKind {
 	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
 		match self {
-			Self::Primitive(x) => write!(f, "{}", x.identifier),
+			Self::Primitive(x) => {
+				let implement: Vec<String> = x.implement.iter().map(|(k, v)| format!("{}: {v}", k)).collect();
+				write!(f, "{}: use [{}]", x.identifier, implement.join(", "))
+			},
 			Self::Array(x) => write!(f, "array [{}]", x.element_type),
 			Self::Map(x) => write!(f, "map [{}, {}]", x.key_type, x.value_type),
 			Self::Function(x) => write!(f, "fun [{}]", x.return_type),
 			Self::Generic(x) => write!(f, "<{}>", x.identifier),
 			Self::Struct(x) => {
+				let implement: Vec<String> = x.implement.iter().map(|(k, v)| format!("{}: {v}", k)).collect();
 				let members: Vec<String> = x.members
 					.iter()
 					.map(|(symbol, member)| format!("{}: {member}", symbol.identifier))
 					.collect();
-				write!(f, "[{}]", members.join(", "))
+				write!(f, "[{}]: use: [{}]", members.join(", "), implement.join(", "))
 			},
 			Self::Sum(x) => {
+				let implement: Vec<String> = x.implement.iter().map(|(k, v)| format!("{}: {v}", k)).collect();
 				let members: Vec<String> = x.types
 					.iter()
 					.map(|member| member.to_string())
 					.collect();
-				write!(f, "one of [{}]", members.join(", "))
+				write!(f, "one of [{}]: use [{}]", members.join(", "), implement.join(", "))
 			},
-			Self::Alias(x) => write!(f, "alias of {}", x.true_type),
+			Self::Alias(x) => {
+				let implement: Vec<String> = x.implement.iter().map(|(k, v)| format!("{}: {v}", k)).collect();
+				write!(f, "alias of {}: use [{}]", x.true_type, implement.join(", "))
+			},
 		}
 	}
 }

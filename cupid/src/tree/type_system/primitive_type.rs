@@ -1,19 +1,21 @@
+use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::fmt::{Display, Formatter, Result as DisplayResult};
 use std::borrow::Cow;
-use crate::Type;
+use crate::{Type, Symbol, Value};
 
 #[derive(Debug, Clone)]
 pub struct PrimitiveType {
 	pub identifier: Cow<'static, str>,
+	pub implement: HashMap<Value, Value>,
 }
 
 impl PrimitiveType {
-	pub const fn new_const(identifier: &'static str) -> Self {
-		Self { identifier: Cow::Borrowed(identifier) }
-	}
 	pub fn new(identifier: &str) -> Self {
-		Self { identifier: Cow::Owned(identifier.to_string()) }
+		Self { 
+			identifier: Cow::Owned(identifier.to_string()),
+			implement: HashMap::new()
+		}
 	}
 }
 

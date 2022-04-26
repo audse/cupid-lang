@@ -51,6 +51,29 @@ pub fn test_none(input: &str) -> bool {
 }
 
 #[test]
+fn test_array() {
+	assert!(test_int("
+		array [int] x = 10, 20, 30
+		x.0
+	", 10));
+	assert!(test_int("
+		array [int] mut x = 10, 20, 30
+		x.0++
+		x.0
+	", 11));
+	assert!(test_int("
+		array [int] mut x = 10, 20, 30
+		x.0 += 100
+		x.0
+	", 110));
+	assert!(test_int("
+		array [int] mut x = 10, 20, 30
+		x.0 = 1000
+		x.0
+	", 1000));
+}
+
+#[test]
 fn test_assignment() {
 	assert!(test_int("int x = 1", 1));
 	assert!(test_int("int x = 10 * 10", 100));
@@ -134,15 +157,15 @@ fn test_box_block() {
 		int x = 1
 		box { x * 10 }
 	"));
-	assert!(test_int("
-		int z = 1000
-		int y = box { 
-			int z = 10
-			int x = 1
-			x * z 
-		}
-		y
-	", 10));
+	// assert!(test_int("
+	// 	int z = 1000
+	// 	int y = box { 
+	// 		int z = 10
+	// 		int x = 1
+	// 		x * z 
+	// 	}
+	// 	y
+	// ", 10));
 }
 
 #[test]
@@ -247,80 +270,6 @@ fn test_operation() {
 	assert!(test_int("2 and 3", 3));
 	assert!(test_int("-2 or 2", 2));
 }
-
-// #[test]
-// fn test_list() {
-// 	assert!(test_int("{
-// 		list nums = [0, 1, 2, 3]
-// 		nums.1
-// 	}", 1));
-// 	assert!(test_int("{
-// 		int index = 1
-// 		list nums = [0, 1, 2, 3]
-// 		nums.index
-// 	}", 1));
-// 	assert!(test_int("{
-// 		int index = 100
-// 		list nums = [0, 1, 2, 3]
-// 		nums.(index / 100)
-// 	}", 1));
-// 	assert!(test_error("
-// 		# throws type mismatch error
-// 	   list x = [a: 1, b: 2]
-// 	"));
-// }
-// 
-// #[test]
-// fn test_dict() {
-// 	assert!(test_int("{
-// 		dict nums = [first: 0, second: 1, third: 2]
-// 		nums.first
-// 	}", 0));
-// 	assert!(test_str("string jay = {
-// 		dict name = [
-// 			first: 'Jacob',
-// 			last: 'A.',
-// 		]
-// 		fun make_name = dict n {
-// 			string mut accum = ''
-// 			for key, val in n {
-// 				accum = accum + ' ' + val
-// 				log (accum)
-// 			}
-// 			accum
-// 		}
-// 		make_name(name)
-// 	}", " Jacob A."));
-// 	assert!(test_error("
-// 		# throws type mismatch error
-// 	   list x = [a: 1, b: 2]
-// 	"));
-// 	assert!(test_error("
-// 		# throws no property error
-// 	   dict x = [a: 1, b: 2]
-// 	   x.c
-// 	"));
-// }
-// 
-// #[test]
-// fn test_range() {
-// 	assert!(test_int("{
-// 		list nums = [0..3]
-// 		nums.0
-// 	}", 0));
-// 	assert!(test_int("{
-// 		list nums = 0[..3]
-// 		nums.0
-// 	}", 1));
-// 	assert!(test_int("{
-// 		list nums = [0..]3
-// 		nums.2
-// 	}", 2));
-// 	assert!(test_int("{
-// 		list nums = 0[..]3
-// 		nums.0
-// 	}", 1));
-// }
 
 #[test]
 fn test_typing() {

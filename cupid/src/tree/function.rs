@@ -53,7 +53,6 @@ impl Tree for FunctionCall {
 				Value::FunctionBody(params, body) => (params, body),
 				_ => {
 					scope.pop();
-					// return self.type_error(&fun, FUNCTION);
 					return self.undefined_error("".to_string())
 				}
 			};

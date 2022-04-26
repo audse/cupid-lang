@@ -302,13 +302,6 @@ use_item!(&mut node, self._continue(None), false);
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self._property_assignment(None), false);
-
-			return Some((node, true));
-		
-}
-		self.reset_parse(&mut node, pos);
-loop { 
 use_item!(&mut node, self._op_assignment(None), false);
 
 			return Some((node, true));
@@ -324,6 +317,27 @@ use_item!(&mut node, self._op_increment_assignment(None), false);
 		self.reset_parse(&mut node, pos);
 loop { 
 use_item!(&mut node, self._assignment(None), false);
+
+			return Some((node, true));
+		
+}
+		self.reset_parse(&mut node, pos);
+loop { 
+use_item!(&mut node, self._property_assignment(None), false);
+
+			return Some((node, true));
+		
+}
+		self.reset_parse(&mut node, pos);
+loop { 
+use_item!(&mut node, self._property_op_assignment(None), false);
+
+			return Some((node, true));
+		
+}
+		self.reset_parse(&mut node, pos);
+loop { 
+use_item!(&mut node, self._property_op_increment_assignment(None), false);
 
 			return Some((node, true));
 		
@@ -363,13 +377,6 @@ use_item!(&mut node, self._block(None), false);
 		self.reset_parse(&mut node, pos);
 loop { 
 use_item!(&mut node, self._function(None), false);
-
-			return Some((node, true));
-		
-}
-		self.reset_parse(&mut node, pos);
-loop { 
-use_item!(&mut node, self._function_call(None), false);
 
 			return Some((node, true));
 		
@@ -528,6 +535,13 @@ use_item!(&mut node, self._block(None), false);
 				children: vec![],
 			};
 			loop { 
+use_item!(&mut node, self._implement_block(None), false);
+
+			return Some((node, false));
+		
+}
+		self.reset_parse(&mut node, pos);
+loop { 
 use_item!(&mut node, self._if_block(None), false);
 
 			return Some((node, false));
@@ -743,6 +757,46 @@ use_item!(&mut node, self._assignment_value(None), false);
 			None
 		}
 		
+		pub fn _property_op_assignment(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
+			let start_pos = self.tokens.index();
+			let pos = start_pos;
+			let mut node = Node {
+				name: "property_op_assignment".to_string(),
+				tokens: vec![],
+				children: vec![],
+			};
+			loop { 
+use_item!(&mut node, self._property_access(None), false);
+use_item!(&mut node, self._operator(None), false);
+use_item!(&mut node, self._equal(None), false);
+use_item!(&mut node, self._assignment_value(None), false);
+
+			return Some((node, false));
+		
+}
+		self.reset_parse(&mut node, pos);
+			None
+		}
+		
+		pub fn _property_op_increment_assignment(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
+			let start_pos = self.tokens.index();
+			let pos = start_pos;
+			let mut node = Node {
+				name: "property_op_increment_assignment".to_string(),
+				tokens: vec![],
+				children: vec![],
+			};
+			loop { 
+use_item!(&mut node, self._property_access(None), false);
+use_item!(&mut node, self._increment_operator(None), false);
+
+			return Some((node, false));
+		
+}
+		self.reset_parse(&mut node, pos);
+			None
+		}
+		
 		pub fn _op_assignment(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
@@ -827,19 +881,36 @@ use_item!(&mut node, self.expect("%".to_string()), false);
 			};
 			loop { 
 use_item!(&mut node, self._identifier(None), false);
-use_item!(&mut node, self.expect("+".to_string()), false);
-use_item!(&mut node, self.expect("+".to_string()), false);
+use_item!(&mut node, self._increment_operator(None), false);
 
 			return Some((node, false));
 		
 }
 		self.reset_parse(&mut node, pos);
+			None
+		}
+		
+		pub fn _increment_operator(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
+			let start_pos = self.tokens.index();
+			let pos = start_pos;
+			let mut node = Node {
+				name: "increment_operator".to_string(),
+				tokens: vec![],
+				children: vec![],
+			};
+			loop { 
+use_item!(&mut node, self.expect("+".to_string()), false);
+use_item!(&mut node, self.expect("+".to_string()), false);
+
+			return Some((node, true));
+		
+}
+		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self._identifier(None), false);
 use_item!(&mut node, self.expect("-".to_string()), false);
 use_item!(&mut node, self.expect("-".to_string()), false);
 
-			return Some((node, false));
+			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
@@ -1247,6 +1318,29 @@ use_item!(&mut node, self._type_hint(None), false);
 			None
 		}
 		
+		pub fn _implement_block(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
+			let start_pos = self.tokens.index();
+			let pos = start_pos;
+			let mut node = Node {
+				name: "implement_block".to_string(),
+				tokens: vec![],
+				children: vec![],
+			};
+			loop { 
+use_item!(&mut node, self.expect("use".to_string()), false);
+use_optional!(&mut node, self._generics(None), false);
+use_item!(&mut node, self.expect_word(None), false);
+use_item!(&mut node, self.expect("{".to_string()), false);
+use_repeat!(&mut node, self._typed_declaration(None), false);
+use_item!(&mut node, self._closing_brace(None), false);
+
+			return Some((node, false));
+		
+}
+		self.reset_parse(&mut node, pos);
+			None
+		}
+		
 		pub fn _equal(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
@@ -1275,14 +1369,14 @@ use_negative_lookahead!(self, self.tokens.index(), &mut self.expect(">".to_strin
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self._group(None), false);
+use_item!(&mut node, self._function_call(None), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self._property_access(None), false);
+use_item!(&mut node, self._group(None), false);
 
 			return Some((node, true));
 		
@@ -1395,18 +1489,43 @@ use_item!(&mut node, self._block(None), false);
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("_".to_string()), true);
-
+loop { 
+use_item!(&mut node, self._parameter(None), false);
+use_item!(&mut node, self.expect(",".to_string()), true);
+}
 			return Some((node, false));
 		
 }
 		self.reset_parse(&mut node, pos);
+			None
+		}
+		
+		pub fn _parameter(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
+			let start_pos = self.tokens.index();
+			let pos = start_pos;
+			let mut node = Node {
+				name: "parameter".to_string(),
+				tokens: vec![],
+				children: vec![],
+			};
+			loop { 
+use_item!(&mut node, self.expect("_".to_string()), true);
+
+			return Some((node, true));
+		
+}
+		self.reset_parse(&mut node, pos);
 loop { 
+use_item!(&mut node, self.expect("self".to_string()), true);
+
+			return Some((node, true));
+		
+}
+		self.reset_parse(&mut node, pos);
 loop { 
 use_item!(&mut node, self._annotated_parameter(None), false);
-use_item!(&mut node, self.expect(",".to_string()), true);
-}
-			return Some((node, false));
+
+			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
@@ -1753,90 +1872,6 @@ use_item!(&mut node, self._atom(None), false);
 			None
 		}
 		
-		pub fn _property_access(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
-			let start_pos = self.tokens.index();
-			let pos = start_pos;
-			let mut node = Node {
-				name: "property_access".to_string(),
-				tokens: vec![],
-				children: vec![],
-			};
-			loop { 
-use_item!(&mut node, self._property_accessor(None), false);
-use_item!(&mut node, self.expect(".".to_string()), false);
-use_item!(&mut node, self._require_property(None), false);
-
-			return Some((node, false));
-		
-}
-		self.reset_parse(&mut node, pos);
-			None
-		}
-		
-		pub fn _property_accessor(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
-			let start_pos = self.tokens.index();
-			let pos = start_pos;
-			let mut node = Node {
-				name: "property_accessor".to_string(),
-				tokens: vec![],
-				children: vec![],
-			};
-			loop { 
-use_item!(&mut node, self._map(None), false);
-
-			return Some((node, true));
-		
-}
-		self.reset_parse(&mut node, pos);
-loop { 
-use_item!(&mut node, self._function_call(None), false);
-
-			return Some((node, true));
-		
-}
-		self.reset_parse(&mut node, pos);
-loop { 
-use_item!(&mut node, self._identifier(None), false);
-
-			return Some((node, true));
-		
-}
-		self.reset_parse(&mut node, pos);
-loop { 
-use_item!(&mut node, self.expect("self".to_string()), false);
-
-			return Some((node, true));
-		
-}
-		self.reset_parse(&mut node, pos);
-			None
-		}
-		
-		pub fn _require_property(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
-			let start_pos = self.tokens.index();
-			let pos = start_pos;
-			let mut node = Node {
-				name: "require_property".to_string(),
-				tokens: vec![],
-				children: vec![],
-			};
-			loop { 
-use_item!(&mut node, self._atom(None), false);
-
-			return Some((node, true));
-		
-}
-		self.reset_parse(&mut node, pos);
-loop { 
-use_item!(&mut node, self.expect_tag("<e 'missing index or property identifier'>".to_string()), false);
-
-			return Some((node, true));
-		
-}
-		self.reset_parse(&mut node, pos);
-			None
-		}
-		
 		pub fn _operation(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
@@ -2020,7 +2055,7 @@ use_item!(&mut node, self._multiply(None), false);
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self._atom(None), false);
+use_item!(&mut node, self._property_access(None), false);
 use_optional!(&mut node, self._exponent_suffix(None), false);
 
 			return Some((node, false));
@@ -2041,6 +2076,44 @@ use_optional!(&mut node, self._exponent_suffix(None), false);
 			loop { 
 use_item!(&mut node, self.expect("^".to_string()), false);
 use_item!(&mut node, self._exponent(None), false);
+
+			return Some((node, true));
+		
+}
+		self.reset_parse(&mut node, pos);
+			None
+		}
+		
+		pub fn _property_access(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
+			let start_pos = self.tokens.index();
+			let pos = start_pos;
+			let mut node = Node {
+				name: "property_access".to_string(),
+				tokens: vec![],
+				children: vec![],
+			};
+			loop { 
+use_item!(&mut node, self._atom(None), false);
+use_optional!(&mut node, self._property_access_suffix(None), false);
+
+			return Some((node, false));
+		
+}
+		self.reset_parse(&mut node, pos);
+			None
+		}
+		
+		pub fn _property_access_suffix(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
+			let start_pos = self.tokens.index();
+			let pos = start_pos;
+			let mut node = Node {
+				name: "property_access_suffix".to_string(),
+				tokens: vec![],
+				children: vec![],
+			};
+			loop { 
+use_item!(&mut node, self.expect(".".to_string()), false);
+use_item!(&mut node, self._property_access(None), false);
 
 			return Some((node, true));
 		
@@ -2523,6 +2596,20 @@ use_item!(&mut node, self.expect("log_line".to_string()), false);
 		self.reset_parse(&mut node, pos);
 loop { 
 use_item!(&mut node, self.expect("logs_line".to_string()), false);
+
+			return Some((node, true));
+		
+}
+		self.reset_parse(&mut node, pos);
+loop { 
+use_item!(&mut node, self.expect("use".to_string()), false);
+
+			return Some((node, true));
+		
+}
+		self.reset_parse(&mut node, pos);
+loop { 
+use_item!(&mut node, self.expect("trait".to_string()), false);
 
 			return Some((node, true));
 		

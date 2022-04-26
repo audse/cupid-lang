@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::fmt::{Display, Formatter, Result as DisplayResult};
 use crate::{TypeKind, Type, Symbol, GenericType, Expression, Tree, Value, SymbolFinder, ErrorHandler, Token, ScopeContext};
@@ -5,6 +6,7 @@ use crate::{TypeKind, Type, Symbol, GenericType, Expression, Tree, Value, Symbol
 #[derive(Debug, Clone)]
 pub struct AliasType {
 	pub true_type: Box<TypeKind>,
+	pub implement: HashMap<Value, Value>
 }
 
 impl Type for AliasType {
@@ -51,7 +53,10 @@ impl Tree for DefineAlias {
 		
 		if let Value::Type(mut true_type) = self.true_type.resolve(scope) {
 			true_type.convert_primitives_to_generics(&self.resolve_generics());
-			let new_alias = TypeKind::Alias(AliasType { true_type: Box::new(true_type) });
+			let new_alias = TypeKind::Alias(AliasType { 
+				true_type: Box::new(true_type), 
+				implement: HashMap::new()
+			});
 			
 			scope.pop();
 			if let Some(new_alias) = scope.define_type(&self.symbol, new_alias) {

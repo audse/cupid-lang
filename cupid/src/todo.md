@@ -5,8 +5,9 @@
 - [x] Declaration
 - [x] Assignment
 - [x] Immutable
-- [ ] Deep immutable
+- [x] Deep immutable
 - [x] Rework grammar
+- [ ] Add const/let for type inference
 
 ## Type system
 
@@ -48,6 +49,9 @@ use add with my_struct [
   add: self, my_struct other => self.my_data + other
 ]
 ```
+- [ ] Type implementations
+  - [x] Declare `use` block
+  - [ ] Call associated functions on any struct instance
 
 ### Type checker
 
@@ -112,12 +116,12 @@ use add with my_struct [
   - [ ] Step
   - [ ] Characters
 - [x] Property access
-- [ ] Property assignment
+- [x] Property assignment
 - [x] Lightweight array that isn't a map
 - [ ] Add/remove properties
-- [ ] Property chaining
+- [ ] Property chaining (needs to be left recursive)
 - [ ] Self keyword
-  - [ ] Reference inner properties
+  - [x] Reference inner properties
   - [ ] Mutate inner properties
 - [ ] Number/string types
   - [ ] Irrational numbers
@@ -141,6 +145,7 @@ use add with my_struct [
 - [x] Variable shadowing
 - [ ] Template strings `'my favorite number is {{ 30 + 7 }}'`
 - [ ] Escape keywords like Rusts `r#type` (only better ...)
+- [ ] Method overloading
 
 ## Bugfixes
 
@@ -164,14 +169,20 @@ use add with my_struct [
 ## Meta
 
 - [ ] Benchmarking performance
-- [ ] Optimization
-  - [ ] `String` to `Cow`
-- [ ] Documentation
+
+### Optimization
+
+- [ ] `String` to `Cow`
+- [ ] Cut down on clones- use `Rc`
+- [ ] Instead of reassigning whole symbol, mutate symbol value
+
 
 ### Error handling
 
 - [ ] Differentiate between errors and warnings
 - [ ] Report errors before compiling
+- [ ] Function param & return type mismatches
+- [ ] Add more error handling in the parsing phase
 
 ## Parser
 
@@ -193,4 +204,12 @@ use add with my_struct [
 - [ ] Linter
 - [ ] Vscode extension
 - [ ] Nova extension?
-- [ ] Online playground
+
+### Online playground
+- [ ] Set up web assembly
+- [ ] Create basic code editor (CodeMirror)
+- [ ] Create basic syntax highlighting
+- [ ] Host on Github pages
+
+### Documentation
+- [ ] Style guide
