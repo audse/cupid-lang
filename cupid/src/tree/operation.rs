@@ -34,6 +34,8 @@ impl Tree for Operator {
 				"or" => left | right,
 				"is" | "==" => Value::Boolean(left == right),
 				"not" | "!=" => Value::Boolean(left != right),
+				"istype" => left.is_type(right),
+				"as" => left.cast(right),
 				">" => Value::Boolean(left > right),
 				">=" => Value::Boolean(left >= right),
 				"<" => Value::Boolean(left < right),

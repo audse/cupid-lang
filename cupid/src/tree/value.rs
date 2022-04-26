@@ -1,9 +1,9 @@
 use std::fmt::{Display, Formatter, Result};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
-use crate::{TypeKind, Symbol, Expression, Error, Token};
 use std::ops::{Add, Sub, Mul, Neg, Div, Rem, BitAnd, BitOr};
 use std::cmp::Ordering;
+use crate::{TypeKind, Symbol, Expression, Error, Token};
 
 
 #[derive(Debug, Clone)]
@@ -23,6 +23,7 @@ pub enum Value {
 	Continue,
 	None,
 }
+
 
 impl Add for Value {
 	type Output = Self;
@@ -219,12 +220,13 @@ impl Value {
 	}
 	pub fn is_truthy(&self) -> bool {
 		match self {
-			Value::Integer(x) => *x > 0,
-			Value::Decimal(x, y) => dec_to_float(*x, *y) > 0.0,
+			Value::Integer(x) => *x >= 0,
+			Value::Decimal(x, y) => dec_to_float(*x, *y) >= 0.0,
 			Value::Map(x) => x.len() > 0,
 			Value::Array(x) => x.len() > 0,
 			Value::Boolean(x) => *x,
-			_ => false
+			Value::Char(x) => *x != '\0',
+			_ => true
 		}
 	}
 	pub fn pow(&self, right: &Self, operator: &Token) -> Self {
@@ -244,20 +246,80 @@ impl Value {
 			)
 		}
 	}
+	
+	pub fn cast(&self, type_kind: Value) -> Value {
+		match type_kind {
+			Value::Type(TypeKind::Primitive(t)) => match t.identifier.into_owned().as_str() {
+				"int" => self.as_int(),
+				"dec" => self.as_dec(),
+				"bool" => self.as_bool(),
+				"string" => self.as_string(),
+				_ => panic!("unable to cast")
+			},
+			_ => panic!("unable to cast")
+		}
+	}
+	pub fn as_int(&self) -> Value {
+		match self {
+			Value::Integer(y) => Value::Integer(*y),
+			Value::Decimal(a, b) => Value::Integer(dec_to_float(*a, *b) as i32),
+			Value::Boolean(y) => match y {
+				true => Value::Integer(1),
+				false => Value::Integer(-1),
+			},
+			Value::String(x) => Value::Integer(x.parse::<i32>().unwrap_or_else(|_| panic!())),
+			_ => panic!()
+		}
+	}
+	pub fn as_bool(&self) -> Value {
+		Value::Boolean(self.is_truthy())
+	}
+	pub fn as_dec(&self) -> Value {
+		match self {
+			Value::Decimal(a, b) => Value::Decimal(*a, *b),
+			Value::Integer(x) => float_to_dec(*x as f64),
+			Value::Boolean(y) => match y {
+				true => Value::Decimal(1, 0),
+				false => Value::Decimal(-1, 0),
+			},
+			Value::String(x) => float_to_dec(x.parse::<f64>().unwrap_or_else(|_| panic!())),
+			_ => panic!()
+		}
+	}
+	pub fn as_string(&self) -> Value {
+		Value::String(self.to_string())
+	}
+	pub fn is_type(&self, other: Value) -> Value {
+		match other {
+			Value::Type(type_kind) => match type_kind {
+				TypeKind::Primitive(p) => Value::Boolean(match (self, p.identifier.into_owned().as_str()) {
+					(Value::Integer(_), "int") => true,
+					(Value::Decimal(_, _), "dec") => true,
+					(Value::Char(_), "char") => true,
+					(Value::Boolean(_), "bool") => true,
+					(Value::String(_), "string") => true,
+					_ => false
+				}),
+				_ => panic!()
+			},
+			_ => panic!()
+		}
+	}
 }
 
 impl Display for Value {
 	fn fmt(&self, f: &mut Formatter) -> Result {
 		match self {
-			Self::Integer(v) => write!(f, "{}", v),
-			Self::Char(x) => write!(f, "{}", x),
-			Self::Decimal(v, w) => write!(f, "{}.{}", v, w),
-			Self::Error(e) => write!(f, "{}", e), // TODO change this
-			Self::String(s) => write!(f, "{}", s),
+			Self::Boolean(b) => write!(f, "{b}"),
+			Self::Integer(v) => write!(f, "{v}"),
+			Self::Char(x) => write!(f, "{x}"),
+			Self::Decimal(v, w) => write!(f, "{v}.{w}"),
+			Self::Error(e) => write!(f, "{e}"), // TODO change this
+			Self::String(s) => write!(f, "{s}"),
 			Self::Array(array) => {
 				let entries: Vec<String> = array
 					.iter()
-					.map(|item| format!("{}", *item))
+					.map(|item| format!("{item}"))
 					.collect();
 				_ = write!(f, "[{}]", entries.join(", "));
 				Ok(())
@@ -278,7 +340,7 @@ impl Display for Value {
 				_ = write!(f, "fun ({})", params.join(","));
 				Ok(())
 			},
-			Self::Type(type_kind) => write!(f, "{}", type_kind),
+			Self::Type(type_kind) => write!(f, "{type_kind}"),
 			v => write!(f, "{:?}", v)
 		}
 	}

@@ -274,6 +274,27 @@ use_item!(&mut node, self._type_definition(None), false);
 }
 		self.reset_parse(&mut node, pos);
 loop { 
+use_item!(&mut node, self._trait_definition(None), false);
+
+			return Some((node, true));
+		
+}
+		self.reset_parse(&mut node, pos);
+loop { 
+use_item!(&mut node, self._implement_block(None), false);
+
+			return Some((node, true));
+		
+}
+		self.reset_parse(&mut node, pos);
+loop { 
+use_item!(&mut node, self._implement_trait_block(None), false);
+
+			return Some((node, true));
+		
+}
+		self.reset_parse(&mut node, pos);
+loop { 
 use_item!(&mut node, self._typed_declaration(None), false);
 
 			return Some((node, true));
@@ -535,13 +556,6 @@ use_item!(&mut node, self._block(None), false);
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self._implement_block(None), false);
-
-			return Some((node, false));
-		
-}
-		self.reset_parse(&mut node, pos);
-loop { 
 use_item!(&mut node, self._if_block(None), false);
 
 			return Some((node, false));
@@ -1333,6 +1347,80 @@ use_item!(&mut node, self.expect_word(None), false);
 use_item!(&mut node, self.expect("{".to_string()), false);
 use_repeat!(&mut node, self._typed_declaration(None), false);
 use_item!(&mut node, self._closing_brace(None), false);
+
+			return Some((node, false));
+		
+}
+		self.reset_parse(&mut node, pos);
+			None
+		}
+		
+		pub fn _implement_trait_block(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
+			let start_pos = self.tokens.index();
+			let pos = start_pos;
+			let mut node = Node {
+				name: "implement_trait_block".to_string(),
+				tokens: vec![],
+				children: vec![],
+			};
+			loop { 
+use_item!(&mut node, self.expect("use".to_string()), false);
+use_item!(&mut node, self._identifier(None), false);
+use_item!(&mut node, self.expect("with".to_string()), false);
+use_item!(&mut node, self._identifier(None), false);
+use_item!(&mut node, self._brace_block(None), false);
+
+			return Some((node, false));
+		
+}
+		self.reset_parse(&mut node, pos);
+			None
+		}
+		
+		pub fn _trait_definition(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
+			let start_pos = self.tokens.index();
+			let pos = start_pos;
+			let mut node = Node {
+				name: "trait_definition".to_string(),
+				tokens: vec![],
+				children: vec![],
+			};
+			loop { 
+use_item!(&mut node, self.expect("trait".to_string()), false);
+use_item!(&mut node, self._generics(None), false);
+use_item!(&mut node, self._identifier(None), false);
+use_item!(&mut node, self._equal(None), false);
+use_item!(&mut node, self.expect("[".to_string()), false);
+loop { 
+use_item!(&mut node, self._trait_member(None), false);
+use_item!(&mut node, self.expect(",".to_string()), false);
+}use_item!(&mut node, self.expect("]".to_string()), false);
+
+			return Some((node, false));
+		
+}
+		self.reset_parse(&mut node, pos);
+			None
+		}
+		
+		pub fn _trait_member(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
+			let start_pos = self.tokens.index();
+			let pos = start_pos;
+			let mut node = Node {
+				name: "trait_member".to_string(),
+				tokens: vec![],
+				children: vec![],
+			};
+			loop { 
+use_item!(&mut node, self._typed_declaration(None), false);
+
+			return Some((node, false));
+		
+}
+		self.reset_parse(&mut node, pos);
+loop { 
+use_item!(&mut node, self._type_hint(None), false);
+use_item!(&mut node, self._identifier(None), false);
 
 			return Some((node, false));
 		
@@ -2681,6 +2769,13 @@ use_item!(&mut node, self.expect("not".to_string()), false);
 		self.reset_parse(&mut node, pos);
 loop { 
 use_item!(&mut node, self.expect("or".to_string()), false);
+
+			return Some((node, true));
+		
+}
+		self.reset_parse(&mut node, pos);
+loop { 
+use_item!(&mut node, self.expect("as".to_string()), false);
 
 			return Some((node, true));
 		

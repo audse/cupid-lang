@@ -3,6 +3,9 @@
 
 -~statement:
 	type_definition
+	| trait_definition
+	| implement_block
+	| implement_trait_block
 	| typed_declaration
 	| break
 	| return
@@ -35,8 +38,7 @@
 - infinite_loop: 'loop' block
 
 - block: 
-	implement_block
-	| if_block
+	if_block
 	| box_block
 	| brace_block
 	| arrow_block
@@ -99,8 +101,10 @@
 - struct_member_type_hint: identifier ':' type_hint
 
 - implement_block: 'use' generics? WORD '{' typed_declaration* closing_brace
-#- implement_trait_block: 'use' identifier 'with' identifier brace_block
+- implement_trait_block: 'use' identifier 'with' identifier brace_block
 
+- trait_definition: 'trait' generics identifier equal '[' (trait_member ',')* ']'
+- trait_member: typed_declaration | type_hint identifier
 
 -~equal: '=' !'>'
 
@@ -144,10 +148,6 @@
 - range_inclusive_exclusive: '[' atom ~'.' ~'.' ']' atom
 - range_exclusive_inclusive: atom '[' ~'.' ~'.' atom ']'
 - range_exclusive_exclusive: atom '[' ~'.' ~'.' ']' atom
-
-#- property_access: property_accessor '.' require_property
-#-~property_accessor: map | function_call | group | identifier | 'self'
-#-~require_property: function_call | property_access | atom | <e 'missing index or property identifier'>
 
 -~operation: binary_op
 
@@ -224,6 +224,8 @@
 	| 'and'
 	| 'not'
 	| 'or'
+	| 'as'
+	| "istype"
 	| '>'
 	| '>' '='
 	| '<'

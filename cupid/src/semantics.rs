@@ -234,11 +234,6 @@ pub fn to_tree(node: &ParseNode) -> Expression {
                 panic!("expected a property")
             }
         },
-        // "internal_property_assignment" => Expression::new_internal_property_assign(
-        //     to_tree(&node.children[0]),
-        //     to_tree(&node.children[1]),
-        //     node.tokens[0].clone(),
-        // ),
         "property_op_assignment" => {
             let property_exp = to_tree(&node.children[0]);
             if let Expression::Property(property) = property_exp.clone() {

@@ -20,8 +20,15 @@
 - [x] Map types
   - [x] `dict (string, int)`
   - [x] `array (int)`
-- [x] Generics
+- [ ] Generics
+  - [x] In type declaration
+  - [ ] In use blocks
+  - [ ] In functions
+  - [ ] In type casting
 - [ ] Type casting
+  - [x] Primitives
+  - [ ] Array
+  - [ ] Map
 - [ ] First-class types
   - [ ] Pass as values/args
   - [x] Log
@@ -72,6 +79,7 @@ use add with my_struct [
 - [x] Logical or
 - [ ] Negation
 - [ ] Operator overloading
+- [ ] Type of
 
 ## Functions
 

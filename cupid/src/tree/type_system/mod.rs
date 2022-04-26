@@ -93,6 +93,17 @@ impl TypeKind {
 			}
 		}
 	}
+	pub fn infer_name(value: &Value) -> String {
+		match value {
+			Value::Boolean(_) => "bool",
+			Value::Integer(_) =>  "int",
+			Value::Char(_) => "char",
+			Value::Decimal(_, _) => "dec",
+			Value::String(_) => "string",
+			Value::None => "nothing",
+			_ => panic!()
+		}.to_string()
+	}
 	
 	fn replace_generic(generic: &TypeKind, with: &GenericType) -> Option<Box<TypeKind>> {
 		match generic {
@@ -123,9 +134,7 @@ impl TypeKind {
 	
 	pub fn get_implemented_symbol(&self, symbol: &Value) -> Option<Value> {
 		match self {
-			Self::Primitive(x) => {
-				x.implement.get(symbol).cloned()
-			},
+			Self::Primitive(x) => x.implement.get(symbol).cloned(),
 			Self::Alias(x) => x.implement.get(symbol).cloned(),
 			Self::Struct(x) => x.implement.get(symbol).cloned(),
 			Self::Sum(x) => x.implement.get(symbol).cloned(),

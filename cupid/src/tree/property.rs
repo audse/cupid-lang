@@ -19,7 +19,7 @@ impl Tree for Property {
 				None
 			}
 		} else {
-			let type_value = Value::Type(TypeKind::infer(&map));
+			let type_value = Value::String(TypeKind::infer_name(&map));
 			let type_kind = scope.get_symbol_from_value(&type_value);
 			if let Some(Value::Type(type_kind)) = type_kind {
 				Some(type_kind)
