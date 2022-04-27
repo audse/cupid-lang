@@ -1,0 +1,35 @@
+use int {
+	fun [int] 
+	sq = _ => self = self ^ 2
+	
+	fun [int] 
+	abs = _ => {
+		self = if self > 0 => self
+			else => -self
+	}
+	
+	fun [int]
+	sign = _ => {
+		self = if self > 1 => 1
+			else if self < 0 => -1
+			else => 0
+	}
+	
+	fun [int]
+	floor = int f => {
+		if self < f => self = f
+		self
+	}
+	
+	fun [int]
+	ceil = int c => {
+		if self > c => self = c
+		self
+	}
+	
+	fun [bool]
+	is_negative = _ => self < 0
+	
+	fun [bool]
+	is_positive = _ => self > 0
+}

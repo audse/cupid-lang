@@ -1,0 +1,243 @@
+body {
+    font-family: Avenir, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    color: var(--text);
+    margin-top: 60px;
+    background: #0f172a;
+    font-size: 1rem;
+    font-weight: 500;
+
+    --header-bg: #263145;
+    --editor-bg: #303d51;
+    --result-bg: #334155;
+    --text: #f1f5f9;
+}
+
+@font-face DejaVu {
+    font-family: DejaVuSansMono;
+    src: url(./static/DejaVuSansMono.ttf);
+    font-weight: normal;
+}
+
+@font-face DejaVu {
+    font-family: DejaVuSansMono;
+    src: url(./static/DejaVuSansMono-Bold.ttf);
+    font-weight: bold;
+}
+
+@font-face DejaVu {
+    font-family: DejaVuSansMono;
+    src: url(./static/DejaVuSansMono-Oblique.ttf);
+    font-weight: normal;
+    font-style: italic;
+}
+
+@font-face DejaVu {
+    font-family: DejaVuSansMono;
+    src: url(./static/DejaVuSansMono-BoldOblique.ttf);
+    font-weight: bold;
+    font-style: italic;
+}
+
+h1 {
+    width: 90vw;
+    margin: 5rem auto 1.5rem;
+}
+
+main {
+    width: 90vw;
+    margin: 0 auto;
+}
+
+#window {
+    box-shadow: 0 15px 25px 2px #070c17;
+    border-radius: 0.25rem;
+}
+
+#window header {
+    border-top-left-radius: 0.25rem;
+    border-top-right-radius: 0.25rem;
+    background: var(--header-bg);
+    height: 30px;
+    position: relative;
+}
+
+#window header span {
+    width: 10px;
+    height: 10px;
+    border-radius: 5px;
+    position: absolute;
+    top: 10px;
+    left: 10px;
+}
+
+#window header span:nth-child(1) {
+    background: #ef4444;
+}
+
+#window header span:nth-child(2) {
+    background: #fcd34d;
+    left: 30px;
+}
+
+#window header span:nth-child(3) {
+    background: #22c55e;
+    left: 50px;
+}
+
+#window nav {
+    border-bottom: 1px solid #263145;
+    display: flex;
+    justify-content: flex-end;
+}
+
+article {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto;
+}
+
+#window section {
+    background: var(--result-bg);
+}
+
+section#editor {
+    background: var(--editor-bg);
+    border-bottom-left-radius: 0.25rem;
+    font-size: 14px;
+}
+
+section#result {
+    background: var(--result-bg);
+    border-left: 1px solid #263145;
+    border-bottom-right-radius: 0.25rem;
+    padding: 0.5rem;
+}
+
+.cm-editor,
+.cm-gutters,
+.cm-scroller,
+.cm-panels,
+.cm-panel {
+    border-bottom-left-radius: 0.25rem;
+}
+
+.cm-editor .cm-content {
+    font-family: DejaVuSansMono, monospace !important;
+    background: var(--editor-bg);
+    height: 100%;
+    min-height: 500px;
+    color: #f1f5f9;
+    padding: 8px 0;
+}
+
+.cm-panels,
+.cm-panel {
+    background: var(--result-bg) !important;
+    padding: 0.5rem;
+    font-size: 1rem;
+    color: var(--text);
+}
+
+.cm-panels-bottom {
+    border-top: 1px solid #263145 !important;
+}
+
+.cm-editor button.cm-button,
+.cm-textfield {
+    background-color: var(--header-bg);
+    background-image: none !important;
+    border: none !important;
+    padding: 0.25rem 0.75rem !important;
+    border-radius: 0.25rem;
+    font-size: 0.9rem;
+    margin: 2px !important;
+}
+
+.cm-textfield {
+    background-color: #475569 !important;
+    padding: 0.35rem 1rem !important;
+    font-size: 0.9rem;
+}
+.cm-textfield::placeholder {
+    color: #94a3b8 !important;
+    font-size: 0.9rem;
+}
+
+.cm-scroller,
+.cm-gutters {
+    background: var(--editor-bg) !important;
+    border-right: none !important;
+}
+
+.cm-gutters,
+.cm-gutter {
+    width: 36px;
+}
+
+.cm-editor.cm-focused {
+    width: 100%;
+    height: 100%;
+}
+
+.cm-editor.cm-focused {
+    outline: none !important;
+}
+
+.cm-activeLine.cm-line {
+    background: transparent;
+}
+
+.cm-gutterElement.cm-activeLineGutter {
+    background: transparent;
+}
+
+.cm-gutter.cm-lineNumbers {
+    color: #64748b;
+}
+
+.cm-cursor.cm-cursor-primary {
+    border-color: var(--text);
+}
+
+.btn {
+    position: relative;
+    display: block;
+    z-index: 10;
+    width: 70px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 700;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    outline: none;
+    cursor: pointer;
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 18px;
+    z-index: -1;
+    width: 28px;
+    height: 12px;
+    border-radius: 50px;
+    background-color: #ec4899;
+    filter: blur(10px);
+    opacity: 0;
+    transition: 0.5s;
+}
+
+.btn:hover::before {
+    transform: scale(2);
+    opacity: 1;
+}
+
+.pink {
+    color: #f9a8d4;
+}

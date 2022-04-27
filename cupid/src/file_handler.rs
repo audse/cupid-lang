@@ -45,11 +45,21 @@ impl FileHandler {
 	}
 	
 	pub fn use_stdlib(&mut self) {
-		let stdlib = std::fs::read_to_string("src/tests/stdlib/typedef.cupid")
-			.unwrap_or_else(|_| String::from("Unable to find file"));
+		let packages = vec![
+			"src/tests/stdlib/typedef.cupid",
+			"src/tests/stdlib/decimal.cupid",
+			"src/tests/stdlib/integer.cupid",
+		];
+		let stdlib: Vec<String> = packages
+			.iter()
+			.map(|p| std::fs::read_to_string(p).unwrap_or_else(|_| String::from("Unable to find file")))
+			.collect();
+		let stdlib = stdlib.join("\n");
+		
 		let mut parser = CupidParser::new(stdlib);
 		let parse_tree = parser._file(None);
 		let semantics = to_tree(&parse_tree.unwrap().0);
+		
 		semantics.resolve_file(&mut self.scope);
 	}
 	

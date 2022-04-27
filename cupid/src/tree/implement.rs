@@ -37,6 +37,9 @@ impl Tree for Implement {
 			TypeKind::Struct(ref mut s) => {
 				s.implement = map;
 			},
+			TypeKind::Sum(ref mut s) => {
+				s.implement = map;
+			},
 			x => return self.error_context(
 				"only primitives, type aliases, and custom types can be implemented",
 				format!("attempting to implement type {x}").as_str()

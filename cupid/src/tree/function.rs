@@ -135,7 +135,8 @@ impl Tree for Logger {
 			"log" | "logs" => println!("{}", string),
 			_ => print!("{}", string)
 		};
-		Value::None
+		
+		Value::String(string)
 	}
 }
 

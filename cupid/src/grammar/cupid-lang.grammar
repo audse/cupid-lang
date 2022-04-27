@@ -4,8 +4,8 @@
 -~statement:
 	type_definition
 	| trait_definition
-	| implement_block
-	| implement_trait_block
+	| implement_type
+	| implement_trait
 	| typed_declaration
 	| break
 	| return
@@ -22,8 +22,6 @@
 	loop
 	| block
 	| function
-	| map
-	| bracket_array
 	| operation
 	| atom
 
@@ -100,8 +98,8 @@
 - struct_type_hint: identifier '[' (struct_member_type_hint ',')* ']'
 - struct_member_type_hint: identifier ':' type_hint
 
-- implement_block: 'use' generics? WORD '{' typed_declaration* closing_brace
-- implement_trait_block: 'use' identifier 'with' identifier brace_block
+- implement_type: 'use' generics? WORD '{' typed_declaration* closing_brace
+- implement_trait: 'use' identifier 'with' identifier brace_block?
 
 - trait_definition: 'trait' generics identifier equal '[' (trait_member ',')* ']'
 - trait_member: typed_declaration | type_hint identifier
@@ -110,8 +108,11 @@
 
 -~atom:
 	function_call
+	| map
+	| bracket_array
 	| group
 	| unary_op
+	| type_hint
 	| boolean
 	| none
 	| string
@@ -132,8 +133,8 @@
 
 -~log_keyword: 'log' | 'logs' | 'log_line' | 'logs_line'
 
--~bracket_array: '[' array? ']'
-- array:  (operation !')' !']' ~',')+
+-~bracket_array: '[' array? closing_bracket
+- array:  (operation ~',')+
 
 - map: '[' (map_entry !']' ',')* ']'
 - map_entry: atom ':' term
@@ -225,7 +226,7 @@
 	| 'not'
 	| 'or'
 	| 'as'
-	| "istype"
+	| 'istype'
 	| '>'
 	| '>' '='
 	| '<'

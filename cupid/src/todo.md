@@ -24,18 +24,21 @@
   - [x] In type declaration
   - [ ] In use blocks
   - [ ] In functions
-  - [ ] In type casting
+  - [ ] Trait bounds
 - [ ] Type casting
   - [x] Primitives
   - [ ] Array
   - [ ] Map
+  - [ ] Generics
 - [ ] First-class types
   - [ ] Pass as values/args
   - [x] Log
-  - [ ] Builtin functions e.g. typeof
+  - [x] `istype`
 - [ ] Sum type variants
 - [ ] Tagged sum type variants
 - [ ] Gradual typing
+- [ ] Compound implementations
+- [ ] Param type hints in fun signature
 
 ### Traits
 ```
@@ -57,8 +60,15 @@ use add with my_struct [
 ]
 ```
 - [ ] Type implementations
-  - [x] Declare `use` block
-  - [ ] Call associated functions on any struct instance
+  - [ ] Declare `use` block
+    - [x] Primitives
+    - [ ] Array
+    - [ ] Map
+    - [ ] Function (this can be how to implement things like call, bind, decorators, etc)
+    - [x] Struct
+    - [x] Alias
+    - [x] Sum
+  - [x] Call associated functions on any struct instance
 
 ### Type checker
 
@@ -66,6 +76,17 @@ use add with my_struct [
   - [x] Approximate
 - [x] Deep assignment type checking
 - [ ] Property assignment check
+- [ ] Check that all elements in array/map are same type
+- [ ] No approximate type checking for structs when using `istype`
+```
+type person = [
+  string name,
+]
+map [string, string] someone = [
+  name: 'Jane Doe'
+]
+someone istype person # should be false
+```
 
 ## Operators
 
@@ -79,7 +100,7 @@ use add with my_struct [
 - [x] Logical or
 - [ ] Negation
 - [ ] Operator overloading
-- [ ] Type of
+- [x] Type of
 
 ## Functions
 

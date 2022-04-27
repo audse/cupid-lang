@@ -30,7 +30,7 @@ pub use types::*;
 
 // use std::hash::{Hash, Hasher};
 use std::fmt::{Display, Formatter, Result as DisplayResult};
-use crate::{Value, Symbol};
+use crate::Value;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TypeKind {

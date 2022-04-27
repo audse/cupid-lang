@@ -291,17 +291,7 @@ impl Value {
 	}
 	pub fn is_type(&self, other: Value) -> Value {
 		match other {
-			Value::Type(type_kind) => match type_kind {
-				TypeKind::Primitive(p) => Value::Boolean(match (self, p.identifier.into_owned().as_str()) {
-					(Value::Integer(_), "int") => true,
-					(Value::Decimal(_, _), "dec") => true,
-					(Value::Char(_), "char") => true,
-					(Value::Boolean(_), "bool") => true,
-					(Value::String(_), "string") => true,
-					_ => false
-				}),
-				_ => panic!()
-			},
+			Value::Type(type_kind) => Value::Boolean(type_kind.is_equal(self)),
 			_ => panic!()
 		}
 	}

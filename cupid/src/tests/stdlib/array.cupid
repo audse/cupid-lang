@@ -1,0 +1,10 @@
+use [t] array {
+
+	fun [array [t]]
+	map = function => {
+		array [t] mut copy = self
+		for i, element in copy => copy.i = function(i, element)
+		copy
+	}
+	
+}

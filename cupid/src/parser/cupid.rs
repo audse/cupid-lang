@@ -404,20 +404,6 @@ use_item!(&mut node, self._function(None), false);
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self._map(None), false);
-
-			return Some((node, true));
-		
-}
-		self.reset_parse(&mut node, pos);
-loop { 
-use_item!(&mut node, self._bracket_array(None), false);
-
-			return Some((node, true));
-		
-}
-		self.reset_parse(&mut node, pos);
-loop { 
 use_item!(&mut node, self._operation(None), false);
 
 			return Some((node, true));
@@ -1464,6 +1450,20 @@ use_item!(&mut node, self._function_call(None), false);
 }
 		self.reset_parse(&mut node, pos);
 loop { 
+use_item!(&mut node, self._map(None), false);
+
+			return Some((node, true));
+		
+}
+		self.reset_parse(&mut node, pos);
+loop { 
+use_item!(&mut node, self._bracket_array(None), false);
+
+			return Some((node, true));
+		
+}
+		self.reset_parse(&mut node, pos);
+loop { 
 use_item!(&mut node, self._group(None), false);
 
 			return Some((node, true));
@@ -1472,6 +1472,13 @@ use_item!(&mut node, self._group(None), false);
 		self.reset_parse(&mut node, pos);
 loop { 
 use_item!(&mut node, self._unary_op(None), false);
+
+			return Some((node, true));
+		
+}
+		self.reset_parse(&mut node, pos);
+loop { 
+use_item!(&mut node, self._type_hint(None), false);
 
 			return Some((node, true));
 		
@@ -1751,7 +1758,7 @@ use_item!(&mut node, self.expect("logs_line".to_string()), false);
 			loop { 
 use_item!(&mut node, self.expect("[".to_string()), false);
 use_optional!(&mut node, self._array(None), false);
-use_item!(&mut node, self.expect("]".to_string()), false);
+use_item!(&mut node, self._closing_bracket(None), false);
 
 			return Some((node, true));
 		
@@ -1770,13 +1777,9 @@ use_item!(&mut node, self.expect("]".to_string()), false);
 			};
 			loop { 
 use_item!(&mut node, self._operation(None), false);
-use_negative_lookahead!(self, self.tokens.index(), &mut self.expect(")".to_string()));
-use_negative_lookahead!(self, self.tokens.index(), &mut self.expect("]".to_string()));
 use_item!(&mut node, self.expect(",".to_string()), true);
 loop { 
 use_item!(&mut node, self._operation(None), false);
-use_negative_lookahead!(self, self.tokens.index(), &mut self.expect(")".to_string()));
-use_negative_lookahead!(self, self.tokens.index(), &mut self.expect("]".to_string()));
 use_item!(&mut node, self.expect(",".to_string()), true);
 }
 			return Some((node, false));
@@ -2776,6 +2779,13 @@ use_item!(&mut node, self.expect("or".to_string()), false);
 		self.reset_parse(&mut node, pos);
 loop { 
 use_item!(&mut node, self.expect("as".to_string()), false);
+
+			return Some((node, true));
+		
+}
+		self.reset_parse(&mut node, pos);
+loop { 
+use_item!(&mut node, self.expect("istype".to_string()), false);
 
 			return Some((node, true));
 		

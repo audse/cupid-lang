@@ -130,15 +130,10 @@ pub fn to_tree(node: &ParseNode) -> Expression {
         
         "primitive_type_hint" => to_tree(&node.children[0]),
         
-        "implement_block" => {
+        "implement_type" => {
             let token = node.tokens[0].clone();
             let identifier = Symbol::new_string(node.tokens[1].source.clone(), node.tokens[1].clone());
-            let generics = get_generics(&node);
-            // let identifier = if generics.len() > 0 {
-            //     to_tree(&node.children[1])
-            // } else {
-            //     to_tree(&node.children[0])
-            // };
+            let _generics = get_generics(&node);
             let declarations: Vec<Expression> = node.children
                 .iter()
                 .filter_map(|n| {
