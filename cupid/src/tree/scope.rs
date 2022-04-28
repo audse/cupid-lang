@@ -1,7 +1,8 @@
+use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use crate::{TypeKind, Symbol, Value, ErrorHandler};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LexicalScope {
 	pub scopes: Vec<Scope>
 }
@@ -123,7 +124,7 @@ impl SymbolFinder for LexicalScope {
 	}
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ScopeContext {
 	Global,
 	Loop,
@@ -133,20 +134,20 @@ pub enum ScopeContext {
 	Block,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Scope {
 	pub storage: ScopeStorage,
 	pub closed: bool,
 	pub context: ScopeContext
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SymbolValue {
 	Variable(Variable),
 	Type(TypeKind),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Variable {
 	pub value: Value,
 	pub value_type: TypeKind,

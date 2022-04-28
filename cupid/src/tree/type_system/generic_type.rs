@@ -1,9 +1,10 @@
 use std::fmt::{Display, Formatter, Result as DisplayResult};
 use std::borrow::Cow;
+use serde::{Serialize, Deserialize};
 use std::hash::{Hash, Hasher};
 use crate::{TypeKind, Type};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GenericType {
 	pub identifier: Cow<'static, str>,
 	pub type_value: Option<Box<TypeKind>>

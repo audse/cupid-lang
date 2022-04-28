@@ -1,7 +1,8 @@
 use std::fmt::{Display, Formatter, Result};
+use serde::{Serialize, Deserialize};
 use crate::*;
 
-#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+#[derive(Debug, Hash, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct Error {
     pub line: usize,
     pub index: usize,

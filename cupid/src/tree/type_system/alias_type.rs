@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
+use serde::{Serialize, Deserialize};
 use std::fmt::{Display, Formatter, Result as DisplayResult};
 use crate::{TypeKind, Type, Symbol, GenericType, Expression, Tree, Value, SymbolFinder, ErrorHandler, Token, ScopeContext};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AliasType {
 	pub true_type: Box<TypeKind>,
 	pub implement: HashMap<Value, Value>
@@ -38,7 +39,7 @@ impl Display for AliasType {
 	}
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct DefineAlias {
 	pub token: Token,
 	pub symbol: Symbol,

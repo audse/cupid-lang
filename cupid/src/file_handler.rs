@@ -63,6 +63,13 @@ impl FileHandler {
 		semantics.resolve_file(&mut self.scope);
 	}
 	
+	pub fn preload_contents<S>(&mut self, string: S) where S: Into<String> {
+		let mut parser = CupidParser::new(string.into());
+		let parse_tree = parser._file(None);
+		let semantics = to_tree(&parse_tree.unwrap().0);
+		semantics.resolve_file(&mut self.scope);
+	}
+	
 	pub fn run_debug(&mut self) {
 		self.use_stdlib();
 		

@@ -1,7 +1,8 @@
+use serde::{Serialize, Deserialize};
 use std::fmt::{Display, Formatter, Result};
 use crate::*;
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Expression {
     File(Vec<Expression>),
     Block(Block),

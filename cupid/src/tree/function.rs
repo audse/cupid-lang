@@ -1,8 +1,9 @@
+use serde::{Serialize, Deserialize};
 use std::fmt::{Display, Formatter, Result};
 use crate::{Symbol, LexicalScope, Value, Expression, ScopeContext, Tree, Token, ErrorHandler, SymbolFinder};
 use crate::utils::{pluralize, pluralize_word};
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Function {
 	pub params: Vec<(Expression, Symbol)>,
 	pub body: Box<Expression>,
@@ -18,13 +19,13 @@ impl Tree for Function {
 	}
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct FunctionCall {
 	pub fun: Symbol,
 	pub args: Args,
 }
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Args(pub Vec<Expression>);
 
 impl Display for Args {
@@ -109,7 +110,7 @@ impl ErrorHandler for FunctionCall {
 	}
 }
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Logger(pub Token, pub Args);
 
 impl Tree for Logger {
@@ -141,7 +142,7 @@ impl Tree for Logger {
 }
 
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Return {
 	pub value: Box<Expression>,
 	pub token: Token,

@@ -1,6 +1,7 @@
+use serde::{Serialize, Deserialize};
 use crate::{LexicalScope, Value, Expression, Symbol, Tree, Token, ErrorHandler, SymbolFinder};
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Assign {
 	pub operator: Token,
 	pub symbol: Symbol,
@@ -33,7 +34,7 @@ impl ErrorHandler for Assign {
 	}
 }
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Declare {
 	pub symbol: Symbol,
 	pub value: Box<Expression>,

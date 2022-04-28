@@ -1,9 +1,10 @@
 use std::fmt::{Display, Formatter, Result};
 // use std::borrow::Cow;
 use std::hash::{Hash, Hasher};
+use serde::{Serialize, Deserialize};
 use crate::{Value, Tree, LexicalScope, Token, ErrorHandler, SymbolFinder, TypeKind};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Symbol  {
 	pub identifier: Value,
 	pub token: Token

@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter, Result as DisplayResult};
 use std::hash::{Hash, Hasher};
+use serde::{Serialize, Deserialize};
 use crate::{TypeKind, Type, Symbol, GenericType, Expression, Tree, Value, SymbolFinder, ErrorHandler, Token, ScopeContext};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StructType {
 	pub members: Vec<(Symbol, TypeKind)>,
 	pub implement: HashMap<Value, Value>
@@ -68,7 +69,7 @@ impl Display for StructType {
 	}
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct DefineStruct {
 	pub token: Token,
 	pub symbol: Symbol,
@@ -133,7 +134,7 @@ impl DefineStruct {
 	}
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct StructTypeHint {
 	pub token: Token,
 	pub struct_type: Box<Expression>,

@@ -1,8 +1,9 @@
 use std::hash::{Hash, Hasher};
 use std::fmt::{Display, Formatter, Result as DisplayResult};
+use serde::{Serialize, Deserialize};
 use crate::{TypeKind, Type, GenericType, ErrorHandler, Token, Expression, Tree, Value};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MapType {
 	pub key_type: Box<TypeKind>,
 	pub value_type: Box<TypeKind>,
@@ -94,7 +95,7 @@ impl Display for MapType {
 	}
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct MapTypeHint {
 	pub token: Token,
 	pub key_type: Box<Expression>,

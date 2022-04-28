@@ -1,7 +1,8 @@
+use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use crate::{Tree, Symbol, LexicalScope, Expression, Value, Declare, ErrorHandler, Token, TypeKind, SymbolFinder};
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Implement {
 	pub use_type: Symbol,
 	pub functions: Vec<Declare>,

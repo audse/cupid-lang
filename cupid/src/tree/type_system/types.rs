@@ -1,6 +1,7 @@
+use serde::{Serialize, Deserialize};
 use crate::{Token, Value, Tree, Symbol, LexicalScope, SymbolFinder, ErrorHandler, TypeKind};
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DefineType {
 	pub token: Token,
 	pub type_symbol: Symbol,

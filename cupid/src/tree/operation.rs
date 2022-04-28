@@ -1,6 +1,7 @@
+use serde::{Serialize, Deserialize};
 use crate::{Expression, Tree, LexicalScope, Value, Token};
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Operator {
 	pub operator: Token, 
 	pub left: Box<Expression>, 

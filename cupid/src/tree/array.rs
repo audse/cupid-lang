@@ -1,6 +1,7 @@
+use serde::{Serialize, Deserialize};
 use crate::{Expression, Value, Tree, LexicalScope};
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Array {
 	pub items: Vec<Expression>
 }

@@ -1,6 +1,7 @@
+use serde::{Serialize, Deserialize};
 use crate::{Expression, Value, LexicalScope, ScopeContext, Tree, Token, Block, Symbol, ErrorHandler, MapErrorHandler, TypeKind, SymbolFinder, GenericType};
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WhileLoop {
 	pub condition: Box<Expression>,
 	pub body: Block,
@@ -46,7 +47,7 @@ impl ErrorHandler for WhileLoop {
 }
 impl MapErrorHandler for WhileLoop {}
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ForInLoop {
 	pub map: Box<Expression>,
 	pub body: Block,
@@ -128,7 +129,7 @@ impl ErrorHandler for ForInLoop {
 
 impl MapErrorHandler for ForInLoop {}
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Break {
 	pub token: Token,
 	pub value: Box<Expression>,

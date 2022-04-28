@@ -1,8 +1,9 @@
 use std::hash::{Hash, Hasher};
+use serde::{Serialize, Deserialize};
 use std::fmt::{Display, Formatter, Result as DisplayResult};
 use crate::{TypeKind, Type, GenericType, Tree, Value, ErrorHandler, Expression, Token};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ArrayType {
 	pub element_type: Box<TypeKind>,
 }
@@ -56,7 +57,7 @@ impl Display for ArrayType {
 	}
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ArrayTypeHint {
 	pub token: Token,
 	pub element_type: Box<Expression>,

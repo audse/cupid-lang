@@ -3,10 +3,11 @@ use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::ops::{Add, Sub, Mul, Neg, Div, Rem, BitAnd, BitOr};
 use std::cmp::Ordering;
+use serde::{Serialize, Deserialize};
 use crate::{TypeKind, Symbol, Expression, Error, Token};
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Value {
 	Integer(i32),
 	Decimal(i32, u32),

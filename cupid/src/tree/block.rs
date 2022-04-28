@@ -1,6 +1,7 @@
+use serde::{Serialize, Deserialize};
 use crate::{Expression, Value, LexicalScope, Tree, ScopeContext};
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Block {
 	pub expressions: Vec<Expression>,
 }
@@ -32,7 +33,7 @@ impl Tree for Block {
 	}
 }
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct IfBlock {
 	pub condition: Box<Expression>,
 	pub body: Block,
@@ -69,7 +70,7 @@ impl Tree for IfBlock {
 	}
 }
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BoxBlock {
 	pub expressions: Vec<Expression>,
 }

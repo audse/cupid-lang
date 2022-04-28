@@ -1,7 +1,8 @@
+use serde::{Serialize, Deserialize};
 use std::collections::hash_map::Entry::Vacant;
 use crate::{Expression, Value, Tree, LexicalScope, SymbolFinder, ErrorHandler, Token, TypeKind, Symbol};
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Property {
 	pub map: Box<Expression>,
 	pub term: Box<Expression>,
@@ -140,7 +141,7 @@ impl Property {
 	}
 }
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PropertyAssign {
 	pub property: Property,
 	pub value: Box<Expression>,

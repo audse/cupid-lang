@@ -1,4 +1,5 @@
 use std::fmt::{Display, Formatter, Result};
+use serde::{Serialize, Deserialize};
 
 pub struct Tokenizer {
 	pub source: String,
@@ -13,7 +14,7 @@ pub struct Tokenizer {
 const OPEN: [char; 3] = ['[', '(', '{'];
 const CLOSE: [char; 3] = [']', ')', '}'];
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Serialize, Deserialize)]
 pub struct Token {
 	pub source: String,
 	pub line: usize,

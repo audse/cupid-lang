@@ -2,9 +2,10 @@ use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::fmt::{Display, Formatter, Result as DisplayResult};
 use std::borrow::Cow;
+use serde::{Serialize, Deserialize};
 use crate::{Type, Symbol, Value};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PrimitiveType {
 	pub identifier: Cow<'static, str>,
 	pub implement: HashMap<Value, Value>,

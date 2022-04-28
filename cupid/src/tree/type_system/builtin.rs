@@ -1,6 +1,7 @@
+use serde::{Serialize, Deserialize};
 use crate::{Tree, LexicalScope, Value, SymbolFinder, TypeKind, Symbol, PrimitiveType, ArrayType, MapType, FunctionType, GenericType};
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BuiltInType {
 	pub symbol: Symbol
 }
@@ -40,37 +41,3 @@ impl Tree for BuiltInType {
 		}
 	}
 }
-
-// pub fn use_builtin_types(scope: &mut LexicalScope, symbols: Vec<Expression>) {
-// 	let types: Vec<&Symbol> = symbols
-// 		.iter()
-// 		.filter_map(|t|
-// 			if let Expression::Symbol(symbol) = t {
-// 				Some(symbol)
-// 			} else {
-// 				None
-// 			}
-// 		)
-// 		.collect();
-// 	
-// 	for symbol in types {
-// 		let ok = match symbol.get_identifier().as_str() {
-// 			"bool" => scope.define_type(symbol, BOOLEAN),
-// 			"int" => scope.define_type(symbol, INTEGER),
-// 			"dec" => scope.define_type(symbol, DECIMAL),
-// 			"char" => scope.define_type(symbol, CHAR),
-// 			_ => unreachable!()
-// 		};
-// 		match ok {
-// 			Ok(_) => (),
-// 			Err(_) => (),
-// 		};
-// 	}
-// 	scope.pretty_print_definitions()
-// }
-
-// Primitives
-// pub const BOOLEAN: TypeKind = TypeKind::Primitive(PrimitiveType::new("bool"));
-// pub const INTEGER: TypeKind = TypeKind::Primitive(PrimitiveType::new("int"));
-// pub const DECIMAL: TypeKind = TypeKind::Primitive(PrimitiveType::new("dec"));
-// pub const CHAR: TypeKind = TypeKind::Primitive(PrimitiveType::new("char"));

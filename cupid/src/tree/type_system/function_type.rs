@@ -1,7 +1,8 @@
 use std::hash::{Hash, Hasher};
+use serde::{Serialize, Deserialize};
 use crate::{TypeKind, Type, GenericType, Tree, Value, Expression, Token, ErrorHandler};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FunctionType {
 	pub return_type: Box<TypeKind>,
 }
@@ -59,7 +60,7 @@ impl Hash for FunctionType {
 	}
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct FunctionTypeHint {
 	pub token: Token,
 	pub return_type: Box<Expression>,

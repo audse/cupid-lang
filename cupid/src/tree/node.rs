@@ -1,3 +1,4 @@
+use serde::{Serialize, Deserialize};
 use std::hash::{Hash, Hasher};
 use crate::{LexicalScope, Value, Token};
 
@@ -5,7 +6,7 @@ pub trait Tree {
     fn resolve(&self, scope: &mut LexicalScope) -> Value;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Node {
     pub tokens: Vec<Token>,
     pub value: Value,
