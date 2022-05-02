@@ -351,7 +351,7 @@ section#result {
 }
 
 .string {
-	color: #d9f99d;
+	color: #cef584;
 	font-style: italic;
 }
 
@@ -367,7 +367,7 @@ section#result {
 }
 
 .number {
-	color: #a6e0ff;
+	color: #86d1fa;
 	font-style: italic;
 }
 
@@ -405,4 +405,15 @@ section#result {
 
 .operator {
 	color: #b7c5df;
+}
+
+.escape {
+	color: #8ee3c4;
+	font-style: italic;
+}
+
+.function-name {
+	color: #f6faff;
+	/* font-style: italic; */
+	font-weight: bold;
 }

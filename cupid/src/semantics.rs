@@ -388,8 +388,9 @@ pub fn to_tree(node: &ParseNode) -> Expression {
             Args(node.children[0].children.iter().map(to_tree).collect()),
         )),
         "function" => {
-            let use_self = node.tokens.iter().find(|t| t.source.as_str() == "self").is_some();
+            let mut use_self = false;
             let (params, body) = if node.children.len() > 1 {
+				use_self = node.children[0].tokens.iter().find(|t| t.source.as_str() == "self").is_some();
                 (
                     node.children[0]
                         .children
@@ -430,6 +431,25 @@ pub fn to_tree(node: &ParseNode) -> Expression {
             Expression::new_map(entries, node.tokens[0].clone())
         },
         "array" => Expression::new_array(node.children.iter().map(to_tree).collect()),
+		"range" => {
+			let range = &node.children[0];
+			let start = Box::new(to_tree(&range.children[0]));
+			let end = Box::new(to_tree(&range.children[1]));
+			let inclusive = match range.name.as_str() {
+				"range_inclusive_inclusive" => (true, true),
+				"range_inclusive_exclusive" => (true, false),
+				"range_exclusive_exclusive" => (false, false),
+				"range_exclusive_inclusive" => (false, true),
+				_ => panic!()
+			};
+			let range = Range {
+				inclusive,
+				start,
+				end,
+				token: range.tokens[0].clone()
+			};
+			Expression::Range(range)
+		}
         
         // "internal_property_access" => {
         //     let term = to_tree(&node.children[0]);

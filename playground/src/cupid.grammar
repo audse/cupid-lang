@@ -1,4 +1,4 @@
-export default `@top File { expression* }
+@top File { expression* }
 
 @precedence { 
 	TypedDeclaration @left,
@@ -6,6 +6,7 @@ export default `@top File { expression* }
 	term @left,
 	Struct,
 	Sum,
+	functionCall,
 	Function @left,
 	Block @left,
 	stuctMember,
@@ -28,12 +29,26 @@ term {
 	| IfBlock
 	| WhileLoop
 	| ForInLoop
+	| binaryOp
+	| atom
+}
+
+atom {
+	functionCall
 	| group
 	| Map
 	| Function
-	| Property
 	| literal
-	| identifier ~path
+	| identifier ~atomPath
+}
+
+binaryOp { atom ~path (ArithmeticOperator | logicOperator) term }
+logicOperator { @specialize[@name=LogicOperator]<identifier, 
+	"and"
+	| "or"
+	| "not"
+	| "istype"
+	| "is">
 }
 
 Block {
@@ -85,17 +100,18 @@ TypedDeclaration {
 	kw<"mut">?
 	identifier
 	"="
-	expression
+	term
 }
+
+functionCall { FunctionName "(" commaSep<term> ")" }
+FunctionName { identifier ~atomPath }
 
 Function { commaSep<Parameter> ArrowBlock }
 Parameter { TypeHint identifier ~funPath }
 
 Map { "[" commaSep<mapItem> "]" }
-mapItem { (PropertyName ":")? expression }
+mapItem { (PropertyName ":")? term }
 PropertyName { term }
-
-Property { identifier '.' expression }
 
 TypeHint { AnyTypeName ~path ("[" commaSep<typeHintArg> "]")? }
 
@@ -126,6 +142,7 @@ typeName { @specialize[@name=TypeName]<identifier,
 
 literal {
 	String
+	| Char
 	| boolean
 	| Integer
 	| Decimal
@@ -134,17 +151,25 @@ literal {
 }
 
 @tokens {
-	@precedence { Decimal, Integer }
+	@precedence { 
+		Char,
+		identifier,
+		Decimal, 
+		Integer,
+		LineComment, 
+		space,
+		any
+	}
+	
+	Char { $[\\] _ }
 	
 	identifier { $[a-zA-Z_]+ }
-	String { "'" ![']* "'" }
+	String { "'" ![']* "'" | '"' !["]* '"' }
 	Integer { $[0-9]+ }
 	Decimal { $[0-9]+ "." $[0-9]+ }
 	
-	ArithmeticAssignment { "+=" "-=" "*=" "/=" "^=" "%=" }
-	ArithmeticOperator { "+" | "-" | "*" | "/" | "^" | "%" }
-	CompareOperator { "is" | "istype" | "in" }
-	LogicOperator { "and" | "or" | "not" }
+	ArithmeticAssignment { "=" "+=" "-=" "*=" "/=" "^=" "%=" }
+	ArithmeticOperator { "+" | "-" | "*" | "/" | "^" | "%" | "." }
 	Arrow { "=>" }
 	
 	space { " " | "\t" | "\n" }
@@ -154,7 +179,7 @@ literal {
 		(!stars)*
 		stars
 	}
-	stars { "*" "*" "*" }
+	stars { "***" }
 }
 
 commaSep<expr> { commaSep1<expr>? }
@@ -164,4 +189,4 @@ commaSep1<expr> { expr ("," expr?)* }
 kw<term> { @specialize[@name={term}]<identifier, term> }
 
 @skip { space | LineComment | MultiLineComment }
-@detectDelim`;
+@detectDelim

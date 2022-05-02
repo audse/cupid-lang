@@ -1,5 +1,5 @@
 const code = [
-	`log ('Testing Cupid Playground v0.1')
+	`# Testing cupid playground v0.1
 
 type person = [
 	string name,
@@ -41,7 +41,7 @@ use [t] new with iter {
 	]
 }
 
-iter [t: int] myiter = iter.new([1, 2, 3])
+iter [t: int] mut myiter = iter.new([1, 2, 3])
 
 myiter.next()`,
 

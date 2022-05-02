@@ -72,13 +72,14 @@ use add with my_struct [
         -   [x] Sum
     -   [x] Call associated functions on any struct instance
 -   [ ] Require `self` on functions that use self
+    -   [ ] Require `mut self`
 
 ### Type checker
 
 -   [x] Assignment type checking
     -   [x] Approximate
 -   [x] Deep assignment type checking
--   [ ] Property assignment check
+-   [x] Property assignment check
 -   [ ] Check that all elements in array/map are same type
 -   [ ] No approximate type checking for structs when using `istype`
 
@@ -91,6 +92,8 @@ map [string, string] someone = [
 ]
 someone istype person # should be false
 ```
+
+-   [ ] `uses` operator for traits e.g. `int uses add`
 
 ## Operators
 
@@ -116,10 +119,11 @@ someone istype person # should be false
 -   [ ] Keyword args
 -   [x] Typed parameters
 -   [x] Return type
--   [ ] Callbacks
+-   [x] Callbacks
 -   [ ] Default values (allow fewer/skipped args)
 -   [x] No arguments
 -   [ ] Call immediately
+-   [ ] Closures need some help..capture scope inside function body
 
 ## Blocks
 
@@ -145,7 +149,7 @@ someone istype person # should be false
 -   [x] Dictionary
 -   [ ] Tuples (keywords)
 -   [ ] Range
-    -   [ ] Numbers
+    -   [x] Numbers
     -   [ ] Step
     -   [ ] Characters
 -   [x] Property access
@@ -186,6 +190,7 @@ someone istype person # should be false
 -   [ ] An empty map `[]` could be a dict or a list or anything- type inference?
 -   [ ] If you use a primitive type where generics should go, it acts as a generic. Should be an error
 -   [ ] Should be able to log property functions without calling them (e.g. `log (myint.sq)`)
+-   [ ] Is `log`/`log_line` working?
 
 ## Builtin library
 

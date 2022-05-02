@@ -5,3 +5,4 @@ target/
 .DS_STORE
 antlr/.antlr/
 playground/node_modules/
+.nova/

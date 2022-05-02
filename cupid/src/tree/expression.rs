@@ -18,6 +18,7 @@ pub enum Expression {
     FunctionCall(FunctionCall),
     Logger(Logger),
     Array(Array),
+	Range(Range),
     Map(Map),
     Property(Property),
     Empty,
@@ -292,6 +293,7 @@ impl Tree for Expression {
 			Self::Implement(x) => x.resolve(scope),
 			Self::DefineTrait(x) => x.resolve(scope),
 			Self::ImplementTrait(x) => x.resolve(scope),
+			Self::Range(x) => x.resolve(scope),
             _ => Value::None,
         }
     }

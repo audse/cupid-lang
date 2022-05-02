@@ -18,10 +18,10 @@ import {
 } from '@codemirror/language';
 import { completeFromList } from '@codemirror/autocomplete';
 import { buildParser } from '@lezer/generator';
-import { styleTags, tags as t } from '@lezer/highlight';
-import { tags } from '@codemirror/highlight';
+import { styleTags, tags as t, Tag } from '@lezer/highlight';
+// import { t } from '@codemirror/highlight';
 import { jsonTree } from './src/jsonTree';
-import grammar from './src/cupidgrammar.js';
+import grammar from './src/cupid.grammar?raw';
 import { semantics, parse, scope, serializeJson } from './src/outputTree.js';
 import { code, bindExampleButtons } from './src/examples.js';
 
@@ -181,6 +181,9 @@ window.addEventListener('load', async () => {
 
 	let parser = buildParser(grammar);
 
+	t.functionName = Tag.define(t.variableName);
+	// t.functionName =
+
 	let parserWithMetadata = parser.configure({
 		props: [
 			styleTags({
@@ -194,10 +197,11 @@ window.addEventListener('load', async () => {
 				Self: t.self,
 				use: t.definitionKeyword,
 				with: t.definitionKeyword,
-				FunctionCall: t.function,
+				FunctionName: t.functionName,
 				Identifier: t.variableName,
 				Boolean: t.bool,
 				None: t.null,
+				Char: t.escape,
 				TypeName: t.typeName,
 				AnyTypeName: t.className,
 				PropertyName: t.propertyName,
@@ -209,7 +213,7 @@ window.addEventListener('load', async () => {
 				Decimal: t.float,
 				ArithmeticOperator: t.arithmeticOperator,
 				CompareOperator: t.operatorKeyword,
-				LogicalOperator: t.operator,
+				LogicOperator: t.operator,
 				Arrow: t.operatorKeyword,
 
 				'( )': t.paren,
@@ -223,24 +227,26 @@ window.addEventListener('load', async () => {
 	});
 
 	let theme = HighlightStyle.define([
-		{ tag: tags.variableName, class: 'variable-name' },
-		{ tag: tags.string, class: 'string' },
-		{ tag: tags.definitionKeyword, class: 'definition-keyword' },
-		{ tag: tags.controlKeyword, class: 'control-keyword' },
-		{ tag: tags.number, class: 'number' },
-		{ tag: tags.propertyName, class: 'property-name' },
-		{ tag: tags.typeName, class: 'builtin-type-name' },
-		{ tag: tags.comment, class: 'comment' },
-		{ tag: tags.className, class: 'class-name' },
-		{ tag: tags.self, class: 'self-keyword' },
-		{ tag: tags.bool, class: 'boolean' },
+		{ tag: t.variableName, class: 'variable-name' },
+		{ tag: t.string, class: 'string' },
+		{ tag: t.definitionKeyword, class: 'definition-keyword' },
+		{ tag: t.controlKeyword, class: 'control-keyword' },
+		{ tag: t.number, class: 'number' },
+		{ tag: t.propertyName, class: 'property-name' },
+		{ tag: t.typeName, class: 'builtin-type-name' },
+		{ tag: t.comment, class: 'comment' },
+		{ tag: t.className, class: 'class-name' },
+		{ tag: t.self, class: 'self-keyword' },
+		{ tag: t.bool, class: 'boolean' },
+		{ tag: t.escape, class: 'escape' },
+		{ tag: t.functionName, class: 'function-name' },
 		{
 			tag: [
-				tags.operator,
-				tags.arithmeticOperator,
-				tags.operatorKeyword,
-				tags.compareOperator,
-				tags.operatorKeyword,
+				t.operator,
+				t.arithmeticOperator,
+				t.operatorKeyword,
+				t.compareOperator,
+				t.operatorKeyword,
 			],
 			class: 'operator',
 		},
@@ -249,14 +255,16 @@ window.addEventListener('load', async () => {
 	const cupidLang = LRLanguage.define({
 		parser: parserWithMetadata,
 		languageData: {
-			commentTokens: { line: '#' },
+			commentTokens: { line: '#', block: { open: '***', close: '***' } },
 		},
 	});
 
 	const cupidCompletion = cupidLang.data.of({
 		autocomplete: completeFromList([
+			{ label: 'istype', type: 'keyword' },
 			{ label: 'type', type: 'keyword' },
 			{ label: 'use', type: 'keyword' },
+			{ label: 'with', type: 'keyword' },
 			{ label: 'string', type: 'type' },
 			{ label: 'char', type: 'type' },
 			{ label: 'bool', type: 'type' },
@@ -269,6 +277,10 @@ window.addEventListener('load', async () => {
 			{ label: 'self', type: 'literal' },
 			{ label: 'true', type: 'literal' },
 			{ label: 'false', type: 'literal' },
+			{ label: 'log', type: 'keyword' },
+			{ label: 'logs', type: 'keyword' },
+			{ label: 'log_line', type: 'keyword' },
+			{ label: 'logs_line', type: 'keyword' },
 		]),
 	});
 

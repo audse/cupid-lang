@@ -110,6 +110,7 @@
 
 -~atom:
 	function_call
+	| range
 	| map
 	| bracket_array
 	| group
@@ -121,12 +122,13 @@
 	| char
 	| decimal
 	| number
+	| self
 	| identifier
 
 - group: ~'(' term closing_paren
 - function: parameters block
 - parameters: (parameter ~',')*
--~parameter: ~'_' | ~'self' | annotated_parameter
+-~parameter: ~'_' | 'mut'? self | annotated_parameter
 - annotated_parameter: type_hint identifier
 
 - log: log_keyword ~'(' arguments closing_paren
@@ -135,7 +137,7 @@
 
 -~log_keyword: 'log' | 'logs' | 'log_line' | 'logs_line'
 
--~bracket_array: '[' array? closing_bracket
+-~bracket_array: '[' !('.' '.') array? !('.' '.') closing_bracket
 - array:  (operation ~',')+
 
 - map: '[' (map_entry !']' ',')* ']'
@@ -147,10 +149,11 @@
 	| range_exclusive_inclusive
 	| range_exclusive_exclusive
 
-- range_inclusive_inclusive: '[' atom ~'.' ~'.' atom ']'
-- range_inclusive_exclusive: '[' atom ~'.' ~'.' ']' atom
-- range_exclusive_inclusive: atom '[' ~'.' ~'.' atom ']'
-- range_exclusive_exclusive: atom '[' ~'.' ~'.' ']' atom
+- range_inclusive_inclusive: '[' range_term ~'.' ~'.' range_term ']'
+- range_inclusive_exclusive: '[' range_term ~'.' ~'.' ']' range_term
+- range_exclusive_inclusive: range_term '[' ~'.' ~'.' range_term ']'
+- range_exclusive_exclusive: range_term '[' ~'.' ~'.' ']' range_term
+-~range_term: function_call | group | unary_op | number | identifier
 
 # operations can be kinda slow, going through all that, so this is a shortcut
 -~no_op: !'+' !'-' atom !operator !keyword_operator !'.'
@@ -201,6 +204,8 @@
 	| boolean
 	| none
 
+- self: 'self'
+
 -~reserved_word:
 	'for'
 	| 'while'
@@ -219,6 +224,7 @@
 	| 'logs_line'
 	| 'use'
 	| 'trait'
+	| 'self'
 
 -~keyword_variable:
 	'let'
