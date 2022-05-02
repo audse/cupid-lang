@@ -1,6 +1,23 @@
 use crate::ParseNode;
 use crate::tree::*;
 
+// Maybe TODO?
+// pub trait FromParse {
+// 	fn from(node: &ParseNode) -> Self;
+// }
+// 
+// impl FromParse for BuiltInType {
+// 	fn from(node: &ParseNode) -> Self {
+// 		let token = &node.tokens[1];
+// 		Self {
+// 			symbol: Symbol {
+// 				identifier: Value::String(token.source.to_owned()),
+// 				token: token.clone()
+// 			}
+// 		}
+// 	}
+// }
+
 pub fn to_tree(node: &ParseNode) -> Expression {
     let errors = collect_errors(node);
     if !errors.is_empty() {
@@ -83,6 +100,27 @@ pub fn to_tree(node: &ParseNode) -> Expression {
                 .collect();
             Expression::new_define_sum(node.tokens[0].clone(), type_symbol, members, generics)
         },
+		
+		"trait_definition" => {
+			let token = node.tokens[0].clone();
+			let generics = get_generics(&node);
+			let symbol =  Expression::to_symbol(to_tree(if generics.len() > 0 {
+				&node.children[1]
+			} else {
+				&node.children[0]
+			}));
+			let declarations: Vec<Expression> = node.children
+				.iter()
+				.filter_map(|n| {
+					if n.name.as_str() == "typed_declaration" {
+						Some(to_tree(&n))
+					} else {
+						None
+					}
+				})
+				.collect();
+			Expression::DefineTrait(DefineTrait::new(token, symbol, declarations, generics))
+		},
         
         "array_type_hint" => Expression::ArrayTypeHint(
             ArrayTypeHint {
@@ -133,7 +171,7 @@ pub fn to_tree(node: &ParseNode) -> Expression {
         "implement_type" => {
             let token = node.tokens[0].clone();
             let identifier = Symbol::new_string(node.tokens[1].source.clone(), node.tokens[1].clone());
-            let _generics = get_generics(&node);
+            let generics = get_generics(&node);
             let declarations: Vec<Expression> = node.children
                 .iter()
                 .filter_map(|n| {
@@ -144,8 +182,32 @@ pub fn to_tree(node: &ParseNode) -> Expression {
                     }
                 })
                 .collect();
-            Expression::Implement(Implement::new(token, identifier, declarations))
-        }
+            Expression::Implement(Implement::new(token, identifier, declarations, generics))
+        },
+		
+		"implement_trait" => {
+			let token = node.tokens[0].clone();
+			let generics = get_generics(&node);
+			let (trait_symbol, type_symbol) = if generics.len() > 0 {
+				(&node.children[1], &node.children[2])
+			} else {
+				(&node.children[0], &node.children[1])
+			};
+			let trait_symbol = Expression::to_symbol(to_tree(trait_symbol));
+			let type_symbol = Expression::to_symbol(to_tree(type_symbol));
+			
+			let declarations: Vec<Expression> = node.children
+				.iter()
+				.filter_map(|n| {
+					if n.name.as_str() == "typed_declaration" {
+						Some(to_tree(&n))
+					} else {
+						None
+					}
+				})
+				.collect();
+			Expression::ImplementTrait(ImplementTrait::new(token, trait_symbol, type_symbol, declarations, generics))
+		},
 
         // Loops
         "for_loop" => {
@@ -326,7 +388,7 @@ pub fn to_tree(node: &ParseNode) -> Expression {
             Args(node.children[0].children.iter().map(to_tree).collect()),
         )),
         "function" => {
-            
+            let use_self = node.tokens.iter().find(|t| t.source.as_str() == "self").is_some();
             let (params, body) = if node.children.len() > 1 {
                 (
                     node.children[0]
@@ -348,7 +410,7 @@ pub fn to_tree(node: &ParseNode) -> Expression {
             } else {
                 (vec![], to_tree(&node.children[0]))
             };
-            Expression::new_function(params, body)
+            Expression::new_function(params, body, use_self)
         },
         "function_call" => {
             let fun = to_tree(&node.children[0]);

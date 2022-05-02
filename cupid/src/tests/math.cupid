@@ -1,35 +1,55 @@
-
+***
 type [v] iter = [
 	array [v] entries,
 	int i
 ]
 
 use [v] iter {
-
 	fun [int]
 	size = _ => {
 		for i, _ in self.entries => i + 1
 	}
 
-	# fun [v]
-	# next = _ => {
-	# 	self.i += 1
-	# 	(self.entries).(self.i)
-	# }
-	# 
-	# fun [v] 
-	# peek = int amount => {
-	# 	(self.entries).(self.i + amount)
-	# }
+	fun [v]
+	next = _ => {
+		self.i += 1
+		(self.entries).(self.i)
+	}
 	
+	fun [v] 
+	peek = int amount => {
+		(self.entries).(self.i + amount)
+	}
 }
 
-iter [v: int] mut myiter = [
-	entries: [10, 20, 30, 40, 50],
+iter [v: char] mut myiter = [
+	entries: [\a, \b, \c],
 	i: 0
 ]
+
+log (myiter.next())
+log (myiter.next())
+***
 
 type number = [
 	int,
 	dec
 ]
+
+trait [k] iter = [
+	fun [k] next,
+	fun [k] peek,
+]
+
+use iter with number {
+	
+	fun [number] 
+	next = _ => 
+		if self istype int => self++ 
+		else if self istype dec => self += 1.0
+	
+	fun [number] 
+	peek = _ => 
+		if self istype int => self + 1
+		else if self istype dec => self + 1.0
+}

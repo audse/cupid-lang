@@ -24,6 +24,7 @@ statement {
 
 term {
 	UseBlock
+	| UseTraitBlock
 	| IfBlock
 	| WhileLoop
 	| ForInLoop
@@ -57,7 +58,9 @@ ForInLoop { kw<"for"> commaSep<identifier> kw<"in"> term Block }
 BraceBlock { "{" expression* "}" }
 ArrowBlock { Arrow expression }
 
-UseBlock { kw<"use"> Generics? typeName BraceBlock }
+UseBlock { Use Generics? typeName ~use BraceBlock }
+UseTraitBlock { Use Generics? typeName ~use kw<"with"> BraceBlock }
+Use { kw<"use"> }
 
 group { "(" expression ")" }
 
@@ -161,4 +164,4 @@ commaSep1<expr> { expr ("," expr?)* }
 kw<term> { @specialize[@name={term}]<identifier, term> }
 
 @skip { space | LineComment | MultiLineComment }
-@detectDelim`
+@detectDelim`;

@@ -1,40 +1,83 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <link rel="icon" type="image/svg+xml" href="favicon.svg" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Cupid Lang Playground</title>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link
-            href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700;800&display=swap"
-            rel="stylesheet"
-        />
-    </head>
-    <body>
-        <h1>Cupid <span class="pink">Playground</span></h1>
-        <main id="window">
-            <article>
-                <section id="editor">
-                    <header>
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                        <nav>
-                            <!-- <button id="cupid-run-button" class="btn">
-                                Run
-                            </button> -->
-                        </nav>
-                    </header>
-                </section>
-                <section id="result">
-                    <header></header>
-                    <div id="result-text"></div>
-                </section>
-            </article>
-        </main>
+	<head>
+		<meta charset="UTF-8" />
+		<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Cupid Lang Playground</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700;800&display=swap"
+			rel="stylesheet"
+		/>
+	</head>
+	<body>
+		<h1>Cupid <span class="pink">Playground</span></h1>
+		<main id="window">
+			<article>
+				<section id="editor">
+					<header>
+						<div class="window-icons" aria-hidden="true">
+							<span></span>
+							<span></span>
+							<span></span>
+						</div>
+						<nav>
+							<!-- <button id="undo-button">
+								<svg>
+									<use href="./static/cssgg.svg#gg-undo" />
+								</svg>
+								<code>cmd + z</code>
+							</button>
+							<button id="redo-button">
+								<svg>
+									<use href="./static/cssgg.svg#gg-redo" />
+								</svg>
+								<code>cmd + shift + z</code>
+							</button> -->
 
-        <script type="module" src="/main.js"></script>
-    </body>
+							<label class="drop">
+								<input
+									type="checkbox"
+									id="target-drop-example"
+								/>
+								<span id="dropdown-label" class="control">
+									Examples
+								</span>
+								<ul class="drop-items">
+									<li class="item-drop">
+										<a id="example-1" href="#">Example 1</a>
+									</li>
+									<li class="item-drop">
+										<a id="example-2" href="#">Example 2</a>
+									</li>
+									<li class="item-drop">
+										<a id="example-3" href="#">Example 3</a>
+									</li>
+								</ul>
+								<label
+									for="target-drop-example"
+									class="overlay-close"
+								></label>
+							</label>
+						</nav>
+					</header>
+				</section>
+				<section id="result">
+					<header>
+						<button id="output-button" class="active">
+							Output view
+						</button>
+						<button id="tree-button">Tree view</button>
+						<button id="parse-button">Parse view</button>
+						<button id="scope-button">Scope view</button>
+					</header>
+					<div id="result-text"></div>
+				</section>
+			</article>
+		</main>
+
+		<script type="module" src="/main.js"></script>
+	</body>
 </html>

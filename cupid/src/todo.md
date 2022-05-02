@@ -22,7 +22,7 @@
     -   [x] `array (int)`
 -   [ ] Generics
     -   [x] In type declaration
-    -   [ ] In use blocks
+    -   [x] In use blocks
     -   [ ] In functions
     -   [ ] Trait bounds
 -   [ ] Type casting
@@ -71,6 +71,7 @@ use add with my_struct [
         -   [x] Alias
         -   [x] Sum
     -   [x] Call associated functions on any struct instance
+-   [ ] Require `self` on functions that use self
 
 ### Type checker
 
@@ -183,6 +184,8 @@ someone istype person # should be false
 
 -   [ ] Something is wrong with groups in grammar files
 -   [ ] An empty map `[]` could be a dict or a list or anything- type inference?
+-   [ ] If you use a primitive type where generics should go, it acts as a generic. Should be an error
+-   [ ] Should be able to log property functions without calling them (e.g. `log (myint.sq)`)
 
 ## Builtin library
 
@@ -215,6 +218,7 @@ someone istype person # should be false
 -   [ ] Report errors before compiling
 -   [ ] Function param & return type mismatches
 -   [ ] Add more error handling in the parsing phase
+-   [ ] Change errors as values to Result/Ok
 
 ## Parser
 
@@ -246,8 +250,11 @@ someone istype person # should be false
 -   [ ] Create some example files
 -   [ ] Add autocomplete
 -   [ ] Save in local storage
--   [ ] Load standard library
+-   [x] Load standard library
 -   [ ] Better error viewing/debugging
+-   [ ] Make mobile version
+-   [ ] View options
+-   [ ] Builtin documentation
 
 ### Documentation
 

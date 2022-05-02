@@ -12,15 +12,9 @@ pub struct Node {
     pub value: Value,
 }
 
-impl Node {
-    fn get_value(&self) -> Value {
-        self.value.clone()
-    }
-}
-
 impl Tree for Node {
     fn resolve(&self, _scope: &mut LexicalScope) -> Value {
-        self.get_value()
+        self.value.to_owned()
     }
 }
 

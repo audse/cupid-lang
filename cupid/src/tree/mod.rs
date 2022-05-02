@@ -34,11 +34,11 @@ pub use property::*;
 mod scope;
 pub use scope::*;
 
-// mod structure;
-// pub use structure::*;
-
 mod symbol;
 pub use symbol::*;
+
+mod traits;
+pub use traits::*;
 
 mod type_system;
 pub use type_system::*;

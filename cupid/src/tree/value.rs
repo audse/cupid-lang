@@ -4,7 +4,7 @@ use std::hash::{Hash, Hasher};
 use std::ops::{Add, Sub, Mul, Neg, Div, Rem, BitAnd, BitOr};
 use std::cmp::Ordering;
 use serde::{Serialize, Deserialize};
-use crate::{TypeKind, Symbol, Expression, Error, Token};
+use crate::{TypeKind, Symbol, Expression, Error, Token, Implementation};
 
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -15,12 +15,14 @@ pub enum Value {
 	Array(Vec<Box<Value>>),
 	String(String),
 	Boolean(bool),
-	FunctionBody(Vec<(Value, Symbol)>, Box<Expression>),
+	FunctionBody(Vec<(Value, Symbol)>, Box<Expression>, bool),
 	Error(Error),
 	Type(TypeKind),
+	Trait(Implementation),
 	Break(Box<Value>),
 	Return(Box<Value>),
 	Map(HashMap<Value, (usize, Value)>),
+	Log(Box<Value>),
 	Continue,
 	None,
 }
@@ -159,7 +161,7 @@ impl PartialEq for Value {
 			(Value::String(x), Value::String(y)) => x == y,
 			(Value::Decimal(a, b), Value::Decimal(x, y)) => a == x && b == y,
 			(Value::Boolean(x), Value::Boolean(y)) => x == y,
-			(Value::FunctionBody(x, _), Value::FunctionBody(y, _)) => x == y,
+			(Value::FunctionBody(x, ..), Value::FunctionBody(y, ..)) => x == y,
 			(Value::Type(x), Value::Type(y)) => x == y,
 			(Value::None, Value::None) => true,
 			(Value::Error(_), Value::Error(_)) => false,
@@ -184,9 +186,10 @@ impl Hash for Value {
 				x.hash(state);
 				y.hash(state);
 			},
-			Value::FunctionBody(x, y) => {
+			Value::FunctionBody(x, y, z) => {
 				x.hash(state);
 				y.hash(state);
+				z.hash(state);
 			},
 			Value::None => (),
 			Value::Map(x) => for entry in x.iter() {
@@ -195,6 +198,8 @@ impl Hash for Value {
 			Value::Type(x) => x.hash(state),
 			Value::Break(x) => x.hash(state),
 			Value::Return(x) => x.hash(state),
+			Value::Log(x) => x.hash(state),
+			Value::Trait(x) => x.hash(state),
 			Value::Continue => (),
 		}
 	}
@@ -316,14 +321,26 @@ impl Display for Value {
 				Ok(())
 			},
 			Self::Map(map) => {
-				let entries: Vec<String> = map
+				let mut entries: Vec<(&Value, &(usize, Value))> = map
+					.iter()
+					.collect();
+				entries.sort_by(|(a, (_, _)), (z, (_, _))| {
+					if let (Value::String(a), Value::String(z)) = (a, z) {
+						a.to_lowercase().cmp(&z.to_lowercase())
+					} else if let Some(order) = a.partial_cmp(z) {
+						order
+					} else {
+						Ordering::Equal
+					}
+				});
+				let entries: Vec<String> = entries
 					.iter()
 					.map(|(key, (_, value))| format!("{key}: {value}"))
 					.collect();
 				_ = write!(f, "[{}]", entries.join(", "));
 				Ok(())
 			},
-			Self::FunctionBody(params, _) => {
+			Self::FunctionBody(params, ..) => {
 				let params: Vec<String> = params
 					.iter()
 					.map(|p| format!("{} {}", p.0, p.1.identifier))
@@ -332,6 +349,8 @@ impl Display for Value {
 				Ok(())
 			},
 			Self::Type(type_kind) => write!(f, "{type_kind}"),
+			Self::Log(log) => write!(f, "{log}"),
+			Self::Trait(trait_map) => write!(f, "{trait_map}"),
 			v => write!(f, "{:?}", v)
 		}
 	}

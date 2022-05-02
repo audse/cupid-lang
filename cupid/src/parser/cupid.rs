@@ -3,6 +3,7 @@
 #![allow(unused_variables)]
 #![allow(dead_code)]
 #![allow(unused_macros)]
+use serde::{Serialize, Deserialize};
 use crate::{
     is_identifier, is_number, is_string, is_uppercase, BiDirectionalIterator, Tokenizer, Token,
 };
@@ -70,7 +71,7 @@ macro_rules! use_positive_lookahead {
     }};
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Serialize, Deserialize)]
 pub struct Node {
     pub name: String,
     pub children: Vec<Node>,
@@ -281,14 +282,14 @@ use_item!(&mut node, self._trait_definition(None), false);
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self._implement_block(None), false);
+use_item!(&mut node, self._implement_type(None), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self._implement_trait_block(None), false);
+use_item!(&mut node, self._implement_trait(None), false);
 
 			return Some((node, true));
 		
@@ -398,6 +399,13 @@ use_item!(&mut node, self._block(None), false);
 		self.reset_parse(&mut node, pos);
 loop { 
 use_item!(&mut node, self._function(None), false);
+
+			return Some((node, true));
+		
+}
+		self.reset_parse(&mut node, pos);
+loop { 
+use_item!(&mut node, self._no_op(None), false);
 
 			return Some((node, true));
 		
@@ -1318,11 +1326,11 @@ use_item!(&mut node, self._type_hint(None), false);
 			None
 		}
 		
-		pub fn _implement_block(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
+		pub fn _implement_type(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "implement_block".to_string(),
+				name: "implement_type".to_string(),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -1341,22 +1349,43 @@ use_item!(&mut node, self._closing_brace(None), false);
 			None
 		}
 		
-		pub fn _implement_trait_block(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
+		pub fn _implement_trait(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "implement_trait_block".to_string(),
+				name: "implement_trait".to_string(),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
 use_item!(&mut node, self.expect("use".to_string()), false);
+use_optional!(&mut node, self._generics(None), false);
 use_item!(&mut node, self._identifier(None), false);
 use_item!(&mut node, self.expect("with".to_string()), false);
 use_item!(&mut node, self._identifier(None), false);
-use_item!(&mut node, self._brace_block(None), false);
+use_optional!(&mut node, self._implement_trait_body(None), false);
 
 			return Some((node, false));
+		
+}
+		self.reset_parse(&mut node, pos);
+			None
+		}
+		
+		pub fn _implement_trait_body(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
+			let start_pos = self.tokens.index();
+			let pos = start_pos;
+			let mut node = Node {
+				name: "implement_trait_body".to_string(),
+				tokens: vec![],
+				children: vec![],
+			};
+			loop { 
+use_item!(&mut node, self.expect("{".to_string()), false);
+use_repeat!(&mut node, self._typed_declaration(None), false);
+use_item!(&mut node, self._closing_brace(None), false);
+
+			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
@@ -1378,35 +1407,9 @@ use_item!(&mut node, self._identifier(None), false);
 use_item!(&mut node, self._equal(None), false);
 use_item!(&mut node, self.expect("[".to_string()), false);
 loop { 
-use_item!(&mut node, self._trait_member(None), false);
+use_item!(&mut node, self._typed_declaration(None), false);
 use_item!(&mut node, self.expect(",".to_string()), false);
 }use_item!(&mut node, self.expect("]".to_string()), false);
-
-			return Some((node, false));
-		
-}
-		self.reset_parse(&mut node, pos);
-			None
-		}
-		
-		pub fn _trait_member(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
-			let start_pos = self.tokens.index();
-			let pos = start_pos;
-			let mut node = Node {
-				name: "trait_member".to_string(),
-				tokens: vec![],
-				children: vec![],
-			};
-			loop { 
-use_item!(&mut node, self._typed_declaration(None), false);
-
-			return Some((node, false));
-		
-}
-		self.reset_parse(&mut node, pos);
-loop { 
-use_item!(&mut node, self._type_hint(None), false);
-use_item!(&mut node, self._identifier(None), false);
 
 			return Some((node, false));
 		
@@ -1957,6 +1960,29 @@ use_item!(&mut node, self.expect("]".to_string()), false);
 use_item!(&mut node, self._atom(None), false);
 
 			return Some((node, false));
+		
+}
+		self.reset_parse(&mut node, pos);
+			None
+		}
+		
+		pub fn _no_op(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
+			let start_pos = self.tokens.index();
+			let pos = start_pos;
+			let mut node = Node {
+				name: "no_op".to_string(),
+				tokens: vec![],
+				children: vec![],
+			};
+			loop { 
+use_negative_lookahead!(self, self.tokens.index(), &mut self.expect("+".to_string()));
+use_negative_lookahead!(self, self.tokens.index(), &mut self.expect("-".to_string()));
+use_item!(&mut node, self._atom(None), false);
+use_negative_lookahead!(self, self.tokens.index(), &mut self._operator(None));
+use_negative_lookahead!(self, self.tokens.index(), &mut self._keyword_operator(None));
+use_negative_lookahead!(self, self.tokens.index(), &mut self.expect(".".to_string()));
+
+			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);

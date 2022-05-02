@@ -41,51 +41,71 @@ extern {
 
 
 #[derive(Serialize, Deserialize)]
-pub struct Cupid {
-	pub values: Vec<Value>,
-	pub semantics: Expression,
-	pub errors: Vec<Error>
+pub struct ScopeEntry {
+	pub context: ScopeContext,
+	pub storage: Vec<StorageEntry>,
 }
 
-#[wasm_bindgen]
-pub fn run(string: &str) -> String {
-	let mut file_handler = FileHandler::from(string);
-	file_handler.preload_contents(read_file());
-	let result: Vec<String> = file_handler
-		.run_and_return()
-		.iter()
-		.map(|v| v.to_string())
-		.collect();
-	result.join("\n")
+#[derive(Serialize, Deserialize)]
+pub struct StorageEntry {
+	pub symbol: Value,
+	pub value: SymbolValue
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Cupid {
+	pub values: Vec<(String, Value)>,
+	pub semantics: Vec<Expression>,
+	pub parse: ParseNode,
+	pub errors: Vec<Error>,
+	pub scope: Vec<ScopeEntry>
 }
 
 #[wasm_bindgen]
 pub fn run_and_collect_logs(string: &str) -> JsValue {
 	let mut file_handler = FileHandler::from(string);
-	file_handler.preload_contents(read_file());
+	let stdlib = read_file();
+	file_handler.preload_contents(stdlib);
 	
-	let parse_tree = file_handler.parser._file(None);        
-	let semantics = to_tree(&parse_tree.unwrap().0);
+	let parse_tree = file_handler.parser._file(None);
+	let parse = parse_tree.unwrap().0;
+	let file = to_tree(&parse);
 	
-	let mut values: Vec<Value> = vec![];
-	if let Expression::File(ref f) = semantics {
+	let mut semantics: Vec<Expression> = vec![];
+	let mut values: Vec<(String, Value)> = vec![];
+	let mut errors: Vec<Error> = vec![];
+	
+	file_handler.scope.add(ScopeContext::Block);
+	if let Expression::File(ref f) = file {
 		for exp in f {
 			let exp_val = exp.resolve(&mut file_handler.scope);
-			values.push(exp_val)
-			// match &exp_val {
-			// 	Value::Error(error) => values.push(error.to_string()),
-			// 	_ => ()
-			// };
-			// match exp {
-			// 	Expression::Logger(_) => values.push(exp_val.to_string()),
-			// 	_ => ()
-			// };
+			match exp_val {
+				Value::Error(e) => errors.push(e),
+				_ => values.push((exp_val.to_string(), exp_val))
+			};
+			semantics.push(exp.clone())
 		}
 	}
+	
+	let scope: Vec<ScopeEntry> = file_handler.scope.scopes.iter().map(|ls| {
+		let storage: Vec<StorageEntry> = ls.storage.iter().map(|(v, sv)| 
+			StorageEntry { 
+				symbol: v.to_owned(),
+				value: sv.to_owned()
+			}
+		).collect();
+		ScopeEntry {
+			context: ls.context.to_owned(),
+			storage
+		}
+	}).collect();
+	
 	let val = Cupid {
 		values,
 		semantics,
-		errors: file_handler.errors
+		parse,
+		errors,
+		scope,
 	};
 	
 	// JsValue::from_serde(&val).unwrap()

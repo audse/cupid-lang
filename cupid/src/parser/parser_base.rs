@@ -3,6 +3,7 @@
 #![allow(unused_variables)]
 #![allow(dead_code)]
 #![allow(unused_macros)]
+use serde::{Serialize, Deserialize};
 use crate::{
     is_identifier, is_number, is_string, is_uppercase, BiDirectionalIterator, Tokenizer, Token,
 };
@@ -70,7 +71,7 @@ macro_rules! use_positive_lookahead {
     }};
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Serialize, Deserialize)]
 pub struct Node {
     pub name: String,
     pub children: Vec<Node>,

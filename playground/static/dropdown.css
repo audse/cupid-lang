@@ -1,0 +1,94 @@
+.drop {
+	display: inline-block;
+	position: relative;
+	text-align: center;
+}
+.drop input[type='checkbox'] {
+	display: none;
+}
+.drop input[type='checkbox']:checked ~ .drop-items {
+	opacity: 1;
+	max-height: 400px;
+	padding: 0.6rem 0;
+}
+.drop input[type='checkbox']:checked ~ .control {
+	z-index: 99;
+	/* box-shadow: 0 0 0 2px var(--editor-bg); */
+}
+.drop input[type='checkbox']:checked ~ .control:after {
+	transform: rotate(180deg);
+}
+.drop input[type='checkbox']:checked ~ .overlay-close {
+	transform: none;
+	pointer-events: initial;
+}
+.drop .control {
+	position: relative;
+	color: var(--text);
+	display: inline-block;
+	cursor: pointer;
+	background: rgba(var(--text-rgb), 0.1);
+	border-radius: 4px;
+	transition: all 0.3s ease;
+	margin: 7px;
+	padding: 5px 15px;
+	width: 120px;
+	font-weight: bold;
+}
+@media (hover: hover) {
+	.drop .control:hover {
+		opacity: 0.75;
+	}
+}
+.drop .control:after {
+	content: '';
+	display: inline-block;
+	height: 0.5em;
+	width: 0.5em;
+	margin-left: 0.8em;
+	background-image: url("data:image/svg+xml,%3Csvg fill='%23fff' xmlns='http://www.w3.org/2000/svg' width='16' height='13.838' viewBox='0 0 16 13.838'%3E%3Cpath d='M15.78,12.753a1.529,1.529,0,0,1-1.311,2.314H1.53A1.529,1.529,0,0,1,.219,12.753L6.69,1.969a1.528,1.528,0,0,1,2.619,0L15.78,12.753Z' transform='translate(16 15.067) rotate(180)'/%3E%3C/svg%3E%0A");
+	background-repeat: no-repeat;
+	background-position: center;
+	background-size: contain;
+	transition: transform 0.3s ease;
+}
+.drop .drop-items {
+	position: absolute;
+	top: calc(100% + 0.4rem);
+	width: 100%;
+	padding: 0;
+	margin: 0;
+	transition: all 0.3s ease;
+	background: #fff;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+	border-radius: 4px;
+	overflow: hidden;
+	max-height: 0;
+	opacity: 0;
+	z-index: 99;
+}
+.drop .drop-items .item-drop {
+	list-style: none;
+}
+.drop .drop-items .item-drop a {
+	display: block;
+	color: #555;
+	text-decoration: none;
+	padding: 0.6rem;
+	transition: all 0.3s ease;
+}
+@media (hover: hover) {
+	.drop .drop-items .item-drop a:hover {
+		background: #eee;
+	}
+}
+.drop .overlay-close {
+	position: fixed;
+	top: 0;
+	left: 0;
+	bottom: 0;
+	right: 0;
+	z-index: 9;
+	transform: translate(100%, 0);
+	pointer-events: none;
+}

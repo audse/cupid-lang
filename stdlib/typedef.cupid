@@ -7,31 +7,3 @@ type nothing
 type string
 type int
 type dec
-
-trait [t] format [
-	fun [string]
-	format = _ => self as string,
-]
-
-trait [t] default [
-	fun [t] default,
-]
-
-trait [t] compare [
-	fun [int] compare,
-	
-	fun [int] 
-	compare_reverse = _ => -self.compare(),
-]
-
-type [t] iter [
-	array [t] entries,
-	int index
-]
-
-use default with iter {
-	fun [iter] default = _ => iter [
-		entries: [],
-		index: 0
-	]
-}

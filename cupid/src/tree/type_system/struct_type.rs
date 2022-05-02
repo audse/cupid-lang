@@ -2,12 +2,12 @@ use std::collections::HashMap;
 use std::fmt::{Display, Formatter, Result as DisplayResult};
 use std::hash::{Hash, Hasher};
 use serde::{Serialize, Deserialize};
-use crate::{TypeKind, Type, Symbol, GenericType, Expression, Tree, Value, SymbolFinder, ErrorHandler, Token, ScopeContext};
+use crate::{TypeKind, Type, Symbol, GenericType, Expression, Tree, Value, SymbolFinder, ErrorHandler, Token, ScopeContext, UseGenerics, Implementation, LexicalScope};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StructType {
 	pub members: Vec<(Symbol, TypeKind)>,
-	pub implement: HashMap<Value, Value>
+	pub implementation: Implementation
 }
 
 impl StructType {
@@ -42,6 +42,18 @@ impl Type for StructType {
     	for (_, member) in self.members.iter_mut() {
 			member.convert_primitives_to_generics(generics)
 		}
+	}
+	fn implement(&mut self, functions: HashMap<Value, Value>) -> Result<(), ()> {
+    	self.implementation.implement(functions);
+		Ok(())
+	}
+	fn find_function(&self, symbol: &Symbol, scope: &mut LexicalScope) -> Option<Value> {
+		self.implementation.find_function(symbol, scope)
+	}
+	fn implement_trait(&mut self, trait_symbol: Symbol, functions: HashMap<Value, Value>) -> Result<(), ()> { 
+		let implementation = Implementation { functions, traits: HashMap::new(), };
+		self.implementation.implement_trait(trait_symbol, implementation);
+		Ok(())
 	}
 }
 
@@ -96,7 +108,7 @@ impl Tree for DefineStruct {
 			.collect();
 		let new_struct = TypeKind::Struct(StructType { 
 			members,
-			implement: HashMap::new()
+			implementation: Implementation::new()
 		});
 		scope.pop();
 		if let Some(new_struct) = scope.define_type(&self.symbol, new_struct) {
@@ -116,21 +128,9 @@ impl ErrorHandler for DefineStruct {
 	}
 }
 
-impl DefineStruct {
-	fn resolve_generics(&self) -> Vec<GenericType> {
-		self.generics
-			.iter()
-			.map(|g| GenericType::new(&g.get_identifier(), None))
-			.collect()
-	}
-	fn define_generics(&self, scope: &mut crate::LexicalScope) {
-		let generics: Vec<(&Symbol, GenericType)> = self.generics
-			.iter()
-			.map(|g| (g, GenericType::new(&g.get_identifier(), None)))
-			.collect();
-		for (symbol, generic) in generics {
-			scope.define_type(symbol, TypeKind::Generic(generic));
-		}
+impl UseGenerics for DefineStruct {
+	fn get_generics(&self) -> &[Symbol] {
+    	&self.generics
 	}
 }
 

@@ -1,5 +1,5 @@
 use serde::{Serialize, Deserialize};
-use std::fmt::{Display, Formatter, Result};
+use std::fmt::{Display, Formatter, Result as DisplayResult};
 use crate::*;
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -36,10 +36,12 @@ pub enum Expression {
     FunctionTypeHint(FunctionTypeHint),
     PropertyAssign(PropertyAssign),
     Implement(Implement),
+	DefineTrait(DefineTrait),
+	ImplementTrait(ImplementTrait),
 }
 
 impl Display for Expression {
-    fn fmt(&self, f: &mut Formatter) -> Result {
+    fn fmt(&self, f: &mut Formatter) -> DisplayResult {
         match self {
             Self::File(a) => a.iter().try_for_each(|e| write!(f, "{:?}", e)),
             Self::Node(node) => write!(f, "{}", node.value),
@@ -129,10 +131,11 @@ impl Expression {
             else_body,
         })
     }
-	pub fn new_function(params: Vec<(Expression, Symbol)>, body: Expression) -> Self {
+	pub fn new_function(params: Vec<(Expression, Symbol)>, body: Expression, use_self: bool) -> Self {
 		Expression::Function(Function {
 			params,
 			body: Box::new(body),
+			use_self
 		})
 	}
 	pub fn new_function_call(fun: Expression, args: Vec<Expression>) -> Self {
@@ -227,6 +230,25 @@ impl Expression {
         }
         vec![]
     }
+	pub fn get_value_and_type(&self, scope: &mut LexicalScope) -> Result<(Value, TypeKind), Value> {
+		let value = match self.resolve(scope) {
+			Value::Error(e) => return Err(Value::Error(e)),
+			v => v,
+		};
+		if let Expression::Symbol(map_symbol) = &self {
+			// get implementation of stored symbol's type
+			match scope.get_type_of_symbol(&map_symbol) {
+				Ok(type_value) => Ok((value, type_value)),
+				Err(e) => Err(map_symbol.error(e)),
+			}
+		} else {
+			// get implementation of non-symbol term
+			match scope.get_type(&value) {
+				Ok(type_value) => Ok((value, type_value)),
+				Err(e) => panic!("{e}")
+			}
+		}
+	}
 }
 
 impl Tree for Expression {
@@ -267,7 +289,9 @@ impl Tree for Expression {
             Self::StructTypeHint(x) => x.resolve(scope),
             Self::FunctionTypeHint(x) => x.resolve(scope),
             Self::PropertyAssign(x) => x.resolve(scope),
-            Self::Implement(x) => x.resolve(scope),
+			Self::Implement(x) => x.resolve(scope),
+			Self::DefineTrait(x) => x.resolve(scope),
+			Self::ImplementTrait(x) => x.resolve(scope),
             _ => Value::None,
         }
     }

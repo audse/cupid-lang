@@ -1,23 +1,22 @@
+:root {
+	--header-bg: #263145;
+	--editor-bg: rgba(38, 49, 69, 1);
+	--result-bg: #2d394d;
+	--text: #f1f5f9;
+	--text-rgb: 241, 245, 249;
+	--pink: 255, 146, 205;
+	--font: 'Fira Sans', Avenir, Helvetica, Arial, sans-serif;
+}
+
 body {
-	font-family: 'Fira Sans', Avenir, Helvetica, Arial, sans-serif;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 	color: var(--text);
 	margin-top: 60px;
 	background: #0f172a;
 	font-size: 1rem;
-	font-weight: 500;
-
-	--header-bg: #263145;
-	--editor-bg: #263145;
-	--result-bg: #334155;
-	--text: #f1f5f9;
-}
-
-.ellipse {
-	width: 14px;
-	height: 14px;
-	transform: scale(1.5) translateY(2px);
+	font-weight: 400;
+	font-family: var(--font);
 }
 
 * {
@@ -60,6 +59,50 @@ main {
 	margin: 0 auto;
 }
 
+button {
+	/* background: rgba(241, 245, 249, 0.1); */
+	background: transparent;
+	border: none;
+	font-size: 0.9rem;
+	letter-spacing: 0.25pt;
+	height: 40px;
+	padding: 6px 12px;
+	font-family: var(--font);
+	font-weight: 600;
+	color: rgba(241, 245, 249, 0.7);
+	border-radius: 4px;
+	transition: 125ms;
+}
+
+button:hover {
+	transform: scale(1.05);
+	color: rgba(241, 245, 249, 0.9);
+}
+
+button.active:hover {
+	color: var(--text);
+}
+
+button.active {
+	background: transparent;
+	color: var(--text);
+}
+
+svg {
+	width: 14px;
+	height: 14px;
+	transform: scale(1.5) translateY(2px);
+}
+
+code {
+	background: rgba(var(--text-rgb), 0.15);
+	color: rgba(var(--text-rgb), 0.85);
+	border-radius: 4px;
+	padding: 2px 6px;
+	margin: 0px 2px;
+	font-size: 85%;
+}
+
 #window {
 	box-shadow: 0 15px 25px 2px #070c17;
 	border-radius: 0.25rem;
@@ -68,16 +111,16 @@ main {
 #editor header {
 	border-top-left-radius: 0.25rem;
 	background: var(--header-bg);
-	height: 30px;
+	height: 40px;
 	position: relative;
 }
 
 #result header {
 	border-top-right-radius: 0.25rem;
-	height: 30px;
+	height: 40px;
 }
 
-#editor header span {
+#editor header .window-icons span {
 	width: 10px;
 	height: 10px;
 	border-radius: 5px;
@@ -86,22 +129,21 @@ main {
 	left: 10px;
 }
 
-#editor header span:nth-child(1) {
+#editor header .window-icons span:nth-child(1) {
 	background: #ef4444;
 }
 
-#editor header span:nth-child(2) {
+#editor header .window-icons span:nth-child(2) {
 	background: #fcd34d;
 	left: 30px;
 }
 
-#editor header span:nth-child(3) {
+#editor header .window-icons span:nth-child(3) {
 	background: #22c55e;
 	left: 50px;
 }
 
 #window nav {
-	border-bottom: 1px solid #263145;
 	display: flex;
 	justify-content: flex-end;
 }
@@ -124,16 +166,19 @@ section#editor {
 }
 
 section#result {
-	background: var(--result-bg);
+	font-family: DejaVuSansMono, monospace !important;
+	font-size: 14px;
 	border-left: 1px solid #263145;
 	border-bottom-right-radius: 0.25rem;
 	border-top-right-radius: 0.25rem;
-	padding: 0.5rem 1.5rem;
-	overflow: scroll;
 }
 
 #result-text {
 	max-height: 70vh;
+	padding-top: 10px;
+	padding: 0.5rem 1.5rem;
+	overflow: scroll;
+	line-height: 1.8;
 }
 
 .cm-editor {
@@ -152,7 +197,7 @@ section#result {
 	font-family: DejaVuSansMono, monospace !important;
 	background: var(--editor-bg);
 	color: #f1f5f9;
-	padding: 8px 0;
+	padding: 12px 0;
 }
 
 .cm-scroller {
@@ -199,7 +244,7 @@ section#result {
 }
 
 .cm-gutter.cm-lineNumbers {
-	width: 36px !important;
+	width: 40px !important;
 }
 
 .cm-editor.cm-focused {
@@ -235,12 +280,25 @@ section#result {
 	background: #e2e8f0 !important;
 }
 
+.result-error {
+	max-width: 60ch;
+	background: rgba(225, 60, 60, 0.1);
+	padding: 12px 8px;
+	margin: 16px 0;
+	border-radius: 3px;
+	border: 1px solid rgba(225, 60, 60, 0.25);
+}
+
+.result-error .muted {
+	color: rgba(247, 199, 199, 0.9);
+}
+
 .btn {
 	position: relative;
 	display: block;
 	z-index: 10;
 	width: 70px;
-	height: 36px;
+	height: 40px;
 	border: none;
 	background: transparent;
 	color: #fff;
@@ -272,8 +330,20 @@ section#result {
 	opacity: 1;
 }
 
+.muted {
+	color: #adbbce;
+}
+
 .pink {
 	color: #f9a8d4;
+}
+
+.red {
+	color: #fd6868;
+}
+
+.yellow {
+	color: #fdc568;
 }
 
 .variable-name {
@@ -299,6 +369,10 @@ section#result {
 .number {
 	color: #a6e0ff;
 	font-style: italic;
+}
+
+.boolean {
+	color: #fd6868;
 }
 
 .property-name {

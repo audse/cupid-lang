@@ -1,5 +1,5 @@
 - file: expression+
-- expression: comment | statement | term
+-~expression: comment | statement | term
 
 -~statement:
 	type_definition
@@ -22,6 +22,7 @@
 	loop
 	| block
 	| function
+	| no_op
 	| operation
 	| atom
 
@@ -99,10 +100,11 @@
 - struct_member_type_hint: identifier ':' type_hint
 
 - implement_type: 'use' generics? WORD '{' typed_declaration* closing_brace
-- implement_trait: 'use' identifier 'with' identifier brace_block?
 
-- trait_definition: 'trait' generics identifier equal '[' (trait_member ',')* ']'
-- trait_member: typed_declaration | type_hint identifier
+- implement_trait: 'use' generics? identifier 'with' identifier implement_trait_body?
+-~implement_trait_body: '{' typed_declaration* closing_brace
+
+- trait_definition: 'trait' generics identifier equal '[' (typed_declaration ',')* ']'
 
 -~equal: '=' !'>'
 
@@ -149,6 +151,9 @@
 - range_inclusive_exclusive: '[' atom ~'.' ~'.' ']' atom
 - range_exclusive_inclusive: atom '[' ~'.' ~'.' atom ']'
 - range_exclusive_exclusive: atom '[' ~'.' ~'.' ']' atom
+
+# operations can be kinda slow, going through all that, so this is a shortcut
+-~no_op: !'+' !'-' atom !operator !keyword_operator !'.'
 
 -~operation: binary_op
 

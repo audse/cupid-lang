@@ -2,12 +2,12 @@ use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use serde::{Serialize, Deserialize};
 use std::fmt::{Display, Formatter, Result as DisplayResult};
-use crate::{TypeKind, Type, Symbol, GenericType, Expression, Tree, Value, SymbolFinder, ErrorHandler, Token, ScopeContext};
+use crate::{TypeKind, Type, Symbol, GenericType, Expression, Tree, Value, SymbolFinder, ErrorHandler, Token, ScopeContext, UseGenerics, Implementation, LexicalScope};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AliasType {
 	pub true_type: Box<TypeKind>,
-	pub implement: HashMap<Value, Value>
+	pub implementation: Implementation
 }
 
 impl Type for AliasType {
@@ -16,6 +16,18 @@ impl Type for AliasType {
 	}
 	fn convert_primitives_to_generics(&mut self, generics: &[GenericType]) {
 		self.true_type.convert_primitives_to_generics(generics)
+	}
+	fn implement(&mut self, functions: HashMap<Value, Value>) -> Result<(), ()> {
+		self.implementation.implement(functions);
+		Ok(())
+	}
+	fn find_function(&self, symbol: &Symbol, scope: &mut LexicalScope) -> Option<Value> {
+		self.implementation.find_function(symbol, scope)
+	}
+	fn implement_trait(&mut self, trait_symbol: Symbol, functions: HashMap<Value, Value>) -> Result<(), ()> { 
+		let implementation = Implementation { functions, traits: HashMap::new(), };
+		self.implementation.implement_trait(trait_symbol, implementation);
+		Ok(())
 	}
 }
 
@@ -56,7 +68,7 @@ impl Tree for DefineAlias {
 			true_type.convert_primitives_to_generics(&self.resolve_generics());
 			let new_alias = TypeKind::Alias(AliasType { 
 				true_type: Box::new(true_type), 
-				implement: HashMap::new()
+				implementation: Implementation::new()
 			});
 			
 			scope.pop();
@@ -81,20 +93,8 @@ impl ErrorHandler for DefineAlias {
 	}
 }
 
-impl DefineAlias {
-	fn resolve_generics(&self) -> Vec<GenericType> {
-		self.generics
-			.iter()
-			.map(|g| GenericType::new(&g.get_identifier(), None))
-			.collect()
-	}
-	fn define_generics(&self, scope: &mut crate::LexicalScope) {
-		let generics: Vec<(&Symbol, GenericType)> = self.generics
-			.iter()
-			.map(|g| (g, GenericType::new(&g.get_identifier(), None)))
-			.collect();
-		for (symbol, generic) in generics {
-			scope.define_type(symbol, TypeKind::Generic(generic));
-		}
+impl UseGenerics for DefineAlias {
+	fn get_generics(&self) -> &[Symbol] {
+    	&self.generics
 	}
 }

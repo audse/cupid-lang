@@ -46,9 +46,9 @@ impl FileHandler {
 	
 	pub fn use_stdlib(&mut self) {
 		let packages = vec![
-			"src/tests/stdlib/typedef.cupid",
-			"src/tests/stdlib/decimal.cupid",
-			"src/tests/stdlib/integer.cupid",
+			"./../stdlib/typedef.cupid",
+			"./../stdlib/decimal.cupid",
+			"./../stdlib/integer.cupid",
 		];
 		let stdlib: Vec<String> = packages
 			.iter()
@@ -81,6 +81,7 @@ impl FileHandler {
 		let semantics = to_tree(&parse_tree.unwrap().0);
 		println!("Semantics: {:#?}", semantics);
 		
+		self.scope.add(ScopeContext::Block);
 		let result = semantics.resolve_file(&mut self.scope);
 		print!("\n\nResults:");
 		result.iter().for_each(|r| println!("\n{}", r));
@@ -92,6 +93,7 @@ impl FileHandler {
 		let parse_tree = self.parser._file(None);        
 		let semantics = to_tree(&parse_tree.unwrap().0);
 		
+		self.scope.add(ScopeContext::Block);
 		semantics.resolve_file(&mut self.scope)
 	}
 	
@@ -108,6 +110,7 @@ impl FileHandler {
 		let parse_tree = self.parser._file(None);        
 		let semantics = to_tree(&parse_tree.unwrap().0);
 		
+		self.scope.add(ScopeContext::Block);
 		let result = semantics.resolve_file(&mut self.scope);
 		self.errors = result
 			.iter()

@@ -2,12 +2,12 @@ use std::collections::HashMap;
 use std::fmt::{Display, Formatter, Result as DisplayResult};
 use std::hash::{Hash, Hasher};
 use serde::{Serialize, Deserialize};
-use crate::{TypeKind, Type, Symbol, GenericType, Expression, Tree, Value, SymbolFinder, ErrorHandler, Token, ScopeContext};
+use crate::{TypeKind, Type, Symbol, GenericType, Expression, Tree, Value, SymbolFinder, ErrorHandler, Token, ScopeContext, UseGenerics, Implementation, LexicalScope};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SumType {
 	pub types: Vec<TypeKind>,
-	pub implement: HashMap<Value, Value>
+	pub implementation: Implementation
 }
 
 impl SumType {
@@ -26,6 +26,18 @@ impl Type for SumType {
 	}
 	fn convert_primitives_to_generics(&mut self, generics: &[GenericType]) {
 		_ = self.types.iter_mut().map(|t| t.convert_primitives_to_generics(generics));
+	}
+	fn implement(&mut self, functions: HashMap<Value, Value>) -> Result<(), ()> {
+    	self.implementation.implement(functions);
+		Ok(())
+	}
+	fn find_function(&self, symbol: &Symbol, scope: &mut LexicalScope) -> Option<Value> {
+		self.implementation.find_function(symbol, scope)
+	}
+	fn implement_trait(&mut self, trait_symbol: Symbol, functions: HashMap<Value, Value>) -> Result<(), ()> { 
+		let implementation = Implementation { functions, traits: HashMap::new(), };
+		self.implementation.implement_trait(trait_symbol, implementation);
+		Ok(())
 	}
 }
 
@@ -78,7 +90,7 @@ impl Tree for DefineSum {
 			.collect();
 		let new_sum = TypeKind::Sum(SumType { 
 			types,
-			implement: HashMap::new()
+			implementation: Implementation::new()
 		});
 		scope.pop();
 		if let Some(new_sum) = scope.define_type(&self.symbol, new_sum) {
@@ -99,20 +111,8 @@ impl ErrorHandler for DefineSum {
 	}
 }
 
-impl DefineSum {
-	fn resolve_generics(&self) -> Vec<GenericType> {
-		self.generics
-			.iter()
-			.map(|g| GenericType::new(&g.get_identifier(), None))
-			.collect()
-	}
-	fn define_generics(&self, scope: &mut crate::LexicalScope) {
-		let generics: Vec<(&Symbol, GenericType)> = self.generics
-			.iter()
-			.map(|g| (g, GenericType::new(&g.get_identifier(), None)))
-			.collect();
-		for (symbol, generic) in generics {
-			scope.define_type(symbol, TypeKind::Generic(generic));
-		}
+impl UseGenerics for DefineSum {
+	fn get_generics(&self) -> &[Symbol] {
+    	&self.generics
 	}
 }

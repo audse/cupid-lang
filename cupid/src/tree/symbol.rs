@@ -1,4 +1,4 @@
-use std::fmt::{Display, Formatter, Result};
+use std::fmt::{Display, Formatter, Result as DisplayResult};
 // use std::borrow::Cow;
 use std::hash::{Hash, Hasher};
 use serde::{Serialize, Deserialize};
@@ -11,7 +11,7 @@ pub struct Symbol  {
 }
 
 impl Display for Symbol {
-	fn fmt(&self, f: &mut Formatter) -> Result {
+	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
 		write!(f, "identifier `{}`", self.identifier)
 	}
 }
@@ -43,7 +43,7 @@ impl Symbol {
 	}
 	pub fn error_unable_to_assign(&self, assign_value: &Value) -> Value {
 		self.error_context(
-			format!("cannot assign {} to {}", assign_value, self.identifier),
+			format!("cannot assign {assign_value} to {}", self.identifier),
 			format!("assigning value type {}", TypeKind::infer(assign_value))
 		)
 	}
@@ -53,6 +53,18 @@ impl Symbol {
 			format!("\n\t\texpecting: {current_type}\n\t\tfound:     {}", TypeKind::infer(assign_value))
 		)
 	}
+	pub fn error_immutable(&self) -> Value {
+		self.error(format!("`{}` is immutable and cannot be reassigned", self.identifier))
+	}
+	pub fn error_immutable_type(&self) -> Value {
+		self.error(format!("cannot assign a value to existing type `{}`", self.identifier))
+	}
+	pub fn error_immutable_trait(&self) -> Value {
+		self.error(format!("cannot assign a value to existing trait `{}`", self.identifier))
+	}
+	// pub fn error_no_type<S>(&self, context: S) -> Value where S: Into<String> {
+	// 	self.error_context(format!("symbol {} does not have a type", self.identifier), context.into())
+	// }
 }
 
 impl ErrorHandler for Symbol {

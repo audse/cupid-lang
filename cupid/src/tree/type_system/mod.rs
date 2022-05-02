@@ -13,6 +13,9 @@ pub use function_type::*;
 mod generic_type;
 pub use generic_type::*;
 
+mod implement;
+pub use implement::*;
+
 mod map_type;
 pub use map_type::*;
 
@@ -25,13 +28,11 @@ pub use struct_type::*;
 mod sum_type;
 pub use sum_type::*;
 
-mod types;
-pub use types::*;
-
 // use std::hash::{Hash, Hasher};
 use std::fmt::{Display, Formatter, Result as DisplayResult};
+use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
-use crate::Value;
+use crate::{Value, Token, Tree, LexicalScope, ErrorHandler, Symbol, SymbolFinder};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum TypeKind {
@@ -69,7 +70,7 @@ impl TypeKind {
 			Value::Decimal(_, _) => Self::new_primitive("dec"),
 			Value::String(_) => Self::new_primitive("string"),
 			Value::None => Self::new_primitive("nothing"),
-			Value::FunctionBody(_, _) => Self::new_function(),
+			Value::FunctionBody(..) => Self::new_function(),
 			Value::Array(array) => {
 				if array.len() > 0 {
 					let element_type = TypeKind::infer(&array[0]);
@@ -102,6 +103,9 @@ impl TypeKind {
 			Value::Decimal(_, _) => "dec",
 			Value::String(_) => "string",
 			Value::None => "nothing",
+			Value::Array(_) => "array",
+			Value::Map(_) => "map",
+			Value::FunctionBody(..) => "fun",
 			_ => panic!()
 		}.to_string()
 	}
@@ -132,14 +136,19 @@ impl TypeKind {
 			(x, y) => x == &y,
 		}
 	}
-	
-	pub fn get_implemented_symbol(&self, symbol: &Value) -> Option<Value> {
+	pub fn is_function(&self) -> bool {
 		match self {
-			Self::Primitive(x) => x.implement.get(symbol).cloned(),
-			Self::Alias(x) => x.implement.get(symbol).cloned(),
-			Self::Struct(x) => x.implement.get(symbol).cloned(),
-			Self::Sum(x) => x.implement.get(symbol).cloned(),
-			_ => None
+			Self::Function(_) =>  true,
+			_ => false,
+		}
+	}
+	pub fn get_implementation(&self) -> &Implementation {
+		match self {
+			Self::Alias(x) => &x.implementation,
+			Self::Primitive(x) => &x.implementation,
+			Self::Struct(x) => &x.implementation,
+			Self::Sum(x) => &x.implementation,
+			_ => panic!()
 		}
 	}
 }
@@ -169,63 +178,99 @@ impl Type for TypeKind {
 			Self::Sum(x) => x.convert_primitives_to_generics(generics),
 		}
 	}
+	fn implement(&mut self, functions: HashMap<Value, Value>) -> Result<(), ()> {
+		match self {
+			Self::Primitive(x) => x.implement(functions),
+			Self::Array(x) => x.implement(functions),
+			Self::Function(x) => x.implement(functions),
+			Self::Generic(x) => x.implement(functions),
+			Self::Struct(x) => x.implement(functions),
+			Self::Map(x) => x.implement(functions),
+			Self::Alias(x) => x.implement(functions),
+			Self::Sum(x) => x.implement(functions),
+		}
+	}
+	fn implement_trait(&mut self, trait_symbol: Symbol, functions: HashMap<Value, Value>) -> Result<(), ()> {
+		match self {
+			Self::Primitive(x) => x.implement_trait(trait_symbol, functions),
+			Self::Array(x) => x.implement_trait(trait_symbol, functions),
+			Self::Function(x) => x.implement_trait(trait_symbol, functions),
+			Self::Generic(x) => x.implement_trait(trait_symbol, functions),
+			Self::Struct(x) => x.implement_trait(trait_symbol, functions),
+			Self::Map(x) => x.implement_trait(trait_symbol, functions),
+			Self::Alias(x) => x.implement_trait(trait_symbol, functions),
+			Self::Sum(x) => x.implement_trait(trait_symbol, functions),
+		}
+	}
+	fn find_function(&self, symbol: &Symbol, scope: &mut LexicalScope) -> Option<Value> {
+		match self {
+			Self::Primitive(x) => x.find_function(symbol, scope),
+			Self::Alias(x) => x.find_function(symbol, scope),
+			Self::Struct(x) => x.find_function(symbol, scope),
+			Self::Sum(x) => x.find_function(symbol, scope),
+			_ => None
+		}
+	}
 }
 
 pub trait Type {
-	fn apply_arguments(&mut self, _arguments: &[GenericType]) -> Result<(), String> {
-		Ok(())
-	}
+	fn apply_arguments(&mut self, _arguments: &[GenericType]) -> Result<(), String> { Ok(()) }
 	fn convert_primitives_to_generics(&mut self, _generics: &[GenericType]) {}
+	fn implement(&mut self, _functions: HashMap<Value, Value>) -> Result<(), ()> { Err(()) }
+	fn implement_trait(&mut self, _trait: Symbol, _implement: HashMap<Value, Value>) -> Result<(), ()> { Err(()) }
+	fn find_function(&self, _symbol: &Symbol, _scope: &mut LexicalScope) -> Option<Value> { None }
 }
 
 impl Display for TypeKind {
 	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
 		match self {
-			Self::Primitive(x) => {
-				let implement: Vec<String> = x.implement.iter().map(|(k, v)| format!("{}: {v}", k)).collect();
-				write!(f, "{}: use [{}]", x.identifier, implement.join(", "))
-			},
+			Self::Primitive(x) => write!(f, "{}", x.identifier),
 			Self::Array(x) => write!(f, "array [{}]", x.element_type),
 			Self::Map(x) => write!(f, "map [{}, {}]", x.key_type, x.value_type),
 			Self::Function(x) => write!(f, "fun [{}]", x.return_type),
 			Self::Generic(x) => write!(f, "<{}>", x.identifier),
 			Self::Struct(x) => {
-				let implement: Vec<String> = x.implement.iter().map(|(k, v)| format!("{}: {v}", k)).collect();
 				let members: Vec<String> = x.members
 					.iter()
 					.map(|(symbol, member)| format!("{}: {member}", symbol.identifier))
 					.collect();
-				write!(f, "[{}]: use: [{}]", members.join(", "), implement.join(", "))
+				write!(f, "[{}]", members.join(", "))
 			},
 			Self::Sum(x) => {
-				let implement: Vec<String> = x.implement.iter().map(|(k, v)| format!("{}: {v}", k)).collect();
 				let members: Vec<String> = x.types
 					.iter()
 					.map(|member| member.to_string())
 					.collect();
-				write!(f, "one of [{}]: use [{}]", members.join(", "), implement.join(", "))
+				write!(f, "one of [{}]", members.join(", "))
 			},
-			Self::Alias(x) => {
-				let implement: Vec<String> = x.implement.iter().map(|(k, v)| format!("{}: {v}", k)).collect();
-				write!(f, "alias of {}: use [{}]", x.true_type, implement.join(", "))
-			},
+			Self::Alias(x) => write!(f, "alias of {}", x.true_type),
 		}
 	}
 }
-// 
-// impl Eq for TypeKind {}
-// 
-// impl Hash for TypeKind {
-// 	fn hash<H: Hasher>(&self, state: &mut H) {
-// 		match self {
-// 			Self::Primitive(x) => x.hash(state),
-// 			Self::Array(x) => x.hash(state),
-// 			Self::Function(x) => x.hash(state),
-// 			Self::Generic(x) => x.hash(state),
-// 			Self::Struct(x) => x.hash(state),
-// 			Self::Map(x) => x.hash(state),
-// 			Self::Alias(x) => x.hash(state),
-// 			Self::Sum(x) => x.hash(state),
-// 		}
-// 	}
-// }
+
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DefineType {
+	pub token: Token,
+	pub type_symbol: Symbol,
+	pub type_value: TypeKind,
+}
+
+impl Tree for DefineType {
+	fn resolve(&self, scope: &mut LexicalScope) -> Value {
+		if let Some(new_type) = scope.define_type(&self.type_symbol, self.type_value.clone()) {
+			new_type
+		} else {
+			self.error("unable to define")
+		}
+	}
+}
+
+impl ErrorHandler for DefineType {
+	fn get_token(&self) -> &Token {
+		&self.token
+	}
+	fn get_context(&self) -> String {
+		format!("defining type {} with value {}", self.type_symbol, self.type_value)
+	}
+}

@@ -1,6 +1,6 @@
 use serde::{Serialize, Deserialize};
 use std::collections::hash_map::Entry::Vacant;
-use crate::{Expression, Value, Tree, LexicalScope, SymbolFinder, ErrorHandler, Token, TypeKind, Symbol};
+use crate::{Expression, Value, Tree, LexicalScope, SymbolFinder, ErrorHandler, Token, TypeKind, Symbol, Type};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Property {
@@ -11,49 +11,35 @@ pub struct Property {
 
 impl Tree for Property {
 	fn resolve(&self, scope: &mut LexicalScope) -> Value {
-		let map = crate::resolve_or_abort!(self.map, scope);
-		
-		let implementation = if let Expression::Symbol(map_symbol) = &*self.map {
-			if let Some(type_kind) = scope.get_symbol_type(&map_symbol) {
-				Some(type_kind)
-			} else {
-				None
-			}
-		} else {
-			let type_value = Value::String(TypeKind::infer_name(&map));
-			let type_kind = scope.get_symbol_from_value(&type_value);
-			if let Some(Value::Type(type_kind)) = type_kind {
-				Some(type_kind)
-			} else {
-				None
-			}
+		let (map, object_type) = match self.map.get_value_and_type(scope) {
+			Ok((val, t)) => (val, t),
+			Err(err) => return err
 		};
 		
 		if let Expression::FunctionCall(function_call) = &*self.term {
-			if let Some(implement) = implementation {
-				if let Some(fun) = implement.get_implemented_symbol(&function_call.fun.identifier) {
-					scope.add(crate::ScopeContext::Block);
-					
-					let self_symbol = Symbol::new_string("self", self.token.clone());
-					scope.create_symbol(&self_symbol, map, implement, true, true);
-					scope.create_symbol(&function_call.fun, fun.clone(), TypeKind::new_function(), false, false);
-					
-					let final_val = function_call.resolve(scope);
-					
-					// mutate the original value
+			if let Some(fun) = object_type.find_function(&function_call.fun, scope) {
+				scope.add(crate::ScopeContext::Block);
+				
+				let self_symbol = Symbol::new_string("self", self.token.clone());
+				scope.create_symbol(&self_symbol, map, object_type.clone(), true, true);
+				scope.create_symbol(&function_call.fun, fun.clone(), TypeKind::new_function(), false, false);
+				
+				let final_val = crate::resolve_or_abort!(function_call, scope, { scope.pop(); });
+				
+				// mutate the original value
+				let use_self = if let Value::FunctionBody(_, _, s) = fun { s } else { false };
+				
+				if use_self {
 					if let Expression::Symbol(map_symbol) = &*self.map {
 						let map_val = scope.get_symbol(&self_symbol).unwrap();
-						match scope.set_symbol(map_symbol, map_val) {
-							Ok(_) => (),
-							Err(err) => {
-								scope.pop();
-								return err;
-							}
+						if let Err(err) = scope.set_symbol(map_symbol, map_val) {
+							scope.pop();
+							return err;
 						}
 					}
-					scope.pop();
-					return final_val;
 				}
+				scope.pop();
+				return final_val;
 			}
 		}
 		
@@ -93,7 +79,12 @@ impl Tree for Property {
 			Value::Array(m) => {
 				let term = crate::resolve_or_abort!(self.term, scope);
 				if let Value::Integer(i) = term {
-					*(m[i as usize]).clone()
+					let i = i as usize;
+					if i < m.len() {
+						*(m[i]).clone()
+					} else {
+						self.no_property_error(&map, &term)
+					}
 				} else {
 					self.bad_array_access_error(&term)
 				}

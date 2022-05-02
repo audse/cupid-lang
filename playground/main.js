@@ -1,10 +1,12 @@
-import './style.css'
+import './static/normalize.css';
+import './static/main.css';
+import './static/dropdown.css';
 
-import init, { run_and_collect_logs } from './../cupid/pkg/cupid'
+import init, { run_and_collect_logs } from './../cupid/pkg/cupid';
 
-import { EditorState, basicSetup } from '@codemirror/basic-setup'
-import { EditorView, keymap } from '@codemirror/view'
-import { indentWithTab, defaultKeymap } from '@codemirror/commands'
+import { EditorState, basicSetup } from '@codemirror/basic-setup';
+import { EditorView, keymap } from '@codemirror/view';
+import { indentWithTab, defaultKeymap } from '@codemirror/commands';
 import {
 	indentUnit,
 	foldNodeProp,
@@ -13,46 +15,171 @@ import {
 	LanguageSupport,
 	syntaxHighlighting,
 	HighlightStyle,
-} from '@codemirror/language'
-import { completeFromList } from '@codemirror/autocomplete'
-import { buildParser } from '@lezer/generator'
-import { styleTags, tags as t } from '@lezer/highlight'
-import { tags } from '@codemirror/highlight'
-import { jsonTree } from './src/jsonTree'
-import grammar from './src/cupidgrammar.js'
+} from '@codemirror/language';
+import { completeFromList } from '@codemirror/autocomplete';
+import { buildParser } from '@lezer/generator';
+import { styleTags, tags as t } from '@lezer/highlight';
+import { tags } from '@codemirror/highlight';
+import { jsonTree } from './src/jsonTree';
+import grammar from './src/cupidgrammar.js';
+import { semantics, parse, scope, serializeJson } from './src/outputTree.js';
+import { code, bindExampleButtons } from './src/examples.js';
 
-const startCode = `
-type person = [
-    string name,
-    int age
-]
-
-person jane = [
-    name: 'Jane Doe',
-    age: 34
-]
-
-# Try uncommenting this:
-# log (jane.name)
-
-`
+const Tabs = {
+	OUTPUT: 0,
+	TREE: 1,
+	PARSE: 2,
+	SCOPE: 3,
+};
 
 window.addEventListener('load', async () => {
-	await init()
-	// const runButton = document.getElementById('cupid-run-button')
-	const resultArea = document.getElementById('result-text')
+	await init();
+	const outputElement = document.getElementById('result-text');
+	const outputButton = document.getElementById('output-button');
+	const treeButton = document.getElementById('tree-button');
+	const parseButton = document.getElementById('parse-button');
+	const scopeButton = document.getElementById('scope-button');
 
-	let currentResult = {}
+	let currentText = '';
+	let currentResult = {};
+
+	let tab = Tabs.OUTPUT;
+
+	const showOutput = () => {
+		tab = Tabs.OUTPUT;
+		outputButton.classList.add('active');
+		treeButton.classList.remove('active');
+		parseButton.classList.remove('active');
+		outputElement.innerHTML = `
+            ${createOutput(currentResult.values)}
+            ${currentResult.errors.map(createError).join('\n')}
+        `;
+	};
+
+	const createOutput = values =>
+		values.reduce((prev, value = []) => {
+			const isObject = typeof value[1] === 'object';
+			const isLog = isObject && 'Log' in value[1];
+			const html = isLog
+				? value[0]
+				: `<span style="opacity: 0.5">${value[0]}</span>`;
+			return prev + html + '<br />';
+		}, '');
+
+	const createError = error => {
+		const lines = currentText.split('\n');
+		const line = lines[error.line - 1];
+		const lineAbove =
+			lines.length >= error.line - 2 ? lines[error.line - 2] : '';
+		const length = error.source.length;
+		const space = Array.from({ length: error.index }, () => '&nbsp;').join(
+			''
+		);
+		const underline = Array.from({ length: length }, () => '^');
+		const lineNumber = `&nbsp;&nbsp;${error.line}`;
+		const lineNumberBelow = `&nbsp;&nbsp;${error.line + 1}`;
+		const lineNumberAbove = `&nbsp;&nbsp;${error.line - 1}`;
+
+		return `
+            <div class="result-error">
+                <b>
+                    <span class="red">error:</span> 
+                    ${error.message}
+                </b>
+                <br />
+                <i class="muted">
+                    &nbsp;&nbsp;-->&nbsp; 
+                    line ${error.line}:${error.index}
+                    at \`<b class="yellow">${error.source}</b>\`
+                </i>
+                <div style="padding: 14px 0 0 14px">
+                    <span class="muted">${lineNumberAbove} | ${lineAbove}</span>
+                    <br />
+                    <span class="muted">${lineNumber} |</span> ${line}</span>
+                    <br />
+                    <span class="muted">${lineNumberBelow} | </span>
+                    <span class="red">
+                        ${space}${underline.join('')}
+                    </span>
+                </div>
+                <br />
+                <b>additional context</b>: 
+                <span class="muted">
+                    ${error.context}
+                </span>
+            </div>
+        `;
+	};
+
+	const showTree = () => {
+		tab = Tabs.TREE;
+		outputButton.classList.remove('active');
+		treeButton.classList.add('active');
+		parseButton.classList.remove('active');
+		scopeButton.classList.remove('active');
+		outputElement.innerText = '';
+		semantics.makeTree(currentResult, outputElement);
+	};
+
+	const showParse = () => {
+		tab = Tabs.PARSE;
+		outputButton.classList.remove('active');
+		treeButton.classList.remove('active');
+		parseButton.classList.add('active');
+		parseButton.classList.remove('active');
+		outputElement.innerText = '';
+		parse.makeTree(currentResult, outputElement);
+	};
+
+	const showScope = () => {
+		tab = Tabs.SCOPE;
+		outputButton.classList.remove('active');
+		treeButton.classList.remove('active');
+		parseButton.classList.remove('active');
+		scopeButton.classList.add('active');
+		outputElement.innerText = '';
+		scope.makeTree(currentResult, outputElement);
+	};
+
+	outputButton.addEventListener('click', showOutput);
+	treeButton.addEventListener('click', showTree);
+	parseButton.addEventListener('click', showParse);
+	scopeButton.addEventListener('click', showScope);
+
+	const debounce = (callback, wait) => {
+		let timeoutId = null;
+		return (...args) => {
+			window.clearTimeout(timeoutId);
+			timeoutId = window.setTimeout(() => {
+				callback.apply(null, args);
+			}, wait);
+		};
+	};
 
 	const doUpdate = update => {
-		const currentText = update.state.doc.toJSON().join('\n')
-		currentResult = run_and_collect_logs(currentText)
-		resultArea.innerText = currentResult
-		console.log(currentResult)
-		makeTree()
-	}
+		currentText = update.state.doc.toJSON().join('\n');
+		currentResult = run_and_collect_logs(currentText);
+		console.log(currentResult);
 
-	let parser = buildParser(grammar)
+		switch (tab) {
+			case Tabs.OUTPUT:
+				showOutput();
+				break;
+			case Tabs.TREE:
+				showTree();
+				break;
+			case Tabs.PARSE:
+				showParse();
+				break;
+			case Tabs.SCOPE:
+				showScope();
+				break;
+			default:
+				break;
+		}
+	};
+
+	let parser = buildParser(grammar);
 
 	let parserWithMetadata = parser.configure({
 		props: [
@@ -66,6 +193,7 @@ window.addEventListener('load', async () => {
 				mut: t.modifier,
 				Self: t.self,
 				use: t.definitionKeyword,
+				with: t.definitionKeyword,
 				FunctionCall: t.function,
 				Identifier: t.variableName,
 				Boolean: t.bool,
@@ -92,7 +220,7 @@ window.addEventListener('load', async () => {
 				Application: foldInside,
 			}),
 		],
-	})
+	});
 
 	let theme = HighlightStyle.define([
 		{ tag: tags.variableName, class: 'variable-name' },
@@ -105,6 +233,7 @@ window.addEventListener('load', async () => {
 		{ tag: tags.comment, class: 'comment' },
 		{ tag: tags.className, class: 'class-name' },
 		{ tag: tags.self, class: 'self-keyword' },
+		{ tag: tags.bool, class: 'boolean' },
 		{
 			tag: [
 				tags.operator,
@@ -115,14 +244,14 @@ window.addEventListener('load', async () => {
 			],
 			class: 'operator',
 		},
-	])
+	]);
 
 	const cupidLang = LRLanguage.define({
 		parser: parserWithMetadata,
 		languageData: {
 			commentTokens: { line: '#' },
 		},
-	})
+	});
 
 	const cupidCompletion = cupidLang.data.of({
 		autocomplete: completeFromList([
@@ -141,42 +270,36 @@ window.addEventListener('load', async () => {
 			{ label: 'true', type: 'literal' },
 			{ label: 'false', type: 'literal' },
 		]),
-	})
+	});
 
-	const lang = new LanguageSupport(cupidLang, [cupidCompletion])
+	const lang = new LanguageSupport(cupidLang, [cupidCompletion]);
 
-	// runButton.addEventListener('click', event => {
-	//     event.preventDefault()
-	//     event.stopPropagation()
-	// })
+	const debounceUpdate = debounce(doUpdate, 250);
 
 	let view = new EditorView({
 		state: EditorState.create({
-			doc: startCode,
+			doc: code[0],
 			extensions: [
 				basicSetup,
 				keymap.of([indentWithTab, defaultKeymap]),
 				EditorState.tabSize.of(4),
 				indentUnit.of('	'),
-				EditorView.updateListener.of(doUpdate),
+				EditorView.updateListener.of(debounceUpdate),
 				EditorView.theme({}, { dark: true }),
 				lang,
 				syntaxHighlighting(theme),
 			],
 		}),
 		parent: document.body.querySelector('#editor'),
-	})
+	});
 
-	let result = document.getElementById('result-text')
-
-	const makeTree = () => {
-		let tree = jsonTree.create(currentResult.semantics.File, result)
-		tree.expand(node => {
-			if (node.label !== 'token') {
-				return true
-			} else {
-				return false
-			}
-		})
-	}
-})
+	bindExampleButtons((code, event) => {
+		event.preventDefault();
+		let end = view.state.doc.length;
+		view.dispatch({
+			changes: { from: 0, to: end, insert: code },
+		});
+		const dropdown = document.getElementById('dropdown-label');
+		dropdown.innerText = event.currentTarget.innerText;
+	});
+});

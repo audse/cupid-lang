@@ -7,6 +7,7 @@ use crate::utils::{pluralize, pluralize_word};
 pub struct Function {
 	pub params: Vec<(Expression, Symbol)>,
 	pub body: Box<Expression>,
+	pub use_self: bool,
 }
 
 impl Tree for Function {
@@ -15,7 +16,7 @@ impl Tree for Function {
 			.iter()
 			.map(|(type_exp, symbol)| (type_exp.resolve(scope), symbol.clone()))
 			.collect();
-		Value::FunctionBody(params, self.body.clone())
+		Value::FunctionBody(params, self.body.clone(), self.use_self)
 	}
 }
 
@@ -30,10 +31,10 @@ pub struct Args(pub Vec<Expression>);
 
 impl Display for Args {
 	fn fmt(&self, f: &mut Formatter) -> Result {
-		_ = write!(f, "args ");
-		for arg in self.0.iter() {
-			_ = write!(f, "`{}`, ", arg)
-		}
+		let args: Vec<String> = self.0.iter()
+			.map(|a| a.to_string())
+			.collect();
+		_ = write!(f, "{}", args.join(", "));
 		Ok(())
 	}
 }
@@ -51,7 +52,7 @@ impl Tree for FunctionCall {
 		
 		if let Some(fun) = scope.get_symbol(&self.fun) {
 			let (params, body) = match fun {
-				Value::FunctionBody(params, body) => (params, body),
+				Value::FunctionBody(params, body, _) => (params, body),
 				_ => {
 					scope.pop();
 					return self.undefined_error("".to_string())
@@ -103,7 +104,7 @@ impl ErrorHandler for FunctionCall {
 	}
 	fn get_context(&self) -> String {
 		format!(
-			"attempting to call function {} with {}", 
+			"attempting to call function {} with args ({})", 
 			self.fun.identifier, 
 			self.args
 		)
@@ -137,7 +138,7 @@ impl Tree for Logger {
 			_ => print!("{}", string)
 		};
 		
-		Value::String(string)
+		Value::Log(Box::new(Value::String(string)))
 	}
 }
 

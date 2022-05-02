@@ -11,7 +11,7 @@ pub struct Assign {
 impl Tree for Assign {
 	fn resolve(&self, scope: &mut LexicalScope) -> Value {
 		let val = crate::resolve_or_abort!(self.value, scope);
-		if let Some(_symbol_type) = scope.get_symbol_type(&self.symbol) {
+		if let Ok(_symbol_type) = scope.get_type_of_symbol(&self.symbol) {
 			match scope.set_symbol(&self.symbol, val.clone()) {
 				Ok(result) => match result {
 					Some(v) => v,
