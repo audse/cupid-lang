@@ -331,13 +331,6 @@ use_item!(&mut node, self._op_assignment(None), false);
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self._op_increment_assignment(None), false);
-
-			return Some((node, true));
-		
-}
-		self.reset_parse(&mut node, pos);
-loop { 
 use_item!(&mut node, self._assignment(None), false);
 
 			return Some((node, true));
@@ -353,13 +346,6 @@ use_item!(&mut node, self._property_assignment(None), false);
 		self.reset_parse(&mut node, pos);
 loop { 
 use_item!(&mut node, self._property_op_assignment(None), false);
-
-			return Some((node, true));
-		
-}
-		self.reset_parse(&mut node, pos);
-loop { 
-use_item!(&mut node, self._property_op_increment_assignment(None), false);
 
 			return Some((node, true));
 		
@@ -412,14 +398,14 @@ use_item!(&mut node, self._no_op(None), false);
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self._operation(None), false);
+use_item!(&mut node, self._property_access(None), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self._atom(None), false);
+use_item!(&mut node, self._operation(None), false);
 
 			return Some((node, true));
 		
@@ -786,17 +772,18 @@ use_item!(&mut node, self._assignment_value(None), false);
 			None
 		}
 		
-		pub fn _property_op_increment_assignment(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
+		pub fn _property_access(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "property_op_increment_assignment".to_string(),
+				name: "property_access".to_string(),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self._property_access(None), false);
-use_item!(&mut node, self._increment_operator(None), false);
+use_item!(&mut node, self._atom(None), false);
+use_item!(&mut node, self.expect(".".to_string()), false);
+use_item!(&mut node, self._term(None), false);
 
 			return Some((node, false));
 		
@@ -871,52 +858,6 @@ use_item!(&mut node, self.expect("^".to_string()), false);
 		self.reset_parse(&mut node, pos);
 loop { 
 use_item!(&mut node, self.expect("%".to_string()), false);
-
-			return Some((node, true));
-		
-}
-		self.reset_parse(&mut node, pos);
-			None
-		}
-		
-		pub fn _op_increment_assignment(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
-			let start_pos = self.tokens.index();
-			let pos = start_pos;
-			let mut node = Node {
-				name: "op_increment_assignment".to_string(),
-				tokens: vec![],
-				children: vec![],
-			};
-			loop { 
-use_item!(&mut node, self._identifier(None), false);
-use_item!(&mut node, self._increment_operator(None), false);
-
-			return Some((node, false));
-		
-}
-		self.reset_parse(&mut node, pos);
-			None
-		}
-		
-		pub fn _increment_operator(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
-			let start_pos = self.tokens.index();
-			let pos = start_pos;
-			let mut node = Node {
-				name: "increment_operator".to_string(),
-				tokens: vec![],
-				children: vec![],
-			};
-			loop { 
-use_item!(&mut node, self.expect("+".to_string()), false);
-use_item!(&mut node, self.expect("+".to_string()), false);
-
-			return Some((node, true));
-		
-}
-		self.reset_parse(&mut node, pos);
-loop { 
-use_item!(&mut node, self.expect("-".to_string()), false);
-use_item!(&mut node, self.expect("-".to_string()), false);
 
 			return Some((node, true));
 		
@@ -1488,13 +1429,6 @@ use_item!(&mut node, self._unary_op(None), false);
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self._type_hint(None), false);
-
-			return Some((node, true));
-		
-}
-		self.reset_parse(&mut node, pos);
-loop { 
 use_item!(&mut node, self._boolean(None), false);
 
 			return Some((node, true));
@@ -2040,12 +1974,11 @@ use_item!(&mut node, self._identifier(None), false);
 				children: vec![],
 			};
 			loop { 
-use_negative_lookahead!(self, self.tokens.index(), &mut self.expect("+".to_string()));
 use_negative_lookahead!(self, self.tokens.index(), &mut self.expect("-".to_string()));
 use_item!(&mut node, self._atom(None), false);
+use_negative_lookahead!(self, self.tokens.index(), &mut self.expect(".".to_string()));
 use_negative_lookahead!(self, self.tokens.index(), &mut self._operator(None));
 use_negative_lookahead!(self, self.tokens.index(), &mut self._keyword_operator(None));
-use_negative_lookahead!(self, self.tokens.index(), &mut self.expect(".".to_string()));
 
 			return Some((node, true));
 		
@@ -2237,7 +2170,7 @@ use_item!(&mut node, self._multiply(None), false);
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self._property_access(None), false);
+use_item!(&mut node, self._atom(None), false);
 use_optional!(&mut node, self._exponent_suffix(None), false);
 
 			return Some((node, false));
@@ -2266,44 +2199,6 @@ use_item!(&mut node, self._exponent(None), false);
 			None
 		}
 		
-		pub fn _property_access(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
-			let start_pos = self.tokens.index();
-			let pos = start_pos;
-			let mut node = Node {
-				name: "property_access".to_string(),
-				tokens: vec![],
-				children: vec![],
-			};
-			loop { 
-use_item!(&mut node, self._atom(None), false);
-use_optional!(&mut node, self._property_access_suffix(None), false);
-
-			return Some((node, false));
-		
-}
-		self.reset_parse(&mut node, pos);
-			None
-		}
-		
-		pub fn _property_access_suffix(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
-			let start_pos = self.tokens.index();
-			let pos = start_pos;
-			let mut node = Node {
-				name: "property_access_suffix".to_string(),
-				tokens: vec![],
-				children: vec![],
-			};
-			loop { 
-use_item!(&mut node, self.expect(".".to_string()), false);
-use_item!(&mut node, self._property_access(None), false);
-
-			return Some((node, true));
-		
-}
-		self.reset_parse(&mut node, pos);
-			None
-		}
-		
 		pub fn _unary_op(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
@@ -2313,14 +2208,6 @@ use_item!(&mut node, self._property_access(None), false);
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("+".to_string()), false);
-use_item!(&mut node, self._atom(None), false);
-
-			return Some((node, false));
-		
-}
-		self.reset_parse(&mut node, pos);
-loop { 
 use_item!(&mut node, self.expect("-".to_string()), false);
 use_item!(&mut node, self._atom(None), false);
 

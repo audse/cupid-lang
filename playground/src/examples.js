@@ -28,7 +28,7 @@ type [t] iter = [
 
 use [t] iter {
 	fun [t] next = self => {
-		self.index ++
+		self.index += 1
 		(self.entries).(self.index)
 	}
 }

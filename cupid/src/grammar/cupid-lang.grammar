@@ -11,11 +11,11 @@
 	| return
 	| continue
 	| op_assignment
-	| op_increment_assignment
+	#| op_increment_assignment
 	| assignment
 	| property_assignment
 	| property_op_assignment
-	| property_op_increment_assignment
+	#| property_op_increment_assignment
 	| log
 
 -~term:
@@ -23,8 +23,8 @@
 	| block
 	| function
 	| no_op
+	| property_access
 	| operation
-	| atom
 
 -~loop:
 	for_loop
@@ -56,12 +56,13 @@
 - property_assignment: property_access equal assignment_value
 
 - property_op_assignment: property_access operator equal assignment_value
-- property_op_increment_assignment: property_access increment_operator
+#- property_op_increment_assignment: property_access increment_operator
+- property_access: atom '.' term
 
 - op_assignment: identifier operator equal assignment_value
 -~operator: '+' | '-' | '*' | '/' | '^' | '%'
-- op_increment_assignment: identifier increment_operator
--~increment_operator: '+' '+' | '-' '-'
+#- op_increment_assignment: identifier increment_operator
+#-~increment_operator: '+' '+' | '-' '-'
 
 -~type_definition:
 	builtin_type_definition
@@ -115,7 +116,6 @@
 	| bracket_array
 	| group
 	| unary_op
-	| type_hint
 	| boolean
 	| none
 	| string
@@ -156,7 +156,7 @@
 -~range_term: function_call | group | unary_op | number | identifier
 
 # operations can be kinda slow, going through all that, so this is a shortcut
--~no_op: !'+' !'-' atom !operator !keyword_operator !'.'
+-~no_op: !'-' atom !'.' !operator !keyword_operator
 
 -~operation: binary_op
 
@@ -171,13 +171,10 @@
 - multiply: exponent multiply_suffix?
 -~multiply_suffix: '*' multiply | '/' multiply | '%' multiply
 
-- exponent: property_access exponent_suffix?
+- exponent: atom exponent_suffix?
 -~exponent_suffix: '^' exponent
 
-- property_access: atom property_access_suffix?
--~property_access_suffix: '.' property_access
-
-- unary_op: '+' atom | '-' atom
+- unary_op: '-' atom
 
 - break: 'break' term?
 - return: 'return' term?

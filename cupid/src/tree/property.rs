@@ -20,16 +20,25 @@ impl Tree for Property {
 			if let Some(fun) = object_type.find_function(&function_call.fun, scope) {
 				scope.add(crate::ScopeContext::Block);
 				
-				let self_symbol = Symbol::new_string("self", self.token.clone());
-				scope.create_symbol(&self_symbol, map, object_type.clone(), true, true);
+				let use_self = if let Value::FunctionBody(_, _, s) = fun { s } else { false };
+				
+				// reference the original value
+				let self_symbol = if use_self {
+					let self_symbol = Symbol::new_string("self", self.token.clone());
+					scope.create_symbol(&self_symbol, map, object_type.clone(), true, true);
+					Some(self_symbol)
+				} else {
+					None
+				};
+				
 				scope.create_symbol(&function_call.fun, fun.clone(), TypeKind::new_function(), false, false);
 				
 				let final_val = crate::resolve_or_abort!(function_call, scope, { scope.pop(); });
 				
-				// mutate the original value
-				let use_self = if let Value::FunctionBody(_, _, s) = fun { s } else { false };
 				
-				if use_self {
+				if let Some(self_symbol) = self_symbol {
+					
+					// mutate the original value
 					if let Expression::Symbol(map_symbol) = &*self.map {
 						let map_val = scope.get_symbol(&self_symbol).unwrap();
 						if let Err(err) = scope.set_symbol(map_symbol, map_val) {

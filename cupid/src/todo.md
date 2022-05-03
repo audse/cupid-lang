@@ -191,6 +191,7 @@ someone istype person # should be false
 -   [ ] If you use a primitive type where generics should go, it acts as a generic. Should be an error
 -   [ ] Should be able to log property functions without calling them (e.g. `log (myint.sq)`)
 -   [ ] Is `log`/`log_line` working?
+    -   [ ] Doesn't work in function bodies
 
 ## Builtin library
 
@@ -253,13 +254,14 @@ someone istype person # should be false
 -   [x] Create basic syntax highlighting
 -   [ ] Host on Github pages
 -   [ ] Create some example files
--   [ ] Add autocomplete
+-   [ ] Autocomplete
 -   [ ] Save in local storage
 -   [x] Load standard library
 -   [ ] Better error viewing/debugging
 -   [ ] Make mobile version
 -   [ ] View options
 -   [ ] Builtin documentation
+-   [ ] Simulate multiple tabs/files
 
 ### Documentation
 

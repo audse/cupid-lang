@@ -288,6 +288,7 @@ pub fn to_tree(node: &ParseNode) -> Expression {
                     node.tokens[0].clone(),
                 )
             } else {
+				// println!("{:#?}", &node.children);
                 panic!("expected a property")
             }
         },
@@ -390,18 +391,20 @@ pub fn to_tree(node: &ParseNode) -> Expression {
         "function" => {
             let mut use_self = false;
             let (params, body) = if node.children.len() > 1 {
-				use_self = node.children[0].tokens.iter().find(|t| t.source.as_str() == "self").is_some();
                 (
                     node.children[0]
                         .children
                         .iter()
-                        .map(|p| {
+                        .filter_map(|p| {
                             if p.name.as_str() == "annotated_parameter" {
-                                (
+                                Some((
                                     to_tree(&p.children[0]),
                                     Expression::to_symbol(to_tree(&p.children[1]))
-                                )
-                            } else {
+                                ))
+                            } else if p.name.as_str() == "self" {
+								use_self = true;
+								None
+							} else {
                                 unreachable!()
                             }
                         })
@@ -451,11 +454,8 @@ pub fn to_tree(node: &ParseNode) -> Expression {
 			Expression::Range(range)
 		}
         
-        // "internal_property_access" => {
-        //     let term = to_tree(&node.children[0]);
-        //     Expression::new_internal_property_access(term, node.tokens[0].clone())
-        // },
-        "property_access" => {
+        "property_access"
+		| "property_access_full" => {
             if node.children.len() > 1 {
                 let map = to_tree(&node.children[0]);
                 let term = to_tree(&node.children[1]);
@@ -484,10 +484,11 @@ pub fn to_tree(node: &ParseNode) -> Expression {
             node.tokens[0].source.parse::<i32>().unwrap_or(0),
             node.tokens.clone(),
         ),
-        "identifier" => Expression::new_symbol(Expression::new_string_node(
-            node.tokens[0].source.clone(),
-            node.tokens.clone(),
-        )),
+		"identifier"
+		| "self" => Expression::new_symbol(Expression::new_string_node(
+			node.tokens[0].source.clone(),
+			node.tokens.clone(),
+		)),
         _ => Expression::Empty,
     }
 }
