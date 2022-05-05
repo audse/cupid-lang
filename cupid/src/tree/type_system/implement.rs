@@ -87,6 +87,6 @@ impl Display for Implementation {
 			.iter()
 			.map(|(key, value)| format!("{key}: {value}"))
 			.collect();
-		write!(f, "[functions: [{}], traits: [{}]", functions.join(", "), traits.join(", "))
+		write!(f, "functions: [{}], traits: [{}]", functions.join(", "), traits.join(", "))
 	}
 }

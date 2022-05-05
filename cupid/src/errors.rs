@@ -82,29 +82,26 @@ pub trait ErrorHandler {
     fn error_context<S>(&self, message: S, context: S) -> Value where S: Into<String> {
         Value::error(self.get_token(), message.into(), context.into())
     }
-}
-
-pub trait MapErrorHandler: ErrorHandler {
-    fn not_map_error(&self, value: &Value) -> Value {
-        self.error(format!(
-            "type mismatch: expected dictionary, list, or tuple, not {} ({})",
-            value,
-            TypeKind::infer(value)
-        ))
-    }
-    fn not_map_type_error(&self, other_type: TypeKind) -> Value {
-        self.error(format!(
-            "type mismatch: expected dictionary, list, or tuple, not {}",
-            other_type
-        ))
-    }
-    fn no_property_error(&self, identifier: &Value, property: &Value) -> Value {
-        self.error(format!(
-            "undefined: `{}` doesn't have property `{}`",
-            identifier,
-            property
-        ))
-    }
+	fn error_raw<S>(&self, message: S) -> Error where S: Into<String> {
+		let token = self.get_token();
+		Error {
+			line: token.line,
+			index: token.index,
+			message: message.into(),
+			context: self.get_context(),
+			source: token.source.clone()
+		}
+	}
+	fn error_raw_context<S>(&self, message: S, context: S) -> Error where S: Into<String> {
+		let token = self.get_token();
+		Error {
+			line: token.line,
+			index: token.index,
+			message: message.into(),
+			context: context.into(),
+			source: token.source.clone()
+		}
+	}
 }
 
 macro_rules! abort_on_error {

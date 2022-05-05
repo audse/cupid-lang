@@ -11,6 +11,9 @@ pub use errors::*;
 mod file_handler;
 pub use file_handler::*;
 
+mod file_handler_refactor;
+pub use file_handler_refactor::FileHandler as RFileHandler;
+
 mod utils;
 pub use utils::*;
 
@@ -22,6 +25,34 @@ pub use parser::*;
 
 mod semantics;
 pub use semantics::*;
+
+mod refactor;
+pub use refactor::{
+	LexicalScope as RLexicalScope,
+	Scope as RScope,
+	SymbolValue as RSymbolValue,
+	AssignmentNode,
+	DeclarationNode,
+	GenericsNode,
+	parse,
+	SymbolNode,
+	TypeHintNode,
+	ValueNode,
+	AST,
+	CloneAST,
+	Context,
+	Meta,
+	Flag,
+	BuiltinTypeNode,
+	UseBlockNode,
+	BlockNode,
+	FunctionNode,
+	ParametersNode,
+	OptionAST,
+	BoxAST,
+	FunctionCallNode,
+	ArgumentsNode,
+};
 
 mod tests;
 pub use tests::*;

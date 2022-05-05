@@ -12,12 +12,12 @@ whereas methods that **create a new value** will include the param `self`.
 
 ### Integer `int` 
 
-1. `abs`
-1. `clamp`
-1. `is_negative`
-1. `is_positive`
-1. `sign`
-1. `sq`
+1. [abs](#int-abs-self-source)
+1. [clamp](#int-clamp-self-int-floor-int-ceil-source)
+1. [negative](#bool-negative-self-source)
+1. [positive](#bool-positive-self-source)
+1. [sign](#int-sign-self-source)
+1. [sq](#int-sq-self-source)
 
 #### `[int] abs (self)` [source](./../stdlib/integer.cupid#L4)
 

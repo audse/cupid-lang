@@ -1,6 +1,6 @@
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
-use crate::{TypeKind, Symbol, Value, Type, Implementation};
+use crate::{TypeKind, Symbol, Value, Type, Implementation, Error};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LexicalScope {
@@ -18,6 +18,7 @@ pub trait SymbolFinder {
 	fn get_type_of_symbol(&self, symbol: &Symbol) -> Result<TypeKind, String>;
 	fn get_type(&self, value: &Value) -> Result<TypeKind, &str>;
 	fn set_symbol(&mut self, symbol: &Symbol, value: Value) -> Result<Option<Value>, Value>;
+	// fn create_placeholder(&mut self, symbol: &Symbol) -> Result<(), Error>;
 	fn create_symbol(&mut self, symbol: &Symbol, value: Value, symbol_type: TypeKind, mutable: bool, deep_mutable: bool) -> Option<Value>;
 	fn define_type(&mut self, symbol: &Symbol, value: TypeKind) -> Option<Value>;
 	fn implement_type(&mut self, symbol: &Symbol, new_value: TypeKind) -> Option<Value>;
@@ -106,6 +107,12 @@ impl SymbolFinder for LexicalScope {
 		}
 		Err(symbol.error_undefined())
 	}
+	// fn create_placeholder(&mut self, symbol: &Symbol) -> Result<(), Error> {
+	// 	if let Some(scope) = self.last_mut() {
+	// 		return scope.create_placeholder(symbol);
+	// 	}
+	// 	Err(symbol.error_raw("Cannot create placeholder"))
+	// }
 	fn create_symbol(&mut self, symbol: &Symbol, value: Value, symbol_type: TypeKind, mutable: bool, deep_mutable: bool) -> Option<Value> {
 		if let Some(scope) = self.last_mut() {
 			return scope.create_symbol(symbol, value, symbol_type, mutable, deep_mutable);
@@ -162,6 +169,7 @@ pub struct Scope {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SymbolValue {
 	Variable(Variable),
+	Placeholder,
 	Type(TypeKind),
 	Trait(Value),
 }
@@ -176,10 +184,12 @@ pub struct Variable {
 
 impl SymbolValue {
 	pub fn get_string(&self) -> String {
+		use SymbolValue::*;
 		match self {
-			SymbolValue::Variable(v) => v.value.to_string(),
-			SymbolValue::Type(t) => t.to_string(),
-			SymbolValue::Trait(t) => t.to_string(),
+			Variable(v) => v.value.to_string(),
+			Type(t) => t.to_string(),
+			Trait(t) => t.to_string(),
+			Placeholder => String::new(),
 		}
 	}
 }
@@ -218,6 +228,7 @@ impl SymbolFinder for Scope {
 				SymbolValue::Variable(symbol_value) => Some(symbol_value.value.clone()),
 				SymbolValue::Type(type_value) => Some(Value::Type(type_value.clone())),
 				SymbolValue::Trait(trait_value) => Some(trait_value.clone()),
+				_ => None,
 			}
 		}
 		None
@@ -228,6 +239,7 @@ impl SymbolFinder for Scope {
 				SymbolValue::Variable(symbol_value) => Ok(symbol_value.value_type.clone()),
 				SymbolValue::Type(type_kind) => Ok(type_kind.to_owned()),
 				SymbolValue::Trait(_) => Err(format!("symbol {symbol} is a trait, and does not have a type")),
+				_ => Err(String::new())
 			}
 		}
 		Err(format!("symbol {symbol} could not be found in the current scope"))
@@ -246,8 +258,7 @@ impl SymbolFinder for Scope {
 		if let Some(stored_symbol) = self.storage.get(&symbol.identifier) {
 			return match stored_symbol {
 				SymbolValue::Variable(symbol_value) => Some((symbol_value.mutable, symbol_value.deep_mutable)),
-				SymbolValue::Type(_) => None,
-				SymbolValue::Trait(_) => None
+				_ => None,
 			};
 		}
 		None
@@ -268,11 +279,17 @@ impl SymbolFinder for Scope {
 				},
 				SymbolValue::Type(_) => return Err(symbol.error_immutable_type()),
 				SymbolValue::Trait(_) => return Err(symbol.error_immutable_trait()),
+				_ => panic!()
 			}
 			return Ok(self.get_symbol(symbol))
 		}
 		Err(symbol.error_undefined())
 	}
+	
+	// fn create_placeholder(&mut self, symbol: &Symbol) -> Result<(), Error> {
+	// 	self.storage.insert(symbol.identifier.clone(), SymbolValue::Placeholder);
+	// 	Ok(())
+	// }
 	
 	fn create_symbol(&mut self, symbol: &Symbol, value: Value, value_type: TypeKind, mutable: bool, deep_mutable: bool) -> Option<Value> {
 		if value_type.is_equal(&value) {

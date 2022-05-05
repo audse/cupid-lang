@@ -1,10 +1,11 @@
 use serde::{Serialize, Deserialize};
 use std::hash::{Hash, Hasher};
-use crate::{LexicalScope, Value, Token};
+use crate::{LexicalScope, Value, Token, ValueNode, Error, Meta};
 
 pub trait Tree {
     fn resolve(&self, scope: &mut LexicalScope) -> Value;
 }
+
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Node {
@@ -29,6 +30,6 @@ impl Eq for Node {}
 impl Hash for Node {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.value.hash(state);
-        self.tokens.hash(state);
+        // self.tokens.hash(state);
     }
 }

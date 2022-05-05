@@ -71,8 +71,13 @@ use add with my_struct [
         -   [x] Alias
         -   [x] Sum
     -   [x] Call associated functions on any struct instance
--   [ ] Require `self` on functions that use self
-    -   [ ] Require `mut self`
+    -   [ ] Require implementation of all functions without defaults
+    -   [ ] Make sure no extra functions are added
+    - [ ] Implement different variations with different type args...
+    
+      e.g. `use [bool] into with int` and `use [dec] into with int`
+- [x] Require `self` on functions that use self
+- [ ] Require `mut self`
 
 ### Type checker
 
@@ -100,14 +105,13 @@ someone istype person # should be false
 -   [x] Exponent
 -   [x] Modulus
 -   [x] Operator assignment
-    -   [x] `x++`
-    -   [x] `x--`
 -   [ ] Compare data structures
 -   [x] Logical and
 -   [x] Logical or
 -   [ ] Negation
 -   [ ] Operator overloading
 -   [x] Type of
+-   [ ] Use trait implementations instead of simple value checking
 
 ## Functions
 
@@ -265,4 +269,15 @@ someone istype person # should be false
 
 ### Documentation
 
+-   [ ] Overview
+-   [ ] Standard library
+    -   [ ] Integer
+        -   [x] Built in methods
+        -   [ ] Trait implementations
+    -   [ ] Char
+    -   [ ] Decimal
+    -   [ ] String
+    -   [ ] Array
+    -   [ ] Map
+    -   [ ] Traits
 -   [ ] Style guide

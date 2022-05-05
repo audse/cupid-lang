@@ -1,23 +1,6 @@
 use crate::ParseNode;
 use crate::tree::*;
 
-// Maybe TODO?
-// pub trait FromParse {
-// 	fn from(node: &ParseNode) -> Self;
-// }
-// 
-// impl FromParse for BuiltInType {
-// 	fn from(node: &ParseNode) -> Self {
-// 		let token = &node.tokens[1];
-// 		Self {
-// 			symbol: Symbol {
-// 				identifier: Value::String(token.source.to_owned()),
-// 				token: token.clone()
-// 			}
-// 		}
-// 	}
-// }
-
 pub fn to_tree(node: &ParseNode) -> Expression {
     let errors = collect_errors(node);
     if !errors.is_empty() {

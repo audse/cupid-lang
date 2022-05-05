@@ -24,8 +24,11 @@ char mut some_character = \&
 
 Decimals are stored as an integer/fraction pair, not a floating point number.
 
+This means that you can safely do equality checks without approximation.
+
 ```
 dec num = 10.89
+1.23 is 1.23 # true
 ```
 
 ### Boolean `bool`

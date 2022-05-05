@@ -1,0 +1,6 @@
+trait [t] into = [
+	fun [t] = self => self as t
+]
+
+use [bool] into with int
+use [bool] into with dec

@@ -44,6 +44,7 @@ pub enum TypeKind {
 	Struct(StructType),
 	Sum(SumType),
 	Alias(AliasType),
+	Type,
 }
 
 impl TypeKind {
@@ -89,6 +90,7 @@ impl TypeKind {
 				}
 			},
 			Value::Type(t) => t.clone(),
+			Value::Values(_) => Self::Type,
 			x => {
 				println!("Cannot infer type of {:?}", x);
 				unreachable!()
@@ -151,6 +153,19 @@ impl TypeKind {
 			_ => panic!()
 		}
 	}
+	pub fn get_name(&self) -> String {
+		match self {
+			Self::Primitive(x) => x.identifier.to_string(),
+			Self::Array(x) => format!("array [{}]", x.element_type.get_name()),
+			Self::Function(x) => format!("fun [{}]", x.return_type.get_name()),
+			Self::Generic(_) => "generic".to_string(),
+			Self::Struct(_) => "struct".to_string(),
+			Self::Map(x) => format!("map [{}, {}]", x.key_type.get_name(), x.value_type.get_name()),
+			Self::Alias(x) => format!("alias of {}", x.true_type.get_name()),
+			Self::Sum(_) => "sum".to_string(),
+			Self::Type => "type kind".to_string(),
+		}
+	}
 }
 
 impl Type for TypeKind {
@@ -164,6 +179,7 @@ impl Type for TypeKind {
 			Self::Map(x) => x.apply_arguments(arguments),
 			Self::Alias(x) => x.apply_arguments(arguments),
 			Self::Sum(x) => x.apply_arguments(arguments),
+			_ => panic!(),
 		}
 	}
 	fn convert_primitives_to_generics(&mut self, generics: &[GenericType]) {
@@ -176,6 +192,7 @@ impl Type for TypeKind {
 			Self::Map(x) => x.convert_primitives_to_generics(generics),
 			Self::Alias(x) => x.convert_primitives_to_generics(generics),
 			Self::Sum(x) => x.convert_primitives_to_generics(generics),
+			_ => panic!(),
 		}
 	}
 	fn implement(&mut self, functions: HashMap<Value, Value>) -> Result<(), ()> {
@@ -188,6 +205,7 @@ impl Type for TypeKind {
 			Self::Map(x) => x.implement(functions),
 			Self::Alias(x) => x.implement(functions),
 			Self::Sum(x) => x.implement(functions),
+			_ => panic!(),
 		}
 	}
 	fn implement_trait(&mut self, trait_symbol: Symbol, functions: HashMap<Value, Value>) -> Result<(), ()> {
@@ -200,6 +218,7 @@ impl Type for TypeKind {
 			Self::Map(x) => x.implement_trait(trait_symbol, functions),
 			Self::Alias(x) => x.implement_trait(trait_symbol, functions),
 			Self::Sum(x) => x.implement_trait(trait_symbol, functions),
+			_ => panic!(),
 		}
 	}
 	fn find_function(&self, symbol: &Symbol, scope: &mut LexicalScope) -> Option<Value> {
@@ -224,7 +243,7 @@ pub trait Type {
 impl Display for TypeKind {
 	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
 		match self {
-			Self::Primitive(x) => write!(f, "{}", x.identifier),
+			Self::Primitive(x) => write!(f, "{} [{}]", x.identifier, x.implementation),
 			Self::Array(x) => write!(f, "array [{}]", x.element_type),
 			Self::Map(x) => write!(f, "map [{}, {}]", x.key_type, x.value_type),
 			Self::Function(x) => write!(f, "fun [{}]", x.return_type),
@@ -234,16 +253,17 @@ impl Display for TypeKind {
 					.iter()
 					.map(|(symbol, member)| format!("{}: {member}", symbol.identifier))
 					.collect();
-				write!(f, "[{}]", members.join(", "))
+				write!(f, "[{}] [{}]", members.join(", "), x.implementation)
 			},
 			Self::Sum(x) => {
 				let members: Vec<String> = x.types
 					.iter()
 					.map(|member| member.to_string())
 					.collect();
-				write!(f, "one of [{}]", members.join(", "))
+				write!(f, "one of [{}] [{}]", members.join(", "), x.implementation)
 			},
-			Self::Alias(x) => write!(f, "alias of {}", x.true_type),
+			Self::Alias(x) => write!(f, "alias of {} [{}]", x.true_type, x.implementation),
+			Self::Type => write!(f, "type kind"),
 		}
 	}
 }

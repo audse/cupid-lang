@@ -1,5 +1,5 @@
 use serde::{Serialize, Deserialize};
-use crate::{Expression, Tree, LexicalScope, Value, Token};
+use crate::{Expression, Tree, LexicalScope, Value, Token, AST, ParseNode};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Operator {

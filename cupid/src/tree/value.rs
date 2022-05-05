@@ -4,7 +4,7 @@ use std::hash::{Hash, Hasher};
 use std::ops::{Add, Sub, Mul, Neg, Div, Rem, BitAnd, BitOr};
 use std::cmp::Ordering;
 use serde::{Serialize, Deserialize};
-use crate::{TypeKind, Symbol, Expression, Error, Token, Implementation};
+use crate::{TypeKind, Symbol, Expression, Error, Token, Implementation, FunctionNode};
 
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -16,6 +16,7 @@ pub enum Value {
 	String(String),
 	Boolean(bool),
 	FunctionBody(Vec<(Value, Symbol)>, Box<Expression>, bool),
+	FuncBody(FunctionNode),
 	Error(Error),
 	Type(TypeKind),
 	Trait(Implementation),
@@ -23,10 +24,10 @@ pub enum Value {
 	Return(Box<Value>),
 	Map(HashMap<Value, (usize, Value)>),
 	Log(Box<Value>),
+	Values(Vec<Value>),
 	Continue,
 	None,
 }
-
 
 impl Add for Value {
 	type Output = Self;
@@ -201,6 +202,9 @@ impl Hash for Value {
 			Value::Log(x) => x.hash(state),
 			Value::Trait(x) => x.hash(state),
 			Value::Continue => (),
+			Value::Values(v) => v.iter().for_each(|v| v.hash(state)),
+			// Value::FuncBody(x) => x.hash(state)
+			_ => ()
 		}
 	}
 }
@@ -343,9 +347,15 @@ impl Display for Value {
 			Self::FunctionBody(params, ..) => {
 				let params: Vec<String> = params
 					.iter()
-					.map(|p| format!("{} {}", p.0, p.1.identifier))
+					.map(|p| {
+						if let Value::Type(t) = &p.0 {
+							format!("{} {}", t.get_name(), p.1.identifier)
+						} else {
+							format!("{} {}", p.0, p.1.identifier)
+						}
+					})
 					.collect();
-				_ = write!(f, "fun ({})", params.join(","));
+				_ = write!(f, "fun ({})", params.join(", "));
 				Ok(())
 			},
 			Self::Type(type_kind) => write!(f, "{type_kind}"),

@@ -78,6 +78,19 @@ pub struct Node {
     pub tokens: Vec<Token>,
 }
 
+
+impl Node {
+	pub fn map<R>(&self, function: &dyn Fn(&Self)->R) -> Vec<R> {
+		self.children.iter().map(function).collect()
+	}
+	pub fn map_mut<R>(&mut self, function: &dyn Fn(&mut Self)->R) -> Vec<R> {
+		self.children.iter_mut().map(function).collect()
+	}
+	pub fn has(&self, name: &str) -> bool {
+		self.children.iter().find(|c| c.name.as_str() == name).is_some()		
+	}
+}
+
 #[derive(PartialEq, Eq)]
 pub struct Parser {
     pub tokens: BiDirectionalIterator<Token>,
@@ -686,31 +699,6 @@ use_item!(&mut node, self._expression(None), false);
 			None
 		}
 		
-		pub fn _assignment_value(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
-			let start_pos = self.tokens.index();
-			let pos = start_pos;
-			let mut node = Node {
-				name: "assignment_value".to_string(),
-				tokens: vec![],
-				children: vec![],
-			};
-			loop { 
-use_item!(&mut node, self._array(None), false);
-
-			return Some((node, true));
-		
-}
-		self.reset_parse(&mut node, pos);
-loop { 
-use_item!(&mut node, self._require_term(None), false);
-
-			return Some((node, true));
-		
-}
-		self.reset_parse(&mut node, pos);
-			None
-		}
-		
 		pub fn _assignment(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
@@ -722,7 +710,7 @@ use_item!(&mut node, self._require_term(None), false);
 			loop { 
 use_item!(&mut node, self._identifier(None), false);
 use_item!(&mut node, self._equal(None), false);
-use_item!(&mut node, self._assignment_value(None), false);
+use_item!(&mut node, self._term(None), false);
 
 			return Some((node, false));
 		
@@ -742,7 +730,7 @@ use_item!(&mut node, self._assignment_value(None), false);
 			loop { 
 use_item!(&mut node, self._property_access(None), false);
 use_item!(&mut node, self._equal(None), false);
-use_item!(&mut node, self._assignment_value(None), false);
+use_item!(&mut node, self._term(None), false);
 
 			return Some((node, false));
 		
@@ -763,7 +751,7 @@ use_item!(&mut node, self._assignment_value(None), false);
 use_item!(&mut node, self._property_access(None), false);
 use_item!(&mut node, self._operator(None), false);
 use_item!(&mut node, self._equal(None), false);
-use_item!(&mut node, self._assignment_value(None), false);
+use_item!(&mut node, self._term(None), false);
 
 			return Some((node, false));
 		
@@ -804,7 +792,7 @@ use_item!(&mut node, self._term(None), false);
 use_item!(&mut node, self._identifier(None), false);
 use_item!(&mut node, self._operator(None), false);
 use_item!(&mut node, self._equal(None), false);
-use_item!(&mut node, self._assignment_value(None), false);
+use_item!(&mut node, self._term(None), false);
 
 			return Some((node, false));
 		
@@ -915,7 +903,7 @@ use_item!(&mut node, self._alias_type_definition(None), false);
 			};
 			loop { 
 use_item!(&mut node, self.expect("type".to_string()), false);
-use_item!(&mut node, self.expect_word(None), false);
+use_item!(&mut node, self._identifier(None), false);
 use_negative_lookahead!(self, self.tokens.index(), &mut self.expect("=".to_string()));
 
 			return Some((node, false));
@@ -1086,7 +1074,7 @@ use_optional!(&mut node, self.expect("mut".to_string()), false);
 use_item!(&mut node, self._identifier(None), false);
 loop { 
 use_item!(&mut node, self._equal(None), true);
-use_item!(&mut node, self._assignment_value(None), false);
+use_item!(&mut node, self._term(None), false);
 break}
 			return Some((node, false));
 		
@@ -1150,7 +1138,7 @@ use_item!(&mut node, self._primitive_type_hint(None), false);
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("array".to_string()), false);
+use_item!(&mut node, self._array_kw(None), false);
 use_item!(&mut node, self.expect("[".to_string()), false);
 use_item!(&mut node, self._type_hint(None), false);
 use_item!(&mut node, self._closing_bracket(None), false);
@@ -1171,7 +1159,7 @@ use_item!(&mut node, self._closing_bracket(None), false);
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("map".to_string()), false);
+use_item!(&mut node, self._map_kw(None), false);
 use_item!(&mut node, self.expect("[".to_string()), false);
 use_item!(&mut node, self._type_hint(None), false);
 use_item!(&mut node, self.expect(",".to_string()), false);
@@ -1194,7 +1182,7 @@ use_item!(&mut node, self._closing_bracket(None), false);
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("fun".to_string()), false);
+use_item!(&mut node, self._fun_kw(None), false);
 use_item!(&mut node, self.expect("[".to_string()), false);
 use_item!(&mut node, self._type_hint(None), false);
 use_item!(&mut node, self._closing_bracket(None), false);
@@ -1216,6 +1204,60 @@ use_item!(&mut node, self._closing_bracket(None), false);
 			};
 			loop { 
 use_item!(&mut node, self._identifier(None), false);
+
+			return Some((node, false));
+		
+}
+		self.reset_parse(&mut node, pos);
+			None
+		}
+		
+		pub fn _array_kw(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
+			let start_pos = self.tokens.index();
+			let pos = start_pos;
+			let mut node = Node {
+				name: "array_kw".to_string(),
+				tokens: vec![],
+				children: vec![],
+			};
+			loop { 
+use_item!(&mut node, self.expect("array".to_string()), false);
+
+			return Some((node, false));
+		
+}
+		self.reset_parse(&mut node, pos);
+			None
+		}
+		
+		pub fn _map_kw(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
+			let start_pos = self.tokens.index();
+			let pos = start_pos;
+			let mut node = Node {
+				name: "map_kw".to_string(),
+				tokens: vec![],
+				children: vec![],
+			};
+			loop { 
+use_item!(&mut node, self.expect("map".to_string()), false);
+
+			return Some((node, false));
+		
+}
+		self.reset_parse(&mut node, pos);
+			None
+		}
+		
+		pub fn _fun_kw(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
+			let start_pos = self.tokens.index();
+			let pos = start_pos;
+			let mut node = Node {
+				name: "fun_kw".to_string(),
+				tokens: vec![],
+				children: vec![],
+			};
+			loop { 
+use_item!(&mut node, self.expect("fun".to_string()), false);
 
 			return Some((node, false));
 		
@@ -1278,7 +1320,7 @@ use_item!(&mut node, self._type_hint(None), false);
 			loop { 
 use_item!(&mut node, self.expect("use".to_string()), false);
 use_optional!(&mut node, self._generics(None), false);
-use_item!(&mut node, self.expect_word(None), false);
+use_item!(&mut node, self._type_hint(None), false);
 use_item!(&mut node, self.expect("{".to_string()), false);
 use_repeat!(&mut node, self._typed_declaration(None), false);
 use_item!(&mut node, self._closing_brace(None), false);

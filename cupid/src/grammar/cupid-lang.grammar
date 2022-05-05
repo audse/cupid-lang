@@ -11,11 +11,9 @@
 	| return
 	| continue
 	| op_assignment
-	#| op_increment_assignment
 	| assignment
 	| property_assignment
 	| property_op_assignment
-	#| property_op_increment_assignment
 	| log
 
 -~term:
@@ -49,20 +47,14 @@
 -~brace_block: ~'{' expression* closing_brace
 -~arrow_block: ~arrow expression
 
-# separating this to allow arrays w/o brackets when assigning/declaring, but not when nested
--~assignment_value: array | require_term
+- assignment: identifier equal term
+- property_assignment: property_access equal term
 
-- assignment: identifier equal assignment_value
-- property_assignment: property_access equal assignment_value
-
-- property_op_assignment: property_access operator equal assignment_value
-#- property_op_increment_assignment: property_access increment_operator
+- property_op_assignment: property_access operator equal term
 - property_access: atom '.' term
 
-- op_assignment: identifier operator equal assignment_value
+- op_assignment: identifier operator equal term
 -~operator: '+' | '-' | '*' | '/' | '^' | '%'
-#- op_increment_assignment: identifier increment_operator
-#-~increment_operator: '+' '+' | '-' '-'
 
 -~type_definition:
 	builtin_type_definition
@@ -70,7 +62,7 @@
 	| sum_type_definition
 	| alias_type_definition
 
-- builtin_type_definition: 'type' WORD !'='
+- builtin_type_definition: 'type' identifier !'='
 
 - struct_type_definition: type_symbol ~equal '[' (struct_member ~',')* ~']'
 - struct_member: type_hint identifier
@@ -83,7 +75,7 @@
 -~type_symbol: 'type' generics? identifier
 - generics: '[' (identifier ',')* closing_bracket
 
-- typed_declaration: type_hint 'mut'? identifier (~equal assignment_value)?
+- typed_declaration: type_hint 'mut'? identifier (~equal term)?
 
 -~type_hint:
 	array_type_hint
@@ -92,15 +84,18 @@
 	| struct_type_hint
 	| primitive_type_hint
 
-- array_type_hint: 'array' '[' type_hint closing_bracket
-- map_type_hint: 'map' '[' type_hint ',' type_hint closing_bracket
-- function_type_hint: 'fun' '[' type_hint closing_bracket
+- array_type_hint: array_kw '[' type_hint closing_bracket
+- map_type_hint: map_kw '[' type_hint ',' type_hint closing_bracket
+- function_type_hint: fun_kw '[' type_hint closing_bracket
 - primitive_type_hint: identifier
+- array_kw: 'array'
+- map_kw: 'map'
+- fun_kw: 'fun'
 
 - struct_type_hint: identifier '[' (struct_member_type_hint ',')* ']'
 - struct_member_type_hint: identifier ':' type_hint
 
-- implement_type: 'use' generics? WORD '{' typed_declaration* closing_brace
+- implement_type: 'use' generics? type_hint '{' typed_declaration* closing_brace
 
 - implement_trait: 'use' generics? identifier 'with' identifier implement_trait_body?
 -~implement_trait_body: '{' typed_declaration* closing_brace

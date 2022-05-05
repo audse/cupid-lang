@@ -1,5 +1,5 @@
 use serde::{Serialize, Deserialize};
-use crate::{Expression, Value, LexicalScope, ScopeContext, Tree, Token, Block, Symbol, ErrorHandler, MapErrorHandler, TypeKind, SymbolFinder, GenericType};
+use crate::{Expression, Value, LexicalScope, ScopeContext, Tree, Token, Block, Symbol, ErrorHandler, TypeKind, SymbolFinder, GenericType};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WhileLoop {
@@ -45,7 +45,6 @@ impl ErrorHandler for WhileLoop {
 		String::from("attempting to construct a while loop")
 	}
 }
-impl MapErrorHandler for WhileLoop {}
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ForInLoop {
@@ -75,7 +74,8 @@ impl Tree for ForInLoop {
 				iter.sort_by(|(_, (a_index, _)), (_, (b_index, _))| a_index.cmp(b_index));
 				iter
 			},
-			_ => return self.not_map_error(&map)
+			_ => panic!()
+			// _ => return self.not_map_error(&map)
 		};
 		
 		let num_params = self.params.len();
@@ -126,8 +126,6 @@ impl ErrorHandler for ForInLoop {
 		format!("attempting to construct a for..in loop with params {}", params.join(", "))
 	}
 }
-
-impl MapErrorHandler for ForInLoop {}
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Break {

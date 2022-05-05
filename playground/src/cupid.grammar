@@ -24,7 +24,7 @@ statement {
 }
 
 term {
-	UseBlock
+	UseBlockNode
 	| UseTraitBlock
 	| IfBlock
 	| WhileLoop
@@ -73,7 +73,7 @@ ForInLoop { kw<"for"> commaSep<identifier> kw<"in"> term Block }
 BraceBlock { "{" expression* "}" }
 ArrowBlock { Arrow expression }
 
-UseBlock { Use Generics? typeName ~use BraceBlock }
+UseBlockNode { Use Generics? typeName ~use BraceBlock }
 UseTraitBlock { Use Generics? typeName ~use kw<"with"> BraceBlock }
 Use { kw<"use"> }
 

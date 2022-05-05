@@ -25,3 +25,5 @@ use [t] new with iter {
 iter [t: int] mut myiter = iter.new([1, 2, 3])
 
 myiter.next()
+
+log (int)

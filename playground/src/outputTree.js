@@ -144,7 +144,7 @@ const scope = {
 	makeTree: (result, el) => {
 		// remove global scope
 		const scopeJson = scope.filterJson(
-			serializeJson(result.scope?.slice(1, result.scope.length))
+			serializeJson(result.scope?.slice(0, result.scope.length))
 		);
 		const tree = jsonTree.create(scopeJson, el);
 		tree.expand(scope.collapseNodes);

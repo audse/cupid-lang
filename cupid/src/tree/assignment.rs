@@ -1,5 +1,5 @@
 use serde::{Serialize, Deserialize};
-use crate::{LexicalScope, Value, Expression, Symbol, Tree, Token, ErrorHandler, SymbolFinder};
+use crate::{LexicalScope, Value, Expression, Symbol, Tree, Token, ErrorHandler, SymbolFinder, Error};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Assign {
@@ -44,6 +44,7 @@ pub struct Declare {
 }
 
 impl Tree for Declare {
+	
 	fn resolve(&self, scope: &mut LexicalScope) -> Value {
     	let val = crate::resolve_or_abort!(self.value, scope);
 		let symbol_type = crate::resolve_or_abort!(self.value_type, scope);
