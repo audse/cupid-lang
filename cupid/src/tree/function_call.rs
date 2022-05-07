@@ -36,7 +36,7 @@ impl From<&mut ParseNode> for FunctionCallNode {
 }
 
 impl AST for FunctionCallNode {
-	fn resolve(&self, scope: &mut RLexicalScope) -> Result<ValueNode, Error> {
+	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		// check for builtin functions first
 		if self.meta.flags.len() > 0 {
 			return self.resolve_builtin_function(scope);
@@ -52,7 +52,7 @@ impl AST for FunctionCallNode {
 }
 
 impl FunctionCallNode {
-	fn resolve_builtin_function(&self, scope: &mut RLexicalScope) -> Result<ValueNode, Error> {
+	fn resolve_builtin_function(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		use FunctionFlag::*;
 		use Value::*;
 		let left = self.args.0[0].resolve(scope)?.value;
@@ -89,7 +89,7 @@ impl From<&mut ParseNode> for ArgumentsNode {
 }
 
 impl AST for ArgumentsNode {
-	fn resolve(&self, scope: &mut RLexicalScope) -> Result<ValueNode, Error> {
+	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		let mut values: Vec<Value> = vec![];
 		for arg in self.0.iter() {
 			let value = arg.resolve(scope)?;

@@ -1,4 +1,4 @@
-use crate::{parse, SymbolNode, AST, ParseNode, RLexicalScope, RSymbolValue, RScope, ValueNode, Error, Meta, TypeHintNode, Value, TypeKind, BoxAST};
+use crate::{parse, SymbolNode, AST, ParseNode, LexicalScope, SymbolValue, Scope, ValueNode, Error, Meta, TypeHintNode, Value, TypeKind, BoxAST};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct DeclarationNode {
@@ -33,7 +33,7 @@ impl From<&mut ParseNode> for DeclarationNode {
 }
 
 impl AST for DeclarationNode {
-	fn resolve(&self, scope: &mut RLexicalScope) -> Result<ValueNode, Error> {
+	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		let mut value = self.value.resolve(scope)?;
 		
 		// add meta info to value node
@@ -41,7 +41,7 @@ impl AST for DeclarationNode {
 		
 		let type_hint = self.type_hint.resolve_to_type_kind(scope)?;
 		
-		scope.set_symbol(&self.symbol, &RSymbolValue::Declaration { 
+		scope.set_symbol(&self.symbol, &SymbolValue::Declaration { 
 			type_hint, 
 			mutable: self.mutable, 
 			value

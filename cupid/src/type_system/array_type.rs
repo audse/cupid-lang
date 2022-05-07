@@ -61,30 +61,3 @@ impl Display for ArrayType {
 		write!(f, "array [{}]", self.element_type)
 	}
 }
-// 
-// #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-// pub struct ArrayTypeHint {
-// 	pub token: Token,
-// 	pub element_type: Box<Expression>,
-// }
-// 
-// impl Tree for ArrayTypeHint {
-// 	fn resolve(&self, scope: &mut crate::LexicalScope) -> Value {
-// 		let element_type = crate::resolve_or_abort!(self.element_type, scope);
-// 		if let Value::Type(element_type) = element_type {
-// 			let array_type = TypeKind::Array(ArrayType { element_type: Box::new(element_type) });
-// 			Value::Type(array_type)
-// 		} else {
-// 			self.error(format!("expected a type hint for array elements, not {element_type}"))
-// 		}
-// 	}
-// }
-// 
-// impl ErrorHandler for ArrayTypeHint {
-// 	fn get_token(&self) -> &Token {
-//     	&self.token
-// 	}
-// 	fn get_context(&self) -> String {
-//     	format!("array type with elements of type {}", self.element_type)
-// 	}
-// }

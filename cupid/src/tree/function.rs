@@ -1,166 +1,126 @@
-use serde::{Serialize, Deserialize};
-use std::fmt::{Display, Formatter, Result};
-use crate::{Symbol, LexicalScope, Value, Expression, ScopeContext, Tree, Token, ErrorHandler, SymbolFinder};
-use crate::utils::{pluralize, pluralize_word};
+use crate::*;
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Function {
-	pub params: Vec<(Expression, Symbol)>,
-	pub body: Box<Expression>,
-	pub use_self: bool,
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FunctionNode {
+	pub params: ParametersNode,
+	pub body: BlockNode,
 }
 
-impl Tree for Function {
-	fn resolve(&self, scope: &mut LexicalScope) -> Value {
-		let params: Vec<(Value, Symbol)> = self.params
-			.iter()
-			.map(|(type_exp, symbol)| (type_exp.resolve(scope), symbol.clone()))
-			.collect();
-		Value::FunctionBody(params, self.body.clone(), self.use_self)
+impl From<&mut ParseNode> for FunctionNode {
+	fn from(node: &mut ParseNode) -> Self {
+		Self {
+			params: ParametersNode::from(&mut node.children[0]),
+			body: BlockNode::from(&mut node.children[1]),
+		}
 	}
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct FunctionCall {
-	pub fun: Symbol,
-	pub args: Args,
+impl AST for FunctionNode {
+	fn resolve(&self, _scope: &mut LexicalScope) -> Result<ValueNode, Error> {
+		Ok(ValueNode::from_value(Value::Function(self.to_owned())))
+	}
 }
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Args(pub Vec<Expression>);
-
-impl Display for Args {
-	fn fmt(&self, f: &mut Formatter) -> Result {
-		let args: Vec<String> = self.0.iter()
-			.map(|a| a.to_string())
+impl FunctionNode {
+	// fn infer_return_type(&self) -> TypeKind { todo!() }
+	
+	pub fn call_function(&self, args: &ArgumentsNode, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
+		scope.add(Context::Function);
+		self.set_params(args, scope)?;
+		let value = self.body.resolve(scope);
+		scope.pop();
+		value
+	}
+	pub fn match_params_to_args(&self, args: &ArgumentsNode) -> Vec<(&Parameter, BoxAST)> {
+		let params: Vec<&Parameter> = self.params.symbols
+			.iter()
+			.filter(|p| p.type_hint.is_some())
 			.collect();
-		_ = write!(f, "{}", args.join(", "));
+		if params.len() == args.0.len() {
+			params
+				.iter()
+				.enumerate()
+				.map(|(i, p)| (*p, args.0[i].to_owned()))
+				.collect()
+		} else {
+			panic!("wrong number of args")
+		}
+	}
+	pub fn set_params(&self, args:  &ArgumentsNode, scope: &mut LexicalScope) -> Result<(), Error> {
+		for (param, arg) in self.match_params_to_args(args) {
+			let declaration = DeclarationNode {
+				type_hint: param.type_hint.as_ref().unwrap().to_owned(),
+				symbol: param.symbol.to_owned(),
+				value: arg.to_owned(),
+				meta: Meta::new(vec![], None, vec![]),
+				mutable: false,
+			};
+			declaration.resolve(scope)?;
+		}
 		Ok(())
 	}
 }
 
-impl Tree for FunctionCall {
-	fn resolve(&self, scope: &mut LexicalScope) -> Value {
-		scope.add(ScopeContext::Function);
-		
-		let mut args: Vec<Value> = vec![];
-		for arg in &self.args.0 {
-			let val = arg.resolve(scope);
-			crate::abort_on_error!(val, { scope.pop(); });
-			args.push(val);
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Parameter {
+	pub type_hint: Option<TypeHintNode>,
+	pub symbol: SymbolNode,
+	pub default: OptionAST,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ParametersNode {
+	pub symbols: Vec<Parameter>,
+	pub use_self: bool,
+	pub mut_self: bool,
+}
+
+impl From<&mut ParseNode> for ParametersNode {
+	fn from(node: &mut ParseNode) -> Self {
+		let mut_self = node.tokens
+			.iter_mut()
+			.find(|t| t.source.as_str() == "mut")
+			.is_some();
+		let use_self = node.has("self");
+		let symbols = node.map_mut(&|n: &mut ParseNode| match n.name.as_str() {
+				"annotated_parameter" => Parameter {
+					type_hint: Some(TypeHintNode::from(&mut n.children[0])), 
+					symbol: SymbolNode::from(&mut n.children[1]), 
+					default: OptionAST::None // TODO default vals
+				},
+				"self" => {
+					Parameter {
+						type_hint: None, 
+						symbol: SymbolNode::from(n), 
+						default: OptionAST::None
+					}
+				},
+				_ => panic!("unexpected params: {}", n.name)
+			});
+		Self {
+			symbols,
+			use_self,
+			mut_self
 		}
-		
-		if let Some(fun) = scope.get_symbol(&self.fun) {
-			let (params, body) = match fun {
-				Value::FunctionBody(params, body, _) => (params, body),
-				_ => {
-					scope.pop();
-					return self.undefined_error("".to_string())
-				}
+	}
+}
+
+impl AST for ParametersNode {
+	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
+		for Parameter { type_hint, symbol, .. } in self.symbols.iter() {
+			let type_hint = if let Some(t) = type_hint {
+				t.resolve_to_type_kind(scope)?
+			} else {
+				TypeKind::Type
 			};
-			if args.len() != params.len() {
-				return self.num_arguments_error(params.len(), args.len());
-			}
-			FunctionCall::set_scope(scope, &params, args);
-			let mut val = body.resolve(scope);
-			
-			// unbox from return value
-			if let Value::Return(return_val) = val {
-				val = *return_val;
-			}
-			
-			scope.pop();
-			val
-		} else {
-			scope.pop();
-			self.undefined_error(self.fun.get_identifier())
-		}
-	}
-}
-
-impl FunctionCall {
-	fn set_scope(inner_scope: &mut LexicalScope, params: &[(Value, Symbol)], args: Vec<Value>) {
-		for (index, param) in params.iter().enumerate() {
-			let arg = &args[index];
-			if let Value::Type(t) = &param.0 {
-				inner_scope.create_symbol(&param.1, arg.clone(), t.clone(), true, true);
+			let symbol_value = SymbolValue::Declaration { 
+				type_hint, 
+				mutable: false, 
+				value: ValueNode::new_none() 
 			};
+			scope.set_symbol(symbol, &symbol_value)?;
 		}
-	}
-	fn num_arguments_error(&self, num_params: usize, num_args: usize) -> Value {
-		self.error(format!(
-			"this function takes {} {}, but {} {} supplied",
-			num_params,
-			pluralize(num_params, "argument"),
-			num_args,
-			pluralize_word(num_args, "was")
-		))
-	}
-}
-
-impl ErrorHandler for FunctionCall {
-	fn get_token(&self) -> &Token {
-		&self.fun.token
-	}
-	fn get_context(&self) -> String {
-		format!(
-			"attempting to call function {} with args ({})", 
-			self.fun.identifier, 
-			self.args
-		)
-	}
-}
-
-#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Logger(pub Token, pub Args);
-
-impl Tree for Logger {
-	fn resolve(&self, scope: &mut LexicalScope) -> Value {
-		// TODO fix so that identifier dicts don't resolve 
-		let log_type = self.0.source.as_str();
-		
-		let mut strings = vec![];
-		for arg in &self.1.0 {
-			let val = arg.resolve(scope);
-			crate::abort_on_error!(val);
-			strings.push(val.to_string());
-		}
-		
-		let format = |arg: String| match log_type {
-			"logs" | "logs_line" => format!("{} ", arg),
-			_ => arg
-		};
-		
-		let mut string = String::new();
-    	strings.iter().for_each(|arg| string.push_str(format(arg.to_string()).as_str()));
-		match log_type {
-			"log" | "logs" => println!("{}", string),
-			_ => print!("{}", string)
-		};
-		
-		Value::Log(Box::new(Value::String(string)))
-	}
-}
-
-
-#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Return {
-	pub value: Box<Expression>,
-	pub token: Token,
-}
-
-impl Tree for Return {
-	fn resolve(&self, scope: &mut LexicalScope) -> Value {
-    	let value = crate::resolve_or_abort!(self.value, scope);
-		Value::Return(Box::new(value))
-	}
-}
-
-impl ErrorHandler for Return {
-	fn get_context(&self) -> String {
-    	format!("returning with expression {}", self.value)
-	}
-	fn get_token(&self) -> &Token {
-    	&self.token
+		Ok(ValueNode::new_none())
 	}
 }

@@ -59,30 +59,3 @@ impl Hash for FunctionType {
 		self.return_type.hash(state);
 	}
 }
-// 
-// #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-// pub struct FunctionTypeHint {
-// 	pub token: Token,
-// 	pub return_type: Box<Expression>,
-// }
-// 
-// impl Tree for FunctionTypeHint {
-// 	fn resolve(&self, scope: &mut crate::LexicalScope) -> Value {
-// 		let return_type = crate::resolve_or_abort!(self.return_type, scope);
-// 		if let Value::Type(return_type) = return_type {
-// 			let function_type = TypeKind::Function(FunctionType { return_type: Box::new(return_type) });
-// 			Value::Type(function_type)
-// 		} else {
-// 			self.error(format!("expected a type hint for function return value, not {return_type}"))
-// 		}
-// 	}
-// }
-// 
-// impl ErrorHandler for FunctionTypeHint {
-// 	fn get_token(&self) -> &Token {
-// 		&self.token
-// 	}
-// 	fn get_context(&self) -> String {
-// 		format!("function type with return value of type {}", self.return_type)
-// 	}
-// }

@@ -30,10 +30,10 @@ impl From<&mut ParseNode> for BuiltinTypeNode {
 }
 
 impl AST for BuiltinTypeNode {
-	fn resolve(&self, scope: &mut RLexicalScope) -> Result<ValueNode, Error> {
+	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		let meta = Meta::with_tokens(self.symbol.0.meta.tokens.to_owned());
 		let value = ValueNode::new(Value::Type(self.type_kind.to_owned()), meta);
-		let symbol_value = RSymbolValue::Declaration {
+		let symbol_value = SymbolValue::Declaration {
 			type_hint: TypeKind::Type,
 			value,
 			mutable: false,

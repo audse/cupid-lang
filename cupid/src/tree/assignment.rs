@@ -1,81 +1,29 @@
-use serde::{Serialize, Deserialize};
-use crate::{LexicalScope, Value, Expression, Symbol, Tree, Token, ErrorHandler, SymbolFinder, Error};
+use crate::{parse, SymbolNode, AST, ParseNode, LexicalScope, ValueNode, Error, Meta, SymbolValue, Scope, BoxAST};
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Assign {
-	pub operator: Token,
-	pub symbol: Symbol,
-	pub value: Box<Expression>
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct AssignmentNode {
+	pub symbol: SymbolNode,
+	pub value: BoxAST,
+	pub meta: Meta<()>
 }
 
-impl Tree for Assign {
-	fn resolve(&self, scope: &mut LexicalScope) -> Value {
-		let val = crate::resolve_or_abort!(self.value, scope);
-		if let Ok(_symbol_type) = scope.get_type_of_symbol(&self.symbol) {
-			match scope.set_symbol(&self.symbol, val.clone()) {
-				Ok(result) => match result {
-					Some(v) => v,
-					None => self.symbol.error_unable_to_assign(&val)
-				},
-				Err(error) => error
-			}
-		} else {
-			self.symbol.error_unable_to_assign(&val)
+impl From<&mut ParseNode> for AssignmentNode {
+	fn from(node: &mut ParseNode) -> Self {
+    	Self {
+			symbol: SymbolNode::from(&mut node.children[0]),
+			value: parse(&mut node.children[1]),
+			meta: Meta::with_tokens(node.tokens.to_owned())
 		}
 	}
 }
 
-impl ErrorHandler for Assign {
-	fn get_token(&self) -> &Token {
-    	&self.operator
-	}
-	fn get_context(&self) -> String {
-    	format!("\n\t  attempting to assign to {} \n\t  value: {}", self.symbol, self.value)
-	}
-}
-
-#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Declare {
-	pub symbol: Symbol,
-	pub value: Box<Expression>,
-	pub value_type: Box<Expression>,
-	pub mutable: bool,
-	pub deep_mutable: bool,
-}
-
-impl Tree for Declare {
-	
-	fn resolve(&self, scope: &mut LexicalScope) -> Value {
-    	let val = crate::resolve_or_abort!(self.value, scope);
-		let symbol_type = crate::resolve_or_abort!(self.value_type, scope);
-		if let Value::Type(stored_type) = symbol_type {
-			if let Some(value) = scope.create_symbol(
-				&self.symbol,
-				val.clone(), 
-				stored_type, 
-				self.mutable, 
-				self.deep_mutable
-			) {
-				return value;
-			}
-			self.unable_to_assign_error(self.symbol.get_identifier(), val)
-		} else {
-			self.unable_to_assign_error(self.symbol.get_identifier(), val)
-		}
-	}
-}
-
-impl ErrorHandler for Declare {
-	fn get_token(&self) -> &Token {
-    	&self.symbol.token
-	}
-	fn get_context(&self) -> String {
-    	format!(
-			"\n\t  declaring variable `{}` ({}, {}) \n\t  with value: {}",  
-			self.symbol.get_identifier(), 
-			self.value_type,
-			if self.mutable { "mutable" } else { "immutable" },
-			self.value
-		)
+impl AST for AssignmentNode {
+	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
+		let mut value = self.value.resolve(scope)?;
+		
+		// add meta info to value node
+		value.set_meta_identifier(&self.symbol.0);
+		
+		scope.set_symbol(&self.symbol, &SymbolValue::Assignment { value })
 	}
 }

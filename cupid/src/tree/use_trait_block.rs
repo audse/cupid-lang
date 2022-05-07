@@ -26,7 +26,7 @@ impl From<&mut ParseNode> for UseTraitBlockNode {
 }
 
 impl AST for UseTraitBlockNode {
-	fn resolve(&self, scope: &mut RLexicalScope) -> Result<ValueNode, Error> {
+	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		let mut trait_value = self.trait_name.resolve(scope)?;
 		let mut type_kind = self.type_kind.resolve_to_type_kind(scope)?;
 		let functions = self.functions.resolve_to_implementation(scope)?;
@@ -37,7 +37,7 @@ impl AST for UseTraitBlockNode {
 				Ok(_) => (),
 				Err(_) => panic!(), // TODO
 			};
-			let symbol_value = RSymbolValue::Assignment { 
+			let symbol_value = SymbolValue::Assignment { 
 				value: ValueNode::from_value(Value::Type(type_kind)) 
 			};
 			scope.set_symbol(&self.type_kind.type_kind, &symbol_value)

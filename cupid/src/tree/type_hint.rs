@@ -1,5 +1,5 @@
 use serde::{Serialize, Deserialize};
-use crate::{SymbolNode, AST, ParseNode, RLexicalScope, ValueNode, Error, Meta, TypeKind, Value, ErrorHandler, Type};
+use crate::{SymbolNode, AST, ParseNode, LexicalScope, ValueNode, Error, Meta, TypeKind, Value, ErrorHandler, Type};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TypeKindFlag {
@@ -37,7 +37,7 @@ impl From<&mut ParseNode> for TypeHintNode {
 }
 
 impl AST for TypeHintNode {
-	fn resolve(&self, scope: &mut RLexicalScope) -> Result<ValueNode, Error> {
+	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		// 1. get from scope
 		// 2. apply args to generics
 		let value = self.type_kind.resolve(scope)?;
@@ -51,7 +51,7 @@ impl AST for TypeHintNode {
 }
 
 impl TypeHintNode {
-	pub fn resolve_to_type_kind(&self, scope: &mut RLexicalScope) -> Result<TypeKind, Error> {
+	pub fn resolve_to_type_kind(&self, scope: &mut LexicalScope) -> Result<TypeKind, Error> {
 		let value = self.resolve(scope)?;
 		match value.value {
 			Value::Type(type_kind) => Ok(type_kind),

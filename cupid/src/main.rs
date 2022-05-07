@@ -16,9 +16,6 @@ struct Cli {
     
     #[clap(short, long)]
     generate: bool,
-	
-	// #[clap(short, long)]
-	// refactor: bool,
 }
 
 fn main() -> Result<(), Error> {
@@ -27,29 +24,18 @@ fn main() -> Result<(), Error> {
         run_generator();
 		Ok(())
 	} else {
-        run_path(&args.path, args.debug);
-		Ok(())
+        run_path(&args.path, args.debug)
     }
 }
 
 fn run_path(path: &str, debug: bool)-> Result<(), Error> {
-	let mut file_handler = RFileHandler::new(format!("src/tests/{}", path).as_str());
+	let mut file_handler = FileHandler::new(format!("src/tests/{}", path).as_str());
 	if debug {
 		file_handler.run_debug()
 	} else {
 		file_handler.run()
 	}
 }
-
-// fn run_path(path: &str, debug: bool) {
-// 	
-//     let mut file_handler = FileHandler::new(format!("src/tests/{}", path).as_str());
-//     if debug {
-//         file_handler.run_debug()
-//     } else {
-//         file_handler.run();
-//     }
-// }
 
 fn run_generator() {
     test_generator();

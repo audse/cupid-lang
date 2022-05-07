@@ -1,522 +1,90 @@
-use crate::ParseNode;
-use crate::tree::*;
+use crate::*;
 
-pub fn to_tree(node: &ParseNode) -> Expression {
-    let errors = collect_errors(node);
-    if !errors.is_empty() {
-        return errors[0].clone();
-    }
-    match node.name.as_str() {
-        "file" => Expression::File(node.children.iter().map(to_tree).collect()),
 
-        // Expression
-        "expression" => to_tree(&node.children[0]),
-        
-        "builtin_type_definition" => {
-            let token = &node.tokens[1];
-            Expression::BuiltInType(BuiltInType {
-                symbol: Symbol {
-                    identifier: Value::String(token.source.clone()),
-                    token: token.clone()
-                }
-            })
-        },
-        
-        "alias_type_definition" => {
-            let generics = get_generics(&node);
-            let (type_symbol, type_hint) = if generics.len() > 0 {
-                (&node.children[1], &node.children[2])
-            } else {
-                (&node.children[0], &node.children[1])
-            };
-            let type_symbol = Expression::to_symbol(to_tree(&type_symbol));
-            let type_hint = to_tree(type_hint);
-            Expression::new_define_type_alias(node.tokens[0].clone(), type_symbol, type_hint, generics)
-        },
-        
-        "struct_type_definition" => {
-            let generics = get_generics(&node);
-            let type_symbol = if generics.len() > 0 {
-                &node.children[1]
-            } else {
-                &node.children[0]
-            };
-            let type_symbol = Expression::to_symbol(to_tree(&type_symbol));
-            let members: Vec<(Symbol, Expression)> = node.children
-                .iter()
-                .skip(1)
-                .filter_map(|member| {
-                    if member.name.as_str() == "struct_member" {
-                        let symbol = to_tree(&member.children[1]);
-                        let type_exp = to_tree(&member.children[0]);
-                        if let Expression::Symbol(symbol) = symbol {
-                            Some((symbol, type_exp))
-                        } else {
-                            None
-                        }
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-            Expression::new_define_struct(node.tokens[0].clone(), type_symbol, members, generics)
-        },
-        
-        "sum_type_definition" => {
-            let generics = get_generics(&node);
-            let type_symbol = if generics.len() > 0 {
-                &node.children[1]
-            } else {
-                &node.children[0]
-            };
-            let type_symbol = Expression::to_symbol(to_tree(&type_symbol));
-            let members: Vec<Expression> = node.children
-                .iter()
-                .skip(1)
-                .filter_map(|member| {
-                    if member.name.as_str() == "sum_member" {
-                        Some(to_tree(&member.children[0]))
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-            Expression::new_define_sum(node.tokens[0].clone(), type_symbol, members, generics)
-        },
+pub fn parse(node: &mut ParseNode) -> BoxAST {
+	match node.name.as_str() {
+		"file" => return BoxAST::new(FileNode::from(node)),
+		"expression" => return parse(&mut node.children[0]),
 		
-		"trait_definition" => {
-			let token = node.tokens[0].clone();
-			let generics = get_generics(&node);
-			let symbol =  Expression::to_symbol(to_tree(if generics.len() > 0 {
-				&node.children[1]
-			} else {
-				&node.children[0]
-			}));
-			let declarations: Vec<Expression> = node.children
-				.iter()
-				.filter_map(|n| {
-					if n.name.as_str() == "typed_declaration" {
-						Some(to_tree(&n))
-					} else {
-						None
-					}
-				})
-				.collect();
-			Expression::DefineTrait(DefineTrait::new(token, symbol, declarations, generics))
+		"builtin_type_definition" => return BoxAST::new(BuiltinTypeNode::from(node)),
+		"trait_definition" => return BoxAST::new(TraitNode::from(node)),
+		"implement_type" => return BoxAST::new(UseBlockNode::from(node)),
+		"implement_trait" => return BoxAST::new(UseTraitBlockNode::from(node)),
+		
+		"typed_declaration" => return BoxAST::new(DeclarationNode::from(node)),	
+		"assignment" => return BoxAST::new(AssignmentNode::from(node)),
+				
+		"array_type_hint"
+		| "function_type_hint"
+		| "map_type_hint"
+		| "primitive_type_hint"
+		| "struct_type_hint" => return BoxAST::new(TypeHintNode::from(node)),
+		
+		"block" => return BoxAST::new(BlockNode::from(node)),
+		
+		"property_access" => return BoxAST::new(PropertyNode::from(node)),
+		
+		/* TODO */
+		"compare_op" 
+		| "add"
+		| "multiply" 
+		| "exponent" => if node.children.len() > 1 {
+			return BoxAST::new(OperationNode::parse_as_function(node))
+		} else {
+			return parse(&mut node.children[0])
 		},
-        
-        "array_type_hint" => Expression::ArrayTypeHint(
-            ArrayTypeHint {
-                token: node.tokens[0].clone(),
-                element_type: Box::new(to_tree(&node.children[0]))
-            }
-        ),
-        
-        "function_type_hint" => Expression::FunctionTypeHint(
-            FunctionTypeHint {
-                token: node.tokens[0].clone(),
-                return_type: Box::new(to_tree(&node.children[0]))
-            }
-        ),
-        
-        "map_type_hint" => Expression::MapTypeHint(
-            MapTypeHint {
-                token: node.tokens[0].clone(),
-                key_type: Box::new(to_tree(&node.children[0])),
-                value_type: Box::new(to_tree(&node.children[1]))
-            }
-        ),
-        
-        "struct_type_hint" => {
-            let member_args: Vec<(Symbol, Expression)> = node.children
-                .iter()
-                .filter_map(|child| {
-                    if child.name.as_str() == "struct_member_type_hint" {
-                        let symbol = Expression::to_symbol(to_tree(&child.children[0]));
-                        let value = to_tree(&child.children[1]);
-                        Some((symbol, value))
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-            Expression::StructTypeHint(
-                StructTypeHint {
-                    token: node.tokens[0].clone(),
-                    struct_type: Box::new(to_tree(&node.children[0])),
-                    member_args
-                }
-            )
-        },
-        
-        "primitive_type_hint" => to_tree(&node.children[0]),
-        
-        // "implement_type" => {
-        //     let token = node.tokens[0].clone();
-        //     let identifier = Symbol::new_string(node.tokens[1].source.clone(), node.tokens[1].clone());
-        //     let generics = get_generics(&node);
-        //     let declarations: Vec<Expression> = node.children
-        //         .iter()
-        //         .filter_map(|n| {
-        //             if n.name.as_str() == "typed_declaration" {
-        //                 Some(to_tree(&n))
-        //             } else {
-        //                 None
-        //             }
-        //         })
-        //         .collect();
-        //     Expression::Implement(Implement::new(token, identifier, declarations, generics))
-        // },
+		"unary_op" => return parse(&mut node.children[0]),
+		/* END TODO */
 		
-		// "implement_trait" => {
-		// 	let token = node.tokens[0].clone();
-		// 	let generics = get_generics(&node);
-		// 	let (trait_symbol, type_symbol) = if generics.len() > 0 {
-		// 		(&node.children[1], &node.children[2])
-		// 	} else {
-		// 		(&node.children[0], &node.children[1])
-		// 	};
-		// 	let trait_symbol = Expression::to_symbol(to_tree(trait_symbol));
-		// 	let type_symbol = Expression::to_symbol(to_tree(type_symbol));
-		// 	
-		// 	let declarations: Vec<Expression> = node.children
-		// 		.iter()
-		// 		.filter_map(|n| {
-		// 			if n.name.as_str() == "typed_declaration" {
-		// 				Some(to_tree(&n))
-		// 			} else {
-		// 				None
-		// 			}
-		// 		})
-		// 		.collect();
-		// 	Expression::ImplementTrait(ImplementTrait::new(token, trait_symbol, type_symbol, declarations, generics))
-		// },
-
-        // Loops
-        "for_loop" => {
-            let (params, map, body) = {
-                (
-                    node.children[0]
-                        .children
-                        .iter()
-                        .map(|p| Expression::to_symbol(to_tree(p)))
-                        .collect(),
-                    to_tree(&node.children[1]),
-                    to_tree(&node.children[2]),
-                )
-            };
-            Expression::new_for_in_loop(params, map, body, node.tokens[0].clone())
-        }
-        "while_loop" => Expression::new_while_loop(
-            to_tree(&node.children[0]),
-            to_tree(&node.children[1]),
-            node.tokens[0].clone(),
-        ),
-        // "infinite_loop" => ()
-
-        // Blocks
-        "block" => Expression::new_block(node.children.iter().map(to_tree).collect()),
-        "box_block" => Expression::new_box_block(node.children.iter().map(to_tree).collect()),
-        "if_block" => {
-            let else_if_bodies = node
-                .children
-                .iter()
-                .filter(|n| n.name.as_str() == "else_if_block")
-                .map(|n| {
-                    let condition = to_tree(&n.children[0]);
-                    let body = Expression::to_block(to_tree(&n.children[1]));
-                    (condition, body)
-                })
-                .collect();
-
-            let else_body = node.children.iter().find_map(|n| {
-                if n.name.as_str() == "else_block" {
-                    Some(Expression::to_block(to_tree(&n.children[0])))
-                } else {
-                    None
-                }
-            });
-
-            Expression::new_if_block(
-                to_tree(&node.children[0]),                       // condition
-                Expression::to_block(to_tree(&node.children[1])), // block
-                else_if_bodies,
-                else_body,
-            )
-        },
-        
-        "typed_declaration" => {
-            let type_hint = to_tree(&node.children[0]);
-            let identifier = to_tree(&node.children[1]);
-            let mutable = node.tokens.len() > 0;
-            
-            let value = if node.children.len() > 2 {
-                to_tree(&node.children[2])
-            } else {
-                Expression::Empty
-            };
-            Expression::new_declare(identifier, type_hint, mutable, true, value)
-        },
-
-        "assignment" => Expression::new_assign(
-            node.tokens[0].clone(),
-            to_tree(&node.children[0]),
-            to_tree(&node.children[1]),
-        ),
-        "property_assignment" => {
-            if let Expression::Property(property) = to_tree(&node.children[0]) {
-                Expression::new_property_assign(
-                    property,
-                    to_tree(&node.children[1]),
-                    node.tokens[0].clone(),
-                )
-            } else {
-				// println!("{:#?}", &node.children);
-                panic!("expected a property")
-            }
-        },
-        "property_op_assignment" => {
-            let property_exp = to_tree(&node.children[0]);
-            if let Expression::Property(property) = property_exp.clone() {
-                let operator = node.tokens[0].clone();
-                let value = to_tree(&node.children[1]);
-                Expression::new_property_assign(
-                    property,
-                    Expression::new_operator(operator, property_exp, value),
-                    node.tokens[0].clone(),
-                )
-            } else {
-                panic!("expected a property")
-            }
-        },
-        "property_op_increment_assignment" => {
-            let property_exp = to_tree(&node.children[0]);
-            if let Expression::Property(property) = property_exp.clone() {
-                let operator = node.tokens[0].clone();
-                let value = Expression::new_int_node(1, vec![operator.clone()]);
-                Expression::new_property_assign(
-                    property,
-                    Expression::new_operator(operator, property_exp, value),
-                    node.tokens[0].clone(),
-                )
-            } else {
-                panic!("expected a property")
-            }
-        },
-        "op_assignment" => {
-            let symbol = to_tree(&node.children[0]);
-            let operator = node.tokens[0].clone();
-            let value = to_tree(&node.children[1]);
-            Expression::new_assign(
-                operator.clone(),
-                symbol.clone(),
-                Expression::new_operator(operator, symbol, value)
-            )
-        },
-        "op_increment_assignment" => {
-            let symbol = to_tree(&node.children[0]);
-            let operator = node.tokens[0].clone();
-            let value = Expression::new_int_node(1, vec![operator.clone()]);
-            Expression::new_assign(
-                operator.clone(),
-                symbol.clone(),
-                Expression::new_operator(operator, symbol, value)
-            )
-        },
-        "binary_op" | "compare_op" | "add" | "multiply" | "exponent" => {
-            if !node.tokens.is_empty() && node.children.len() > 1 {
-                Expression::new_operator(
-                    node.tokens[0].clone(),
-                    to_tree(&node.children[0]),
-                    to_tree(&node.children[1]),
-                )
-            } else {
-                to_tree(&node.children[0])
-            }
-        }
-        "unary_op" => Expression::new_operator(
-            node.tokens[0].clone(),
-            Expression::Empty,
-            to_tree(&node.children[0]),
-        ),
-        
-        "break" => {
-            let value = if node.children.len() > 0 {
-                to_tree(&node.children[0])
-            } else {
-                Expression::Empty
-            };
-            Expression::new_break(
-                node.tokens[0].clone(), 
-                value
-            )
-        },
-        
-        "return" => {
-            let value = if node.children.len() > 0 {
-                to_tree(&node.children[0])
-            } else {
-                Expression::Empty
-            };
-            Expression::new_return(
-                node.tokens[0].clone(), 
-                value
-            )
-        },
-        "continue" => Expression::new_continue(node.tokens[0].clone()),
-
-        // Terms
-        "group" => to_tree(&node.children[0]),
-        "log" => Expression::Logger(Logger(
-            node.tokens[0].clone(),
-            Args(node.children[0].children.iter().map(to_tree).collect()),
-        )),
-        "function" => {
-            let mut use_self = false;
-            let (params, body) = if node.children.len() > 1 {
-                (
-                    node.children[0]
-                        .children
-                        .iter()
-                        .filter_map(|p| {
-                            if p.name.as_str() == "annotated_parameter" {
-                                Some((
-                                    to_tree(&p.children[0]),
-                                    Expression::to_symbol(to_tree(&p.children[1]))
-                                ))
-                            } else if p.name.as_str() == "self" {
-								use_self = true;
-								None
-							} else {
-                                unreachable!()
-                            }
-                        })
-                        .collect(),
-                    to_tree(&node.children[1]),
-                )
-            } else {
-                (vec![], to_tree(&node.children[0]))
-            };
-            Expression::new_function(params, body, use_self)
-        },
-        "function_call" => {
-            let fun = to_tree(&node.children[0]);
-            let args = if node.children.len() > 1 {
-                node.children[1].children.iter().map(to_tree).collect()
-            } else {
-                vec![]
-            };
-            Expression::new_function_call(fun, args)
-        },
-        
-        "map" => {
-            let entries = node.children
-                .iter()
-                .map(|item| (to_tree(&item.children[0]), to_tree(&item.children[1])))
-                .collect();
-            Expression::new_map(entries, node.tokens[0].clone())
-        },
-        "array" => Expression::new_array(node.children.iter().map(to_tree).collect()),
-		"range" => {
-			let range = &node.children[0];
-			let start = Box::new(to_tree(&range.children[0]));
-			let end = Box::new(to_tree(&range.children[1]));
-			let inclusive = match range.name.as_str() {
-				"range_inclusive_inclusive" => (true, true),
-				"range_inclusive_exclusive" => (true, false),
-				"range_exclusive_exclusive" => (false, false),
-				"range_exclusive_inclusive" => (false, true),
-				_ => panic!()
-			};
-			let range = Range {
-				inclusive,
-				start,
-				end,
-				token: range.tokens[0].clone()
-			};
-			Expression::Range(range)
-		}
-        
-        "property_access"
-		| "property_access_full" => {
-            if node.children.len() > 1 {
-                let map = to_tree(&node.children[0]);
-                let term = to_tree(&node.children[1]);
-                
-                Expression::new_property(map, term, node.tokens[0].clone())
-            } else {
-                to_tree(&node.children[0])
-            }
-        },
-
-        // Values
-        "boolean" => match node.tokens[0].source.as_str() {
-            "true" => Expression::new_bool_node(true, node.tokens.clone()),
-            "false" => Expression::new_bool_node(false, node.tokens.clone()),
-            _ => Expression::Empty,
-        },
-        "none" => Expression::new_none_node(node.tokens.clone()),
-        "char" => Expression::new_char_node(node.tokens[1].source.clone(), vec![node.tokens[0].clone()]),
-        "string" => Expression::new_string_node(node.tokens[0].source.clone(), node.tokens.clone()),
-        "decimal" => Expression::new_dec_node(
-            node.tokens[0].source.parse::<i32>().unwrap_or(0),
-            node.tokens[1].source.parse::<u32>().unwrap_or(0),
-            node.tokens.clone(),
-        ),
-        "number" => Expression::new_int_node(
-            node.tokens[0].source.parse::<i32>().unwrap_or(0),
-            node.tokens.clone(),
-        ),
+		"log" => return BoxAST::new(LogNode::from(node)),
+		"function_call" => return BoxAST::new(FunctionCallNode::from(node)),
+		"function" => return BoxAST::new(FunctionNode::from(node)),
+		"array" => return BoxAST::new(ArrayNode::from(node)),
+		
 		"identifier"
-		| "self" => Expression::new_symbol(Expression::new_string_node(
-			node.tokens[0].source.clone(),
-			node.tokens.clone(),
-		)),
-        _ => Expression::Empty,
-    }
+		| "self"
+		| "array_kw"
+		| "map_kw"
+		| "fun_kw" => return BoxAST::new(SymbolNode::from(node)),
+		
+		"boolean"
+		| "none"
+		| "char"
+		| "string"
+		| "decimal"
+		| "number" => return BoxAST::new(ValueNode::from(node)),
+		
+		_ => panic!("unexpected node {:?}", node)
+	};
 }
 
-pub fn get_generics(node: &ParseNode) -> Vec<Symbol> {
-    node.children
-    .iter()
-    .find_map(|child| {
-        if child.name.as_str() == "generics" {
-            let generics = child.children
-                .iter()
-                .filter_map(|generic| {
-                    if let Expression::Symbol(symbol) = to_tree(generic) {
-                        Some(symbol)
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-            Some(generics)
-        } else {
-            None
-        }
-    })
-    .unwrap_or(vec![])
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct FileNode {
+	pub expressions: Vec<BoxAST>,
+	pub meta: Meta<()>
 }
 
-pub fn collect_errors(node: &ParseNode) -> Vec<Expression> {
-    node.children
-        .iter()
-        .filter_map(|c| {
-            if c.name.as_str() == "error" {
-                let message = c.tokens[0]
-                    .source
-                    .clone()
-                    .replace("<e ", "")
-                    .replace('>', "")
-                    .replace('\'', "");
-                Some(Expression::new_node(
-                    Value::error(&c.tokens[1], message, String::new()),
-                    c.tokens.clone(),
-                ))
-            } else {
-                None
-            }
-        })
-        .collect()
+impl From<&mut ParseNode> for FileNode {
+	fn from(node: &mut ParseNode) -> Self {
+    	Self {
+			expressions: node.children.iter_mut().map(|e| BoxAST::from(parse(e))).collect(),
+			meta: Meta::with_tokens(node.tokens.to_owned())
+		}
+	}
+}
+
+impl AST for FileNode {
+	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
+		let mut values: Vec<Value> = vec![];
+		for exp in self.expressions.iter() {
+			let value = exp.resolve(scope)?;
+			values.push(value.value);
+		}
+		let meta: Meta<Flag> = Meta {
+			tokens: self.meta.tokens.to_owned(),
+			identifier: None,
+			flags: vec![]
+		};
+		Ok(ValueNode::new(Value::Values(values), meta))
+	}
 }

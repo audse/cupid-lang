@@ -25,7 +25,7 @@ impl Type for PrimitiveType {
     	self.implementation.implement(functions);
 		Ok(())
 	}
-	fn find_function(&self, symbol: &SymbolNode, scope: &mut RLexicalScope) -> Option<ValueNode> {
+	fn find_function(&self, symbol: &SymbolNode, scope: &mut LexicalScope) -> Option<ValueNode> {
 		self.implementation.find_function(symbol, scope)
 	}
 	fn implement_trait(&mut self, trait_symbol: SymbolNode, functions: HashMap<ValueNode, ValueNode>) -> Result<(), ()> { 

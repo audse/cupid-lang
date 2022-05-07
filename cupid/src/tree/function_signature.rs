@@ -34,7 +34,7 @@ impl FunctionSignatureNode {
 }
 // 
 // impl AST for FunctionSignatureNode {
-// 	fn resolve(&self, _scope: &mut RLexicalScope) -> Result<ValueNode, Error> {
+// 	fn resolve(&self, _scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 // 		Ok(ValueNode::from_value(Value::Function(self.to_owned())))
 // 	}
 // }

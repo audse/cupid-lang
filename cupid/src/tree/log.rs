@@ -16,7 +16,7 @@ impl From<&mut ParseNode> for LogNode {
 }
 
 impl AST for LogNode {
-	fn resolve(&self, scope: &mut RLexicalScope) -> Result<ValueNode, Error> {
+	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
     	let args: ValueNode = self.args.resolve(scope)?;
 		let args_list: &Vec<Value> = if let Value::Values(values) = &args.value {
 			values

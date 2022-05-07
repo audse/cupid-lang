@@ -1,33 +1,3 @@
-mod alias_type;
-pub use alias_type::*;
-
-mod array_type;
-pub use array_type::*;
-
-mod builtin;
-pub use builtin::*;
-
-mod function_type;
-pub use function_type::*;
-
-mod generic_type;
-pub use generic_type::*;
-
-// mod implement;
-// pub use implement::*;
-
-mod map_type;
-pub use map_type::*;
-
-mod primitive_type;
-pub use primitive_type::*;
-
-mod struct_type;
-pub use struct_type::*;
-
-mod sum_type;
-pub use sum_type::*;
-
 // use std::hash::{Hash, Hasher};
 use std::fmt::{Display, Formatter, Result as DisplayResult};
 use std::collections::HashMap;
@@ -113,7 +83,7 @@ impl TypeKind {
 			_ => panic!()
 		}.to_string()
 	}
-	pub fn infer_from_scope(value: &ValueNode, scope: &mut RLexicalScope) -> Option<Self> {
+	pub fn infer_from_scope(value: &ValueNode, scope: &mut LexicalScope) -> Option<Self> {
 		let name = Value::String(Self::infer_name(&value.value).to_string());
 		let symbol_value = ValueNode::new(name, Meta::with_tokens(value.meta.tokens.to_owned()));
 		let symbol = SymbolNode(symbol_value);
@@ -128,7 +98,7 @@ impl TypeKind {
 		}
 	}
 	
-	fn replace_generic(generic: &TypeKind, with: &GenericType) -> Option<Box<TypeKind>> {
+	pub fn replace_generic(generic: &TypeKind, with: &GenericType) -> Option<Box<TypeKind>> {
 		match generic {
 			TypeKind::Generic(GenericType { identifier, type_value: _ }) => {
 				if identifier.to_string() == with.identifier.to_string() {
@@ -237,7 +207,7 @@ impl Type for TypeKind {
 			_ => panic!(),
 		}
 	}
-	fn find_function(&self, symbol: &SymbolNode, scope: &mut RLexicalScope) -> Option<ValueNode> {
+	fn find_function(&self, symbol: &SymbolNode, scope: &mut LexicalScope) -> Option<ValueNode> {
 		match self {
 			Self::Primitive(x) => x.find_function(symbol, scope),
 			Self::Alias(x) => x.find_function(symbol, scope),
@@ -248,7 +218,7 @@ impl Type for TypeKind {
 			_ => None
 		}
 	}
-	fn find_function_value(&self, symbol: &SymbolNode, scope: &mut RLexicalScope) -> Option<FunctionNode> {
+	fn find_function_value(&self, symbol: &SymbolNode, scope: &mut LexicalScope) -> Option<FunctionNode> {
 		match self {
 			Self::Primitive(x) => x.implementation.find_function_value(symbol, scope),
 			Self::Alias(x) => x.implementation.find_function_value(symbol, scope),
@@ -266,8 +236,8 @@ pub trait Type {
 	fn convert_primitives_to_generics(&mut self, _generics: &[GenericType]) {}
 	fn implement(&mut self, _functions: HashMap<ValueNode, ValueNode>) -> Result<(), ()> { Err(()) }
 	fn implement_trait(&mut self, _trait: SymbolNode, _implement: HashMap<ValueNode, ValueNode>) -> Result<(), ()> { Err(()) }
-	fn find_function(&self, _symbol: &SymbolNode, _scope: &mut RLexicalScope) -> Option<ValueNode> { None }
-	fn find_function_value(&self, _symbol: &SymbolNode, _scope: &mut RLexicalScope) -> Option<FunctionNode> { None }
+	fn find_function(&self, _symbol: &SymbolNode, _scope: &mut LexicalScope) -> Option<ValueNode> { None }
+	fn find_function_value(&self, _symbol: &SymbolNode, _scope: &mut LexicalScope) -> Option<FunctionNode> { None }
 }
 
 impl Display for TypeKind {

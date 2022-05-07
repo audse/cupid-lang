@@ -1,4 +1,4 @@
-use crate::{SymbolNode, ParseNode, AST, RLexicalScope, ValueNode, Error};
+use crate::{SymbolNode, ParseNode, AST, LexicalScope, ValueNode, Error};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct GenericsNode {
@@ -25,7 +25,7 @@ impl From<&mut ParseNode> for GenericsNode {
 }
 
 impl AST for GenericsNode {
-	fn resolve(&self, _scope: &mut RLexicalScope) -> Result<ValueNode, Error> {
+	fn resolve(&self, _scope: &mut LexicalScope) -> Result<ValueNode, Error> {
     	todo!()
 	}
 }

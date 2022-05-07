@@ -1,68 +1,30 @@
-// #![feature(test)]
 
 // External
 #[allow(unused_imports)]
 use colored::*;
 use wasm_bindgen::prelude::*;
+pub use serde::{Serialize, Deserialize};
+
+// Stdlib
+pub use std::collections::HashMap;
 
 mod errors;
 pub use errors::*;
 
-// mod file_handler;
-// pub use file_handler::*;
-
-mod file_handler_refactor;
-pub use file_handler_refactor::FileHandler as RFileHandler;
+mod file_handler;
+pub use file_handler::FileHandler;
 
 mod utils;
 pub use utils::*;
 
-mod tree;
-pub use tree::*;
-
 mod parser;
 pub use parser::*;
 
-// mod semantics;
-// pub use semantics::*;
+mod semantics;
+pub use semantics::*;
 
-mod refactor;
-pub use refactor::{
-	LexicalScope as RLexicalScope,
-	Scope as RScope,
-	SymbolValue as RSymbolValue,
-	AssignmentNode,
-	DeclarationNode,
-	GenericsNode,
-	parse,
-	SymbolNode,
-	TypeHintNode,
-	ValueNode,
-	AST,
-	CloneAST,
-	Context,
-	Meta,
-	Flag,
-	BuiltinTypeNode,
-	UseBlockNode,
-	BlockNode,
-	FunctionNode,
-	ParametersNode,
-	OptionAST,
-	BoxAST,
-	FunctionCallNode,
-	ArgumentsNode,
-	LogNode,
-	ArrayNode,
-	Implementation,
-	FileNode,
-	OperationNode,
-	FunctionFlag,
-	UseTraitBlockNode,
-	TraitNode,
-	ImplementationNode,
-	PropertyNode,
-};
+mod tree;
+pub use tree::*;
 
 mod tests;
 pub use tests::*;
@@ -70,7 +32,8 @@ pub use tests::*;
 mod tokenizer;
 pub use tokenizer::*;
 
-use serde::{Serialize, Deserialize};
+mod type_system;
+pub use type_system::*;
 
 #[wasm_bindgen(raw_module = "/../playground/src/stdlib.js")]
 extern {
@@ -87,7 +50,7 @@ pub struct ScopeEntry {
 #[derive(Serialize, Deserialize)]
 pub struct StorageEntry {
 	pub symbol: ValueNode,
-	pub value: RSymbolValue
+	pub value: SymbolValue
 }
 
 #[derive(Serialize, Deserialize)]
@@ -101,7 +64,7 @@ pub struct Cupid {
 
 #[wasm_bindgen]
 pub fn run_and_collect_logs(string: &str) -> JsValue {
-	let mut file_handler = RFileHandler::from(string);
+	let mut file_handler = FileHandler::from(string);
 	let stdlib = read_file();
 	file_handler.preload_contents(stdlib);
 	

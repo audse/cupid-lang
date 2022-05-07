@@ -26,14 +26,14 @@ impl From<&mut ParseNode> for UseBlockNode {
 }
 
 impl AST for UseBlockNode {
-	fn resolve(&self, scope: &mut RLexicalScope) -> Result<ValueNode, Error> {
+	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		let mut type_kind = self.type_kind.resolve_to_type_kind(scope)?;
 		let implementation = self.functions.resolve_to_implementation(scope)?;
 		match type_kind.implement(implementation.functions) {
 			Ok(_) => (),
 			Err(_) => panic!(), // TODO
 		};
-		let symbol_value = RSymbolValue::Assignment { 
+		let symbol_value = SymbolValue::Assignment { 
 			value: ValueNode::from_value(Value::Type(type_kind)) 
 		};
 		scope.set_symbol(&self.type_kind.type_kind, &symbol_value)

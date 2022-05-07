@@ -40,17 +40,17 @@ impl FileHandler {
 	
 	pub fn build(contents: &str) -> (CupidParser, LexicalScope, Vec<Error>, Vec<Warning>) {
 		let parser = CupidParser::new(contents.to_string());
-		let scope = LexicalScope::default();
+		let scope = LexicalScope::new();
 		(parser, scope, vec![], vec![])
 	}
 	
-	pub fn use_stdlib(&mut self) {
+	pub fn use_stdlib(&mut self) -> Result<(), Error> {
 		let packages = vec![
 			"./../stdlib/typedef.cupid",
-			"./../stdlib/decimal.cupid",
-			"./../stdlib/integer.cupid",
-			"./../stdlib/math.cupid",
-			"./../stdlib/compare.cupid",
+			// "./../stdlib/decimal.cupid",
+			// "./../stdlib/integer.cupid",
+			// "./../stdlib/math.cupid",
+			// "./../stdlib/compare.cupid",
 		];
 		let stdlib: Vec<String> = packages
 			.iter()
@@ -60,71 +60,67 @@ impl FileHandler {
 		
 		let mut parser = CupidParser::new(stdlib);
 		let parse_tree = parser._file(None);
-		let semantics = to_tree(&parse_tree.unwrap().0);
+		let semantics = parse(&mut parse_tree.unwrap().0);
 		
-		semantics.resolve_file(&mut self.scope);
+		semantics.resolve(&mut self.scope)?;
+		Ok(())
 	}
 	
-	pub fn preload_contents<S>(&mut self, string: S) where S: Into<String> {
+	pub fn preload_contents<S>(&mut self, string: S) -> Result<(), Error> where S: Into<String> {
 		let mut parser = CupidParser::new(string.into());
 		let parse_tree = parser._file(None);
-		let semantics = to_tree(&parse_tree.unwrap().0);
-		semantics.resolve_file(&mut self.scope);
+		let semantics = parse(&mut parse_tree.unwrap().0);
+		semantics.resolve(&mut self.scope)?;
+		Ok(())
 	}
 	
-	pub fn run_debug(&mut self) {
-		self.use_stdlib();
+	pub fn run_debug(&mut self) -> Result<(), Error> {
+		self.use_stdlib()?;
 		
 		println!("Contents: {:?}", self.contents);
 		
 		let parse_tree = self.parser._file(None);
 		println!("Parse Tree: {:#?}", parse_tree);
 		
-		let semantics = to_tree(&parse_tree.unwrap().0);
+		let semantics = parse(&mut parse_tree.unwrap().0);
 		println!("Semantics: {:#?}", semantics);
 		
-		self.scope.add(ScopeContext::Block);
-		let result = semantics.resolve_file(&mut self.scope);
-		print!("\n\nResults:");
-		result.iter().for_each(|r| println!("\n{}", r));
+		self.scope.add(Context::Block);
+		let result = semantics.resolve(&mut self.scope)?;
+		println!("Scope: {}", self.scope);
+		print!("\n\nResults: {}", result);
+		Ok(())
 	}
 	
-	pub fn run_and_return(&mut self) -> Vec<Value> {
-		self.use_stdlib();
-		
-		let parse_tree = self.parser._file(None);        
-		let semantics = to_tree(&parse_tree.unwrap().0);
-		
-		self.scope.add(ScopeContext::Block);
-		semantics.resolve_file(&mut self.scope)
-	}
-	
-	pub fn parse(&mut self) -> Expression {
+	pub fn parse(&mut self) -> BoxAST {
 		let parse_tree = self.parser._file(None);
-		to_tree(&parse_tree.unwrap().0)
+		BoxAST::from(parse(&mut parse_tree.unwrap().0))
 	}
 	
-	pub fn run(&mut self) {
+	pub fn run(&mut self) -> Result<(), Error> {
 		self.report_build_started();
 		
-		self.use_stdlib();
+		self.use_stdlib()?;
 		
 		let parse_tree = self.parser._file(None);        
-		let semantics = to_tree(&parse_tree.unwrap().0);
+		let semantics = parse(&mut parse_tree.unwrap().0);
 		
-		self.scope.add(ScopeContext::Block);
-		let result = semantics.resolve_file(&mut self.scope);
-		self.errors = result
-			.iter()
-			.filter_map(|r| match r {
-				Value::Error(e) => Some(e),
-				_ => None
-			})
-			.cloned()
-			.collect();
+		self.scope.add(Context::Block);
+		let result = semantics.resolve(&mut self.scope).unwrap();
+		if let Value::Values(results) = result.value {
+			self.errors = results
+				.iter()
+				.filter_map(|r| match r {
+					Value::Error(e) => Some(e),
+					_ => None
+				})
+				.cloned()
+				.collect();
+		}
 		self.report_errors();
 		
-		self.report_build_complete()
+		self.report_build_complete();
+		Ok(())
 	}
 	
 	pub fn get_line(&self, index: usize) -> &str {

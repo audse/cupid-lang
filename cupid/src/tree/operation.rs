@@ -1,64 +1,55 @@
-use serde::{Serialize, Deserialize};
-use crate::{Expression, Tree, LexicalScope, Value, Token, AST, ParseNode};
+use crate::*;
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Operator {
-	pub operator: Token, 
-	pub left: Box<Expression>, 
-	pub right: Box<Expression>,
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct OperationNode {
+	pub left: BoxAST,
+	pub right: BoxAST,
+	pub operator: String,
 }
 
-impl Operator {
-	pub fn new(operator: Token, left: Expression, right: Expression) -> Self {
-		Self {
-			operator,
-			left: Box::new(left),
-			right: Box::new(right),
+impl From<&mut ParseNode> for OperationNode {
+	fn from(node: &mut ParseNode) -> Self {
+    	Self {
+			left: BoxAST::from(parse(&mut node.children[0])),
+			right: BoxAST::from(parse(&mut node.children[1])),
+			operator: node.tokens[0].source.to_owned(),
 		}
 	}
 }
 
-impl Tree for Operator {
-	fn resolve(&self, scope: &mut LexicalScope) -> Value {
-		let left = crate::resolve_or_abort!(self.left, scope);
-		let right = crate::resolve_or_abort!(self.right, scope);
-		
-		let return_val = if left != Value::None {
-			 match self.operator.source.as_str() {
-				"+" => left + right,
-				"-" => left - right,
-				"*" => left * right,
-				"/" => left / right,
-				"^" => left.pow(&right, &self.operator),
-				"%" => left % right,
-				"and" => left & right,
-				"or" => left | right,
-				"is" | "==" => Value::Boolean(left == right),
-				"not" | "!=" => Value::Boolean(left != right),
-				"istype" => left.is_type(right),
-				"as" => left.cast(right),
-				">" => Value::Boolean(left > right),
-				">=" => Value::Boolean(left >= right),
-				"<" => Value::Boolean(left < right),
-				"<=" => Value::Boolean(left <= right),
-				op => Value::error(&self.operator, format!(
-					"Unknown binary operator: '{:?}' (evaluating {} {:?} {})", op, left, op, right
-				), String::new())
-			}
-		} else {
-			match self.operator.source.as_str() {
-				"-" => -right,
-				op => Value::error(&self.operator, format!(
-					"Unknown unary operator: '{:?}' (evaluating {} {})", op, op, right
-				), String::new())
-			}
+impl OperationNode {
+	pub fn parse_as_function(node: &mut ParseNode) -> FunctionCallNode {
+		use FunctionFlag::*;
+		let (function, flag) = match node.tokens[0].source.as_str() {
+			"+" => ("add", Add),
+			"-" => ("subtract", Subtract),
+			"*" => ("multiply", Multiply),
+			"/" => ("divide", Divide),
+			"%" => ("modulus", Modulus),
+			"^" => ("power", Power),
+			"is" => ("equal", Equal),
+			"not" => ("not_equal", NotEqual),
+			"<" => ("less", Less),
+			"<=" => ("less_equal", LessEqual),
+			">" => ("greater", Greater),
+			">=" => ("greater_equal", GreaterEqual),
+			"and" => ("and", And),
+			"or" => ("or", Or),
+			_ => panic!(),
 		};
-		if return_val == Value::None {
-			Value::error(&self.operator, format!(
-				"Unable to evaluate: (evaluating {} {:?} {})", self.left, &self.operator, self.right
-			), String::new())
-		} else {
-			return_val
+		let function = Value::String(function.to_string());
+		let function_symbol = SymbolNode(ValueNode {
+			type_kind: TypeKind::infer(&function),
+			value: function,
+			meta: Meta::with_tokens(node.tokens.to_owned()),
+		});
+		let left = parse(&mut node.children[0]);
+		let right = parse(&mut node.children[1]);
+		
+		FunctionCallNode {
+			function: function_symbol,
+			args: ArgumentsNode(vec![BoxAST::from(left), BoxAST::from(right)]),
+			meta: Meta::new(node.tokens.to_owned(), None, vec![flag])
 		}
 	}
 }
