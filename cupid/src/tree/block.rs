@@ -8,7 +8,7 @@ pub struct BlockNode {
 impl From<&mut ParseNode> for BlockNode {
 	fn from(node: &mut ParseNode) -> Self {
 		Self {
-			expressions: node.children.iter_mut().map(|exp| BoxAST::from(parse(exp))).collect(),
+			expressions: node.children.iter_mut().map(parse).collect(),
 		}
 	}
 }

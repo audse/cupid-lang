@@ -38,7 +38,7 @@ impl From<&mut ParseNode> for FunctionCallNode {
 impl AST for FunctionCallNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		// check for builtin functions first
-		if self.meta.flags.len() > 0 {
+		if !self.meta.flags.is_empty() {
 			return self.resolve_builtin_function(scope);
 		}
 		let function = self.function.resolve(scope)?;
@@ -84,7 +84,7 @@ pub struct ArgumentsNode(pub Vec<BoxAST>);
 
 impl From<&mut ParseNode> for ArgumentsNode {
 	fn from(node: &mut ParseNode) -> Self {
-		Self(node.map_mut(&|c| BoxAST::from(parse(c))))
+		Self(node.map_mut(&parse))
 	}
 }
 

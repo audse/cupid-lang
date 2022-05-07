@@ -66,7 +66,7 @@ pub struct Cupid {
 pub fn run_and_collect_logs(string: &str) -> JsValue {
 	let mut file_handler = FileHandler::from(string);
 	let stdlib = read_file();
-	file_handler.preload_contents(stdlib);
+	_ = file_handler.preload_contents(stdlib);
 	
 	let parse_tree = file_handler.parser._file(None);
 	let mut parse = parse_tree.unwrap().0;

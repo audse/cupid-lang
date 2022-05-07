@@ -57,13 +57,16 @@ pub struct SingleScope {
 	pub context: Context,
 }
 
-impl LexicalScope {
-	pub fn new() -> Self {
+impl Default for LexicalScope {
+	fn default() -> Self {
 		let global_scope = SingleScope::new(Context::Global);
 		Self {
 			scopes: vec![global_scope]
 		}
 	}
+}
+
+impl LexicalScope {
 	pub fn new_from(&self) -> Self {
 		let global_scopes: Vec<SingleScope> = self.scopes
 			.iter()
@@ -145,7 +148,7 @@ impl Scope for SingleScope {
 				result = Err(symbol.error_raw("immutable"));
 			},
 			Assignment { value } => *value = body.to_owned().get_value()
-		}).or_insert(body.to_owned());
+		}).or_insert_with(|| body.to_owned());
 		
 		match result {
 			Ok(()) => Ok(entry.get_value()),

@@ -14,7 +14,6 @@ pub enum Value {
 	Array(Vec<Value>),
 	String(String),
 	Boolean(bool),
-	// FunctionBody(Vec<(Value, Symbol)>, Box<Expression>, bool),
 	Function(FunctionNode),
 	Error(Error),
 	Type(TypeKind),
@@ -230,8 +229,8 @@ impl Value {
 		match self {
 			Value::Integer(x) => *x >= 0,
 			Value::Decimal(x, y) => dec_to_float(*x, *y) >= 0.0,
-			Value::Map(x) => x.len() > 0,
-			Value::Array(x) => x.len() > 0,
+			Value::Map(x) => !x.is_empty(),
+			Value::Array(x) => !x.is_empty(),
 			Value::Boolean(x) => *x,
 			Value::Char(x) => *x != '\0',
 			_ => true
@@ -356,20 +355,6 @@ impl Display for Value {
 				_ = write!(f, "[{}]", entries.join(", "));
 				Ok(())
 			},
-			// Self::FunctionBody(params, ..) => {
-			// 	let params: Vec<String> = params
-			// 		.iter()
-			// 		.map(|p| {
-			// 			if let Value::Type(t) = &p.0 {
-			// 				format!("{} {}", t.get_name(), p.1.identifier)
-			// 			} else {
-			// 				format!("{} {}", p.0, p.1.identifier)
-			// 			}
-			// 		})
-			// 		.collect();
-			// 	_ = write!(f, "fun ({})", params.join(", "));
-			// 	Ok(())
-			// },
 			Self::Type(type_kind) => write!(f, "{type_kind}"),
 			Self::Log(log) => write!(f, "{log}"),
 			Self::Implementation(trait_map) => write!(f, "{trait_map}"),
@@ -383,7 +368,7 @@ impl Display for Value {
 			Self::Function(function) => {
 				let params: Vec<String> = function.params.symbols
 					.iter()
-					.filter_map(|p| Some(p.symbol.0.to_string()))
+					.map(|p|p.symbol.0.to_string())
 					.collect();
 				write!(f, "{}", params.join(", "))
 			}

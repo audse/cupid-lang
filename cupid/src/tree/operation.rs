@@ -10,8 +10,8 @@ pub struct OperationNode {
 impl From<&mut ParseNode> for OperationNode {
 	fn from(node: &mut ParseNode) -> Self {
     	Self {
-			left: BoxAST::from(parse(&mut node.children[0])),
-			right: BoxAST::from(parse(&mut node.children[1])),
+			left: parse(&mut node.children[0]),
+			right: parse(&mut node.children[1]),
 			operator: node.tokens[0].source.to_owned(),
 		}
 	}
@@ -48,7 +48,7 @@ impl OperationNode {
 		
 		FunctionCallNode {
 			function: function_symbol,
-			args: ArgumentsNode(vec![BoxAST::from(left), BoxAST::from(right)]),
+			args: ArgumentsNode(vec![left, right]),
 			meta: Meta::new(node.tokens.to_owned(), None, vec![flag])
 		}
 	}

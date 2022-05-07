@@ -12,60 +12,44 @@ pub struct MapType {
 
 impl Type for MapType {
 	fn apply_arguments(&mut self, arguments: &[GenericType]) -> Result<(), String> {
-		match &*self.key_type {
-			TypeKind::Generic(key_generic) => {
-				let arg = arguments.iter().find(|arg| arg.identifier == key_generic.identifier);
-				if let Some(arg) = arg {
-					if let Some(arg) = &arg.type_value {
-						self.key_type = arg.clone();
-					} else {
-						return Err(format!("generic unresolved: no argument was provided for map key ({key_generic})"));
-					}
+		if let TypeKind::Generic(key_generic) = &*self.key_type {
+			let arg = arguments.iter().find(|arg| arg.identifier == key_generic.identifier);
+			if let Some(arg) = arg {
+				if let Some(arg) = &arg.type_value {
+					self.key_type = arg.clone();
 				} else {
 					return Err(format!("generic unresolved: no argument was provided for map key ({key_generic})"));
 				}
-			},
-			_ => {}
-		};
-		match &*self.value_type {
-			TypeKind::Generic(value_generic) => {
-				let arg = arguments.iter().find(|arg| arg.identifier == value_generic.identifier);
-				if let Some(arg) = arg {
-					if let Some(arg) = &arg.type_value {
-						self.value_type = arg.clone();
-					} else {
-						return Err(format!("generic unresolved: no argument was provided for map value ({value_generic})"));
-					}
+			} else {
+				return Err(format!("generic unresolved: no argument was provided for map key ({key_generic})"));
+			}
+		}
+		if let TypeKind::Generic(value_generic) = &*self.value_type {
+			let arg = arguments.iter().find(|arg| arg.identifier == value_generic.identifier);
+			if let Some(arg) = arg {
+				if let Some(arg) = &arg.type_value {
+					self.value_type = arg.clone();
 				} else {
 					return Err(format!("generic unresolved: no argument was provided for map value ({value_generic})"));
 				}
-			},
-			_ => {}
-		};
+			} else {
+				return Err(format!("generic unresolved: no argument was provided for map value ({value_generic})"));
+			}
+		}
 		Ok(())
 	}
 	fn convert_primitives_to_generics(&mut self, generics: &[GenericType]) {
 		let generic_identifiers: Vec<String> = generics.iter().map(|g| g.identifier.to_string()).collect();
-		match &*self.key_type {
-			TypeKind::Primitive(primitive) => {
-				if generic_identifiers.contains(&primitive.identifier.to_string()) {
-					self.key_type = Box::new(TypeKind::Generic(GenericType::new(&primitive.identifier, None)));
-				}
-			},
-			_ => ()
-		};
-		match &*self.value_type {
-			TypeKind::Primitive(primitive) => {
-				if generic_identifiers.contains(&primitive.identifier.to_string()) {
-					self.value_type = Box::new(TypeKind::Generic(GenericType::new(&primitive.identifier, None)));
-				}
-			},
-			_ => ()
-		};
-	}
-	fn implement(&mut self, functions: std::collections::HashMap<ValueNode, ValueNode>) -> Result<(), ()> {
-    	self.implementation.implement(functions);
-		Ok(())
+		if let TypeKind::Primitive(primitive) = &*self.key_type {
+			if generic_identifiers.contains(&primitive.identifier.to_string()) {
+				self.key_type = Box::new(TypeKind::Generic(GenericType::new(&primitive.identifier, None)));
+			}
+		}
+		if let TypeKind::Primitive(primitive) = &*self.value_type {
+			if generic_identifiers.contains(&primitive.identifier.to_string()) {
+				self.value_type = Box::new(TypeKind::Generic(GenericType::new(&primitive.identifier, None)));
+			}
+		}
 	}
 }
 

@@ -10,8 +10,8 @@ pub struct TraitNode {
 impl From<&mut ParseNode> for TraitNode {
 	fn from(node: &mut ParseNode) -> Self {
 		let generics = node.get_mut("generics");
-		let (generics, symbol_i) = if generics.is_some() {
-			(Some(GenericsNode::from(generics.unwrap())), 1)
+		let (generics, symbol_i) = if let Some(generics) = generics {
+			(Some(GenericsNode::from(generics)), 1)
 		} else {
 			(None, 0)
 		};
@@ -25,7 +25,7 @@ impl From<&mut ParseNode> for TraitNode {
 
 impl AST for TraitNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
-		let mut trait_value = Implementation::new();
+		let mut trait_value = Implementation::default();
 		for function in self.functions.0.iter() {
 			let value = function.value.resolve(scope)?;
 			trait_value.functions.insert(function.symbol.0.to_owned(), value);

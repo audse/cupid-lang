@@ -40,7 +40,7 @@ impl FileHandler {
 	
 	pub fn build(contents: &str) -> (CupidParser, LexicalScope, Vec<Error>, Vec<Warning>) {
 		let parser = CupidParser::new(contents.to_string());
-		let scope = LexicalScope::new();
+		let scope = LexicalScope::default();
 		(parser, scope, vec![], vec![])
 	}
 	
@@ -94,7 +94,7 @@ impl FileHandler {
 	
 	pub fn parse(&mut self) -> BoxAST {
 		let parse_tree = self.parser._file(None);
-		BoxAST::from(parse(&mut parse_tree.unwrap().0))
+		parse(&mut parse_tree.unwrap().0)
 	}
 	
 	pub fn run(&mut self) -> Result<(), Error> {
@@ -160,7 +160,7 @@ impl FileHandler {
 		);
 		let context = format!("\n\t{} {}",
 			"additional context:".to_string().bold(),
-			if e.context.len() > 0 { 
+			if !e.context.is_empty() { 
 				e.context.to_string()
 			} else { 
 				"none provided".to_string()

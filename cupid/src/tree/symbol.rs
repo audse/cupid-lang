@@ -19,7 +19,7 @@ impl AST for SymbolNode {
 
 impl ErrorHandler for SymbolNode {
 	fn get_token(&self) -> &crate::Token {
-    	&self.0.meta.tokens.get(0).unwrap_or_else(|| panic!("no token for `{self}`"))
+    	self.0.meta.tokens.get(0).unwrap_or_else(|| panic!("no token for `{self}`"))
 	}
 	fn get_context(&self) -> String {
     	format!("accessing identifier {}", self.0.value)
@@ -29,7 +29,7 @@ impl ErrorHandler for SymbolNode {
 impl SymbolNode {
 	pub fn get_identifier_string(&self) -> &str {
 		if let Value::String(s) = &self.0.value {
-			&s
+			s
 		} else {
 			panic!()
 		}

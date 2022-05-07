@@ -11,31 +11,21 @@ pub struct ArrayType {
 
 impl Type for ArrayType {
 	fn apply_arguments(&mut self, arguments: &[GenericType]) -> Result<(), String> {
-		if arguments.len() > 0 {
-			if let Some(element_type) = TypeKind::replace_generic(&mut  *self.element_type, &arguments[0]) {
-				self.element_type = element_type;
-			} else {
-				let element_type = &self.element_type;
-				let generic = &arguments[0];
-				return Err(format!("either the element type ({element_type}) of this array is not generic, or the generic given  ({generic}) doesn't match"));
-			}
+		if let Some(element_type) = TypeKind::replace_generic(&*self.element_type, &arguments[0]) {
+			self.element_type = element_type;
+		} else {
+			let element_type = &self.element_type;
+			let generic = &arguments[0];
+			return Err(format!("either the element type ({element_type}) of this array is not generic, or the generic given  ({generic}) doesn't match"));
 		}
 		Ok(())
 	}
 	fn convert_primitives_to_generics(&mut self, generics: &[GenericType]) {
-		match &*self.element_type {
-			TypeKind::Primitive(primitive) => {
-				let generic_identifiers: Vec<String> = generics.iter().map(|g| g.identifier.to_string()).collect();
-				if generic_identifiers.contains(&primitive.identifier.to_string()) {
-					self.element_type = Box::new(TypeKind::Generic(GenericType::new(&primitive.identifier, None)));
-				}
-			},
-			_ => ()
+		if let TypeKind::Primitive(primitive) = &*self.element_type {
+			if generics.iter().any(|x| x.identifier == primitive.identifier) {
+				self.element_type = Box::new(TypeKind::Generic(GenericType::new(&primitive.identifier, None)));
+			}
 		}
-	}
-	fn implement(&mut self, functions: std::collections::HashMap<ValueNode, ValueNode>) -> Result<(), ()> {
-    	self.implementation.implement(functions);
-		Ok(())
 	}
 }
 

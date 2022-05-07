@@ -1,7 +1,6 @@
-use serde::{Serialize, Deserialize};
-use crate::{SymbolNode, AST, ParseNode, LexicalScope, ValueNode, Error, Meta, TypeKind, Value, ErrorHandler, Type};
+use crate::*;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum TypeKindFlag {
 	Array,
 	Function,
@@ -10,7 +9,7 @@ pub enum TypeKindFlag {
 	Struct,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct TypeHintNode {
 	pub type_kind: SymbolNode,
 	pub args: Vec<TypeHintNode>,
@@ -30,7 +29,7 @@ impl From<&mut ParseNode> for TypeHintNode {
 		};
 		Self {
 			type_kind: SymbolNode::from(&mut node.children[0]),
-			args: node.children.iter_mut().skip(1).map(|t| Self::from(t)).collect(),
+			args: node.children.iter_mut().skip(1).map(Self::from).collect(),
 			meta: Meta::new(node.tokens.to_owned(), None, vec![flag])
 		}
 	}

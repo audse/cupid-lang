@@ -8,18 +8,14 @@ pub struct GenericsNode {
 impl GenericsNode {
 	pub fn from_parent(node: &mut ParseNode) -> Option<Self> {
 		let generics_node = node.children.iter_mut().find(|n| n.name.as_str() == "generics");
-		if let Some(generics) = generics_node {
-			Some(GenericsNode::from(generics))
-		} else {
-			None
-		}
+		generics_node.map(GenericsNode::from)
 	}
 }
 
 impl From<&mut ParseNode> for GenericsNode {
 	fn from(node: &mut ParseNode) -> Self {
     	GenericsNode {
-			generics: node.children.iter_mut().map(|g| SymbolNode::from(g)).collect()
+			generics: node.children.iter_mut().map(SymbolNode::from).collect()
 		}
 	}
 }

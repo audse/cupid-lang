@@ -8,7 +8,7 @@ pub struct ArrayNode {
 impl From<&mut ParseNode> for ArrayNode {
 	fn from(node: &mut ParseNode) -> Self {
 		Self {
-			items: node.map_mut(&|i| BoxAST::from(parse(i)))
+			items: node.map_mut(&parse)
 		}
 	}
 }

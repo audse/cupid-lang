@@ -26,9 +26,9 @@ impl AST for LogNode {
 		let strings: Vec<String> = args_list.iter().map(|a| a.to_string()).collect();
 		let log_string = match self.identifier.as_str() {
 			"log" => format!("\n{}", strings.join("")),
-			"log_line" => format!("{}", strings.join("")),
+			"log_line" => strings.join(""),
 			"logs" => format!("\n{}", strings.join(" ")),
-			"logs_line" => format!("{}", strings.join(" ")),
+			"logs_line" => strings.join(" "),
 			_ => panic!("unexpected log keyword")
 		};
 		print!("{log_string}");

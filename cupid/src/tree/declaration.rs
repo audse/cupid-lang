@@ -12,20 +12,18 @@ pub struct DeclarationNode {
 impl From<&mut ParseNode> for DeclarationNode {
 	fn from(node: &mut ParseNode) -> Self {
 		let value = if node.children.len() > 2 {
-			BoxAST::from(parse(&mut node.children[2]))
+			parse(&mut node.children[2])
 		} else {
-			BoxAST { 
-				inner: Box::new(ValueNode { 
-					value: Value::None, 
-					type_kind: TypeKind::infer(&Value::None),
-					meta: Meta::new(vec![], None, vec![]) 
-				})
-			}
+			BoxAST::new(ValueNode { 
+				value: Value::None, 
+				type_kind: TypeKind::infer(&Value::None),
+				meta: Meta::new(vec![], None, vec![]) 
+			})
 		};
 		Self {
 			type_hint: TypeHintNode::from(&mut node.children[0]),
 			symbol: SymbolNode::from(&mut node.children[1]),
-			mutable: node.tokens.iter().find(|t| t.source.as_str() == "mut").is_some(),
+			mutable: node.tokens.iter().any(|t| t.source.as_str() == "mut"),
 			value,
 			meta: Meta::with_tokens(node.tokens.to_owned()),
 		}

@@ -80,8 +80,7 @@ impl From<&mut ParseNode> for ParametersNode {
 	fn from(node: &mut ParseNode) -> Self {
 		let mut_self = node.tokens
 			.iter_mut()
-			.find(|t| t.source.as_str() == "mut")
-			.is_some();
+			.any(|t| t.source.as_str() == "mut");
 		let use_self = node.has("self");
 		let symbols = node.map_mut(&|n: &mut ParseNode| match n.name.as_str() {
 				"annotated_parameter" => Parameter {

@@ -29,10 +29,7 @@ impl AST for UseBlockNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		let mut type_kind = self.type_kind.resolve_to_type_kind(scope)?;
 		let implementation = self.functions.resolve_to_implementation(scope)?;
-		match type_kind.implement(implementation.functions) {
-			Ok(_) => (),
-			Err(_) => panic!(), // TODO
-		};
+		type_kind.implement(implementation.functions);
 		let symbol_value = SymbolValue::Assignment { 
 			value: ValueNode::from_value(Value::Type(type_kind)) 
 		};

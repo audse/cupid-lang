@@ -20,7 +20,7 @@ impl From<&mut ParseNode> for ImplementationNode {
 
 impl AST for ImplementationNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
-		let mut functions = Implementation::new();
+		let mut functions = Implementation::default();
 		for function in self.0.iter() {
 			let value = function.value.resolve(scope)?;
 			functions.functions.insert(function.symbol.0.to_owned(), value);

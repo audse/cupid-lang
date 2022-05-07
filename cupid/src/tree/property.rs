@@ -34,11 +34,11 @@ impl From<&mut ParseNode> for PropertyNode {
 impl AST for PropertyNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		use Property::*;
-		let left = self.left.resolve(scope)?;
+		let mut left = self.left.resolve(scope)?;
 		
 		match &self.right {
 			FunctionCall(function_call) => {
-				if let Some(implementation_value) = self.resolve_implementation_function(&left, function_call, scope) {
+				if let Some(implementation_value) = self.resolve_implementation_function(&mut left, function_call, scope) {
 					return implementation_value;
 				}
 				if let Some(map_value) = self.resolve_map_function(&left, function_call, scope) {
@@ -46,7 +46,7 @@ impl AST for PropertyNode {
 				}
 				Err(no_function_error(&left, function_call))
 			},
-			Symbol(symbol) => self.resolve_symbol_property(&left, &symbol, scope),
+			Symbol(symbol) => self.resolve_symbol_property(&left, symbol, scope),
 			Other(value) => {
 				let right = value.resolve(scope)?;
 				match left.value.get_property(&right.value) {
@@ -69,7 +69,7 @@ impl PropertyNode {
 		scope.set_symbol(self_symbol, &declare)
 	}
 	
-	fn resolve_implementation_function(&self, left: &ValueNode, function_call: &FunctionCallNode, scope: &mut LexicalScope) -> Option<Result<ValueNode, Error>> {
+	fn resolve_implementation_function(&self, left: &mut ValueNode, function_call: &FunctionCallNode, scope: &mut LexicalScope) -> Option<Result<ValueNode, Error>> {
 		// the property is a function from a type or trait implementation
 		if let Some(function) = left.type_kind.find_function_value(&function_call.function, scope) {
 			if function.params.use_self {
@@ -87,7 +87,7 @@ impl PropertyNode {
 		// the property is a function within a map
 		if let Ok(Value::Function(function)) = &left.value.get_property(&function_call.function.0.value) {
 			if function.params.use_self {
-				if let Err(e) = self.create_self_symbol(&function, left, scope) {
+				if let Err(e) = self.create_self_symbol(function, left, scope) {
 					return Some(Err(e))
 				};
 			}

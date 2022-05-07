@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::fmt::{Display, Formatter, Result as DisplayResult};
 use std::hash::{Hash, Hasher};
 use serde::{Serialize, Deserialize};
@@ -14,8 +13,7 @@ impl SumType {
 	pub fn contains(&self, other: &Value) -> bool {
 		self.types
 			.iter()
-			.find(|t| t.is_equal(&other))
-			.is_some()
+			.any(|t| t.is_equal(other))
 	}
 }
 
@@ -26,18 +24,6 @@ impl Type for SumType {
 	}
 	fn convert_primitives_to_generics(&mut self, generics: &[GenericType]) {
 		_ = self.types.iter_mut().map(|t| t.convert_primitives_to_generics(generics));
-	}
-	fn implement(&mut self, functions: HashMap<ValueNode, ValueNode>) -> Result<(), ()> {
-    	self.implementation.implement(functions);
-		Ok(())
-	}
-	fn find_function(&self, symbol: &SymbolNode, scope: &mut LexicalScope) -> Option<ValueNode> {
-		self.implementation.find_function(symbol, scope)
-	}
-	fn implement_trait(&mut self, trait_symbol: SymbolNode, functions: HashMap<ValueNode, ValueNode>) -> Result<(), ()> { 
-		let implementation = Implementation { functions, traits: HashMap::new(), };
-		self.implementation.implement_trait(trait_symbol, implementation);
-		Ok(())
 	}
 }
 
@@ -64,55 +50,3 @@ impl Display for SumType {
 		write!(f, "one of [{}]", types.join(", "))
 	}
 }
-// 
-// #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-// pub struct DefineSum {
-// 	pub token: Token,
-// 	pub symbol: Symbol,
-// 	pub types: Vec<Expression>,
-// 	pub generics: Vec<Symbol>
-// }
-// 
-// impl Tree for DefineSum {
-// 	fn resolve(&self, scope: &mut crate::LexicalScope) -> Value {
-// 		scope.add(ScopeContext::Map);
-// 		self.define_generics(scope);
-// 		let types: Vec<TypeKind> = self.types
-// 			.iter()
-// 			.filter_map(|exp| {
-// 				if let Value::Type(mut member_type) = exp.resolve(scope) {
-// 					member_type.convert_primitives_to_generics(&self.resolve_generics());
-// 					Some(member_type)
-// 				} else {
-// 					None
-// 				}
-// 			})
-// 			.collect();
-// 		let new_sum = TypeKind::Sum(SumType { 
-// 			types,
-// 			implementation: Implementation::new()
-// 		});
-// 		scope.pop();
-// 		if let Some(new_sum) = scope.define_type(&self.symbol, new_sum) {
-// 			new_sum
-// 		} else {
-// 			self.error(String::from("unable to define type"))
-// 		}
-// 	}
-// }
-// 
-// impl ErrorHandler for DefineSum {
-// 	fn get_token(&self) -> &Token {
-// 		&self.token
-// 	}
-// 	fn get_context(&self) -> String {
-// 		let types: Vec<String> = self.types.iter().map(|t| t.to_string()).collect();
-// 		format!("defining sum type {} with types {}", self.symbol, types.join(", "))
-// 	}
-// }
-// 
-// impl UseGenerics for DefineSum {
-// 	fn get_generics(&self) -> &[Symbol] {
-//     	&self.generics
-// 	}
-// }

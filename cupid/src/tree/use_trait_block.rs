@@ -11,8 +11,8 @@ pub struct UseTraitBlockNode {
 impl From<&mut ParseNode> for UseTraitBlockNode {
 	fn from(node: &mut ParseNode) -> Self {
 		let generics = node.get_mut("generics");
-		let (generics, trait_i, type_kind_i) = if generics.is_some() {
-			(Some(GenericsNode::from(generics.unwrap())), 1, 2)
+		let (generics, trait_i, type_kind_i) = if let Some(generics) = generics {
+			(Some(GenericsNode::from(generics)), 1, 2)
 		} else {
 			(None, 0, 1)
 		};
@@ -33,10 +33,7 @@ impl AST for UseTraitBlockNode {
 		
 		if let Value::Implementation(ref mut trait_value) = trait_value.value {
 			_ = trait_value.implement(functions.functions);
-			match type_kind.implement_trait(self.trait_name.to_owned(), trait_value.functions.to_owned()) {
-				Ok(_) => (),
-				Err(_) => panic!(), // TODO
-			};
+			type_kind.implement_trait(self.trait_name.to_owned(), trait_value.functions.to_owned());
 			let symbol_value = SymbolValue::Assignment { 
 				value: ValueNode::from_value(Value::Type(type_kind)) 
 			};

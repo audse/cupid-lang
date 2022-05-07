@@ -4,19 +4,13 @@ use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 use crate::*;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Implementation {
 	pub functions: HashMap<ValueNode, ValueNode>,
 	pub traits: HashMap<SymbolNode, Implementation>
 }
 
 impl Implementation {
-	pub fn new() -> Self {
-		Self {
-			functions: HashMap::new(),
-			traits: HashMap::new(),
-		}
-	}
 	pub fn find_function_value(&self, symbol: &SymbolNode, scope: &mut LexicalScope) -> Option<FunctionNode> {
 		if let Some(func) = self.find_function(symbol, scope) {
 			match func.value {
@@ -39,13 +33,12 @@ impl Implementation {
 					return Some(fun);
 				}
 				// search in stored implementations
-				match scope.get_symbol(&t.0) {
-					Ok(value) => if let Value::Implementation(trait_definition) = value.value {
+				if let Ok(value) = scope.get_symbol(t.0) {
+					if let Value::Implementation(trait_definition) = value.value {
 						if let Some(func) = trait_definition.find_function(symbol, scope) {
-							return Some(func.to_owned());
+							return Some(func);
 						}
-					},
-					_ => ()
+					}
 				}
 			}
 			None
