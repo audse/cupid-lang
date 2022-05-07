@@ -8,9 +8,9 @@ pub struct Array {
 
 impl Tree for Array {
 	fn resolve(&self, scope: &mut LexicalScope) -> Value {
-		let items: Vec<Box<Value>> = self.items
+		let items: Vec<Value> = self.items
 			.iter()
-			.map(|i| Box::new(i.resolve(scope)))
+			.map(|i| i.resolve(scope))
 			.collect();
 		Value::Array(items)
 	}
@@ -32,7 +32,7 @@ impl Tree for Range {
 			(Value::Integer(s), Value::Integer(e)) => {
 				let s = if self.inclusive.0 { s } else { s + 1 };
 				let e = if self.inclusive.1 { e + 1 } else { e };
-				let a: Vec<Box<Value>> = (s..e).map(|i| Box::new(Value::Integer(i))).collect();
+				let a: Vec<Value> = (s..e).map(|i| Value::Integer(i)).collect();
 				
 				Value::Array(a)
 			},

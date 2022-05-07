@@ -1,25 +1,24 @@
-use std::fmt::{Display, Formatter, Result};
+use std::fmt::{Display, Formatter, Result as DisplayResult};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::ops::{Add, Sub, Mul, Neg, Div, Rem, BitAnd, BitOr};
 use std::cmp::Ordering;
 use serde::{Serialize, Deserialize};
-use crate::{TypeKind, Symbol, Expression, Error, Token, Implementation, FunctionNode};
-
+use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Value {
 	Integer(i32),
 	Decimal(i32, u32),
 	Char(char),
-	Array(Vec<Box<Value>>),
+	Array(Vec<Value>),
 	String(String),
 	Boolean(bool),
-	FunctionBody(Vec<(Value, Symbol)>, Box<Expression>, bool),
-	FuncBody(FunctionNode),
+	// FunctionBody(Vec<(Value, Symbol)>, Box<Expression>, bool),
+	Function(FunctionNode),
 	Error(Error),
 	Type(TypeKind),
-	Trait(Implementation),
+	Implementation(Implementation),
 	Break(Box<Value>),
 	Return(Box<Value>),
 	Map(HashMap<Value, (usize, Value)>),
@@ -162,7 +161,7 @@ impl PartialEq for Value {
 			(Value::String(x), Value::String(y)) => x == y,
 			(Value::Decimal(a, b), Value::Decimal(x, y)) => a == x && b == y,
 			(Value::Boolean(x), Value::Boolean(y)) => x == y,
-			(Value::FunctionBody(x, ..), Value::FunctionBody(y, ..)) => x == y,
+			// (Value::FunctionBody(x, ..), Value::FunctionBody(y, ..)) => x == y,
 			(Value::Type(x), Value::Type(y)) => x == y,
 			(Value::None, Value::None) => true,
 			(Value::Error(_), Value::Error(_)) => false,
@@ -187,11 +186,11 @@ impl Hash for Value {
 				x.hash(state);
 				y.hash(state);
 			},
-			Value::FunctionBody(x, y, z) => {
-				x.hash(state);
-				y.hash(state);
-				z.hash(state);
-			},
+			// Value::FunctionBody(x, y, z) => {
+			// 	x.hash(state);
+			// 	y.hash(state);
+			// 	z.hash(state);
+			// },
 			Value::None => (),
 			Value::Map(x) => for entry in x.iter() {
 				entry.hash(state)
@@ -200,10 +199,9 @@ impl Hash for Value {
 			Value::Break(x) => x.hash(state),
 			Value::Return(x) => x.hash(state),
 			Value::Log(x) => x.hash(state),
-			Value::Trait(x) => x.hash(state),
+			Value::Implementation(x) => x.hash(state),
 			Value::Continue => (),
 			Value::Values(v) => v.iter().for_each(|v| v.hash(state)),
-			// Value::FuncBody(x) => x.hash(state)
 			_ => ()
 		}
 	}
@@ -305,10 +303,24 @@ impl Value {
 			_ => panic!()
 		}
 	}
+	pub fn get_property(&self, property: &Value) -> Result<Value, String> {
+		match self {
+			Value::Map(map) => if let Some((_, value)) = map.get(property) {
+				Ok(value.to_owned())
+			} else {
+				Err(format!("map has no property {property}"))
+			},
+			Value::Array(array) => match property {
+				Value::Integer(i) => Ok(array[*i as usize].to_owned()),
+				x => Err(format!("arrays can only be accessed with integers (not {x})"))
+			},
+			x => Err(format!("cannot access properties of {x}"))
+		}
+	}
 }
 
 impl Display for Value {
-	fn fmt(&self, f: &mut Formatter) -> Result {
+	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
 		match self {
 			Self::Boolean(b) => write!(f, "{b}"),
 			Self::Integer(v) => write!(f, "{v}"),
@@ -344,23 +356,37 @@ impl Display for Value {
 				_ = write!(f, "[{}]", entries.join(", "));
 				Ok(())
 			},
-			Self::FunctionBody(params, ..) => {
-				let params: Vec<String> = params
-					.iter()
-					.map(|p| {
-						if let Value::Type(t) = &p.0 {
-							format!("{} {}", t.get_name(), p.1.identifier)
-						} else {
-							format!("{} {}", p.0, p.1.identifier)
-						}
-					})
-					.collect();
-				_ = write!(f, "fun ({})", params.join(", "));
-				Ok(())
-			},
+			// Self::FunctionBody(params, ..) => {
+			// 	let params: Vec<String> = params
+			// 		.iter()
+			// 		.map(|p| {
+			// 			if let Value::Type(t) = &p.0 {
+			// 				format!("{} {}", t.get_name(), p.1.identifier)
+			// 			} else {
+			// 				format!("{} {}", p.0, p.1.identifier)
+			// 			}
+			// 		})
+			// 		.collect();
+			// 	_ = write!(f, "fun ({})", params.join(", "));
+			// 	Ok(())
+			// },
 			Self::Type(type_kind) => write!(f, "{type_kind}"),
 			Self::Log(log) => write!(f, "{log}"),
-			Self::Trait(trait_map) => write!(f, "{trait_map}"),
+			Self::Implementation(trait_map) => write!(f, "{trait_map}"),
+			Self::Values(values) => {
+				let values: Vec<String> = values
+					.iter()
+					.map(|v| v.to_string())
+					.collect();
+				write!(f, "{}", values.join("\n"))
+			},
+			Self::Function(function) => {
+				let params: Vec<String> = function.params.symbols
+					.iter()
+					.filter_map(|p| Some(p.symbol.0.to_string()))
+					.collect();
+				write!(f, "{}", params.join(", "))
+			}
 			v => write!(f, "{:?}", v)
 		}
 	}

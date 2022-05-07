@@ -69,7 +69,7 @@ impl Tree for ForInLoop {
 				let mut iter: Vec<(Value, (usize, Value))> = m
 					.into_iter()
 					.enumerate()
-					.map(|(i, item)| (Value::Integer(i as i32), (i, *item)))
+					.map(|(i, item)| (Value::Integer(i as i32), (i, item)))
 					.collect();
 				iter.sort_by(|(_, (a_index, _)), (_, (b_index, _))| a_index.cmp(b_index));
 				iter

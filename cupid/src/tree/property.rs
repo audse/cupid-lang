@@ -90,7 +90,7 @@ impl Tree for Property {
 				if let Value::Integer(i) = term {
 					let i = i as usize;
 					if i < m.len() {
-						*(m[i]).clone()
+						(m[i]).clone()
 					} else {
 						self.no_property_error(&map, &term)
 					}
@@ -189,7 +189,7 @@ impl Tree for PropertyAssign {
 					return self.bad_array_access_error(&term_value);
 				};
 				if m.len() >= term {
-					m[term] = Box::new(value.clone());
+					m[term] = value.clone();
 					return match scope.set_symbol(&map_symbol, Value::Array(m.to_owned())) {
 						Ok(val) => val.unwrap_or(self.unable_to_assign_error(map_symbol.get_identifier(), value)),
 						Err(err) => err

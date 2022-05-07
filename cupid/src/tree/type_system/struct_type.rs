@@ -2,11 +2,11 @@ use std::collections::HashMap;
 use std::fmt::{Display, Formatter, Result as DisplayResult};
 use std::hash::{Hash, Hasher};
 use serde::{Serialize, Deserialize};
-use crate::{TypeKind, Type, Symbol, GenericType, Expression, Tree, Value, SymbolFinder, ErrorHandler, Token, ScopeContext, UseGenerics, Implementation, LexicalScope};
+use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StructType {
-	pub members: Vec<(Symbol, TypeKind)>,
+	pub members: Vec<(SymbolNode, TypeKind)>,
 	pub implementation: Implementation
 }
 
@@ -16,8 +16,8 @@ impl StructType {
 		match other {
 			Value::Map(x) => {
 				x.iter().all(|(key, (_, value))| {
-					if let Some((_, member_type)) = self.members.iter().find(|(symbol, _)| &symbol.identifier == key)  {
-						member_type.is_equal(&value)
+					if let Some((_, member_type)) = self.members.iter().find(|(symbol, _)| &symbol.0.value == key)  {
+						member_type.is_equal(value)
 					} else {
 						false
 					}
@@ -43,14 +43,14 @@ impl Type for StructType {
 			member.convert_primitives_to_generics(generics)
 		}
 	}
-	fn implement(&mut self, functions: HashMap<Value, Value>) -> Result<(), ()> {
+	fn implement(&mut self, functions: HashMap<ValueNode, ValueNode>) -> Result<(), ()> {
     	self.implementation.implement(functions);
 		Ok(())
 	}
-	fn find_function(&self, symbol: &Symbol, scope: &mut LexicalScope) -> Option<Value> {
+	fn find_function(&self, symbol: &SymbolNode, scope: &mut RLexicalScope) -> Option<ValueNode> {
 		self.implementation.find_function(symbol, scope)
 	}
-	fn implement_trait(&mut self, trait_symbol: Symbol, functions: HashMap<Value, Value>) -> Result<(), ()> { 
+	fn implement_trait(&mut self, trait_symbol: SymbolNode, functions: HashMap<ValueNode, ValueNode>) -> Result<(), ()> { 
 		let implementation = Implementation { functions, traits: HashMap::new(), };
 		self.implementation.implement_trait(trait_symbol, implementation);
 		Ok(())
@@ -80,101 +80,101 @@ impl Display for StructType {
 		write!(f, "[{}]", members.join(", "))
 	}
 }
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct DefineStruct {
-	pub token: Token,
-	pub symbol: Symbol,
-	pub members: Vec<(Symbol, Expression)>,
-	pub generics: Vec<Symbol>
-}
-
-impl Tree for DefineStruct {
-	fn resolve(&self, scope: &mut crate::LexicalScope) -> Value {
-		scope.add(ScopeContext::Map);
-		self.define_generics(scope);
-		
-		let members: Vec<(Symbol, TypeKind)> = self.members
-			.iter()
-			.filter_map(|(symbol, exp)| {
-				let val_type = exp.resolve(scope);
-				if let Value::Type(mut member_type) = val_type {
-					member_type.convert_primitives_to_generics(&self.resolve_generics());
-					Some((symbol.clone(), member_type))
-				} else {
-					None
-				}
-			})
-			.collect();
-		let new_struct = TypeKind::Struct(StructType { 
-			members,
-			implementation: Implementation::new()
-		});
-		scope.pop();
-		if let Some(new_struct) = scope.define_type(&self.symbol, new_struct) {
-			new_struct
-		} else {
-			self.error(String::from("unable to define type"))
-		}
-	}
-}
-
-impl ErrorHandler for DefineStruct {
-	fn get_token(&self) -> &Token {
-		&self.token
-	}
-	fn get_context(&self) -> String {
-    	format!("defining type {} with members {:?}", self.symbol, self.members)
-	}
-}
-
-impl UseGenerics for DefineStruct {
-	fn get_generics(&self) -> &[Symbol] {
-    	&self.generics
-	}
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct StructTypeHint {
-	pub token: Token,
-	pub struct_type: Box<Expression>,
-	pub member_args: Vec<(Symbol, Expression)>,
-}
-
-impl Tree for StructTypeHint {
-	fn resolve(&self, scope: &mut crate::LexicalScope) -> Value {
-		let struct_type = crate::resolve_or_abort!(self.struct_type, scope);
-		if let Value::Type(mut struct_type) = struct_type {
-			let member_args: Vec<GenericType> = self.member_args
-				.iter()
-				.filter_map(|(symbol, member_type)| {
-					let member_type = member_type.resolve(scope);
-					if let Value::Type(member_type) = member_type {
-						let generic = GenericType::new(
-							&symbol.get_identifier(),
-							Some(Box::new(member_type)),
-						);
-						Some(generic)
-					} else {
-						None
-					}
-				})
-				.collect();
-			match struct_type.apply_arguments(&member_args) {
-				Ok(_) => Value::Type(struct_type),
-				Err(msg) => self.error(msg)
-			}
-		} else {
-			self.error("not a struct")
-		}
-	}
-}
-
-impl ErrorHandler for StructTypeHint {
-	fn get_token(&self) -> &Token {
-		&self.token
-	}
-	fn get_context(&self) -> String {
-		format!("struct type {} with args {:?}", self.struct_type, self.member_args)
-	}
-}
+// 
+// #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+// pub struct DefineStruct {
+// 	pub token: Token,
+// 	pub symbol: Symbol,
+// 	pub members: Vec<(Symbol, Expression)>,
+// 	pub generics: Vec<Symbol>
+// }
+// 
+// impl Tree for DefineStruct {
+// 	fn resolve(&self, scope: &mut crate::LexicalScope) -> Value {
+// 		scope.add(ScopeContext::Map);
+// 		self.define_generics(scope);
+// 		
+// 		let members: Vec<(Symbol, TypeKind)> = self.members
+// 			.iter()
+// 			.filter_map(|(symbol, exp)| {
+// 				let val_type = exp.resolve(scope);
+// 				if let Value::Type(mut member_type) = val_type {
+// 					member_type.convert_primitives_to_generics(&self.resolve_generics());
+// 					Some((symbol.clone(), member_type))
+// 				} else {
+// 					None
+// 				}
+// 			})
+// 			.collect();
+// 		let new_struct = TypeKind::Struct(StructType { 
+// 			members,
+// 			implementation: Implementation::new()
+// 		});
+// 		scope.pop();
+// 		if let Some(new_struct) = scope.define_type(&self.symbol, new_struct) {
+// 			new_struct
+// 		} else {
+// 			self.error(String::from("unable to define type"))
+// 		}
+// 	}
+// }
+// 
+// impl ErrorHandler for DefineStruct {
+// 	fn get_token(&self) -> &Token {
+// 		&self.token
+// 	}
+// 	fn get_context(&self) -> String {
+//     	format!("defining type {} with members {:?}", self.symbol, self.members)
+// 	}
+// }
+// 
+// impl UseGenerics for DefineStruct {
+// 	fn get_generics(&self) -> &[Symbol] {
+//     	&self.generics
+// 	}
+// }
+// 
+// #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+// pub struct StructTypeHint {
+// 	pub token: Token,
+// 	pub struct_type: Box<Expression>,
+// 	pub member_args: Vec<(Symbol, Expression)>,
+// }
+// 
+// impl Tree for StructTypeHint {
+// 	fn resolve(&self, scope: &mut crate::LexicalScope) -> Value {
+// 		let struct_type = crate::resolve_or_abort!(self.struct_type, scope);
+// 		if let Value::Type(mut struct_type) = struct_type {
+// 			let member_args: Vec<GenericType> = self.member_args
+// 				.iter()
+// 				.filter_map(|(symbol, member_type)| {
+// 					let member_type = member_type.resolve(scope);
+// 					if let Value::Type(member_type) = member_type {
+// 						let generic = GenericType::new(
+// 							&symbol.get_identifier(),
+// 							Some(Box::new(member_type)),
+// 						);
+// 						Some(generic)
+// 					} else {
+// 						None
+// 					}
+// 				})
+// 				.collect();
+// 			match struct_type.apply_arguments(&member_args) {
+// 				Ok(_) => Value::Type(struct_type),
+// 				Err(msg) => self.error(msg)
+// 			}
+// 		} else {
+// 			self.error("not a struct")
+// 		}
+// 	}
+// }
+// 
+// impl ErrorHandler for StructTypeHint {
+// 	fn get_token(&self) -> &Token {
+// 		&self.token
+// 	}
+// 	fn get_context(&self) -> String {
+// 		format!("struct type {} with args {:?}", self.struct_type, self.member_args)
+// 	}
+// }

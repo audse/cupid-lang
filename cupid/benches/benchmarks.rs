@@ -1,8 +1,8 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use cupid::FileHandler;
+use cupid::RFileHandler;
 
 fn run() {
-	let mut file_handler = FileHandler::new("src/tests/main.cupid");
+	let mut file_handler = RFileHandler::new("src/tests/main.cupid");
 	file_handler.run();
 }
 

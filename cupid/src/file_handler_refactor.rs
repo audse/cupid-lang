@@ -44,7 +44,7 @@ impl FileHandler {
 		(parser, scope, vec![], vec![])
 	}
 	
-	pub fn use_stdlib(&mut self) {
+	pub fn use_stdlib(&mut self) -> Result<(), Error> {
 		let packages = vec![
 			"./../stdlib/typedef.cupid",
 			// "./../stdlib/decimal.cupid",
@@ -62,18 +62,20 @@ impl FileHandler {
 		let parse_tree = parser._file(None);
 		let semantics = parse(&mut parse_tree.unwrap().0);
 		
-		semantics.resolve(&mut self.scope);
+		semantics.resolve(&mut self.scope)?;
+		Ok(())
 	}
 	
-	pub fn preload_contents<S>(&mut self, string: S) where S: Into<String> {
+	pub fn preload_contents<S>(&mut self, string: S) -> Result<(), Error> where S: Into<String> {
 		let mut parser = CupidParser::new(string.into());
 		let parse_tree = parser._file(None);
 		let semantics = parse(&mut parse_tree.unwrap().0);
-		semantics.resolve(&mut self.scope);
+		semantics.resolve(&mut self.scope)?;
+		Ok(())
 	}
 	
-	pub fn run_debug(&mut self) {
-		self.use_stdlib();
+	pub fn run_debug(&mut self) -> Result<(), Error> {
+		self.use_stdlib()?;
 		
 		println!("Contents: {:?}", self.contents);
 		
@@ -84,20 +86,21 @@ impl FileHandler {
 		println!("Semantics: {:#?}", semantics);
 		
 		self.scope.add(Context::Block);
-		let result = semantics.resolve(&mut self.scope);
+		let result = semantics.resolve(&mut self.scope)?;
 		println!("Scope: {}", self.scope);
-		print!("\n\nResults: {:?}", result);
+		print!("\n\nResults: {}", result);
+		Ok(())
 	}
 	
-	pub fn parse(&mut self) -> Expression {
+	pub fn parse(&mut self) -> BoxAST {
 		let parse_tree = self.parser._file(None);
-		to_tree(&parse_tree.unwrap().0)
+		BoxAST::from(parse(&mut parse_tree.unwrap().0))
 	}
 	
-	pub fn run(&mut self) {
+	pub fn run(&mut self) -> Result<(), Error> {
 		self.report_build_started();
 		
-		self.use_stdlib();
+		self.use_stdlib()?;
 		
 		let parse_tree = self.parser._file(None);        
 		let semantics = parse(&mut parse_tree.unwrap().0);
@@ -116,7 +119,8 @@ impl FileHandler {
 		}
 		self.report_errors();
 		
-		self.report_build_complete()
+		self.report_build_complete();
+		Ok(())
 	}
 	
 	pub fn get_line(&self, index: usize) -> &str {

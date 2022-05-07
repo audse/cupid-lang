@@ -151,46 +151,46 @@ pub fn to_tree(node: &ParseNode) -> Expression {
         
         "primitive_type_hint" => to_tree(&node.children[0]),
         
-        "implement_type" => {
-            let token = node.tokens[0].clone();
-            let identifier = Symbol::new_string(node.tokens[1].source.clone(), node.tokens[1].clone());
-            let generics = get_generics(&node);
-            let declarations: Vec<Expression> = node.children
-                .iter()
-                .filter_map(|n| {
-                    if n.name.as_str() == "typed_declaration" {
-                        Some(to_tree(&n))
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-            Expression::Implement(Implement::new(token, identifier, declarations, generics))
-        },
+        // "implement_type" => {
+        //     let token = node.tokens[0].clone();
+        //     let identifier = Symbol::new_string(node.tokens[1].source.clone(), node.tokens[1].clone());
+        //     let generics = get_generics(&node);
+        //     let declarations: Vec<Expression> = node.children
+        //         .iter()
+        //         .filter_map(|n| {
+        //             if n.name.as_str() == "typed_declaration" {
+        //                 Some(to_tree(&n))
+        //             } else {
+        //                 None
+        //             }
+        //         })
+        //         .collect();
+        //     Expression::Implement(Implement::new(token, identifier, declarations, generics))
+        // },
 		
-		"implement_trait" => {
-			let token = node.tokens[0].clone();
-			let generics = get_generics(&node);
-			let (trait_symbol, type_symbol) = if generics.len() > 0 {
-				(&node.children[1], &node.children[2])
-			} else {
-				(&node.children[0], &node.children[1])
-			};
-			let trait_symbol = Expression::to_symbol(to_tree(trait_symbol));
-			let type_symbol = Expression::to_symbol(to_tree(type_symbol));
-			
-			let declarations: Vec<Expression> = node.children
-				.iter()
-				.filter_map(|n| {
-					if n.name.as_str() == "typed_declaration" {
-						Some(to_tree(&n))
-					} else {
-						None
-					}
-				})
-				.collect();
-			Expression::ImplementTrait(ImplementTrait::new(token, trait_symbol, type_symbol, declarations, generics))
-		},
+		// "implement_trait" => {
+		// 	let token = node.tokens[0].clone();
+		// 	let generics = get_generics(&node);
+		// 	let (trait_symbol, type_symbol) = if generics.len() > 0 {
+		// 		(&node.children[1], &node.children[2])
+		// 	} else {
+		// 		(&node.children[0], &node.children[1])
+		// 	};
+		// 	let trait_symbol = Expression::to_symbol(to_tree(trait_symbol));
+		// 	let type_symbol = Expression::to_symbol(to_tree(type_symbol));
+		// 	
+		// 	let declarations: Vec<Expression> = node.children
+		// 		.iter()
+		// 		.filter_map(|n| {
+		// 			if n.name.as_str() == "typed_declaration" {
+		// 				Some(to_tree(&n))
+		// 			} else {
+		// 				None
+		// 			}
+		// 		})
+		// 		.collect();
+		// 	Expression::ImplementTrait(ImplementTrait::new(token, trait_symbol, type_symbol, declarations, generics))
+		// },
 
         // Loops
         "for_loop" => {

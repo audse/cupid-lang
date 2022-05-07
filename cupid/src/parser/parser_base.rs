@@ -78,17 +78,24 @@ pub struct Node {
     pub tokens: Vec<Token>,
 }
 
-
 impl Node {
-	pub fn map<R>(&self, function: &dyn Fn(&Self)->R) -> Vec<R> {
-		self.children.iter().map(function).collect()
-	}
-	pub fn map_mut<R>(&mut self, function: &dyn Fn(&mut Self)->R) -> Vec<R> {
-		self.children.iter_mut().map(function).collect()
-	}
-	pub fn has(&self, name: &str) -> bool {
-		self.children.iter().find(|c| c.name.as_str() == name).is_some()		
-	}
+    pub fn map<R>(&self, function: &dyn Fn(&Self) -> R) -> Vec<R> {
+        self.children.iter().map(function).collect()
+    }
+    pub fn map_mut<R>(&mut self, function: &dyn Fn(&mut Self) -> R) -> Vec<R> {
+        self.children.iter_mut().map(function).collect()
+    }
+    pub fn has(&self, name: &str) -> bool {
+        self.children
+            .iter()
+            .find(|c| c.name.as_str() == name)
+            .is_some()
+    }
+    pub fn get_mut(&mut self, name: &str) -> Option<&mut Self> {
+        self.children
+            .iter_mut()
+            .find(|c| c.name.as_str() == name)
+    }
 }
 
 #[derive(PartialEq, Eq)]

@@ -96,7 +96,7 @@ impl ValueNode {
 				_ => panic!("booleans can only be 'true' or 'false'"),
 			},
 			"none" => Value::None,
-			"char" => Value::Char(tokens[0].source.chars().next().unwrap_or('\0')),
+			"char" => Value::Char(tokens[1].source.chars().next().unwrap_or('\0')),
 			"string"
 			| "identifier"
 			| "self"
@@ -148,8 +148,12 @@ impl ValueNode {
 }
 
 impl AST for ValueNode {
-	fn resolve(&self, _scope: &mut RLexicalScope) -> Result<ValueNode, Error> {
-		Ok(self.to_owned())
+	fn resolve(&self, scope: &mut RLexicalScope) -> Result<ValueNode, Error> {
+		let mut value = self.to_owned();
+		if let Some(type_kind) = TypeKind::infer_from_scope(&value, scope) {
+			value.type_kind = type_kind;
+		}
+		Ok(value)
 	}
 }
 

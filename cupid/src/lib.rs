@@ -8,8 +8,8 @@ use wasm_bindgen::prelude::*;
 mod errors;
 pub use errors::*;
 
-mod file_handler;
-pub use file_handler::*;
+// mod file_handler;
+// pub use file_handler::*;
 
 mod file_handler_refactor;
 pub use file_handler_refactor::FileHandler as RFileHandler;
@@ -23,8 +23,8 @@ pub use tree::*;
 mod parser;
 pub use parser::*;
 
-mod semantics;
-pub use semantics::*;
+// mod semantics;
+// pub use semantics::*;
 
 mod refactor;
 pub use refactor::{
@@ -52,6 +52,16 @@ pub use refactor::{
 	BoxAST,
 	FunctionCallNode,
 	ArgumentsNode,
+	LogNode,
+	ArrayNode,
+	Implementation,
+	FileNode,
+	OperationNode,
+	FunctionFlag,
+	UseTraitBlockNode,
+	TraitNode,
+	ImplementationNode,
+	PropertyNode,
 };
 
 mod tests;
@@ -70,20 +80,20 @@ extern {
 
 #[derive(Serialize, Deserialize)]
 pub struct ScopeEntry {
-	pub context: ScopeContext,
+	pub context: Context,
 	pub storage: Vec<StorageEntry>,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct StorageEntry {
-	pub symbol: Value,
-	pub value: SymbolValue
+	pub symbol: ValueNode,
+	pub value: RSymbolValue
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Cupid {
-	pub values: Vec<(String, Value)>,
-	pub semantics: Vec<Expression>,
+	pub values: Vec<(String, ValueNode)>,
+	pub semantics: Vec<BoxAST>,
 	pub parse: ParseNode,
 	pub errors: Vec<Error>,
 	pub scope: Vec<ScopeEntry>
@@ -91,28 +101,25 @@ pub struct Cupid {
 
 #[wasm_bindgen]
 pub fn run_and_collect_logs(string: &str) -> JsValue {
-	let mut file_handler = FileHandler::from(string);
+	let mut file_handler = RFileHandler::from(string);
 	let stdlib = read_file();
 	file_handler.preload_contents(stdlib);
 	
 	let parse_tree = file_handler.parser._file(None);
-	let parse = parse_tree.unwrap().0;
-	let file = to_tree(&parse);
+	let mut parse = parse_tree.unwrap().0;
+	let file = FileNode::from(&mut parse);
 	
-	let mut semantics: Vec<Expression> = vec![];
-	let mut values: Vec<(String, Value)> = vec![];
+	let mut semantics: Vec<BoxAST> = vec![];
+	let mut values: Vec<(String, ValueNode)> = vec![];
 	let mut errors: Vec<Error> = vec![];
 	
-	file_handler.scope.add(ScopeContext::Block);
-	if let Expression::File(ref f) = file {
-		for exp in f {
-			let exp_val = exp.resolve(&mut file_handler.scope);
-			match exp_val {
-				Value::Error(e) => errors.push(e),
-				_ => values.push((exp_val.to_string(), exp_val))
-			};
-			semantics.push(exp.clone())
-		}
+	for exp in file.expressions {
+		let exp_val = exp.resolve(&mut file_handler.scope);
+		match exp_val {
+			Err(e) => errors.push(e),
+			Ok(val) => values.push((val.to_string(), val))
+		};
+		semantics.push(exp.clone())
 	}
 	
 	let scope: Vec<ScopeEntry> = file_handler.scope.scopes.iter().map(|ls| {

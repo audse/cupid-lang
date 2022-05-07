@@ -62,7 +62,7 @@
 	| sum_type_definition
 	| alias_type_definition
 
-- builtin_type_definition: 'type' identifier !'='
+- builtin_type_definition: 'type' WORD !'='
 
 - struct_type_definition: type_symbol ~equal '[' (struct_member ~',')* ~']'
 - struct_member: type_hint identifier
@@ -97,7 +97,7 @@
 
 - implement_type: 'use' generics? type_hint '{' typed_declaration* closing_brace
 
-- implement_trait: 'use' generics? identifier 'with' identifier implement_trait_body?
+- implement_trait: 'use' generics? identifier 'with' type_hint implement_trait_body?
 -~implement_trait_body: '{' typed_declaration* closing_brace
 
 - trait_definition: 'trait' generics identifier equal '[' (typed_declaration ',')* ']'
@@ -120,8 +120,9 @@
 	| self
 	| identifier
 
-- group: ~'(' term closing_paren
-- function: parameters block
+- group: ~'(' term? closing_paren
+- function: parameters  function_body
+-~function_body: group | block
 - parameters: (parameter ~',')*
 -~parameter: ~'_' | 'mut'? self | annotated_parameter
 - annotated_parameter: type_hint identifier
@@ -132,8 +133,8 @@
 
 -~log_keyword: 'log' | 'logs' | 'log_line' | 'logs_line'
 
--~bracket_array: '[' !('.' '.') array? !('.' '.') closing_bracket
-- array:  (operation ~',')+
+-~bracket_array: '[' !'.' array? !'.' closing_bracket
+- array:  (term ~',')* term?
 
 - map: '[' (map_entry !']' ',')* ']'
 - map_entry: atom ':' term
@@ -217,6 +218,9 @@
 	| 'use'
 	| 'trait'
 	| 'self'
+	| 'array'
+	| 'fun'
+	| 'map'
 
 -~keyword_variable:
 	'let'

@@ -4,8 +4,6 @@ use cupid::*;
 
 use clap::Parser;
 
-use cupid::parse;
-
 #[derive(Parser)]
 struct Cli {
     pattern: String,
@@ -19,39 +17,39 @@ struct Cli {
     #[clap(short, long)]
     generate: bool,
 	
-	#[clap(short, long)]
-	refactor: bool,
+	// #[clap(short, long)]
+	// refactor: bool,
 }
 
-fn main() {
+fn main() -> Result<(), Error> {
     let args = Cli::parse();
     if args.generate {
         run_generator();
-	} else if args.refactor {
-		refactor_parse(&args.path, args.debug);
-    } else {
+		Ok(())
+	} else {
         run_path(&args.path, args.debug);
+		Ok(())
     }
 }
 
-fn refactor_parse(path: &str, debug: bool) {
+fn run_path(path: &str, debug: bool)-> Result<(), Error> {
 	let mut file_handler = RFileHandler::new(format!("src/tests/{}", path).as_str());
 	if debug {
 		file_handler.run_debug()
 	} else {
-		file_handler.run();
+		file_handler.run()
 	}
 }
 
-fn run_path(path: &str, debug: bool) {
-	
-    let mut file_handler = FileHandler::new(format!("src/tests/{}", path).as_str());
-    if debug {
-        file_handler.run_debug()
-    } else {
-        file_handler.run();
-    }
-}
+// fn run_path(path: &str, debug: bool) {
+// 	
+//     let mut file_handler = FileHandler::new(format!("src/tests/{}", path).as_str());
+//     if debug {
+//         file_handler.run_debug()
+//     } else {
+//         file_handler.run();
+//     }
+// }
 
 fn run_generator() {
     test_generator();

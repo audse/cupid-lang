@@ -1,12 +1,13 @@
 use std::hash::{Hash, Hasher};
 use std::fmt::{Display, Formatter, Result as DisplayResult};
 use serde::{Serialize, Deserialize};
-use crate::{TypeKind, Type, GenericType, ErrorHandler, Token, Expression, Tree, Value};
+use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MapType {
 	pub key_type: Box<TypeKind>,
 	pub value_type: Box<TypeKind>,
+	pub implementation: Implementation,
 }
 
 impl Type for MapType {
@@ -62,6 +63,10 @@ impl Type for MapType {
 			_ => ()
 		};
 	}
+	fn implement(&mut self, functions: std::collections::HashMap<ValueNode, ValueNode>) -> Result<(), ()> {
+    	self.implementation.implement(functions);
+		Ok(())
+	}
 }
 
 impl PartialEq for MapType {
@@ -95,34 +100,34 @@ impl Display for MapType {
 	}
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct MapTypeHint {
-	pub token: Token,
-	pub key_type: Box<Expression>,
-	pub value_type: Box<Expression>,
-}
-
-impl Tree for MapTypeHint {
-	fn resolve(&self, scope: &mut crate::LexicalScope) -> Value {
-		let key_type = crate::resolve_or_abort!(self.key_type, scope);
-		let value_type = crate::resolve_or_abort!(self.value_type, scope);
-		if let (Value::Type(key_type), Value::Type(value_type)) = (&key_type, &value_type) {
-			let map_type = TypeKind::Map(MapType { 
-				key_type: Box::new(key_type.clone()),
-				value_type: Box::new(value_type.clone()) 
-			});
-			Value::Type(map_type)
-		} else {
-			self.error(format!("expected a type hint for map keys and values, not {key_type}: {value_type}"))
-		}
-	}
-}
-
-impl ErrorHandler for MapTypeHint {
-	fn get_token(&self) -> &Token {
-		&self.token
-	}
-	fn get_context(&self) -> String {
-		format!("map type with keys of type {} and values of type {}", self.key_type, self.value_type)
-	}
-}
+// #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+// pub struct MapTypeHint {
+// 	pub token: Token,
+// 	pub key_type: Box<Expression>,
+// 	pub value_type: Box<Expression>,
+// }
+// 
+// impl Tree for MapTypeHint {
+// 	fn resolve(&self, scope: &mut crate::LexicalScope) -> Value {
+// 		let key_type = crate::resolve_or_abort!(self.key_type, scope);
+// 		let value_type = crate::resolve_or_abort!(self.value_type, scope);
+// 		if let (Value::Type(key_type), Value::Type(value_type)) = (&key_type, &value_type) {
+// 			let map_type = TypeKind::Map(MapType { 
+// 				key_type: Box::new(key_type.clone()),
+// 				value_type: Box::new(value_type.clone()) 
+// 			});
+// 			Value::Type(map_type)
+// 		} else {
+// 			self.error(format!("expected a type hint for map keys and values, not {key_type}: {value_type}"))
+// 		}
+// 	}
+// }
+// 
+// impl ErrorHandler for MapTypeHint {
+// 	fn get_token(&self) -> &Token {
+// 		&self.token
+// 	}
+// 	fn get_context(&self) -> String {
+// 		format!("map type with keys of type {} and values of type {}", self.key_type, self.value_type)
+// 	}
+// }

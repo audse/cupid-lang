@@ -16,13 +16,49 @@ impl From<&mut ParseNode> for FunctionNode {
 }
 
 impl AST for FunctionNode {
-	fn resolve(&self, scope: &mut RLexicalScope) -> Result<ValueNode, Error> {
-		Ok(ValueNode::from_value(Value::FuncBody(self.to_owned())))
+	fn resolve(&self, _scope: &mut RLexicalScope) -> Result<ValueNode, Error> {
+		Ok(ValueNode::from_value(Value::Function(self.to_owned())))
 	}
 }
 
 impl FunctionNode {
-	fn infer_return_type(&self) -> TypeKind { todo!() }
+	// fn infer_return_type(&self) -> TypeKind { todo!() }
+	
+	pub fn call_function(&self, args: &ArgumentsNode, scope: &mut RLexicalScope) -> Result<ValueNode, Error> {
+		scope.add(Context::Function);
+		self.set_params(args, scope)?;
+		let value = self.body.resolve(scope);
+		scope.pop();
+		value
+	}
+	pub fn match_params_to_args(&self, args: &ArgumentsNode) -> Vec<(&Parameter, BoxAST)> {
+		let params: Vec<&Parameter> = self.params.symbols
+			.iter()
+			.filter(|p| p.type_hint.is_some())
+			.collect();
+		if params.len() == args.0.len() {
+			params
+				.iter()
+				.enumerate()
+				.map(|(i, p)| (*p, args.0[i].to_owned()))
+				.collect()
+		} else {
+			panic!("wrong number of args")
+		}
+	}
+	pub fn set_params(&self, args:  &ArgumentsNode, scope: &mut RLexicalScope) -> Result<(), Error> {
+		for (param, arg) in self.match_params_to_args(args) {
+			let declaration = DeclarationNode {
+				type_hint: param.type_hint.as_ref().unwrap().to_owned(),
+				symbol: param.symbol.to_owned(),
+				value: arg.to_owned(),
+				meta: Meta::new(vec![], None, vec![]),
+				mutable: false,
+			};
+			declaration.resolve(scope)?;
+		}
+		Ok(())
+	}
 }
 
 
@@ -60,7 +96,7 @@ impl From<&mut ParseNode> for ParametersNode {
 						default: OptionAST::None
 					}
 				},
-				_ => panic!("unexpected params")
+				_ => panic!("unexpected params: {}", n.name)
 			});
 		Self {
 			symbols,

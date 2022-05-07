@@ -26,7 +26,7 @@ impl From<&mut ParseNode> for TypeHintNode {
 			"map_type_hint" => Map,
 			"primitive_type_hint" => Primitive,
 			"struct_type_hint" => Struct,
-			_ => panic!()
+			_ => panic!("{}", node.name)
 		};
 		Self {
 			type_kind: SymbolNode::from(&mut node.children[0]),

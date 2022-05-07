@@ -36,9 +36,9 @@ pub enum Expression {
     StructTypeHint(StructTypeHint),
     FunctionTypeHint(FunctionTypeHint),
     PropertyAssign(PropertyAssign),
-    Implement(Implement),
+    // Implement(Implement),
 	DefineTrait(DefineTrait),
-	ImplementTrait(ImplementTrait),
+	// ImplementTrait(ImplementTrait),
 }
 
 impl Display for Expression {

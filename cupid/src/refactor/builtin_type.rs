@@ -8,32 +8,19 @@ pub struct BuiltinTypeNode {
 
 impl From<&mut ParseNode> for BuiltinTypeNode {
 	fn from(node: &mut ParseNode) -> Self {
-		let tokens = node.children[0].tokens.to_owned();
-		let name = tokens[0].source.clone();
+		let tokens = node.tokens.to_owned();
+		let name = tokens[1].source.clone();
 		let type_kind = match name.as_str() {
 			"bool"
 			| "char"
 			| "int"
 			| "dec"
 			| "nothing"
-			| "string" => TypeKind::Primitive(PrimitiveType::new(&name)),
-			"array" => {
-				let generic = TypeKind::Generic(GenericType::new("e", None));
-				TypeKind::Array(ArrayType { element_type: Box::new(generic) })
-			},
-			"map" => {
-				let key_generic = TypeKind::Generic(GenericType::new("k", None));
-				let value_generic = TypeKind::Generic(GenericType::new("v", None));
-				TypeKind::Map(MapType { 
-					key_type: Box::new(key_generic),
-					value_type: Box::new(value_generic) 
-				})
-			},
-			"fun" => {
-				let generic = TypeKind::Generic(GenericType::new("r", None));
-				TypeKind::Function(FunctionType { return_type: Box::new(generic) })
-			},
-			_ => panic!("unexpected builtin type")
+			| "string" => TypeKind::new_primitive(&name),
+			"array" => TypeKind::new_array(TypeKind::new_generic("e")),
+			"map" => TypeKind::new_map(TypeKind::new_generic("k"), TypeKind::new_generic("v")),
+			"fun" => TypeKind::new_function(),
+			_ => panic!("unexpected builtin type {name}")
 		};
 		Self {
 			symbol: SymbolNode::new_string(name, Meta::with_tokens(tokens)),

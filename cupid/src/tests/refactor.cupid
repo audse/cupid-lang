@@ -1,3 +1,21 @@
-use int {
-	fun [int] abs = self => 100
-}
+trait [t] add = [
+	fun [t] add = self, t other => self + other
+]
+
+trait [t] subtract = [
+	fun [t] subtract = self, t other => self - other
+]
+
+trait [t] multiply = [
+	fun [t] multiply = self, t other => self * other
+]
+
+trait [t] divide = [
+	fun [t] divide = self, t other => self / other
+]
+
+use [int] add with int
+use [int] subtract with int
+
+int num = 10.add(10)
+log (num)

@@ -1,11 +1,12 @@
 use std::hash::{Hash, Hasher};
 use serde::{Serialize, Deserialize};
 use std::fmt::{Display, Formatter, Result as DisplayResult};
-use crate::{TypeKind, Type, GenericType, Tree, Value, ErrorHandler, Expression, Token};
+use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ArrayType {
 	pub element_type: Box<TypeKind>,
+	pub implementation: Implementation,
 }
 
 impl Type for ArrayType {
@@ -32,6 +33,10 @@ impl Type for ArrayType {
 			_ => ()
 		}
 	}
+	fn implement(&mut self, functions: std::collections::HashMap<ValueNode, ValueNode>) -> Result<(), ()> {
+    	self.implementation.implement(functions);
+		Ok(())
+	}
 }
 
 impl PartialEq for ArrayType {
@@ -56,30 +61,30 @@ impl Display for ArrayType {
 		write!(f, "array [{}]", self.element_type)
 	}
 }
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct ArrayTypeHint {
-	pub token: Token,
-	pub element_type: Box<Expression>,
-}
-
-impl Tree for ArrayTypeHint {
-	fn resolve(&self, scope: &mut crate::LexicalScope) -> Value {
-		let element_type = crate::resolve_or_abort!(self.element_type, scope);
-		if let Value::Type(element_type) = element_type {
-			let array_type = TypeKind::Array(ArrayType { element_type: Box::new(element_type) });
-			Value::Type(array_type)
-		} else {
-			self.error(format!("expected a type hint for array elements, not {element_type}"))
-		}
-	}
-}
-
-impl ErrorHandler for ArrayTypeHint {
-	fn get_token(&self) -> &Token {
-    	&self.token
-	}
-	fn get_context(&self) -> String {
-    	format!("array type with elements of type {}", self.element_type)
-	}
-}
+// 
+// #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+// pub struct ArrayTypeHint {
+// 	pub token: Token,
+// 	pub element_type: Box<Expression>,
+// }
+// 
+// impl Tree for ArrayTypeHint {
+// 	fn resolve(&self, scope: &mut crate::LexicalScope) -> Value {
+// 		let element_type = crate::resolve_or_abort!(self.element_type, scope);
+// 		if let Value::Type(element_type) = element_type {
+// 			let array_type = TypeKind::Array(ArrayType { element_type: Box::new(element_type) });
+// 			Value::Type(array_type)
+// 		} else {
+// 			self.error(format!("expected a type hint for array elements, not {element_type}"))
+// 		}
+// 	}
+// }
+// 
+// impl ErrorHandler for ArrayTypeHint {
+// 	fn get_token(&self) -> &Token {
+//     	&self.token
+// 	}
+// 	fn get_context(&self) -> String {
+//     	format!("array type with elements of type {}", self.element_type)
+// 	}
+// }

@@ -1,10 +1,9 @@
-use crate::{parse, SymbolNode, AST, ParseNode, RLexicalScope, ValueNode, Error, Meta, RSymbolValue, RScope};
+use crate::{parse, SymbolNode, AST, ParseNode, RLexicalScope, ValueNode, Error, Meta, RSymbolValue, RScope, BoxAST};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct AssignmentNode {
 	pub symbol: SymbolNode,
-	#[serde(with = "serde_traitobject")]
-	pub value: Box<dyn AST>,
+	pub value: BoxAST,
 	pub meta: Meta<()>
 }
 

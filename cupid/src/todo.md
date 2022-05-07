@@ -62,6 +62,7 @@ use add with my_struct [
 ```
 
 -   [ ] Type implementations
+
     -   [ ] Declare `use` block
         -   [x] Primitives
         -   [ ] Array
@@ -73,11 +74,12 @@ use add with my_struct [
     -   [x] Call associated functions on any struct instance
     -   [ ] Require implementation of all functions without defaults
     -   [ ] Make sure no extra functions are added
-    - [ ] Implement different variations with different type args...
-    
-      e.g. `use [bool] into with int` and `use [dec] into with int`
-- [x] Require `self` on functions that use self
-- [ ] Require `mut self`
+    -   [ ] Implement different variations with different type args...
+
+        e.g. `use [bool] into with int` and `use [dec] into with int`
+
+-   [x] Require `self` on functions that use self
+-   [ ] Require `mut self`
 
 ### Type checker
 
@@ -194,8 +196,8 @@ someone istype person # should be false
 -   [ ] An empty map `[]` could be a dict or a list or anything- type inference?
 -   [ ] If you use a primitive type where generics should go, it acts as a generic. Should be an error
 -   [ ] Should be able to log property functions without calling them (e.g. `log (myint.sq)`)
--   [ ] Is `log`/`log_line` working?
-    -   [ ] Doesn't work in function bodies
+-   [x] Is `log`/`log_line` working?
+    -   [x] Doesn't work in function bodies
 
 ## Builtin library
 
@@ -221,6 +223,9 @@ someone istype person # should be false
 -   [ ] `String` to `Cow`
 -   [ ] Cut down on clones- use `Rc`
 -   [ ] Instead of reassigning whole symbol, mutate symbol value
+-   [ ] Make parsing faster
+    -   [ ] Branching rather than repeats
+    -   [ ] Organize infix operators better
 
 ### Error handling
 

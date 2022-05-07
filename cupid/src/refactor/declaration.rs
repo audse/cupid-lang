@@ -1,25 +1,26 @@
-use crate::{parse, SymbolNode, AST, ParseNode, RLexicalScope, RSymbolValue, RScope, ValueNode, Error, Meta, TypeHintNode, Value, TypeKind };
+use crate::{parse, SymbolNode, AST, ParseNode, RLexicalScope, RSymbolValue, RScope, ValueNode, Error, Meta, TypeHintNode, Value, TypeKind, BoxAST};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct DeclarationNode {
 	pub type_hint: TypeHintNode,
 	pub symbol: SymbolNode,
 	pub mutable: bool,
-	#[serde(with = "serde_traitobject")]
-	pub value: Box<dyn AST>,
+	pub value: BoxAST,
 	pub meta: Meta<()>,
 }
 
 impl From<&mut ParseNode> for DeclarationNode {
 	fn from(node: &mut ParseNode) -> Self {
 		let value = if node.children.len() > 2 {
-			parse(&mut node.children[2])
+			BoxAST::from(parse(&mut node.children[2]))
 		} else {
-			Box::new(ValueNode { 
-				value: Value::None, 
-				type_kind: TypeKind::infer(&Value::None),
-				meta: Meta::new(vec![], None, vec![]) 
-			})
+			BoxAST { 
+				inner: Box::new(ValueNode { 
+					value: Value::None, 
+					type_kind: TypeKind::infer(&Value::None),
+					meta: Meta::new(vec![], None, vec![]) 
+				})
+			}
 		};
 		Self {
 			type_hint: TypeHintNode::from(&mut node.children[0]),
