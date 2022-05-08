@@ -39,7 +39,11 @@ impl AST for DeclarationNode {
 		
 		let type_hint = self.type_hint.resolve_to_type_kind(scope)?;
 		
-		scope.set_symbol(&self.symbol, &SymbolValue::Declaration { 
+		// set symbol type as value's type
+		let mut symbol = self.symbol.to_owned();
+		symbol.0.type_kind = type_hint.to_owned();
+		
+		scope.set_symbol(&symbol, &SymbolValue::Declaration { 
 			type_hint, 
 			mutable: self.mutable, 
 			value

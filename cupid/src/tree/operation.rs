@@ -35,7 +35,8 @@ impl OperationNode {
 			">=" => ("greater_equal", GreaterEqual),
 			"and" => ("and", And),
 			"or" => ("or", Or),
-			_ => panic!(),
+			"as" => ("as", As),
+			x => panic!("unrecognized operation {}", x),
 		};
 		let function = Value::String(function.to_string());
 		let function_symbol = SymbolNode(ValueNode {

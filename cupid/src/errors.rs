@@ -11,6 +11,8 @@ pub struct Error {
     pub context: String,
 }
 
+impl std::error::Error for Error {}
+
 impl Error {
     
     pub fn from_token(token: &Token, message: &str, context: &str) -> Error {
@@ -103,3 +105,14 @@ pub trait ErrorHandler {
 		}
 	}
 }
+
+macro_rules! pretty {
+	($arg:tt) => {{
+		let mut string = format!("{:#?}", $arg);
+		string.remove(0);
+		string.pop();
+		string.replace("\"", "")
+	}};
+}
+
+pub(crate) use pretty;

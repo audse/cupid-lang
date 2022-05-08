@@ -17,15 +17,7 @@ impl SumType {
 	}
 }
 
-impl Type for SumType {
-	fn apply_arguments(&mut self, arguments: &[GenericType]) -> Result<(), String> {
-		self.types.iter_mut().for_each(|t| { _ = t.apply_arguments(arguments); });
-		Ok(())
-	}
-	fn convert_primitives_to_generics(&mut self, generics: &[GenericType]) {
-		_ = self.types.iter_mut().map(|t| t.convert_primitives_to_generics(generics));
-	}
-}
+impl Type for SumType {}
 
 impl PartialEq for SumType {
 	fn eq(&self, other: &Self) -> bool {

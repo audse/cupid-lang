@@ -98,7 +98,10 @@ impl Scope for LexicalScope {
 				return Ok(value)
 			}
 		}
-		Err(symbol.error_raw("symbol could not be found in the current scope"))
+		Err(symbol.error_raw_context(
+			"symbol could not be found in the current scope", 
+			format!("current scope: {self}").as_str())
+		)
 	}
 	fn set_symbol(&mut self, symbol: &SymbolNode, body: &SymbolValue) -> Result<ValueNode, Error> {
 		if let Some(scope) = self.last() {
@@ -116,7 +119,7 @@ impl Display for LexicalScope {
 			.iter()
 			.map(|s| s.to_string())
 			.collect();
-		write!(f, "[\n{}\n]", scopes.join(",\n"))
+		write!(f, "[\n{}\n]\n", scopes.join(",\n"))
 	}
 }
 
@@ -162,8 +165,10 @@ impl Display for SingleScope {
 	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
 		let storage: Vec<String> = self.storage
 			.iter()
-			.map(|(k, v)| format!("    {k}: {v}"))
+			.map(|(k, v)| format!("{:8}: {}", k.to_string(), v.to_string()))
 			.collect();
-		write!(f, "  {:?}: [\n{}\n  ]", self.context, storage.join(", \n"))
+		
+		write!(f, "  {:?}: [{}  ]", self.context, crate::pretty!(storage))
 	}
 }
+

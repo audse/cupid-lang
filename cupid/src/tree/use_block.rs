@@ -4,23 +4,20 @@ use crate::*;
 pub struct UseBlockNode {
 	pub type_kind: TypeHintNode,
 	pub functions: ImplementationNode,
-	pub generics: Option<GenericsNode>,
 }
 
 impl From<&mut ParseNode> for UseBlockNode {
 	fn from(node: &mut ParseNode) -> Self {
-		let generics = GenericsNode::from_parent(node);			
+		let generics = node.get_mut("generics");	
 		let type_kind = if generics.is_some() {
 			&mut node.children[1]
 		} else {
 			&mut node.children[0]
 		};
 		let type_kind = TypeHintNode::from(type_kind);
-		
 		Self {
 			type_kind,
 			functions: ImplementationNode::from(node),
-			generics,
 		}
 	}
 }

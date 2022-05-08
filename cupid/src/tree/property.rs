@@ -59,25 +59,49 @@ impl AST for PropertyNode {
 }
 
 impl PropertyNode {
-	fn create_self_symbol(&self, function: &FunctionNode, value: &ValueNode, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
+	fn create_self_symbol(&self, function: &FunctionNode, value: ValueNode, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		let self_symbol = &function.params.symbols[0].symbol;
 		let declare = SymbolValue::Declaration { 
 			type_hint: value.type_kind.to_owned(), 
 			mutable: function.params.mut_self,
-			value: value.to_owned()
+			value
 		};
 		scope.set_symbol(self_symbol, &declare)
 	}
 	
+	fn create_generic_symbol(&self, generic: &GenericType, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
+		let symbol: SymbolNode = generic.identifier.to_string().into();
+		let value = if let Some(generic_value) = &generic.type_value {
+			ValueNode::from(Value::Type(*generic_value.to_owned()))
+		} else {
+			generic.to_owned().into()
+		};
+		let declare = SymbolValue::Declaration { 
+			type_hint: TypeKind::Type, 
+			mutable: false, 
+			value
+		};
+		scope.set_symbol(&symbol, &declare)
+	}
+	
 	fn resolve_implementation_function(&self, left: &mut ValueNode, function_call: &FunctionCallNode, scope: &mut LexicalScope) -> Option<Result<ValueNode, Error>> {
 		// the property is a function from a type or trait implementation
-		if let Some(function) = left.type_kind.find_function_value(&function_call.function, scope) {
+		let left_value = left.to_owned();
+		if let Some((implementation, function)) = left.type_kind.get_trait_function(&function_call.function) {
+			scope.add(Context::Function);
+			for generic in implementation.generics.iter() {
+				if let Err(e) = self.create_generic_symbol(generic, scope) {
+					return Some(Err(e))
+				}
+			}
 			if function.params.use_self {
-				if let Err(e) = self.create_self_symbol(&function, left, scope) {
+				if let Err(e) = self.create_self_symbol(&function, left_value, scope) {
 					return Some(Err(e))
 				};
 			}
-			Some(function.call_function(&function_call.args, scope))
+			let val = function.call_function(&function_call.args, scope);
+			scope.pop();
+			Some(val)
 		} else {
 			None
 		}
@@ -87,7 +111,7 @@ impl PropertyNode {
 		// the property is a function within a map
 		if let Ok(Value::Function(function)) = &left.value.get_property(&function_call.function.0.value) {
 			if function.params.use_self {
-				if let Err(e) = self.create_self_symbol(function, left, scope) {
+				if let Err(e) = self.create_self_symbol(function, left.to_owned(), scope) {
 					return Some(Err(e))
 				};
 			}

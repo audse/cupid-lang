@@ -52,5 +52,9 @@ impl From<Box<dyn AST>> for BoxAST {
 pub enum OptionAST {
 	#[serde(with = "serde_traitobject")]
 	Some(Box<dyn AST>),
-	None
+	None,
+}
+
+pub trait FromParent<T> {
+	fn from_parent(parent: T) -> Self;
 }

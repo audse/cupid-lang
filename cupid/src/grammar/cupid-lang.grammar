@@ -73,7 +73,8 @@
 - alias_type_definition: type_symbol ~equal type_hint
 
 -~type_symbol: 'type' generics? identifier
-- generics: '[' (identifier ',')* closing_bracket
+- generics: '[' (generic_argument ',')* closing_bracket
+- generic_argument: identifier !':' | identifier ':' type_hint
 
 - typed_declaration: type_hint 'mut'? identifier (~equal term)?
 
@@ -100,7 +101,7 @@
 - implement_trait: 'use' generics? identifier 'with' type_hint implement_trait_body?
 -~implement_trait_body: '{' typed_declaration* closing_brace
 
-- trait_definition: 'trait' generics identifier equal '[' (typed_declaration ',')* ']'
+- trait_definition: 'trait' generics identifier ~equal ~'[' (typed_declaration ',')* closing_bracket
 
 -~equal: '=' !'>'
 

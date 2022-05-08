@@ -10,48 +10,7 @@ pub struct MapType {
 	pub implementation: Implementation,
 }
 
-impl Type for MapType {
-	fn apply_arguments(&mut self, arguments: &[GenericType]) -> Result<(), String> {
-		if let TypeKind::Generic(key_generic) = &*self.key_type {
-			let arg = arguments.iter().find(|arg| arg.identifier == key_generic.identifier);
-			if let Some(arg) = arg {
-				if let Some(arg) = &arg.type_value {
-					self.key_type = arg.clone();
-				} else {
-					return Err(format!("generic unresolved: no argument was provided for map key ({key_generic})"));
-				}
-			} else {
-				return Err(format!("generic unresolved: no argument was provided for map key ({key_generic})"));
-			}
-		}
-		if let TypeKind::Generic(value_generic) = &*self.value_type {
-			let arg = arguments.iter().find(|arg| arg.identifier == value_generic.identifier);
-			if let Some(arg) = arg {
-				if let Some(arg) = &arg.type_value {
-					self.value_type = arg.clone();
-				} else {
-					return Err(format!("generic unresolved: no argument was provided for map value ({value_generic})"));
-				}
-			} else {
-				return Err(format!("generic unresolved: no argument was provided for map value ({value_generic})"));
-			}
-		}
-		Ok(())
-	}
-	fn convert_primitives_to_generics(&mut self, generics: &[GenericType]) {
-		let generic_identifiers: Vec<String> = generics.iter().map(|g| g.identifier.to_string()).collect();
-		if let TypeKind::Primitive(primitive) = &*self.key_type {
-			if generic_identifiers.contains(&primitive.identifier.to_string()) {
-				self.key_type = Box::new(TypeKind::Generic(GenericType::new(&primitive.identifier, None)));
-			}
-		}
-		if let TypeKind::Primitive(primitive) = &*self.value_type {
-			if generic_identifiers.contains(&primitive.identifier.to_string()) {
-				self.value_type = Box::new(TypeKind::Generic(GenericType::new(&primitive.identifier, None)));
-			}
-		}
-	}
-}
+impl Type for MapType {}
 
 impl PartialEq for MapType {
 	fn eq(&self, other: &Self) -> bool {
@@ -80,6 +39,6 @@ impl Hash for MapType {
 
 impl Display for MapType {
 	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
-		write!(f, "map [{}, {}]", self.key_type, self.value_type)
+		write!(f, "{:8} {}, {} {}", "map", self.key_type, self.value_type, self.implementation)
 	}
 }

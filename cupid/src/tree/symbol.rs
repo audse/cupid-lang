@@ -1,13 +1,24 @@
 use serde::{Serialize, Deserialize};
 use std::fmt::{Display, Formatter, Result as DisplayResult};
-use crate::{ParseNode, ValueNode, AST, Error, LexicalScope, ErrorHandler, Scope, Value, Meta, Flag};
+use crate::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct SymbolNode(pub ValueNode);
 
 impl From<&mut ParseNode> for SymbolNode {
 	fn from(node: &mut ParseNode) -> Self {
-    	Self(ValueNode::from(node))
+		let mut value_node = ValueNode::from(node);
+		// symbols do not have their own type
+		value_node.type_kind = TypeKind::Placeholder;
+    	Self(value_node)
+	}
+}
+
+impl From<String> for SymbolNode {
+    fn from(string: String) -> Self {
+		let mut value_node = ValueNode::from(string);
+		value_node.type_kind = TypeKind::Placeholder;
+		Self(value_node)
 	}
 }
 
@@ -35,7 +46,16 @@ impl SymbolNode {
 		}
 	}
 	pub fn new_string(string: String, meta: Meta<Flag>) -> Self {
-		Self(ValueNode::new(Value::String(string), meta))
+		let mut value_node = ValueNode::from(string);
+		value_node.meta = meta;
+		Self(value_node)
+	}
+	pub fn new_generic(name: String, meta: Meta<Flag>) -> Self {
+		Self(ValueNode {
+			type_kind: TypeKind::new_generic(name.as_str()),
+			value: Value::String(name),
+			meta
+		})
 	}
 }
 

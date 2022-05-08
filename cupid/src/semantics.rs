@@ -5,6 +5,7 @@ pub fn parse(node: &mut ParseNode) -> BoxAST {
 	match node.name.as_str() {
 		"file" => BoxAST::new(FileNode::from(node)),
 		"expression" => parse(&mut node.children[0]),
+		"comment" => BoxAST::new(EmptyNode),
 		
 		"builtin_type_definition" => BoxAST::new(BuiltinTypeNode::from(node)),
 		"trait_definition" => BoxAST::new(TraitNode::from(node)),
@@ -86,5 +87,14 @@ impl AST for FileNode {
 			flags: vec![]
 		};
 		Ok(ValueNode::new(Value::Values(values), meta))
+	}
+}
+
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct EmptyNode;
+impl AST for EmptyNode {
+	fn resolve(&self, _scope: &mut LexicalScope) -> Result<ValueNode, Error> {
+		Ok(ValueNode::from(Value::None))
 	}
 }

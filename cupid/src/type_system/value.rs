@@ -8,23 +8,23 @@ use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Value {
-	Integer(i32),
-	Decimal(i32, u32),
-	Char(char),
 	Array(Vec<Value>),
-	String(String),
 	Boolean(bool),
-	Function(FunctionNode),
-	Error(Error),
-	Type(TypeKind),
-	Implementation(Implementation),
 	Break(Box<Value>),
-	Return(Box<Value>),
-	Map(HashMap<Value, (usize, Value)>),
-	Log(Box<Value>),
-	Values(Vec<Value>),
+	Char(char),
 	Continue,
+	Decimal(i32, u32),
+	Error(Error),
+	Function(FunctionNode),
+	Implementation(Implementation),
+	Integer(i32),
+	Log(Box<Value>),
+	Map(HashMap<Value, (usize, Value)>),
 	None,
+	Return(Box<Value>),
+	String(String),
+	Type(TypeKind),
+	Values(Vec<Value>),
 }
 
 impl Add for Value {
@@ -185,11 +185,6 @@ impl Hash for Value {
 				x.hash(state);
 				y.hash(state);
 			},
-			// Value::FunctionBody(x, y, z) => {
-			// 	x.hash(state);
-			// 	y.hash(state);
-			// 	z.hash(state);
-			// },
 			Value::None => (),
 			Value::Map(x) => for entry in x.iter() {
 				entry.hash(state)
@@ -357,7 +352,7 @@ impl Display for Value {
 			},
 			Self::Type(type_kind) => write!(f, "{type_kind}"),
 			Self::Log(log) => write!(f, "{log}"),
-			Self::Implementation(trait_map) => write!(f, "{trait_map}"),
+			Self::Implementation(trait_map) => write!(f, "{:8} {trait_map}", "trait"),
 			Self::Values(values) => {
 				let values: Vec<String> = values
 					.iter()

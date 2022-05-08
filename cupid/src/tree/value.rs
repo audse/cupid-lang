@@ -86,6 +86,27 @@ impl From<&mut ParseNode> for ValueNode {
 	}
 }
 
+impl From<Value> for ValueNode {
+	fn from(value: Value) -> Self {
+		Self {
+			type_kind: TypeKind::infer(&value),
+			value,
+			meta: Meta::default()
+		}
+	}
+}
+
+impl From<String> for ValueNode {
+	fn from(value: String) -> Self {
+		let value = Value::String(value);
+		Self {
+			type_kind: TypeKind::infer(&value),
+			value,
+			meta: Meta::default()
+		}
+	}
+}
+
 impl ValueNode {
 	fn parse_value(node: &mut ParseNode) -> (Value, Vec<Token>) {
 		let tokens = node.tokens.to_owned();
@@ -117,7 +138,7 @@ impl ValueNode {
 				tokens[1].source.parse::<u32>().unwrap(),
 			),
 			"number" => Value::Integer(tokens[0].source.parse::<i32>().unwrap()),
-			_ => panic!("{:?}", node)
+			_ => panic!("could not parse value from {:?}", node)
 		}, tokens)
 	}
 	pub fn set_meta_identifier(&mut self, identifier: &Self) {

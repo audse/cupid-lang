@@ -19,6 +19,29 @@ impl GenericType {
 	}
 }
 
+impl From<&SymbolNode> for GenericType {
+	fn from(symbol: &SymbolNode) -> Self {
+		if let Value::String(string) = &symbol.0.value {
+			Self {
+				identifier: Cow::Owned(string.to_owned()),
+				type_value: None
+			}
+		} else {
+			Self::new("t", None)
+		}
+	}
+}
+
+impl Into<TypeKind> for GenericType {
+	fn into(self) -> TypeKind { TypeKind::Generic(self) }
+}
+impl Into<Value> for GenericType {
+	fn into(self) -> Value { Value::Type(self.into()) }
+}
+impl Into<ValueNode> for GenericType {
+	fn into(self) -> ValueNode { ValueNode::from(Value::from(self.into())) }
+}
+
 impl Type for GenericType {}
 
 impl PartialEq for GenericType {
@@ -38,6 +61,11 @@ impl Hash for GenericType {
 
 impl Display for GenericType {
 	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
-		write!(f, "<{}>", self.identifier)
+		let type_value = if let Some(type_value) = &self.type_value {
+			format!(": {}", type_value)
+		} else {
+			String::new()
+		};
+		write!(f, "<{}{}>", self.identifier, type_value)
 	}
 }

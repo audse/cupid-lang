@@ -31,7 +31,7 @@ impl FunctionNode {
 		scope.pop();
 		value
 	}
-	pub fn match_params_to_args(&self, args: &ArgumentsNode) -> Vec<(&Parameter, BoxAST)> {
+	pub fn match_params_to_args(&self, args: &ArgumentsNode) -> Vec<(Parameter, BoxAST)> {
 		let params: Vec<&Parameter> = self.params.symbols
 			.iter()
 			.filter(|p| p.type_hint.is_some())
@@ -40,16 +40,23 @@ impl FunctionNode {
 			params
 				.iter()
 				.enumerate()
-				.map(|(i, p)| (*p, args.0[i].to_owned()))
+				.map(|(i, p)| ((*p).to_owned(), args.0[i].to_owned()))
 				.collect()
 		} else {
 			panic!("wrong number of args")
 		}
 	}
 	pub fn set_params(&self, args:  &ArgumentsNode, scope: &mut LexicalScope) -> Result<(), Error> {
-		for (param, arg) in self.match_params_to_args(args) {
+		for (mut param, arg) in self.match_params_to_args(args) {
+			
+			let type_hint = if let Some(ref mut type_hint) = param.type_hint {
+				type_hint.to_owned()
+			} else {
+				panic!("all params should have types ..")
+			};
+			
 			let declaration = DeclarationNode {
-				type_hint: param.type_hint.as_ref().unwrap().to_owned(),
+				type_hint,
 				symbol: param.symbol.to_owned(),
 				value: arg.to_owned(),
 				meta: Meta::new(vec![], None, vec![]),

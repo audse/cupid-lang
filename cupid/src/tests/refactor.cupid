@@ -1,21 +1,46 @@
+***
 trait [t] add = [
 	fun [t] add = self, t other => self + other
 ]
+
+use [t: int] add with int
+use [t: dec] add with dec
+use [t: string] add with string
+
+# use [e, t: array[e]] add with array[e]
 
 trait [t] subtract = [
 	fun [t] subtract = self, t other => self - other
 ]
 
+use [t: int] subtract with int
+use [t: dec] subtract with dec
+
 trait [t] multiply = [
 	fun [t] multiply = self, t other => self * other
 ]
+
+use [t: int] multiply with int
+use [t: dec] multiply with dec
 
 trait [t] divide = [
 	fun [t] divide = self, t other => self / other
 ]
 
-use [int] add with int
-use [int] subtract with int
+use [t: int] divide with int
+use [t: dec] divide with dec
 
-int num = 10.add(10)
-log (num)
+trait [original, new] cast = [
+	fun [new] cast = self => self as new
+]
+use [original: int, new: dec] cast with int
+log (int)
+
+int num = 10
+log (num.cast())
+
+***
+
+use array [char] {
+	fun [char] pop = self => (\a)
+}

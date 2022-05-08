@@ -7,51 +7,37 @@ use crate::*;
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Implementation {
 	pub functions: HashMap<ValueNode, ValueNode>,
-	pub traits: HashMap<SymbolNode, Implementation>
+	pub traits: HashMap<SymbolNode, Implementation>,
+	pub generics: Vec<GenericType>,
+}
+
+impl From<HashMap<ValueNode, ValueNode>> for Implementation {
+	fn from(functions: HashMap<ValueNode, ValueNode>) -> Self {
+		Self {
+			functions,
+			traits: HashMap::new(),
+			generics: vec![]
+		}
+	}
 }
 
 impl Implementation {
-	pub fn find_function_value(&self, symbol: &SymbolNode, scope: &mut LexicalScope) -> Option<FunctionNode> {
-		if let Some(func) = self.find_function(symbol, scope) {
-			match func.value {
-				Value::Function(function) => Some(function),
-				_ => None
-			}
-		} else {
-			None
-		}
-	}
-	
 	// TODO make sure params match
-	pub fn find_function(&self, symbol: &SymbolNode, scope: &mut LexicalScope) -> Option<ValueNode> {
-		if let Some(func) = self.get_function(symbol) {
-			Some(func.to_owned())
-		} else {
-			for t in &self.traits {
-				// search in custom implementations
-				if let Some(fun) = t.1.find_function(symbol, scope) {
-					return Some(fun);
-				}
-				// search in stored implementations
-				if let Ok(value) = scope.get_symbol(t.0) {
-					if let Value::Implementation(trait_definition) = value.value {
-						if let Some(func) = trait_definition.find_function(symbol, scope) {
-							return Some(func);
-						}
-					}
-				}
-			}
-			None
-		}
-	}
-	pub fn get_function(&self, symbol: &SymbolNode) -> Option<&ValueNode> {
+	pub fn get_function(&self, symbol: &SymbolNode) -> Option<&FunctionNode> {
 		if let Some(func) = self.functions.get(&symbol.0) {
-			Some(func)
-		} else if let Some(implement) = self.traits.iter().find(|(k, _)| k.0 == symbol.0) {
-			implement.1.get_function(symbol)
-		} else {
-			None
+			if let Value::Function(function) = &func.value {
+				return Some(function)
+			}
 		}
+		None
+	}
+	pub fn get_trait_function(&self, symbol: &SymbolNode) -> Option<(&Implementation, &FunctionNode)> {
+		if let Some(implement) = self.traits.iter().find(|(k, _)| k.0 == symbol.0) {
+			if let Some(function) = implement.1.get_function(symbol) {
+				return Some((implement.1, &function));
+			}
+		}
+		None
 	}
 	pub fn implement(&mut self, functions: HashMap<ValueNode, ValueNode>) {
 		functions.into_iter().for_each(|(k, v)| {
@@ -95,6 +81,15 @@ impl Display for Implementation {
 			.iter()
 			.map(|(key, value)| format!("{key}: {value}"))
 			.collect();
-		write!(f, "functions: [{}], traits: [{}]", functions.join(", "), traits.join(", "))
+		let generics: Vec<String> = self.generics
+			.iter()
+			.map(|generic| generic.to_string())
+			.collect();
+		let generics: String = if !generics.is_empty() { 
+			format!("{} ", generics.join(", ")) 
+		} else { 
+			String::new() 
+		};
+		write!(f, "[{}functions: [{}], traits: [{}]]", generics, functions.join(", "), traits.join(", "))
 	}
 }

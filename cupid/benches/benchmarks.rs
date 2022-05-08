@@ -1,9 +1,9 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use cupid::FileHandler;
+// use cupid::FileHandler;
 
 fn run() {
-	let mut file_handler = FileHandler::new("src/tests/main.cupid");
-	file_handler.run();
+	// let mut file_handler = FileHandler::new("src/tests/main.cupid");
+	// file_handler.run();
 }
 
 pub fn criterion_benchmark(c: &mut Criterion) {

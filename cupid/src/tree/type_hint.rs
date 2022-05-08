@@ -1,12 +1,13 @@
 use crate::*;
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum TypeKindFlag {
 	Array,
 	Function,
 	Map,
 	Primitive,
 	Struct,
+	Generic,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -38,10 +39,20 @@ impl From<&mut ParseNode> for TypeHintNode {
 impl AST for TypeHintNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		// 1. get from scope
+		let mut value = self.type_kind.resolve(scope)?;
+		
+		let mut args: Vec<TypeKind> = vec![];
+		for arg in self.args.iter() {
+			let arg = arg.resolve_to_type_kind(scope)?;
+			args.push(arg);
+		}
+		
 		// 2. apply args to generics
-		let value = self.type_kind.resolve(scope)?;
-		match value.value {
-			Value::Type(_) => {
+		match &mut value.value {
+			Value::Type(ref mut type_value) => {
+				if let Err(_) = type_value.apply_args(args) {
+					// return Err(value.error_raw(e))
+				}
 				Ok(value)
 			},
 			_ => Err(value.error_raw("not a type"))

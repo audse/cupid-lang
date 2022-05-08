@@ -86,7 +86,12 @@ impl FileHandler {
 		println!("Semantics: {:#?}", semantics);
 		
 		self.scope.add(Context::Block);
-		let result = semantics.resolve(&mut self.scope)?;
+		let result = match semantics.resolve(&mut self.scope) {
+			Err(e) => {
+				panic!("{}", self.make_error_string(&e))
+			},
+			Ok(val) => val,
+		};
 		println!("Scope: {}", self.scope);
 		print!("\n\nResults: {}", result);
 		Ok(())
@@ -106,19 +111,12 @@ impl FileHandler {
 		let semantics = parse(&mut parse_tree.unwrap().0);
 		
 		self.scope.add(Context::Block);
-		let result = semantics.resolve(&mut self.scope).unwrap();
-		if let Value::Values(results) = result.value {
-			self.errors = results
-				.iter()
-				.filter_map(|r| match r {
-					Value::Error(e) => Some(e),
-					_ => None
-				})
-				.cloned()
-				.collect();
-		}
-		self.report_errors();
-		
+		match semantics.resolve(&mut self.scope) {
+			Err(e) => {
+				panic!("{}", self.make_error_string(&e))
+			},
+			Ok(val) => val,
+		};		
 		self.report_build_complete();
 		Ok(())
 	}

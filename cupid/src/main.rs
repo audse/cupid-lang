@@ -18,13 +18,15 @@ struct Cli {
     generate: bool,
 }
 
-fn main() -> Result<(), Error> {
+fn main() {
     let args = Cli::parse();
     if args.generate {
         run_generator();
-		Ok(())
 	} else {
-        run_path(&args.path, args.debug)
+        match run_path(&args.path, args.debug) {
+			Err(e) => eprintln!("{e}"),
+			_ => ()
+		}
     }
 }
 

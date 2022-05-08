@@ -10,21 +10,16 @@ pub struct ArrayType {
 }
 
 impl Type for ArrayType {
-	fn apply_arguments(&mut self, arguments: &[GenericType]) -> Result<(), String> {
-		if let Some(element_type) = TypeKind::replace_generic(&*self.element_type, &arguments[0]) {
-			self.element_type = element_type;
-		} else {
-			let element_type = &self.element_type;
-			let generic = &arguments[0];
-			return Err(format!("either the element type ({element_type}) of this array is not generic, or the generic given  ({generic}) doesn't match"));
-		}
-		Ok(())
-	}
-	fn convert_primitives_to_generics(&mut self, generics: &[GenericType]) {
-		if let TypeKind::Primitive(primitive) = &*self.element_type {
-			if generics.iter().any(|x| x.identifier == primitive.identifier) {
-				self.element_type = Box::new(TypeKind::Generic(GenericType::new(&primitive.identifier, None)));
+	fn apply_args(&mut self, args: Vec<TypeKind>) -> Result<(), &str> {
+		if let TypeKind::Generic(_) = &*self.element_type {
+			if !args.is_empty() {
+				self.element_type = Box::new(args[0].to_owned());
 			}
+			Ok(())
+		} else if args.is_empty() {
+			Ok(())
+		} else {
+			Err("array element type is not generic")
 		}
 	}
 }
@@ -48,6 +43,6 @@ impl Hash for ArrayType {
 
 impl Display for ArrayType {
 	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
-		write!(f, "array [{}]", self.element_type)
+		write!(f, "array [{}] {}", self.element_type, self.implementation)
 	}
 }

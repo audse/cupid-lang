@@ -27,22 +27,7 @@ impl StructType {
 	}
 }
 
-impl Type for StructType {
-	fn apply_arguments(&mut self, arguments: &[GenericType]) -> Result<(), String> {
-		for (_, member) in self.members.iter_mut() {
-			match member.apply_arguments(arguments) {
-				Ok(_) => continue,
-				Err(msg) => return Err(msg)
-			}
-		}
-		Ok(())
-	}
-	fn convert_primitives_to_generics(&mut self, generics: &[GenericType]) {
-    	for (_, member) in self.members.iter_mut() {
-			member.convert_primitives_to_generics(generics)
-		}
-	}
-}
+impl Type for StructType {}
 
 impl PartialEq for StructType {
 	fn eq(&self, other: &Self) -> bool {

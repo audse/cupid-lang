@@ -16,6 +16,7 @@ pub enum FunctionFlag {
 	GreaterEqual,
 	And,
 	Or,
+	As,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -73,6 +74,7 @@ impl FunctionCallNode {
 			[GreaterEqual, ..] => Boolean(left >= right),
 			[And, ..] => left & right,
 			[Or, ..] => left | right,
+			[As, ..] => left.cast(right),
 			_ => left
 		};
 		Ok(ValueNode::from_value(value))
@@ -95,6 +97,6 @@ impl AST for ArgumentsNode {
 			let value = arg.resolve(scope)?;
 			values.push(value.value);
 		}
-		Ok(ValueNode::from_value(Value::Values(values)))
+		Ok(ValueNode::from(Value::Values(values)))
 	}
 }
