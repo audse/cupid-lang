@@ -1,12 +1,12 @@
 use crate::*;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct UseBlockNode {
-	pub type_kind: TypeHintNode,
-	pub functions: ImplementationNode,
+pub struct UseBlockNode<'src> {
+	pub type_kind: TypeHintNode<'src>,
+	pub functions: ImplementationNode<'src>,
 }
 
-impl From<&mut ParseNode> for UseBlockNode {
+impl<'src> From<&mut ParseNode<'src>> for UseBlockNode<'src> {
 	fn from(node: &mut ParseNode) -> Self {
 		let generics = node.get_mut("generics");	
 		let type_kind = if generics.is_some() {
@@ -22,7 +22,7 @@ impl From<&mut ParseNode> for UseBlockNode {
 	}
 }
 
-impl AST for UseBlockNode {
+impl<'src> AST for UseBlockNode<'src> {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		let implementation = self.functions.resolve_to_implementation(scope)?;
 		let type_symbol = self.type_kind.to_symbol(scope)?;

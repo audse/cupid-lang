@@ -4,12 +4,12 @@ use serde::{Serialize, Deserialize};
 use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct StructType {
-	pub members: Vec<(SymbolNode, TypeKind)>,
-	pub implementation: Implementation
+pub struct StructType<'src> {
+	pub members: Vec<(SymbolNode<'src>, TypeKind<'src>)>,
+	pub implementation: Implementation<'src>
 }
 
-impl StructType {
+impl<'src> StructType<'src> {
 	pub fn is_map_equal(&self, other: &Value) -> bool {
 		// todo
 		match other {
@@ -27,23 +27,23 @@ impl StructType {
 	}
 }
 
-impl Type for StructType {}
+impl<'src> Type for StructType<'src> {}
 
-impl PartialEq for StructType {
+impl<'src> PartialEq for StructType<'src> {
 	fn eq(&self, other: &Self) -> bool {
 		self.members == other.members
 	}
 }
 
-impl Eq for StructType {}
+impl<'src> Eq for StructType<'src> {}
 
-impl Hash for StructType {
+impl<'src> Hash for StructType<'src> {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		self.members.hash(state);
 	}
 }
 
-impl Display for StructType {
+impl<'src> Display for StructType<'src> {
 	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
 		let members: Vec<String> = self.members
 			.iter()

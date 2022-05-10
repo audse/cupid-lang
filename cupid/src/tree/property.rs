@@ -1,24 +1,24 @@
 use crate::*;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum Property {
-	FunctionCall(FunctionCallNode),
-	Symbol(SymbolNode),
+pub enum Property<'src> {
+	FunctionCall(FunctionCallNode<'src>),
+	Symbol(SymbolNode<'src>),
 	Other(BoxAST),
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct PropertyNode {
+pub struct PropertyNode<'src> {
 	pub left: BoxAST,
-	pub right: Property,
-	pub meta: Meta<()>
+	pub right: Property<'src>,
+	pub meta: Meta<'src, ()>
 }
 
-impl From<&mut ParseNode> for PropertyNode {
+impl<'src> From<&mut ParseNode<'src>> for PropertyNode<'src> {
 	fn from(node: &mut ParseNode) -> Self {
 		let left = parse(&mut node.children[0]);
 		
-		let right = match node.children[1].name.as_str() {
+		let right = match &*node.children[1].name {
 			"function_call" => Property::FunctionCall(FunctionCallNode::from(&mut node.children[1])),
 			"identifier" => Property::Symbol(SymbolNode::from(&mut node.children[1])),
 			_ => Property::Other(parse(&mut node.children[1]))
@@ -31,7 +31,7 @@ impl From<&mut ParseNode> for PropertyNode {
 	}
 }
 
-impl AST for PropertyNode {
+impl<'src> AST for PropertyNode<'src> {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		use Property::*;
 		let mut left = self.left.resolve(scope)?;
@@ -58,7 +58,7 @@ impl AST for PropertyNode {
 	}
 }
 
-impl PropertyNode {	
+impl<'src> PropertyNode<'src> {	
 	fn resolve_map_function(&self, left: &ValueNode, function_call: &FunctionCallNode, scope: &mut LexicalScope) -> Option<Result<ValueNode, Error>> {
 		// the property is a function within a map
 		match &left.value.get_property(&function_call.function.0) {

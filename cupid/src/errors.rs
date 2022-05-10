@@ -7,7 +7,7 @@ pub struct Error {
     pub line: usize,
     pub index: usize,
     pub message: String,
-    pub source: String,
+    pub source: Cow<'static, str>,
     pub context: String,
 }
 
@@ -19,7 +19,7 @@ impl Error {
         Error {
             line: token.line,
             index: token.index,
-            source: token.source.clone(),
+            source: token.source.to_owned(),
             message: String::from(message),
             context: String::from(context),
         }
@@ -91,7 +91,7 @@ pub trait ErrorHandler {
 			index: token.index,
 			message: message.into(),
 			context: self.get_context(),
-			source: token.source.clone()
+			source: token.source.to_owned()
 		}
 	}
 	fn error_raw_context<S>(&self, message: S, context: S) -> Error where S: Into<String> {
@@ -101,7 +101,7 @@ pub trait ErrorHandler {
 			index: token.index,
 			message: message.into(),
 			context: context.into(),
-			source: token.source.clone()
+			source: token.source.to_owned()
 		}
 	}
 }

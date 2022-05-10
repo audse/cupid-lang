@@ -6,20 +6,20 @@ use serde::{Serialize, Deserialize};
 use crate::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum TypeKind {
-	Array(ArrayType),
-	Function(FunctionType),
-	Generic(GenericType),
-	Map(MapType),
-	Primitive(PrimitiveType),
-	Struct(StructType),
-	Sum(SumType),
-	Alias(AliasType),
+pub enum TypeKind<'src> {
+	Array(ArrayType<'src>),
+	Function(FunctionType<'src>),
+	Generic(GenericType<'src>),
+	Map(MapType<'src>),
+	Primitive(PrimitiveType<'src>),
+	Struct(StructType<'src>),
+	Sum(SumType<'src>),
+	Alias(AliasType<'src>),
 	Type,
 	Placeholder,
 }
 
-impl TypeKind {
+impl<'src> TypeKind<'src> {
 	pub fn new_primitive(identifier: &str) -> Self {
 		Self::Primitive(PrimitiveType::new(identifier))
 	}
@@ -65,16 +65,17 @@ impl TypeKind {
 					Self::new_map(Self::new_generic("k"), Self::new_generic("v"))
 				}
 			},
-			Value::Type(t) => t.clone(),
+			Value::Type(t) => t.to_owned(),
 			Value::Values(_) => Self::Placeholder,
 			Value::Implementation(_) => Self::Type,
+			Value::TypeIdentifier(_) => Self::Type,
 			x => {
 				println!("Cannot infer type of {:?}", x);
 				unreachable!()
 			}
 		}
 	}
-	pub fn infer_name(value: &Value) -> String {
+	pub fn infer_name(value: &Value) -> &'static str {
 		match value {
 			Value::Boolean(_) => "bool",
 			Value::Integer(_) =>  "int",
@@ -86,11 +87,11 @@ impl TypeKind {
 			Value::Map(_) => "map",
 			Value::Function(..) => "fun",
 			_ => panic!()
-		}.to_string()
+		}
 	}
 	pub fn infer_from_scope(value: &ValueNode, scope: &mut LexicalScope) -> Option<Self> {
 		// TODO allow for args, e.g. array[<e>]
-		let name = Value::String(Self::infer_name(&value.value));
+		let name = Value::String(Self::infer_name(&value.value).into());
 		let symbol_value = ValueNode::new(name, Meta::with_tokens(value.meta.tokens.to_owned()));
 		let symbol = SymbolNode(symbol_value);
 		if let Ok(type_kind) = scope.get_symbol(&symbol) {
@@ -136,7 +137,7 @@ impl TypeKind {
 			Self::Primitive(x) => &mut x.implementation,
 			Self::Struct(x) => &mut x.implementation,
 			Self::Sum(x) => &mut x.implementation,
-			_ => panic!("cannot get implementation of {}", self)
+			_ => panic!("cannot get implementation")
 		}
 	}
 	pub fn apply_args(&mut self, args: Vec<TypeKind>) -> Result<(), &str> {
@@ -181,7 +182,7 @@ impl TypeKind {
 	}
 }
 
-impl Type for TypeKind {
+impl<'src> Type for TypeKind<'src> {
 	fn implement(&mut self, functions: HashMap<ValueNode, ValueNode>) {
 		self.get_implementation().implement(functions)
 	}
@@ -201,9 +202,13 @@ pub trait Type {
 	fn apply_args(&mut self, _args: Vec<TypeKind>) -> Result<(), &str> { Ok(()) }
 }
 
-impl Display for TypeKind {
+impl<'src> Display for TypeKind<'src> {
 	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
-		write!(f, "{} {}", self.get_name(), self.to_owned().get_implementation())
+		if let Self::Generic(_) = self {
+			write!(f, "{}", self.get_name())
+		} else {
+			write!(f, "{} {}", self.get_name(), self.to_owned().get_implementation())
+		}
 	}
 }
 

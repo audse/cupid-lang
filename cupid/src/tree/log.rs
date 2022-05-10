@@ -2,11 +2,11 @@ use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LogNode {
-	pub identifier: String,
+	pub identifier: Cow<'static, str>,
 	pub args: ArgumentsNode,
 }
 
-impl From<&mut ParseNode> for LogNode {
+impl From<&mut ParseNode<'_>> for LogNode {
 	fn from(node: &mut ParseNode) -> Self {
     	Self {
 			identifier: node.tokens[0].source.to_owned(),
@@ -24,7 +24,7 @@ impl AST for LogNode {
 			panic!("expected value list in log args")
 		};
 		let strings: Vec<String> = args_list.iter().map(|a| a.to_string()).collect();
-		let log_string = match self.identifier.as_str() {
+		let log_string = match &*self.identifier {
 			"log" => format!("\n{}", strings.join("")),
 			"log_line" => strings.join(""),
 			"logs" => format!("\n{}", strings.join(" ")),

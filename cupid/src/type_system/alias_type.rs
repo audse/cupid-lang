@@ -4,28 +4,28 @@ use std::fmt::{Display, Formatter, Result as DisplayResult};
 use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AliasType {
-	pub true_type: Box<TypeKind>,
-	pub implementation: Implementation
+pub struct AliasType<'src> {
+	pub true_type: Box<TypeKind<'src>>,
+	pub implementation: Implementation<'src>
 }
 
-impl Type for AliasType {}
+impl<'src> Type for AliasType<'src> {}
 
-impl PartialEq for AliasType {
+impl<'src> PartialEq for AliasType<'src> {
 	fn eq(&self, other: &Self) -> bool {
 		self.true_type == other.true_type
 	}
 }
 
-impl Eq for AliasType {}
+impl<'src> Eq for AliasType<'src> {}
 
-impl Hash for AliasType {
+impl<'src> Hash for AliasType<'src> {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		self.true_type.hash(state);
 	}
 }
 
-impl Display for AliasType {
+impl<'src> Display for AliasType<'src> {
 	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
 		write!(f, "alias of {}", self.true_type)
 	}

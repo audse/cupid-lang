@@ -1,12 +1,12 @@
 use crate::*;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct ArrayNode {
+pub struct ArrayNode<'src> {
 	pub items: Vec<BoxAST>,
-	pub meta: Meta<Flag>,
+	pub meta: Meta<'src, Flag>,
 }
 
-impl From<&mut ParseNode> for ArrayNode {
+impl<'src> From<&mut ParseNode<'src>> for ArrayNode<'src> {
 	fn from(node: &mut ParseNode) -> Self {
 		Self {
 			items: node.map_mut(&parse),
@@ -15,7 +15,7 @@ impl From<&mut ParseNode> for ArrayNode {
 	}
 }
 
-impl AST for ArrayNode {
+impl<'src> AST for ArrayNode<'src> {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
     	let mut items: Vec<ValueNode> = vec![];
 		for array_item in self.items.iter() {

@@ -7,31 +7,41 @@ use serde::{Serialize, Deserialize};
 use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum Value {
-	Array(Vec<ValueNode>),
+pub enum Value<'src> {
+	Array(Vec<ValueNode<'src>>),
 	Boolean(bool),
-	Break(Box<Value>),
+	Break(Box<Value<'src>>),
 	Char(char),
 	Continue,
 	Decimal(i32, u32),
 	Error(Error),
-	Function(FunctionNode),
-	Implementation(Implementation),
+	Function(FunctionNode<'src>),
+	Implementation(Implementation<'src>),
 	Integer(i32),
-	Log(Box<Value>),
-	Map(HashMap<ValueNode, (usize, ValueNode)>),
+	Log(Box<Value<'src>>),
+	Map(HashMap<ValueNode<'src>, (usize, ValueNode<'src>)>),
 	None,
-	Return(Box<Value>),
-	String(String),
-	Type(TypeKind),
-	Values(Vec<Value>),
-	TypeIdentifier(TypeId),
+	Return(Box<Value<'src>>),
+	String(Cow<'src, str>),
+	Type(TypeKind<'src>),
+	Values(Vec<Value<'src>>),
+	TypeIdentifier(TypeId<'src>),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TypeId(pub Box<Value>, pub Vec<TypeKind>);
+pub struct TypeId<'src>(pub Box<Value<'src>>, pub Vec<TypeKind<'src>>);
 
-impl PartialEq for TypeId {
+impl<'src> From<Value<'src>> for TypeId<'src> {
+	fn from(t: Value) -> Self { Self(Box::new(t), vec![]) }
+}
+impl<'src> From<TypeKind<'src>> for TypeId<'src> {
+	fn from(t: TypeKind) -> Self { Self::from(Value::Type(t)) }
+}
+impl<'src> From<GenericType<'src>> for TypeId<'src> {
+	fn from(t: GenericType) -> Self { Self::from(TypeKind::Generic(t)) }
+}
+
+impl<'src> PartialEq for TypeId<'src> {
 	fn eq(&self, other: &Self) -> bool {
     	self.0 == other.0
 		&& self.1
@@ -45,21 +55,20 @@ impl PartialEq for TypeId {
 	}
 }
 
-impl Hash for TypeId {
+impl<'src> Hash for TypeId<'src> {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		self.0.hash(state);
 	}
 }
 
-impl Add for Value {
+impl<'src> Add for Value<'src> {
 	type Output = Self;
 	fn add(self, rhs: Self) -> Self::Output {
     	match (self, rhs) {
 			(Value::Integer(x), Value::Integer(y)) => Value::Integer(x + y),
 			(Value::Decimal(x, y), Value::Decimal(a, b)) => float_to_dec(dec_to_float(x, y) + dec_to_float(a, b)),
-			(Value::String(mut x), Value::String(y)) => {
-				x.push_str(y.as_str());
-				Value::String(x)
+			(Value::String(x), Value::String(y)) => {
+				Value::String(x.to_owned() + y)
 			},
 			(Value::Map(mut x), Value::Map(y)) => {
 				y.into_iter().for_each(|(entry, (_, value))| {
@@ -76,7 +85,7 @@ impl Add for Value {
 	}
 }
 
-impl Sub for Value {
+impl<'src> Sub for Value<'src> {
 	type Output = Self;
 	fn sub(self, rhs: Self) -> Self::Output {
 		match (self, rhs) {
@@ -87,7 +96,7 @@ impl Sub for Value {
 	}
 }
 
-impl Mul for Value {
+impl<'src> Mul for Value<'src> {
 	type Output = Self;
 	fn mul(self, rhs: Self) -> Self::Output {
 		match (self, rhs) {
@@ -98,7 +107,7 @@ impl Mul for Value {
 	}
 }
 
-impl Div for Value {
+impl<'src> Div for Value<'src> {
 	type Output = Self;
 	fn div(self, rhs: Self) -> Self::Output {
 		match (self, rhs) {
@@ -109,7 +118,7 @@ impl Div for Value {
 	}
 }
 
-impl Neg for Value {
+impl<'src> Neg for Value<'src> {
 	type Output = Self;
 	fn neg(self) -> Self::Output {
 		match self {
@@ -120,7 +129,7 @@ impl Neg for Value {
 	}
 }
 
-impl Rem for Value {
+impl<'src> Rem for Value<'src> {
 	type Output = Self;
 	fn rem(self, rhs: Self) -> Self::Output {
     	match (self, rhs) {
@@ -131,7 +140,7 @@ impl Rem for Value {
 	}
 }
 
-impl BitAnd for Value {
+impl<'src> BitAnd for Value<'src> {
 	type Output = Self;
 	fn bitand(self, rhs: Self) -> Self::Output {
 		let left_truthy = self.is_truthy();
@@ -144,7 +153,7 @@ impl BitAnd for Value {
 	}
 }
 
-impl BitOr for Value {
+impl<'src> BitOr for Value<'src> {
 	type Output = Self;
 	fn bitor(self, rhs: Self) -> Self::Output {
 		let left_truthy = self.is_truthy();
@@ -156,7 +165,7 @@ impl BitOr for Value {
 	}
 }
 
-impl PartialOrd for Value {
+impl<'src> PartialOrd for Value<'src> {
 	fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
 		match (self, other) {
 			(Value::Integer(x), Value::Integer(y)) => Some(x.cmp(y)),
@@ -176,7 +185,7 @@ impl PartialOrd for Value {
 	}
 }
 
-impl PartialEq for Value {
+impl<'src> PartialEq for Value<'src> {
 	fn eq(&self, other: &Self) -> bool {
 		match (self, other) {
 			(Value::Integer(x), Value::Integer(y)) => x == y,
@@ -194,9 +203,9 @@ impl PartialEq for Value {
 	}
 }
 
-impl Eq for Value {}
+impl<'src> Eq for Value<'src> {}
 
-impl Hash for Value {
+impl<'src> Hash for Value<'src> {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		match self {
 			Value::Integer(x) => x.hash(state),
@@ -231,15 +240,15 @@ pub fn dec_to_float(front: i32, back: u32) -> f64 {
 	format!("{}.{}", front, back).parse::<f64>().unwrap()
 }
 
-pub fn float_to_dec(float: f64) -> Value {
+pub fn float_to_dec<'src>(float: f64) -> Value<'src> {
 	let string = float.to_string();
 	let mut parts: Vec<&str> = string.split('.').collect();
 	parts.push("0");
 	Value::Decimal(parts[0].parse::<i32>().unwrap(), parts[1].parse::<u32>().unwrap())
 }
 
-impl Value {
-	pub fn error<S>(token: &Token, message: S, context: S) -> Value where S: Into<String> {
+impl<'src> Value<'src> {
+	pub fn error<S>(token: &Token, message: S, context: S) -> Value<'src> where S: Into<String> {
 		Value::Error(Error::from_token(token, &message.into(), &context.into()))
 	}
 	pub fn is_poisoned(&self) -> bool {
@@ -314,7 +323,7 @@ impl Value {
 		}
 	}
 	pub fn as_string(&self) -> Value {
-		Value::String(self.to_string())
+		Value::String(self.to_string().into())
 	}
 	pub fn is_type(&self, other: Value) -> Value {
 		match other {
@@ -336,9 +345,34 @@ impl Value {
 			x => Err(format!("cannot access properties of {x}"))
 		}
 	}
+	pub fn map_to_vec(self) -> Vec<(ValueNode<'src>, ValueNode<'src>)> {
+		if let Value::Map(map) = self {
+			let mut map_vec: Vec<(ValueNode, (usize, ValueNode))> = map.into_iter().collect();
+			map_vec.sort_by(|(_, (a, _)), (_, (z, _))| a.cmp(z));
+			map_vec.iter().map(|(k, (_, v))| (
+					(*k).to_owned(), 
+					v.to_owned()
+				)).collect()
+		} else {
+			panic!("expected map");
+		}
+	}
+	pub fn array_to_vec(self) -> Vec<(ValueNode<'src>, ValueNode<'src>)> {
+		if let Value::Array(a) = self {
+			a.into_iter()
+				.enumerate()
+				.map(|(i, element)| (
+					ValueNode::from((Value::Integer(i as i32), &element.meta)),
+					element
+				))
+				.collect()
+		} else {
+			panic!("expected array")
+		}
+	}
 }
 
-impl Display for Value {
+impl<'src> Display for Value<'src> {
 	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
 		match self {
 			Self::Boolean(b) => write!(f, "{b}"),

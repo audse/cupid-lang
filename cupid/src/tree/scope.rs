@@ -15,22 +15,32 @@ pub enum Context {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum SymbolValue {
+pub enum SymbolValue<'src> {
 	Declaration {
-		type_hint: TypeKind,
+		type_hint: TypeKind<'src>,
 		mutable: bool,
-		value: ValueNode
+		value: ValueNode<'src>
 	},
 	Assignment {
-		value: ValueNode
+		value: ValueNode<'src>
 	},
 	Implementation {
-		trait_symbol: Option<SymbolNode>,
-		value: Implementation
+		trait_symbol: Option<SymbolNode<'src>>,
+		value: Implementation<'src>
 	},
 }
 
-impl SymbolValue {
+impl<'src> From<ValueNode<'src>> for SymbolValue<'src> {
+	fn from(value: ValueNode) -> Self {
+		Self::Declaration { 
+			type_hint: value.type_kind.to_owned(),
+			mutable: false, 
+			value
+		}
+	}
+}
+
+impl<'src> SymbolValue<'src> {
 	fn get_value(&self, symbol: &SymbolNode) -> ValueNode {
 		match self {
 			Self::Declaration { value, .. } => value.to_owned(),
@@ -52,17 +62,17 @@ pub trait Scope {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct LexicalScope {
-	pub scopes: Vec<SingleScope>
+pub struct LexicalScope<'src> {
+	pub scopes: Vec<SingleScope<'src>>
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct SingleScope {
-	pub storage: HashMap<ValueNode, SymbolValue>,
+pub struct SingleScope<'src> {
+	pub storage: HashMap<ValueNode<'src>, SymbolValue<'src>>,
 	pub context: Context,
 }
 
-impl Default for LexicalScope {
+impl<'src> Default for LexicalScope<'src> {
 	fn default() -> Self {
 		let global_scope = SingleScope::new(Context::Global);
 		Self {
@@ -71,7 +81,7 @@ impl Default for LexicalScope {
 	}
 }
 
-impl LexicalScope {
+impl<'src> LexicalScope<'src> {
 	pub fn new_from(&self) -> Self {
 		let global_scopes: Vec<SingleScope> = self.scopes
 			.iter()
@@ -96,7 +106,7 @@ impl LexicalScope {
 	}
 }
 
-impl Scope for LexicalScope {
+impl<'src> Scope for LexicalScope<'src> {
 	fn get_symbol(&self, symbol: &SymbolNode) -> Result<ValueNode, Error> {
 		for scope in self.scopes.iter().rev() {
 			if let Ok(value) = scope.get_symbol(symbol) {
@@ -104,7 +114,7 @@ impl Scope for LexicalScope {
 			}
 		}
 		Err(symbol.error_raw_context(
-			format!("{symbol} could not be found in the current scope"), 
+			format!("{symbol:?} could not be found in the current scope"), 
 			format!("current scope: {self}")
 		))
 	}
@@ -129,7 +139,7 @@ impl Scope for LexicalScope {
 }
 
 
-impl Display for LexicalScope {
+impl<'src> Display for LexicalScope<'src> {
 	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
 		let scopes: Vec<String> = self.scopes
 			.iter()
@@ -139,7 +149,7 @@ impl Display for LexicalScope {
 	}
 }
 
-impl SingleScope {
+impl<'src> SingleScope<'src> {
 	pub fn new(context: Context) -> Self {
 		Self {
 			storage: HashMap::new(),
@@ -148,7 +158,7 @@ impl SingleScope {
 	}
 }
 
-impl Scope for SingleScope {
+impl<'src> Scope for SingleScope<'src> {
 	fn get_symbol(&self, symbol: &SymbolNode) -> Result<ValueNode, Error> {
     	if let Some(result) = self.storage.get(&symbol.0) {
 			Ok(result.get_value(&symbol))
@@ -197,7 +207,7 @@ impl Scope for SingleScope {
 }
 
 
-impl Display for SingleScope {
+impl<'src> Display for SingleScope<'src> {
 	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
 		let storage: Vec<String> = self.storage
 			.iter()
@@ -212,7 +222,7 @@ impl Display for SingleScope {
 	}
 }
 
-pub fn create_self_symbol(function: &FunctionNode, value: ValueNode, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
+pub fn create_self_symbol<'src>(function: &FunctionNode, value: ValueNode, scope: &mut LexicalScope) -> Result<ValueNode<'src>, Error> {
 	let self_symbol = &function.params.symbols[0].symbol;
 	let declare = SymbolValue::Declaration { 
 		type_hint: value.type_kind.to_owned(), 
@@ -222,13 +232,19 @@ pub fn create_self_symbol(function: &FunctionNode, value: ValueNode, scope: &mut
 	scope.set_symbol(self_symbol, declare)
 }
 
-pub fn create_generic_symbol(generic: &GenericType, meta: &Meta<Flag>, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
-	let symbol = SymbolNode::from((generic.identifier.to_string(), meta));
+pub fn create_generic_symbol<'src>(generic: &GenericType, meta: &Meta<Flag>, scope: &mut LexicalScope) -> Result<ValueNode<'src>, Error> {
+	let generic_name = Value::String(generic.identifier.to_owned());
+	let symbol = SymbolNode(ValueNode::from((
+		Value::TypeIdentifier(TypeId::from(generic_name)), 
+		meta
+	)));
 	let value = if let Some(generic_value) = &generic.type_value {
-		ValueNode::from((Value::Type(*generic_value.to_owned()), meta))
+		*generic_value.to_owned()
 	} else {
-		generic.to_owned().into()
+		TypeKind::Generic(generic.to_owned())
 	};
+	let value = ValueNode::from((Value::Type(value), meta));
+	
 	let declare = SymbolValue::Declaration { 
 		type_hint: TypeKind::Type, 
 		mutable: false, 
@@ -242,8 +258,8 @@ pub fn error_immutable(symbol: &SymbolNode, original_value: &ValueNode, assign_v
 		format!("immutable: `{symbol}` is immutable and cannot be reassigned"),
 		format!(
 			"original value: {original_value} (type {}) \nattempted value: {assign_value} (type {})",
-			TypeKind::infer(&original_value.value).get_name(),
-			TypeKind::infer(&assign_value.value).get_name()
+			&original_value.type_kind.get_name(),
+			&assign_value.type_kind.get_name()
 		)
 	)
 }

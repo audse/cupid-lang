@@ -79,7 +79,7 @@ fn generate_rule_body(rule: &Rule, items: &[AltGroup]) -> String {
 	body
 }
 
-fn item_details(item: &Alt, group_concealed: bool) -> (String, &str, &str, bool) {
+fn item_details<'src>(item: &Alt, group_concealed: bool) -> (String, &'src str, &'src str, bool) {
 	let prefix = item.prefix_modifier.as_deref().unwrap_or("");
 	let suffix = item.suffix_modifier.as_deref().unwrap_or("");
 	let concealed = group_concealed || prefix == "~";
@@ -103,7 +103,7 @@ fn item_body(item:&(String, &str, &str, bool), group_prefix: &str) -> String {
 }
 
 fn get_method(i: &Alt) -> String {
-	match i.kind.as_str() {
+	match i.kind.to_string().as_str() {
 		// e.g. NUMBER becomes self.expect_number()
 		"constant" => format!("self.expect_{}(None)", i.source.source.to_lowercase()),
 		// e.g. keyword becomes self._keyword()

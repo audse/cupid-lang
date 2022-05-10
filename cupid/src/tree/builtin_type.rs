@@ -1,17 +1,17 @@
 use crate::*;
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct BuiltinTypeNode {
-	pub symbol: SymbolNode,
-	pub type_kind: TypeKind,
-	pub generics: Vec<GenericType>,
+pub struct BuiltinTypeNode<'src> {
+	pub symbol: SymbolNode<'src>,
+	pub type_kind: TypeKind<'src>,
+	pub generics: Vec<GenericType<'src>>,
 }
 
-impl From<&mut ParseNode> for BuiltinTypeNode {
+impl<'src> From<&mut ParseNode<'src>> for BuiltinTypeNode<'src> {
 	fn from(node: &mut ParseNode) -> Self {
-		let tokens = node.tokens.to_owned();
-		let name = tokens[1].source.clone();
-		let (type_kind, generics) = match name.as_str() {
+		let mut tokens = node.tokens.to_owned();
+		let name = &mut tokens[1].source;
+		let (type_kind, generics) = match &**name {
 			"bool"
 			| "char"
 			| "int"
@@ -24,17 +24,17 @@ impl From<&mut ParseNode> for BuiltinTypeNode {
 				vec![GenericType::from("k"), GenericType::from("v")]
 			),
 			"fun" => (TypeKind::new_function(), vec![]),
-			_ => panic!("unexpected builtin type {name}")
+			_ => panic!("unexpected builtin type")
 		};
 		Self {
-			symbol: SymbolNode::new_string(name, Meta::with_tokens(tokens)),
+			symbol: SymbolNode::new_string(std::mem::take(&mut *name), Meta::with_tokens(tokens)),
 			generics,
 			type_kind,
 		}
 	}
 }
 
-impl AST for BuiltinTypeNode {
+impl<'src> AST for BuiltinTypeNode<'src> {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		let meta = Meta::with_tokens(self.symbol.0.meta.tokens.to_owned());
 		

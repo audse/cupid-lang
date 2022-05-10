@@ -5,13 +5,13 @@ use serde::{Serialize, Deserialize};
 use crate::*;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct Implementation {
-	pub functions: HashMap<ValueNode, ValueNode>,
-	pub traits: HashMap<SymbolNode, Implementation>,
-	pub generics: Vec<GenericType>,
+pub struct Implementation<'src> {
+	pub functions: HashMap<ValueNode<'src>, ValueNode<'src>>,
+	pub traits: HashMap<SymbolNode<'src>, Implementation<'src>>,
+	pub generics: Vec<GenericType<'src>>,
 }
 
-impl From<HashMap<ValueNode, ValueNode>> for Implementation {
+impl<'src> From<HashMap<ValueNode<'src>, ValueNode<'src>>> for Implementation<'src> {
 	fn from(functions: HashMap<ValueNode, ValueNode>) -> Self {
 		Self {
 			functions,
@@ -21,7 +21,7 @@ impl From<HashMap<ValueNode, ValueNode>> for Implementation {
 	}
 }
 
-impl Implementation {
+impl<'src> Implementation<'src> {
 	// TODO make sure params match
 	pub fn get_function(&self, symbol: &SymbolNode) -> Option<&FunctionNode> {
 		if let Some(func) = self.functions.get(&symbol.0) {
@@ -49,7 +49,7 @@ impl Implementation {
 	}
 }
 
-impl Hash for Implementation {
+impl<'src> Hash for Implementation<'src> {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		for (symbol, func) in self.functions.iter() {
 			symbol.hash(state);
@@ -62,16 +62,16 @@ impl Hash for Implementation {
 	}
 }
 
-impl PartialEq for Implementation {
+impl<'src> PartialEq for Implementation<'src> {
 	fn eq(&self, other: &Self) -> bool {
 		self.functions == other.functions
 			&& self.traits == other.traits
 	}
 }
 
-impl Eq for Implementation {}
+impl<'src> Eq for Implementation<'src> {}
 
-impl Display for Implementation {
+impl<'src> Display for Implementation<'src> {
 	fn fmt(&self, f: &mut Formatter) -> DisplayResult {		
 		let functions: Vec<String> = self.functions
 			.iter()

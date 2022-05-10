@@ -1,42 +1,34 @@
-use crate::{
-	Tokenizer,
-	BiDirectionalIterator,
-	is_identifier,
-	is_string,
-	is_uppercase,
-	is_tag,
-	Token,
-};
+use crate::*;
 
-pub struct GrammarParser {
-	pub tokens: BiDirectionalIterator<Token>,
+pub struct GrammarParser<'src> {
+	pub tokens: BiDirectionalIterator<Token<'src>>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct Rule {
-	pub name: String,
-	pub alts: Vec<Vec<AltGroup>>,
+pub struct Rule<'src> {
+	pub name: Cow<'src, str>,
+	pub alts: Vec<Vec<AltGroup<'src>>>,
 	pub pass_through: bool, // to be included in the rule tree, or "passed through" to an encapsulating rule
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct Alt {
-	pub kind: String,
-	pub source: Token,
-	pub prefix_modifier: Option<String>,
-	pub suffix_modifier: Option<String>
+pub struct Alt<'src> {
+	pub kind: Cow<'src, str>,
+	pub source: Token<'src>,
+	pub prefix_modifier: Option<Cow<'src, str>>,
+	pub suffix_modifier: Option<Cow<'src, str>>
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct AltGroup {
-	pub alts: Vec<Alt>,
-	pub prefix_modifier: Option<String>,
-	pub suffix_modifier: Option<String>,
+pub struct AltGroup<'src> {
+	pub alts: Vec<Alt<'src>>,
+	pub prefix_modifier: Option<Cow<'static, str>>,
+	pub suffix_modifier: Option<Cow<'static, str>>,
 }
 
-impl GrammarParser {
-	pub fn new(source: String) -> Self {
-		let mut tokenizer = Tokenizer::new(source.as_str());
+impl<'src> GrammarParser<'src> {
+	pub fn new(source: Cow<'static, str>) -> Self {
+		let mut tokenizer = Tokenizer::new(source);
 		tokenizer.scan();
 		println!("{:#?}", tokenizer.tokens);
 		Self { tokens: BiDirectionalIterator::new(tokenizer.tokens) }
@@ -175,31 +167,31 @@ impl GrammarParser {
 		let prefix_modifier = self.prefix_modifier();
 		if let Some(con) = self.expect_constant() {
 			let suffix_modifier = self.suffix_modifier();
-			return Some(Alt { kind: "constant".to_string(), source: con, prefix_modifier, suffix_modifier });
+			return Some(Alt { kind: "constant".into(), source: con, prefix_modifier, suffix_modifier });
 		}
 		if let Some(name) = self.expect_name() {
 			let suffix_modifier = self.suffix_modifier();
-			return Some(Alt { kind: "name".to_string(), source: name, prefix_modifier, suffix_modifier });
+			return Some(Alt { kind: "name".into(), source: name, prefix_modifier, suffix_modifier });
 		}
 		if let Some(string) = self.expect_string() {
 			let suffix_modifier = self.suffix_modifier();
-			return Some(Alt { kind: "string".to_string(), source: string, prefix_modifier, suffix_modifier });
+			return Some(Alt { kind: "string".into(), source: string, prefix_modifier, suffix_modifier });
 		}
 		if let Some(tag) = self.expect_tag() {
 			let suffix_modifier = self.suffix_modifier();
-			return Some(Alt { kind: "tag".to_string(), source: tag, prefix_modifier, suffix_modifier })
+			return Some(Alt { kind: "tag".into(), source: tag, prefix_modifier, suffix_modifier })
 		}
 		None
 	}
 	
-	fn prefix_modifier(&mut self) -> Option<String> {
+	fn prefix_modifier(&mut self) -> Option<Cow<'static, str>> {
 		if let Some(token) = self.expect_one(vec!["~", "&", "!"]) {
 			return Some(token.source);
 		}
 		None
 	}
 	
-	fn suffix_modifier(&mut self) -> Option<String> {
+	fn suffix_modifier(&mut self) -> Option<Cow<'static, str>> {
 		if let Some(token) = self.expect_one(vec!["?", "*", "+"]) {
 			return Some(token.source);
 		}

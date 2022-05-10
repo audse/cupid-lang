@@ -2,7 +2,7 @@ use crate::*;
 
 
 pub fn parse(node: &mut ParseNode) -> BoxAST {
-	match node.name.as_str() {
+	match &*node.name {
 		"file" => BoxAST::new(FileNode::from(node)),
 		"expression" => parse(&mut node.children[0]),
 		"empty" 
@@ -30,6 +30,8 @@ pub fn parse(node: &mut ParseNode) -> BoxAST {
 		
 		// Terms
 		"block" => BoxAST::new(BlockNode::from(node)),
+		"for_loop" => BoxAST::new(ForInLoopNode::from(node)),
+		"while_loop" => BoxAST::new(WhileLoopNode::from(node)),
 		"property_access" => BoxAST::new(PropertyNode::from(node)),
 		
 		"compare_op" 
@@ -63,17 +65,17 @@ pub fn parse(node: &mut ParseNode) -> BoxAST {
 		| "decimal"
 		| "number" => BoxAST::new(ValueNode::from(node)),
 		
-		_ => panic!("unexpected node {:?}", node)
+		_ => panic!("unexpected node")
 	}
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct FileNode {
+pub struct FileNode<'src> {
 	pub expressions: Vec<BoxAST>,
-	pub meta: Meta<()>
+	pub meta: Meta<'src, ()>
 }
 
-impl From<&mut ParseNode> for FileNode {
+impl<'src> From<&mut ParseNode<'src>> for FileNode<'src> {
 	fn from(node: &mut ParseNode) -> Self {
     	Self {
 			expressions: node.children.iter_mut().map(parse).collect(),
@@ -82,7 +84,7 @@ impl From<&mut ParseNode> for FileNode {
 	}
 }
 
-impl AST for FileNode {
+impl<'src> AST for FileNode<'src> {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		let mut values: Vec<Value> = vec![];
 		for exp in self.expressions.iter() {

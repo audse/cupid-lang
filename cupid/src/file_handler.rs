@@ -1,15 +1,15 @@
 use crate::*;
 
-pub struct FileHandler {
+pub struct FileHandler<'src> {
 	pub path: String,
 	pub contents: String,
-	pub parser: CupidParser,
-	pub scope: LexicalScope,
+	pub parser: CupidParser<'src>,
+	pub scope: LexicalScope<'src>,
 	pub errors: Vec<Error>,
 	pub warnings: Vec<Warning>,
 }
 
-impl FileHandler {
+impl<'src> FileHandler<'src> {
 	
 	pub fn new(path: &str) -> Self {
 		let contents = std::fs::read_to_string(path)

@@ -1,13 +1,13 @@
 use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FunctionNode {
-	pub params: ParametersNode,
+pub struct FunctionNode<'src> {
+	pub params: ParametersNode<'src>,
 	pub body: BlockNode,
-	pub meta: Meta<()>,
+	pub meta: Meta<'src, ()>,
 }
 
-impl From<&mut ParseNode> for FunctionNode {
+impl<'src> From<&mut ParseNode<'src>> for FunctionNode<'src> {
 	fn from(node: &mut ParseNode) -> Self {
 		Self {
 			params: ParametersNode::from(&mut node.children[0]),
@@ -17,7 +17,7 @@ impl From<&mut ParseNode> for FunctionNode {
 	}
 }
 
-impl AST for FunctionNode {
+impl<'src> AST for FunctionNode<'src> {
 	fn resolve(&self, _scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		let meta = Meta::<Flag>::from(&self.meta);
 		Ok(ValueNode::from((
@@ -27,7 +27,7 @@ impl AST for FunctionNode {
 	}
 }
 
-impl FunctionNode {
+impl<'src> FunctionNode<'src> {
 	// fn infer_return_type(&self) -> TypeKind { todo!() }
 	
 	pub fn call_function(&self, args: &ArgumentsNode, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
@@ -49,7 +49,7 @@ impl FunctionNode {
 				.map(|(i, p)| ((*p).to_owned(), args.0[i].to_owned()))
 				.collect()
 		} else {
-			panic!("wrong number of args: expected {}, got: {}", params.len(), args.0.len())
+			panic!("wrong number of args")
 		}
 	}
 	pub fn set_params(&self, args:  &ArgumentsNode, scope: &mut LexicalScope) -> Result<(), Error> {
@@ -76,26 +76,26 @@ impl FunctionNode {
 
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct Parameter {
-	pub type_hint: Option<TypeHintNode>,
-	pub symbol: SymbolNode,
+pub struct Parameter<'src> {
+	pub type_hint: Option<TypeHintNode<'src>>,
+	pub symbol: SymbolNode<'src>,
 	pub default: OptionAST,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct ParametersNode {
-	pub symbols: Vec<Parameter>,
+pub struct ParametersNode<'src> {
+	pub symbols: Vec<Parameter<'src>>,
 	pub use_self: bool,
 	pub mut_self: bool,
 }
 
-impl From<&mut ParseNode> for ParametersNode {
+impl<'src> From<&mut ParseNode<'_>> for ParametersNode<'src> {
 	fn from(node: &mut ParseNode) -> Self {
 		let mut_self = node.tokens
 			.iter_mut()
-			.any(|t| t.source.as_str() == "mut");
+			.any(|t| &*t.source == "mut");
 		let use_self = node.has("self");
-		let symbols = node.map_mut(&|n: &mut ParseNode| match n.name.as_str() {
+		let symbols = node.map_mut(&|n: &mut ParseNode| match &*n.name {
 				"annotated_parameter" => Parameter {
 					type_hint: Some(TypeHintNode::from(&mut n.children[0])), 
 					symbol: SymbolNode::from(&mut n.children[1]), 
@@ -108,7 +108,7 @@ impl From<&mut ParseNode> for ParametersNode {
 						default: OptionAST::None
 					}
 				},
-				_ => panic!("unexpected params: {}", n.name)
+				_ => panic!("unexpected params")
 			});
 		Self {
 			symbols,
@@ -118,7 +118,7 @@ impl From<&mut ParseNode> for ParametersNode {
 	}
 }
 
-impl AST for ParametersNode {
+impl<'src> AST for ParametersNode<'src> {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		for Parameter { type_hint, symbol, .. } in self.symbols.iter() {
 			

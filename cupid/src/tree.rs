@@ -16,6 +16,9 @@ pub use builtin_type::*;
 mod declaration;
 pub use declaration::*;
 
+mod for_in_loop;
+pub use for_in_loop::*;
+
 mod function;
 pub use function::*;
 
@@ -63,3 +66,6 @@ pub use use_trait_block::*;
 
 mod value;
 pub use value::*;
+
+mod while_loop;
+pub use while_loop::*;

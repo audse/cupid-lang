@@ -1,11 +1,12 @@
 use std::fmt::{Display, Formatter, Result};
+use std::borrow::Cow;
 use serde::{Serialize, Deserialize};
 
-pub struct Tokenizer {
-	pub source: String,
+pub struct Tokenizer<'src> {
+	pub source: Cow<'src, str>,
 	pub index: usize,
 	pub chars: Vec<char>,
-	pub tokens: Vec<Token>,
+	pub tokens: Vec<Token<'src>>,
 	pub line: usize,
 	pub line_index: usize,
 	pub bracket_stack: Vec<char>,
@@ -15,18 +16,18 @@ const OPEN: [char; 3] = ['[', '(', '{'];
 const CLOSE: [char; 3] = [']', ')', '}'];
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Serialize, Deserialize)]
-pub struct Token {
-	pub source: String,
+pub struct Token<'src> {
+	pub source: Cow<'src, str>,
 	pub line: usize,
 	pub index: usize
 }
 
-impl Tokenizer {
-	pub fn new(string: &str) -> Self {
+impl<'src> Tokenizer<'src> {
+	pub fn new(string: Cow<'src, str>) -> Self {
 		Self {
-			source: string.to_string(),
-			index: 0,
 			chars: string.chars().collect(),
+			source: string,
+			index: 0,
 			tokens: vec![],
 			line: 1,
 			line_index: 0,
@@ -37,7 +38,7 @@ impl Tokenizer {
 		let index = if self.line_index > source.len() { 
 			self.line_index - source.len()
 		} else { 0 };
-		self.tokens.push(Token { source, index, line: self.line });
+		self.tokens.push(Token { source: source.into(), index, line: self.line });
 	}
 	pub fn current(&self) -> &char { self.chars.get(self.index).unwrap_or(&'\0') }
 	pub fn is_done(&self) -> bool { self.index >= self.chars.len() }
@@ -68,7 +69,7 @@ impl Tokenizer {
 			}
 			self.advance();
 		}
-		self.add_token(String::from("EOF"));
+		self.add_token("EOF".to_string());
 	}
 	fn line_comment(&mut self) {
 		while let Some(c) = self.peek(1) {
@@ -80,7 +81,7 @@ impl Tokenizer {
 		let mut source = start_char.to_string();
 		while let Some(c) = self.peek(1) {
 			if c.is_alphanumeric() || *c == '_' {
-				source.push(*self.advance());
+				source += &mut *self.advance().encode_utf8(&mut [0; 4]);
 			} else { break; }
 		}
 		self.add_token(source);
@@ -140,15 +141,15 @@ impl Tokenizer {
 	}
 }
 
-impl Display for Token {
+impl<'src> Display for Token<'src> {
 	fn fmt(&self, f: &mut Formatter) -> Result {
 		writeln!(f, "Token `{}` ({}:{})", self.source, self.line, self.index)
 	}
 }
 
-pub struct TokenList(Vec<Token>);
+pub struct TokenList<'src>(Vec<Token<'src>>);
 
-impl Display for TokenList {
+impl<'src> Display for TokenList<'src> {
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
 		_ = writeln!(f, "Tokens:");
     	self.0.iter().for_each(|t| { _ = write!(f, "{}", t); });

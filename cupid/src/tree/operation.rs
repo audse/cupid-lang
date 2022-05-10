@@ -1,13 +1,13 @@
 use crate::*;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct OperationNode {
+pub struct OperationNode<'src> {
 	pub left: BoxAST,
 	pub right: BoxAST,
-	pub operator: String,
+	pub operator: Cow<'src, str>,
 }
 
-impl From<&mut ParseNode> for OperationNode {
+impl<'src> From<&mut ParseNode<'src>> for OperationNode<'src> {
 	fn from(node: &mut ParseNode) -> Self {
     	Self {
 			left: parse(&mut node.children[0]),
@@ -17,10 +17,10 @@ impl From<&mut ParseNode> for OperationNode {
 	}
 }
 
-impl OperationNode {
-	pub fn parse_as_function(node: &mut ParseNode) -> FunctionCallNode {
+impl<'src> OperationNode<'src> {
+	pub fn parse_as_function(node: &mut ParseNode) -> FunctionCallNode<'src> {
 		use FunctionFlag::*;
-		let (function, flag) = match node.tokens[0].source.as_str() {
+		let (function, flag) = match &*node.tokens[0].source {
 			"+" => ("add", Add),
 			"-" => ("subtract", Subtract),
 			"*" => ("multiply", Multiply),
@@ -37,9 +37,9 @@ impl OperationNode {
 			"or" => ("or", Or),
 			"as" => ("cast", As),
 			"istype" => ("istype", IsType),
-			x => panic!("unrecognized operation {}", x),
+			_ => panic!("unrecognized operation"),
 		};
-		let function = Value::String(function.to_string());
+		let function = Value::String(function.into());
 		let function_symbol = SymbolNode(ValueNode {
 			type_kind: TypeKind::infer(&function),
 			value: function,

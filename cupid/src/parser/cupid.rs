@@ -4,9 +4,7 @@
 #![allow(dead_code)]
 #![allow(unused_macros)]
 use serde::{Serialize, Deserialize};
-use crate::{
-    is_identifier, is_number, is_string, is_uppercase, BiDirectionalIterator, Tokenizer, Token,
-};
+use crate::*;
 
 macro_rules! use_item {
     ($item:expr, $method:expr, $is_concealed:expr) => {{
@@ -72,13 +70,13 @@ macro_rules! use_positive_lookahead {
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Serialize, Deserialize)]
-pub struct Node {
-    pub name: String,
-    pub children: Vec<Node>,
-    pub tokens: Vec<Token>,
+pub struct Node<'src> {
+    pub name: Cow<'src, str>,
+    pub children: Vec<Node<'src>>,
+    pub tokens: Vec<Token<'src>>,
 }
 
-impl Node {
+impl<'src> Node<'src> {
     pub fn map<R>(&self, function: &dyn Fn(&Self) -> R) -> Vec<R> {
         self.children.iter().map(function).collect()
     }
@@ -91,25 +89,25 @@ impl Node {
     pub fn has(&self, name: &str) -> bool {
         self.children
             .iter()
-            .find(|c| c.name.as_str() == name)
+            .find(|c| c.name == name)
             .is_some()
     }
     pub fn get_mut(&mut self, name: &str) -> Option<&mut Self> {
         self.children
             .iter_mut()
-            .find(|c| c.name.as_str() == name)
+            .find(|c| c.name == name)
     }
 }
 
 #[derive(PartialEq, Eq)]
-pub struct Parser {
-    pub tokens: BiDirectionalIterator<Token>,
+pub struct Parser<'src> {
+    pub tokens: BiDirectionalIterator<Token<'src>>,
     pub index: usize,
 }
 
-impl Parser {
+impl<'src> Parser<'src> {
     pub fn new(source: String) -> Self {
-        let mut tokenizer = Tokenizer::new(source.as_str());
+        let mut tokenizer = Tokenizer::new(source.into());
         tokenizer.scan();
         Self {
             index: 0,
@@ -118,7 +116,7 @@ impl Parser {
     }
     
     #[inline]
-    fn expect(&mut self, rule_name: String) -> Option<(Node, bool)> {
+    fn expect(&mut self, rule_name: &'src str) -> Option<(Node, bool)> {
         if let Some(token) = self.tokens.peek(0) {
             if token.source == rule_name {
                 return Some((node_from_token(self.tokens.next().unwrap(), rule_name), true));
@@ -128,7 +126,7 @@ impl Parser {
     }
     
     #[inline]
-    fn expect_one(&mut self, rule_names: Vec<String>) -> Option<(Node, bool)> {
+    fn expect_one(&mut self, rule_names: Vec<&'src str>) -> Option<(Node, bool)> {
         for rule_name in rule_names {
             if let Some(next) = self.expect(rule_name) {
                 return Some(next);
@@ -138,74 +136,74 @@ impl Parser {
     }
     
     #[inline]
-    fn expect_constant(&mut self, _arg: Option<String>) -> Option<(Node, bool)> {
+    fn expect_constant(&mut self, _arg: Option<()>) -> Option<(Node, bool)> {
         if let Some(next) = self.tokens.peek(0) {
             if is_uppercase(&next.source) {
                 let token = self.tokens.next().unwrap();
-                return Some((node_from_token(token, "constant".to_string()), true));
+                return Some((node_from_token(token, "constant"), true));
             }
         }
         None
     }
     
     #[inline]
-    fn expect_word(&mut self, _arg: Option<String>) -> Option<(Node, bool)> {
+    fn expect_word(&mut self, _arg: Option<()>) -> Option<(Node, bool)> {
         if let Some(next) = self.tokens.peek(0) {
             if is_identifier(&next.source) {
                 let token = self.tokens.next().unwrap();
-                return Some((node_from_token(token, "word".to_string()), true));
+                return Some((node_from_token(token, "word"), true));
             }
         }
         None
     }
     
     #[inline]
-    fn expect_string(&mut self, _arg: Option<String>) -> Option<(Node, bool)> {
+    fn expect_string(&mut self, _arg: Option<()>) -> Option<(Node, bool)> {
         if let Some(next) = self.tokens.peek(0) {
             if is_string(&next.source) {
                 let token = self.tokens.next().unwrap();
-                return Some((node_from_token(token, "string".to_string()), true));
+                return Some((node_from_token(token, "string"), true));
             }
         }
         None
     }
     
     #[inline]
-    fn expect_letter(&mut self, _arg: Option<String>) -> Option<(Node, bool)> {
+    fn expect_letter(&mut self, _arg: Option<()>) -> Option<(Node, bool)> {
         if let Some(next) = self.tokens.peek(0) {
             if next.source.len() == 1 {
                 let token = self.tokens.next().unwrap();
-                return Some((node_from_token(token, "letter".to_string()), true));
+                return Some((node_from_token(token, "letter"), true));
             }
         }
         None
     }
     
     #[inline]
-    fn expect_number(&mut self, _arg: Option<String>) -> Option<(Node, bool)> {
+    fn expect_number(&mut self, _arg: Option<()>) -> Option<(Node, bool)> {
         if let Some(next) = self.tokens.peek(0) {
             if is_number(&next.source) {
                 let token = self.tokens.next().unwrap();
-                return Some((node_from_token(token, "number".to_string()), true));
+                return Some((node_from_token(token, "number"), true));
             }
         }
         None
     }
     
     #[inline]
-    fn expect_tag(&mut self, arg: String) -> Option<(Node, bool)> {
+    fn expect_tag(&mut self, arg: &'src str) -> Option<(Node, bool)> {
         if !self.tokens.at_end() {
             let current_token = self.tokens.peek_back(1).unwrap();
             return Some((
                 Node {
-                    name: "error".to_string(),
+                    name: Cow::Borrowed("error"),
                     tokens: vec![
                         Token {
-                            source: arg,
+                            source: Cow::Borrowed(arg),
                             index: current_token.index + 1,
                             line: current_token.line,
                         },
-                        current_token.clone()
+                        current_token.to_owned()
                     ],
                     children: vec![],
                 },
@@ -216,9 +214,9 @@ impl Parser {
     }
     
     #[inline]
-    fn expect_any(&mut self, _arg: Option<String>) -> Option<(Node, bool)> {
+    fn expect_any(&mut self, _arg: Option<()>) -> Option<(Node, bool)> {
         if let Some(next) = self.tokens.next() {
-            return Some((node_from_token(next, "any".to_string()), false));
+            return Some((node_from_token(next, "any"), false));
         }
         None
     }
@@ -235,7 +233,7 @@ impl Parser {
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "file".to_string(),
+				name: Cow::Borrowed("file"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -254,7 +252,7 @@ use_repeat!(&mut node, self._expression(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "expression".to_string(),
+				name: Cow::Borrowed("expression"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -286,7 +284,7 @@ use_item!(&mut node, self._term(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "statement".to_string(),
+				name: Cow::Borrowed("statement"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -388,7 +386,7 @@ use_item!(&mut node, self._log(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "term".to_string(),
+				name: Cow::Borrowed("term"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -441,7 +439,7 @@ use_item!(&mut node, self._operation(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "loop".to_string(),
+				name: Cow::Borrowed("loop"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -473,14 +471,14 @@ use_item!(&mut node, self._infinite_loop(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "for_loop".to_string(),
+				name: Cow::Borrowed("for_loop"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("for".to_string()), false);
+use_item!(&mut node, self.expect("for"), false);
 use_item!(&mut node, self._for_loop_parameters(None), false);
-use_item!(&mut node, self.expect("in".to_string()), true);
+use_item!(&mut node, self.expect("in"), true);
 use_item!(&mut node, self._term(None), false);
 use_item!(&mut node, self._block(None), false);
 
@@ -495,14 +493,14 @@ use_item!(&mut node, self._block(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "for_loop_parameters".to_string(),
+				name: Cow::Borrowed("for_loop_parameters"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
 loop { 
 use_item!(&mut node, self._identifier(None), false);
-use_item!(&mut node, self.expect(",".to_string()), true);
+use_item!(&mut node, self.expect(","), true);
 }
 			return Some((node, false));
 		
@@ -515,12 +513,12 @@ use_item!(&mut node, self.expect(",".to_string()), true);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "while_loop".to_string(),
+				name: Cow::Borrowed("while_loop"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("while".to_string()), false);
+use_item!(&mut node, self.expect("while"), false);
 use_item!(&mut node, self._term(None), false);
 use_item!(&mut node, self._block(None), false);
 
@@ -535,12 +533,12 @@ use_item!(&mut node, self._block(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "infinite_loop".to_string(),
+				name: Cow::Borrowed("infinite_loop"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("loop".to_string()), false);
+use_item!(&mut node, self.expect("loop"), false);
 use_item!(&mut node, self._block(None), false);
 
 			return Some((node, false));
@@ -554,7 +552,7 @@ use_item!(&mut node, self._block(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "block".to_string(),
+				name: Cow::Borrowed("block"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -593,12 +591,12 @@ use_item!(&mut node, self._arrow_block(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "if_block".to_string(),
+				name: Cow::Borrowed("if_block"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("if".to_string()), true);
+use_item!(&mut node, self.expect("if"), true);
 use_item!(&mut node, self._term(None), false);
 use_item!(&mut node, self._block(None), false);
 use_repeat!(&mut node, self._else_if_block(None), false);
@@ -615,13 +613,13 @@ use_optional!(&mut node, self._else_block(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "else_if_block".to_string(),
+				name: Cow::Borrowed("else_if_block"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("else".to_string()), true);
-use_item!(&mut node, self.expect("if".to_string()), true);
+use_item!(&mut node, self.expect("else"), true);
+use_item!(&mut node, self.expect("if"), true);
 use_item!(&mut node, self._term(None), false);
 use_item!(&mut node, self._block(None), false);
 
@@ -636,12 +634,12 @@ use_item!(&mut node, self._block(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "else_block".to_string(),
+				name: Cow::Borrowed("else_block"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("else".to_string()), true);
+use_item!(&mut node, self.expect("else"), true);
 use_item!(&mut node, self._block(None), false);
 
 			return Some((node, false));
@@ -655,12 +653,12 @@ use_item!(&mut node, self._block(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "box_block".to_string(),
+				name: Cow::Borrowed("box_block"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("box".to_string()), true);
+use_item!(&mut node, self.expect("box"), true);
 use_item!(&mut node, self._brace_block(None), false);
 
 			return Some((node, false));
@@ -674,12 +672,12 @@ use_item!(&mut node, self._brace_block(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "brace_block".to_string(),
+				name: Cow::Borrowed("brace_block"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("{".to_string()), true);
+use_item!(&mut node, self.expect("{"), true);
 use_repeat!(&mut node, self._expression(None), false);
 use_item!(&mut node, self._closing_brace(None), false);
 
@@ -694,7 +692,7 @@ use_item!(&mut node, self._closing_brace(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "arrow_block".to_string(),
+				name: Cow::Borrowed("arrow_block"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -713,7 +711,7 @@ use_item!(&mut node, self._expression(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "assignment".to_string(),
+				name: Cow::Borrowed("assignment"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -733,7 +731,7 @@ use_item!(&mut node, self._term(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "property_assignment".to_string(),
+				name: Cow::Borrowed("property_assignment"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -753,7 +751,7 @@ use_item!(&mut node, self._term(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "property_op_assignment".to_string(),
+				name: Cow::Borrowed("property_op_assignment"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -774,13 +772,13 @@ use_item!(&mut node, self._term(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "property_access".to_string(),
+				name: Cow::Borrowed("property_access"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
 use_item!(&mut node, self._atom(None), false);
-use_item!(&mut node, self.expect(".".to_string()), false);
+use_item!(&mut node, self.expect("."), false);
 use_item!(&mut node, self._term(None), false);
 
 			return Some((node, false));
@@ -794,7 +792,7 @@ use_item!(&mut node, self._term(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "op_assignment".to_string(),
+				name: Cow::Borrowed("op_assignment"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -815,47 +813,47 @@ use_item!(&mut node, self._term(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "operator".to_string(),
+				name: Cow::Borrowed("operator"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("+".to_string()), false);
+use_item!(&mut node, self.expect("+"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("-".to_string()), false);
+use_item!(&mut node, self.expect("-"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("*".to_string()), false);
+use_item!(&mut node, self.expect("*"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("/".to_string()), false);
+use_item!(&mut node, self.expect("/"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("^".to_string()), false);
+use_item!(&mut node, self.expect("^"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("%".to_string()), false);
+use_item!(&mut node, self.expect("%"), false);
 
 			return Some((node, true));
 		
@@ -868,7 +866,7 @@ use_item!(&mut node, self.expect("%".to_string()), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "type_definition".to_string(),
+				name: Cow::Borrowed("type_definition"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -907,14 +905,14 @@ use_item!(&mut node, self._alias_type_definition(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "builtin_type_definition".to_string(),
+				name: Cow::Borrowed("builtin_type_definition"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("type".to_string()), false);
+use_item!(&mut node, self.expect("type"), false);
 use_item!(&mut node, self.expect_word(None), false);
-use_negative_lookahead!(self, self.tokens.index(), &mut self.expect("=".to_string()));
+use_negative_lookahead!(self, self.tokens.index(), &mut self.expect("="));
 
 			return Some((node, false));
 		
@@ -927,18 +925,18 @@ use_negative_lookahead!(self, self.tokens.index(), &mut self.expect("=".to_strin
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "struct_type_definition".to_string(),
+				name: Cow::Borrowed("struct_type_definition"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
 use_item!(&mut node, self._type_symbol(None), false);
 use_item!(&mut node, self._equal(None), true);
-use_item!(&mut node, self.expect("[".to_string()), false);
+use_item!(&mut node, self.expect("["), false);
 loop { 
 use_item!(&mut node, self._struct_member(None), false);
-use_item!(&mut node, self.expect(",".to_string()), true);
-}use_item!(&mut node, self.expect("]".to_string()), true);
+use_item!(&mut node, self.expect(","), true);
+}use_item!(&mut node, self.expect("]"), true);
 
 			return Some((node, false));
 		
@@ -951,7 +949,7 @@ use_item!(&mut node, self.expect(",".to_string()), true);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "struct_member".to_string(),
+				name: Cow::Borrowed("struct_member"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -970,18 +968,18 @@ use_item!(&mut node, self._identifier(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "sum_type_definition".to_string(),
+				name: Cow::Borrowed("sum_type_definition"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
 use_item!(&mut node, self._type_symbol(None), false);
 use_item!(&mut node, self._equal(None), true);
-use_item!(&mut node, self.expect("[".to_string()), false);
+use_item!(&mut node, self.expect("["), false);
 loop { 
 use_item!(&mut node, self._sum_member(None), false);
-use_item!(&mut node, self.expect(",".to_string()), true);
-}use_item!(&mut node, self.expect("]".to_string()), true);
+use_item!(&mut node, self.expect(","), true);
+}use_item!(&mut node, self.expect("]"), true);
 
 			return Some((node, false));
 		
@@ -994,7 +992,7 @@ use_item!(&mut node, self.expect(",".to_string()), true);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "sum_member".to_string(),
+				name: Cow::Borrowed("sum_member"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -1012,7 +1010,7 @@ use_item!(&mut node, self._type_hint(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "alias_type_definition".to_string(),
+				name: Cow::Borrowed("alias_type_definition"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -1032,12 +1030,12 @@ use_item!(&mut node, self._type_hint(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "type_symbol".to_string(),
+				name: Cow::Borrowed("type_symbol"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("type".to_string()), false);
+use_item!(&mut node, self.expect("type"), false);
 use_optional!(&mut node, self._generics(None), false);
 use_item!(&mut node, self._identifier(None), false);
 
@@ -1052,15 +1050,15 @@ use_item!(&mut node, self._identifier(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "generics".to_string(),
+				name: Cow::Borrowed("generics"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("[".to_string()), false);
+use_item!(&mut node, self.expect("["), false);
 loop { 
 use_item!(&mut node, self._generic_argument(None), false);
-use_item!(&mut node, self.expect(",".to_string()), false);
+use_item!(&mut node, self.expect(","), false);
 }use_item!(&mut node, self._closing_bracket(None), false);
 
 			return Some((node, false));
@@ -1074,13 +1072,13 @@ use_item!(&mut node, self.expect(",".to_string()), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "generic_argument".to_string(),
+				name: Cow::Borrowed("generic_argument"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
 use_item!(&mut node, self._identifier(None), false);
-use_negative_lookahead!(self, self.tokens.index(), &mut self.expect(":".to_string()));
+use_negative_lookahead!(self, self.tokens.index(), &mut self.expect(":"));
 
 			return Some((node, false));
 		
@@ -1088,7 +1086,7 @@ use_negative_lookahead!(self, self.tokens.index(), &mut self.expect(":".to_strin
 		self.reset_parse(&mut node, pos);
 loop { 
 use_item!(&mut node, self._identifier(None), false);
-use_item!(&mut node, self.expect(":".to_string()), false);
+use_item!(&mut node, self.expect(":"), false);
 use_item!(&mut node, self._type_hint(None), false);
 
 			return Some((node, false));
@@ -1102,13 +1100,13 @@ use_item!(&mut node, self._type_hint(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "typed_declaration".to_string(),
+				name: Cow::Borrowed("typed_declaration"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
 use_item!(&mut node, self._type_hint(None), false);
-use_optional!(&mut node, self.expect("mut".to_string()), false);
+use_optional!(&mut node, self.expect("mut"), false);
 use_item!(&mut node, self._identifier(None), false);
 loop { 
 use_item!(&mut node, self._equal(None), true);
@@ -1125,7 +1123,7 @@ break}
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "type_hint".to_string(),
+				name: Cow::Borrowed("type_hint"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -1171,13 +1169,13 @@ use_item!(&mut node, self._primitive_type_hint(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "array_type_hint".to_string(),
+				name: Cow::Borrowed("array_type_hint"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
 use_item!(&mut node, self._array_kw(None), false);
-use_item!(&mut node, self.expect("[".to_string()), false);
+use_item!(&mut node, self.expect("["), false);
 use_item!(&mut node, self._type_hint(None), false);
 use_item!(&mut node, self._closing_bracket(None), false);
 
@@ -1192,15 +1190,15 @@ use_item!(&mut node, self._closing_bracket(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "map_type_hint".to_string(),
+				name: Cow::Borrowed("map_type_hint"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
 use_item!(&mut node, self._map_kw(None), false);
-use_item!(&mut node, self.expect("[".to_string()), false);
+use_item!(&mut node, self.expect("["), false);
 use_item!(&mut node, self._type_hint(None), false);
-use_item!(&mut node, self.expect(",".to_string()), false);
+use_item!(&mut node, self.expect(","), false);
 use_item!(&mut node, self._type_hint(None), false);
 use_item!(&mut node, self._closing_bracket(None), false);
 
@@ -1215,13 +1213,13 @@ use_item!(&mut node, self._closing_bracket(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "function_type_hint".to_string(),
+				name: Cow::Borrowed("function_type_hint"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
 use_item!(&mut node, self._fun_kw(None), false);
-use_item!(&mut node, self.expect("[".to_string()), false);
+use_item!(&mut node, self.expect("["), false);
 use_item!(&mut node, self._type_hint(None), false);
 use_item!(&mut node, self._closing_bracket(None), false);
 
@@ -1236,7 +1234,7 @@ use_item!(&mut node, self._closing_bracket(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "primitive_type_hint".to_string(),
+				name: Cow::Borrowed("primitive_type_hint"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -1254,12 +1252,12 @@ use_item!(&mut node, self._identifier(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "array_kw".to_string(),
+				name: Cow::Borrowed("array_kw"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("array".to_string()), false);
+use_item!(&mut node, self.expect("array"), false);
 
 			return Some((node, false));
 		
@@ -1272,12 +1270,12 @@ use_item!(&mut node, self.expect("array".to_string()), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "map_kw".to_string(),
+				name: Cow::Borrowed("map_kw"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("map".to_string()), false);
+use_item!(&mut node, self.expect("map"), false);
 
 			return Some((node, false));
 		
@@ -1290,12 +1288,12 @@ use_item!(&mut node, self.expect("map".to_string()), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "fun_kw".to_string(),
+				name: Cow::Borrowed("fun_kw"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("fun".to_string()), false);
+use_item!(&mut node, self.expect("fun"), false);
 
 			return Some((node, false));
 		
@@ -1308,17 +1306,17 @@ use_item!(&mut node, self.expect("fun".to_string()), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "struct_type_hint".to_string(),
+				name: Cow::Borrowed("struct_type_hint"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
 use_item!(&mut node, self._identifier(None), false);
-use_item!(&mut node, self.expect("[".to_string()), false);
+use_item!(&mut node, self.expect("["), false);
 loop { 
 use_item!(&mut node, self._struct_member_type_hint(None), false);
-use_item!(&mut node, self.expect(",".to_string()), false);
-}use_item!(&mut node, self.expect("]".to_string()), false);
+use_item!(&mut node, self.expect(","), false);
+}use_item!(&mut node, self.expect("]"), false);
 
 			return Some((node, false));
 		
@@ -1331,13 +1329,13 @@ use_item!(&mut node, self.expect(",".to_string()), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "struct_member_type_hint".to_string(),
+				name: Cow::Borrowed("struct_member_type_hint"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
 use_item!(&mut node, self._identifier(None), false);
-use_item!(&mut node, self.expect(":".to_string()), false);
+use_item!(&mut node, self.expect(":"), false);
 use_item!(&mut node, self._type_hint(None), false);
 
 			return Some((node, false));
@@ -1351,15 +1349,15 @@ use_item!(&mut node, self._type_hint(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "implement_type".to_string(),
+				name: Cow::Borrowed("implement_type"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("use".to_string()), false);
+use_item!(&mut node, self.expect("use"), false);
 use_optional!(&mut node, self._generics(None), false);
 use_item!(&mut node, self._type_hint(None), false);
-use_item!(&mut node, self.expect("{".to_string()), false);
+use_item!(&mut node, self.expect("{"), false);
 use_repeat!(&mut node, self._typed_declaration(None), false);
 use_item!(&mut node, self._closing_brace(None), false);
 
@@ -1374,15 +1372,15 @@ use_item!(&mut node, self._closing_brace(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "implement_trait".to_string(),
+				name: Cow::Borrowed("implement_trait"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("use".to_string()), false);
+use_item!(&mut node, self.expect("use"), false);
 use_optional!(&mut node, self._generics(None), false);
 use_item!(&mut node, self._identifier(None), false);
-use_item!(&mut node, self.expect("with".to_string()), false);
+use_item!(&mut node, self.expect("with"), false);
 use_item!(&mut node, self._type_hint(None), false);
 use_optional!(&mut node, self._implement_trait_body(None), false);
 
@@ -1397,12 +1395,12 @@ use_optional!(&mut node, self._implement_trait_body(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "implement_trait_body".to_string(),
+				name: Cow::Borrowed("implement_trait_body"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("{".to_string()), false);
+use_item!(&mut node, self.expect("{"), false);
 use_repeat!(&mut node, self._typed_declaration(None), false);
 use_item!(&mut node, self._closing_brace(None), false);
 
@@ -1417,19 +1415,19 @@ use_item!(&mut node, self._closing_brace(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "trait_definition".to_string(),
+				name: Cow::Borrowed("trait_definition"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("trait".to_string()), false);
+use_item!(&mut node, self.expect("trait"), false);
 use_item!(&mut node, self._generics(None), false);
 use_item!(&mut node, self._identifier(None), false);
 use_item!(&mut node, self._equal(None), true);
-use_item!(&mut node, self.expect("[".to_string()), true);
+use_item!(&mut node, self.expect("["), true);
 loop { 
 use_item!(&mut node, self._typed_declaration(None), false);
-use_item!(&mut node, self.expect(",".to_string()), false);
+use_item!(&mut node, self.expect(","), false);
 }use_item!(&mut node, self._closing_bracket(None), false);
 
 			return Some((node, false));
@@ -1443,13 +1441,13 @@ use_item!(&mut node, self.expect(",".to_string()), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "equal".to_string(),
+				name: Cow::Borrowed("equal"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("=".to_string()), false);
-use_negative_lookahead!(self, self.tokens.index(), &mut self.expect(">".to_string()));
+use_item!(&mut node, self.expect("="), false);
+use_negative_lookahead!(self, self.tokens.index(), &mut self.expect(">"));
 
 			return Some((node, true));
 		
@@ -1462,7 +1460,7 @@ use_negative_lookahead!(self, self.tokens.index(), &mut self.expect(">".to_strin
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "atom".to_string(),
+				name: Cow::Borrowed("atom"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -1578,12 +1576,12 @@ use_item!(&mut node, self._identifier(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "empty".to_string(),
+				name: Cow::Borrowed("empty"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("_".to_string()), true);
+use_item!(&mut node, self.expect("_"), true);
 
 			return Some((node, false));
 		
@@ -1596,12 +1594,12 @@ use_item!(&mut node, self.expect("_".to_string()), true);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "group".to_string(),
+				name: Cow::Borrowed("group"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("(".to_string()), true);
+use_item!(&mut node, self.expect("("), true);
 use_optional!(&mut node, self._term(None), false);
 use_item!(&mut node, self._closing_paren(None), false);
 
@@ -1616,7 +1614,7 @@ use_item!(&mut node, self._closing_paren(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "function".to_string(),
+				name: Cow::Borrowed("function"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -1635,7 +1633,7 @@ use_item!(&mut node, self._function_body(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "function_body".to_string(),
+				name: Cow::Borrowed("function_body"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -1669,14 +1667,14 @@ use_item!(&mut node, self._block(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "parameters".to_string(),
+				name: Cow::Borrowed("parameters"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
 loop { 
 use_item!(&mut node, self._parameter(None), false);
-use_item!(&mut node, self.expect(",".to_string()), true);
+use_item!(&mut node, self.expect(","), true);
 }
 			return Some((node, false));
 		
@@ -1689,19 +1687,19 @@ use_item!(&mut node, self.expect(",".to_string()), true);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "parameter".to_string(),
+				name: Cow::Borrowed("parameter"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("_".to_string()), true);
+use_item!(&mut node, self.expect("_"), true);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_optional!(&mut node, self.expect("mut".to_string()), false);
+use_optional!(&mut node, self.expect("mut"), false);
 use_item!(&mut node, self._self(None), false);
 
 			return Some((node, true));
@@ -1722,7 +1720,7 @@ use_item!(&mut node, self._annotated_parameter(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "annotated_parameter".to_string(),
+				name: Cow::Borrowed("annotated_parameter"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -1741,13 +1739,13 @@ use_item!(&mut node, self._identifier(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "log".to_string(),
+				name: Cow::Borrowed("log"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
 use_item!(&mut node, self._log_keyword(None), false);
-use_item!(&mut node, self.expect("(".to_string()), true);
+use_item!(&mut node, self.expect("("), true);
 use_item!(&mut node, self._arguments(None), false);
 use_item!(&mut node, self._closing_paren(None), false);
 
@@ -1762,13 +1760,13 @@ use_item!(&mut node, self._closing_paren(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "function_call".to_string(),
+				name: Cow::Borrowed("function_call"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
 use_item!(&mut node, self._identifier(None), false);
-use_item!(&mut node, self.expect("(".to_string()), true);
+use_item!(&mut node, self.expect("("), true);
 use_item!(&mut node, self._arguments(None), false);
 use_item!(&mut node, self._closing_paren(None), false);
 
@@ -1783,14 +1781,14 @@ use_item!(&mut node, self._closing_paren(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "arguments".to_string(),
+				name: Cow::Borrowed("arguments"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
 loop { 
 use_item!(&mut node, self._term(None), false);
-use_item!(&mut node, self.expect(",".to_string()), true);
+use_item!(&mut node, self.expect(","), true);
 }
 			return Some((node, false));
 		
@@ -1803,33 +1801,33 @@ use_item!(&mut node, self.expect(",".to_string()), true);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "log_keyword".to_string(),
+				name: Cow::Borrowed("log_keyword"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("log".to_string()), false);
+use_item!(&mut node, self.expect("log"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("logs".to_string()), false);
+use_item!(&mut node, self.expect("logs"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("log_line".to_string()), false);
+use_item!(&mut node, self.expect("log_line"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("logs_line".to_string()), false);
+use_item!(&mut node, self.expect("logs_line"), false);
 
 			return Some((node, true));
 		
@@ -1842,15 +1840,15 @@ use_item!(&mut node, self.expect("logs_line".to_string()), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "bracket_array".to_string(),
+				name: Cow::Borrowed("bracket_array"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("[".to_string()), false);
-use_negative_lookahead!(self, self.tokens.index(), &mut self.expect(".".to_string()));
+use_item!(&mut node, self.expect("["), false);
+use_negative_lookahead!(self, self.tokens.index(), &mut self.expect("."));
 use_optional!(&mut node, self._array(None), false);
-use_negative_lookahead!(self, self.tokens.index(), &mut self.expect(".".to_string()));
+use_negative_lookahead!(self, self.tokens.index(), &mut self.expect("."));
 use_item!(&mut node, self._closing_bracket(None), false);
 
 			return Some((node, false));
@@ -1864,14 +1862,14 @@ use_item!(&mut node, self._closing_bracket(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "array".to_string(),
+				name: Cow::Borrowed("array"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
 loop { 
 use_item!(&mut node, self._term(None), false);
-use_item!(&mut node, self.expect(",".to_string()), true);
+use_item!(&mut node, self.expect(","), true);
 }use_optional!(&mut node, self._term(None), false);
 
 			return Some((node, true));
@@ -1885,17 +1883,17 @@ use_item!(&mut node, self.expect(",".to_string()), true);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "map".to_string(),
+				name: Cow::Borrowed("map"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("[".to_string()), false);
+use_item!(&mut node, self.expect("["), false);
 loop { 
 use_item!(&mut node, self._map_entry(None), false);
-use_negative_lookahead!(self, self.tokens.index(), &mut self.expect("]".to_string()));
-use_item!(&mut node, self.expect(",".to_string()), false);
-}use_item!(&mut node, self.expect("]".to_string()), false);
+use_negative_lookahead!(self, self.tokens.index(), &mut self.expect("]"));
+use_item!(&mut node, self.expect(","), false);
+}use_item!(&mut node, self.expect("]"), false);
 
 			return Some((node, false));
 		
@@ -1908,13 +1906,13 @@ use_item!(&mut node, self.expect(",".to_string()), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "map_entry".to_string(),
+				name: Cow::Borrowed("map_entry"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
 use_item!(&mut node, self._atom(None), false);
-use_item!(&mut node, self.expect(":".to_string()), false);
+use_item!(&mut node, self.expect(":"), false);
 use_item!(&mut node, self._term(None), false);
 
 			return Some((node, false));
@@ -1928,7 +1926,7 @@ use_item!(&mut node, self._term(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "range".to_string(),
+				name: Cow::Borrowed("range"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -1967,17 +1965,17 @@ use_item!(&mut node, self._range_exclusive_exclusive(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "range_inclusive_inclusive".to_string(),
+				name: Cow::Borrowed("range_inclusive_inclusive"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("[".to_string()), false);
+use_item!(&mut node, self.expect("["), false);
 use_item!(&mut node, self._range_term(None), false);
-use_item!(&mut node, self.expect(".".to_string()), true);
-use_item!(&mut node, self.expect(".".to_string()), true);
+use_item!(&mut node, self.expect("."), true);
+use_item!(&mut node, self.expect("."), true);
 use_item!(&mut node, self._range_term(None), false);
-use_item!(&mut node, self.expect("]".to_string()), false);
+use_item!(&mut node, self.expect("]"), false);
 
 			return Some((node, false));
 		
@@ -1990,16 +1988,16 @@ use_item!(&mut node, self.expect("]".to_string()), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "range_inclusive_exclusive".to_string(),
+				name: Cow::Borrowed("range_inclusive_exclusive"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("[".to_string()), false);
+use_item!(&mut node, self.expect("["), false);
 use_item!(&mut node, self._range_term(None), false);
-use_item!(&mut node, self.expect(".".to_string()), true);
-use_item!(&mut node, self.expect(".".to_string()), true);
-use_item!(&mut node, self.expect("]".to_string()), false);
+use_item!(&mut node, self.expect("."), true);
+use_item!(&mut node, self.expect("."), true);
+use_item!(&mut node, self.expect("]"), false);
 use_item!(&mut node, self._range_term(None), false);
 
 			return Some((node, false));
@@ -2013,17 +2011,17 @@ use_item!(&mut node, self._range_term(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "range_exclusive_inclusive".to_string(),
+				name: Cow::Borrowed("range_exclusive_inclusive"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
 use_item!(&mut node, self._range_term(None), false);
-use_item!(&mut node, self.expect("[".to_string()), false);
-use_item!(&mut node, self.expect(".".to_string()), true);
-use_item!(&mut node, self.expect(".".to_string()), true);
+use_item!(&mut node, self.expect("["), false);
+use_item!(&mut node, self.expect("."), true);
+use_item!(&mut node, self.expect("."), true);
 use_item!(&mut node, self._range_term(None), false);
-use_item!(&mut node, self.expect("]".to_string()), false);
+use_item!(&mut node, self.expect("]"), false);
 
 			return Some((node, false));
 		
@@ -2036,16 +2034,16 @@ use_item!(&mut node, self.expect("]".to_string()), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "range_exclusive_exclusive".to_string(),
+				name: Cow::Borrowed("range_exclusive_exclusive"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
 use_item!(&mut node, self._range_term(None), false);
-use_item!(&mut node, self.expect("[".to_string()), false);
-use_item!(&mut node, self.expect(".".to_string()), true);
-use_item!(&mut node, self.expect(".".to_string()), true);
-use_item!(&mut node, self.expect("]".to_string()), false);
+use_item!(&mut node, self.expect("["), false);
+use_item!(&mut node, self.expect("."), true);
+use_item!(&mut node, self.expect("."), true);
+use_item!(&mut node, self.expect("]"), false);
 use_item!(&mut node, self._range_term(None), false);
 
 			return Some((node, false));
@@ -2059,7 +2057,7 @@ use_item!(&mut node, self._range_term(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "range_term".to_string(),
+				name: Cow::Borrowed("range_term"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -2105,14 +2103,14 @@ use_item!(&mut node, self._identifier(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "no_op".to_string(),
+				name: Cow::Borrowed("no_op"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_negative_lookahead!(self, self.tokens.index(), &mut self.expect("-".to_string()));
+use_negative_lookahead!(self, self.tokens.index(), &mut self.expect("-"));
 use_item!(&mut node, self._atom(None), false);
-use_negative_lookahead!(self, self.tokens.index(), &mut self.expect(".".to_string()));
+use_negative_lookahead!(self, self.tokens.index(), &mut self.expect("."));
 use_negative_lookahead!(self, self.tokens.index(), &mut self._operator(None));
 use_negative_lookahead!(self, self.tokens.index(), &mut self._keyword_operator(None));
 
@@ -2127,7 +2125,7 @@ use_negative_lookahead!(self, self.tokens.index(), &mut self._keyword_operator(N
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "operation".to_string(),
+				name: Cow::Borrowed("operation"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -2145,7 +2143,7 @@ use_item!(&mut node, self._binary_op(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "binary_op".to_string(),
+				name: Cow::Borrowed("binary_op"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -2163,7 +2161,7 @@ use_item!(&mut node, self._compare_op(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "compare_op".to_string(),
+				name: Cow::Borrowed("compare_op"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -2182,7 +2180,7 @@ use_optional!(&mut node, self._compare_suffix(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "compare_suffix".to_string(),
+				name: Cow::Borrowed("compare_suffix"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -2201,7 +2199,7 @@ use_item!(&mut node, self._compare_op(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "add".to_string(),
+				name: Cow::Borrowed("add"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -2220,12 +2218,12 @@ use_optional!(&mut node, self._add_suffix(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "add_suffix".to_string(),
+				name: Cow::Borrowed("add_suffix"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("+".to_string()), false);
+use_item!(&mut node, self.expect("+"), false);
 use_item!(&mut node, self._add(None), false);
 
 			return Some((node, true));
@@ -2233,7 +2231,7 @@ use_item!(&mut node, self._add(None), false);
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("-".to_string()), false);
+use_item!(&mut node, self.expect("-"), false);
 use_item!(&mut node, self._add(None), false);
 
 			return Some((node, true));
@@ -2247,7 +2245,7 @@ use_item!(&mut node, self._add(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "multiply".to_string(),
+				name: Cow::Borrowed("multiply"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -2266,12 +2264,12 @@ use_optional!(&mut node, self._multiply_suffix(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "multiply_suffix".to_string(),
+				name: Cow::Borrowed("multiply_suffix"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("*".to_string()), false);
+use_item!(&mut node, self.expect("*"), false);
 use_item!(&mut node, self._multiply(None), false);
 
 			return Some((node, true));
@@ -2279,7 +2277,7 @@ use_item!(&mut node, self._multiply(None), false);
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("/".to_string()), false);
+use_item!(&mut node, self.expect("/"), false);
 use_item!(&mut node, self._multiply(None), false);
 
 			return Some((node, true));
@@ -2287,7 +2285,7 @@ use_item!(&mut node, self._multiply(None), false);
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("%".to_string()), false);
+use_item!(&mut node, self.expect("%"), false);
 use_item!(&mut node, self._multiply(None), false);
 
 			return Some((node, true));
@@ -2301,7 +2299,7 @@ use_item!(&mut node, self._multiply(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "exponent".to_string(),
+				name: Cow::Borrowed("exponent"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -2320,12 +2318,12 @@ use_optional!(&mut node, self._exponent_suffix(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "exponent_suffix".to_string(),
+				name: Cow::Borrowed("exponent_suffix"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("^".to_string()), false);
+use_item!(&mut node, self.expect("^"), false);
 use_item!(&mut node, self._exponent(None), false);
 
 			return Some((node, true));
@@ -2339,12 +2337,12 @@ use_item!(&mut node, self._exponent(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "unary_op".to_string(),
+				name: Cow::Borrowed("unary_op"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("-".to_string()), false);
+use_item!(&mut node, self.expect("-"), false);
 use_item!(&mut node, self._atom(None), false);
 
 			return Some((node, false));
@@ -2358,12 +2356,12 @@ use_item!(&mut node, self._atom(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "break".to_string(),
+				name: Cow::Borrowed("break"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("break".to_string()), false);
+use_item!(&mut node, self.expect("break"), false);
 use_optional!(&mut node, self._term(None), false);
 
 			return Some((node, false));
@@ -2377,12 +2375,12 @@ use_optional!(&mut node, self._term(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "return".to_string(),
+				name: Cow::Borrowed("return"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("return".to_string()), false);
+use_item!(&mut node, self.expect("return"), false);
 use_optional!(&mut node, self._term(None), false);
 
 			return Some((node, false));
@@ -2396,12 +2394,12 @@ use_optional!(&mut node, self._term(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "continue".to_string(),
+				name: Cow::Borrowed("continue"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("continue".to_string()), false);
+use_item!(&mut node, self.expect("continue"), false);
 
 			return Some((node, false));
 		
@@ -2414,19 +2412,19 @@ use_item!(&mut node, self.expect("continue".to_string()), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "boolean".to_string(),
+				name: Cow::Borrowed("boolean"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("true".to_string()), false);
+use_item!(&mut node, self.expect("true"), false);
 
 			return Some((node, false));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("false".to_string()), false);
+use_item!(&mut node, self.expect("false"), false);
 
 			return Some((node, false));
 		
@@ -2439,12 +2437,12 @@ use_item!(&mut node, self.expect("false".to_string()), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "none".to_string(),
+				name: Cow::Borrowed("none"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("none".to_string()), false);
+use_item!(&mut node, self.expect("none"), false);
 
 			return Some((node, false));
 		
@@ -2457,7 +2455,7 @@ use_item!(&mut node, self.expect("none".to_string()), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "identifier".to_string(),
+				name: Cow::Borrowed("identifier"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -2476,12 +2474,12 @@ use_item!(&mut node, self.expect_word(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "char".to_string(),
+				name: Cow::Borrowed("char"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("\\".to_string()), false);
+use_item!(&mut node, self.expect("\\"), false);
 use_item!(&mut node, self.expect_letter(None), false);
 
 			return Some((node, false));
@@ -2495,7 +2493,7 @@ use_item!(&mut node, self.expect_letter(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "string".to_string(),
+				name: Cow::Borrowed("string"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -2513,13 +2511,13 @@ use_item!(&mut node, self.expect_string(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "decimal".to_string(),
+				name: Cow::Borrowed("decimal"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
 use_item!(&mut node, self.expect_number(None), false);
-use_item!(&mut node, self.expect(".".to_string()), true);
+use_item!(&mut node, self.expect("."), true);
 use_item!(&mut node, self.expect_number(None), false);
 
 			return Some((node, false));
@@ -2533,7 +2531,7 @@ use_item!(&mut node, self.expect_number(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "number".to_string(),
+				name: Cow::Borrowed("number"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -2551,7 +2549,7 @@ use_item!(&mut node, self.expect_number(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "require_term".to_string(),
+				name: Cow::Borrowed("require_term"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -2563,7 +2561,7 @@ use_item!(&mut node, self._term(None), false);
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect_tag("<e 'missing expression'>".to_string()), false);
+use_item!(&mut node, self.expect_tag("<e 'missing expression'>"), false);
 
 			return Some((node, true));
 		
@@ -2576,19 +2574,19 @@ use_item!(&mut node, self.expect_tag("<e 'missing expression'>".to_string()), fa
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "closing_paren".to_string(),
+				name: Cow::Borrowed("closing_paren"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect(")".to_string()), true);
+use_item!(&mut node, self.expect(")"), true);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect_tag("<e 'missing closing parenthesis'>".to_string()), false);
+use_item!(&mut node, self.expect_tag("<e 'missing closing parenthesis'>"), false);
 
 			return Some((node, true));
 		
@@ -2601,19 +2599,19 @@ use_item!(&mut node, self.expect_tag("<e 'missing closing parenthesis'>".to_stri
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "closing_brace".to_string(),
+				name: Cow::Borrowed("closing_brace"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("}".to_string()), true);
+use_item!(&mut node, self.expect("}"), true);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect_tag("<e 'missing closing brace'>".to_string()), false);
+use_item!(&mut node, self.expect_tag("<e 'missing closing brace'>"), false);
 
 			return Some((node, true));
 		
@@ -2626,19 +2624,19 @@ use_item!(&mut node, self.expect_tag("<e 'missing closing brace'>".to_string()),
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "closing_bracket".to_string(),
+				name: Cow::Borrowed("closing_bracket"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("]".to_string()), true);
+use_item!(&mut node, self.expect("]"), true);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect_tag("<e 'missing closing bracket'>".to_string()), false);
+use_item!(&mut node, self.expect_tag("<e 'missing closing bracket'>"), false);
 
 			return Some((node, true));
 		
@@ -2651,7 +2649,7 @@ use_item!(&mut node, self.expect_tag("<e 'missing closing bracket'>".to_string()
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "keyword".to_string(),
+				name: Cow::Borrowed("keyword"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -2697,12 +2695,12 @@ use_item!(&mut node, self._none(None), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "self".to_string(),
+				name: Cow::Borrowed("self"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("self".to_string()), false);
+use_item!(&mut node, self.expect("self"), false);
 
 			return Some((node, false));
 		
@@ -2715,152 +2713,152 @@ use_item!(&mut node, self.expect("self".to_string()), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "reserved_word".to_string(),
+				name: Cow::Borrowed("reserved_word"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("for".to_string()), false);
+use_item!(&mut node, self.expect("for"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("while".to_string()), false);
+use_item!(&mut node, self.expect("while"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("else".to_string()), false);
+use_item!(&mut node, self.expect("else"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("if".to_string()), false);
+use_item!(&mut node, self.expect("if"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("mut".to_string()), false);
+use_item!(&mut node, self.expect("mut"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("loop".to_string()), false);
+use_item!(&mut node, self.expect("loop"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("box".to_string()), false);
+use_item!(&mut node, self.expect("box"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("break".to_string()), false);
+use_item!(&mut node, self.expect("break"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("return".to_string()), false);
+use_item!(&mut node, self.expect("return"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("continue".to_string()), false);
+use_item!(&mut node, self.expect("continue"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("type".to_string()), false);
+use_item!(&mut node, self.expect("type"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("log".to_string()), false);
+use_item!(&mut node, self.expect("log"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("logs".to_string()), false);
+use_item!(&mut node, self.expect("logs"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("log_line".to_string()), false);
+use_item!(&mut node, self.expect("log_line"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("logs_line".to_string()), false);
+use_item!(&mut node, self.expect("logs_line"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("use".to_string()), false);
+use_item!(&mut node, self.expect("use"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("trait".to_string()), false);
+use_item!(&mut node, self.expect("trait"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("self".to_string()), false);
+use_item!(&mut node, self.expect("self"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("array".to_string()), false);
+use_item!(&mut node, self.expect("array"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("fun".to_string()), false);
+use_item!(&mut node, self.expect("fun"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("map".to_string()), false);
+use_item!(&mut node, self.expect("map"), false);
 
 			return Some((node, true));
 		
@@ -2873,19 +2871,19 @@ use_item!(&mut node, self.expect("map".to_string()), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "keyword_variable".to_string(),
+				name: Cow::Borrowed("keyword_variable"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("let".to_string()), false);
+use_item!(&mut node, self.expect("let"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("const".to_string()), false);
+use_item!(&mut node, self.expect("const"), false);
 
 			return Some((node, true));
 		
@@ -2898,84 +2896,84 @@ use_item!(&mut node, self.expect("const".to_string()), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "keyword_operator".to_string(),
+				name: Cow::Borrowed("keyword_operator"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("in".to_string()), false);
+use_item!(&mut node, self.expect("in"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("is".to_string()), false);
+use_item!(&mut node, self.expect("is"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("and".to_string()), false);
+use_item!(&mut node, self.expect("and"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("not".to_string()), false);
+use_item!(&mut node, self.expect("not"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("or".to_string()), false);
+use_item!(&mut node, self.expect("or"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("as".to_string()), false);
+use_item!(&mut node, self.expect("as"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("istype".to_string()), false);
+use_item!(&mut node, self.expect("istype"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect(">".to_string()), false);
+use_item!(&mut node, self.expect(">"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect(">".to_string()), false);
-use_item!(&mut node, self.expect("=".to_string()), false);
+use_item!(&mut node, self.expect(">"), false);
+use_item!(&mut node, self.expect("="), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("<".to_string()), false);
+use_item!(&mut node, self.expect("<"), false);
 
 			return Some((node, true));
 		
 }
 		self.reset_parse(&mut node, pos);
 loop { 
-use_item!(&mut node, self.expect("<".to_string()), false);
-use_item!(&mut node, self.expect("=".to_string()), false);
+use_item!(&mut node, self.expect("<"), false);
+use_item!(&mut node, self.expect("="), false);
 
 			return Some((node, true));
 		
@@ -2988,13 +2986,13 @@ use_item!(&mut node, self.expect("=".to_string()), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "arrow".to_string(),
+				name: Cow::Borrowed("arrow"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("=".to_string()), true);
-use_item!(&mut node, self.expect(">".to_string()), true);
+use_item!(&mut node, self.expect("="), true);
+use_item!(&mut node, self.expect(">"), true);
 
 			return Some((node, false));
 		
@@ -3007,14 +3005,14 @@ use_item!(&mut node, self.expect(">".to_string()), true);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "comment_delimiter".to_string(),
+				name: Cow::Borrowed("comment_delimiter"),
 				tokens: vec![],
 				children: vec![],
 			};
 			loop { 
-use_item!(&mut node, self.expect("*".to_string()), false);
-use_item!(&mut node, self.expect("*".to_string()), false);
-use_item!(&mut node, self.expect("*".to_string()), false);
+use_item!(&mut node, self.expect("*"), false);
+use_item!(&mut node, self.expect("*"), false);
+use_item!(&mut node, self.expect("*"), false);
 
 			return Some((node, true));
 		
@@ -3027,7 +3025,7 @@ use_item!(&mut node, self.expect("*".to_string()), false);
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "comment_content".to_string(),
+				name: Cow::Borrowed("comment_content"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -3046,7 +3044,7 @@ use_negative_lookahead!(self, self.tokens.index(), &mut self._comment_delimiter(
 			let start_pos = self.tokens.index();
 			let pos = start_pos;
 			let mut node = Node {
-				name: "comment".to_string(),
+				name: Cow::Borrowed("comment"),
 				tokens: vec![],
 				children: vec![],
 			};
@@ -3067,9 +3065,9 @@ use_item!(&mut node, self._comment_delimiter(None), true);
 }
 
 
-fn node_from_token(token: Token, name: String) -> Node {
+fn node_from_token<'src>(token: Token, name: &'src str) -> Node<'src> {
     Node { 
-        name,
+        name: Cow::Borrowed(name),
         tokens: vec![token], 
         children: vec![] 
     }

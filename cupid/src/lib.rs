@@ -7,6 +7,7 @@ pub use serde::{Serialize, Deserialize};
 
 // Stdlib
 pub use std::collections::HashMap;
+pub use std::borrow::Cow;
 
 mod errors;
 pub use errors::*;
@@ -42,24 +43,24 @@ extern {
 
 
 #[derive(Serialize, Deserialize)]
-pub struct ScopeEntry {
+pub struct ScopeEntry<'src> {
 	pub context: Context,
-	pub storage: Vec<StorageEntry>,
+	pub storage: Vec<StorageEntry<'src>>,
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct StorageEntry {
-	pub symbol: ValueNode,
-	pub value: SymbolValue
+pub struct StorageEntry<'src> {
+	pub symbol: ValueNode<'src>,
+	pub value: SymbolValue<'src>
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct Cupid {
-	pub values: Vec<(String, ValueNode)>,
+pub struct Cupid<'src> {
+	pub values: Vec<(String, ValueNode<'src>)>,
 	pub semantics: Vec<BoxAST>,
-	pub parse: ParseNode,
+	pub parse: ParseNode<'src>,
 	pub errors: Vec<Error>,
-	pub scope: Vec<ScopeEntry>
+	pub scope: Vec<ScopeEntry<'src>>
 }
 
 #[wasm_bindgen]

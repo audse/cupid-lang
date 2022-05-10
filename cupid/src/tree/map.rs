@@ -2,15 +2,15 @@ use std::collections::HashMap;
 use crate::*;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct MapNode {
+pub struct MapNode<'src> {
 	pub items: Vec<(BoxAST, BoxAST)>,
-	pub meta: Meta<()>
+	pub meta: Meta<'src, ()>
 }
 
-impl From<&mut ParseNode> for MapNode {
+impl<'src> From<&mut ParseNode<'_>> for MapNode<'src> {
 	fn from(node: &mut ParseNode) -> Self {
 		Self {
-			items: node.filter_map_mut(&|child| if child.name.as_str() == "map_entry" {
+			items: node.filter_map_mut(&|child| if &*child.name == "map_entry" {
 				Some((parse(&mut child.children[0]), parse(&mut child.children[1])))
 			} else {
 				None
@@ -20,7 +20,7 @@ impl From<&mut ParseNode> for MapNode {
 	}
 }
 
-impl AST for MapNode {
+impl<'src> AST for MapNode<'src> {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		let mut items = HashMap::new();
     	for (i, (key_node, value_node)) in self.items.iter().enumerate() {

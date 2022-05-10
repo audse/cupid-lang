@@ -1,15 +1,15 @@
 use crate::*;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct DeclarationNode {
-	pub type_hint: TypeHintNode,
-	pub symbol: SymbolNode,
+pub struct DeclarationNode<'src> {
+	pub type_hint: TypeHintNode<'src>,
+	pub symbol: SymbolNode<'src>,
 	pub mutable: bool,
 	pub value: BoxAST,
-	pub meta: Meta<()>,
+	pub meta: Meta<'src, ()>,
 }
 
-impl From<&mut ParseNode> for DeclarationNode {
+impl<'src> From<&mut ParseNode<'src>> for DeclarationNode<'src> {
 	fn from(node: &mut ParseNode) -> Self {
 		let value = if node.children.len() > 2 {
 			parse(&mut node.children[2])
@@ -23,14 +23,14 @@ impl From<&mut ParseNode> for DeclarationNode {
 		Self {
 			type_hint: TypeHintNode::from(&mut node.children[0]),
 			symbol: SymbolNode::from(&mut node.children[1]),
-			mutable: node.tokens.iter().any(|t| t.source.as_str() == "mut"),
+			mutable: node.tokens.iter().any(|t| &*t.source == "mut"),
 			value,
 			meta: Meta::with_tokens(node.tokens.to_owned()),
 		}
 	}
 }
 
-impl AST for DeclarationNode {
+impl<'src> AST for DeclarationNode<'src> {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		let mut value = self.value.resolve(scope)?;
 		

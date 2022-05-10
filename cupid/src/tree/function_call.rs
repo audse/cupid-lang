@@ -21,13 +21,13 @@ pub enum FunctionFlag {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FunctionCallNode {
-	pub function: SymbolNode,
+pub struct FunctionCallNode<'src> {
+	pub function: SymbolNode<'src>,
 	pub args: ArgumentsNode,
-	pub meta: Meta<FunctionFlag>,
+	pub meta: Meta<'src, FunctionFlag>,
 }
 
-impl From<&mut ParseNode> for FunctionCallNode {
+impl<'src> From<&mut ParseNode<'_>> for FunctionCallNode<'src> {
 	fn from(node: &mut ParseNode) -> Self {
 		Self {
 			function: SymbolNode::from(&mut node.children[0]),
@@ -37,7 +37,7 @@ impl From<&mut ParseNode> for FunctionCallNode {
 	}
 }
 
-impl AST for FunctionCallNode {
+impl<'src> AST for FunctionCallNode<'src> {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		
 		// check for builtin/implemented functions first
@@ -53,12 +53,12 @@ impl AST for FunctionCallNode {
 		if let Value::Function(function) = &function.value {
 			function.call_function(&self.args, scope)
 		} else {
-			panic!("not function: {function}")
+			panic!("not function")
 		}
 	}
 }
 
-impl FunctionCallNode {
+impl<'src> FunctionCallNode<'src> {
 	pub fn resolve_builtin_function(&self, left_value: ValueNode, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		use FunctionFlag::*;
 		use Value::*;
@@ -83,7 +83,11 @@ impl FunctionCallNode {
 			[As, ..] => left.cast(right),
 			_ => left
 		};
-		Ok(ValueNode::from((value, &left_value.meta)))
+		Ok(ValueNode {
+			value,
+			type_kind: left_value.type_kind,
+			meta: left_value.meta,
+		})
 	}
 	
 	pub fn call_implemented_function(&self, from: &mut ValueNode, scope: &mut LexicalScope) -> Option<Result<ValueNode, Error>> {
@@ -138,7 +142,7 @@ impl FunctionCallNode {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ArgumentsNode(pub Vec<BoxAST>);
 
-impl From<&mut ParseNode> for ArgumentsNode {
+impl From<&mut ParseNode<'_>> for ArgumentsNode {
 	fn from(node: &mut ParseNode) -> Self {
 		Self(node.map_mut(&parse))
 	}

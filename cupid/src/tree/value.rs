@@ -1,30 +1,30 @@
 use serde::{Serialize, Deserialize};
 use std::hash::{Hash, Hasher};
 use std::fmt::{Display, Formatter, Result as DisplayResult};
-use crate::{Token, TypeKind, Value, ParseNode, AST, LexicalScope, Error, ErrorHandler};
+use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ValueNode {
-	pub value: Value,
-	pub type_kind: TypeKind,
-	pub meta: Meta<Flag>,
+pub struct ValueNode<'src> {
+	pub value: Value<'src>,
+	pub type_kind: TypeKind<'src>,
+	pub meta: Meta<'src, Flag>,
 }
 
-impl PartialEq for ValueNode {
+impl<'src> PartialEq for ValueNode<'src> {
 	fn eq(&self, other: &Self) -> bool {
     	self.value == other.value
 	}
 }
 
-impl Eq for ValueNode {}
+impl<'src> Eq for ValueNode<'src> {}
 
-impl Hash for ValueNode {
+impl<'src> Hash for ValueNode<'src> {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		self.value.hash(state);
 	}
 }
 
-impl Display for ValueNode {
+impl<'src> Display for ValueNode<'src> {
 	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
 		write!(f, "{}", self.value)
 	}
@@ -38,13 +38,13 @@ pub enum Flag {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct Meta<F> {
-	pub tokens: Vec<Token>,
-	pub identifier: Option<Box<ValueNode>>,
+pub struct Meta<'src, F> {
+	pub tokens: Vec<Token<'src>>,
+	pub identifier: Option<Box<ValueNode<'src>>>,
 	pub flags: Vec<F>,
 }
 
-impl<F> Default for Meta<F> {
+impl<'src, F> Default for Meta<'src, F> {
 	fn default() -> Self {
     	Self {
 			tokens: vec![],
@@ -54,7 +54,7 @@ impl<F> Default for Meta<F> {
 	}
 }
 
-impl<F> Meta<F> {
+impl<'src, F> Meta<'src, F> {
 	pub fn new(tokens: Vec<Token>, identifier: Option<Box<ValueNode>>, flags: Vec<F>) -> Self {
 		Self {
 			tokens,
@@ -71,7 +71,7 @@ impl<F> Meta<F> {
 	}
 }
 
-impl From<&Meta<()>> for Meta<Flag> {
+impl<'src> From<&Meta<'src, ()>> for Meta<'src, Flag> {
 	fn from(meta: &Meta<()>) -> Self {
     	Self {
 			tokens: meta.tokens.to_owned(),
@@ -81,7 +81,7 @@ impl From<&Meta<()>> for Meta<Flag> {
 	}
 }
 
-impl From<&mut ParseNode> for ValueNode {
+impl<'src> From<&mut ParseNode<'src>> for ValueNode<'src> {
 	fn from(node: &mut ParseNode) -> Self {
 		let (value, tokens) = Self::parse_value(node);
 		Self {
@@ -96,7 +96,7 @@ impl From<&mut ParseNode> for ValueNode {
 	}
 }
 
-impl From<(Value, &Meta<Flag>)> for ValueNode {
+impl<'src> From<(Value<'src>, &Meta<'src, Flag>)> for ValueNode<'src> {
 	fn from(value: (Value, &Meta<Flag>)) -> Self {
 		Self {
 			type_kind: TypeKind::infer(&value.0),
@@ -106,7 +106,7 @@ impl From<(Value, &Meta<Flag>)> for ValueNode {
 	}
 }
 
-impl From<Value> for ValueNode {
+impl<'src> From<Value<'src>> for ValueNode<'src> {
 	fn from(value: Value) -> Self {
 		Self {
 			type_kind: TypeKind::infer(&value),
@@ -116,8 +116,8 @@ impl From<Value> for ValueNode {
 	}
 }
 
-impl From<String> for ValueNode {
-	fn from(value: String) -> Self {
+impl<'src> From<Cow<'src, str>> for ValueNode<'src> {
+	fn from(value: Cow<'src, str>) -> Self {
 		let value = Value::String(value);
 		Self {
 			type_kind: TypeKind::infer(&value),
@@ -127,11 +127,11 @@ impl From<String> for ValueNode {
 	}
 }
 
-impl ValueNode {
-	fn parse_value(node: &mut ParseNode) -> (Value, Vec<Token>) {
+impl<'src> ValueNode<'src> {
+	fn parse_value(node: &mut ParseNode) -> (Value<'src>, Vec<Token<'src>>) {
 		let tokens = node.tokens.to_owned();
-		(match node.name.as_str() {
-			"boolean" => match tokens[0].source.as_str() {
+		(match &*node.name {
+			"boolean" => match &*tokens[0].source {
 				"true" => Value::Boolean(true),
 				"false" => Value::Boolean(false),
 				_ => panic!("booleans can only be 'true' or 'false'"),
@@ -147,8 +147,7 @@ impl ValueNode {
 				let mut string = tokens[0].source.clone();
 				if let Some(first) = string.chars().next() {
 					if first == '"' || first == '\'' { 
-						string.remove(0);
-						string.pop();
+						string = Cow::Owned(string[1..string.len()].to_string());
 					}
 				}
 				Value::String(string)
@@ -158,7 +157,7 @@ impl ValueNode {
 				tokens[1].source.parse::<u32>().unwrap(),
 			),
 			"number" => Value::Integer(tokens[0].source.parse::<i32>().unwrap()),
-			_ => panic!("could not parse value from {:?}", node)
+			_ => panic!("could not parse value")
 		}, tokens)
 	}
 	pub fn set_meta_identifier(&mut self, identifier: &Self) {
@@ -181,7 +180,7 @@ impl ValueNode {
 	}
 }
 
-impl AST for ValueNode {
+impl<'src> AST for ValueNode<'src> {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		let mut value = self.to_owned();
 		if let Some(type_kind) = TypeKind::infer_from_scope(&value, scope) {
@@ -191,12 +190,12 @@ impl AST for ValueNode {
 	}
 }
 
-impl ErrorHandler for ValueNode {
+impl<'src> ErrorHandler for ValueNode<'src> {
 	fn get_token(&self) -> &Token {
 		if !self.meta.tokens.is_empty() {
     		&self.meta.tokens[0]
 		} else {
-			panic!("An error occurred for `{self}`, but it has no tokens to reference for position/line information")
+			panic!("An error occurred for `{self:?}`, but there are no tokens to reference for position/line information")
 		}
 	}
 	fn get_context(&self) -> String {

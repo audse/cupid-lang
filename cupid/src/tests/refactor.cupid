@@ -6,7 +6,6 @@ trait [t] add = [
 use [t: int] add with int
 use [t: dec] add with dec
 use [t: string] add with string
-# use [t: array [e]] add with array [e]
 
 trait [t] subtract = [
 	fun [t] subtract = self, t other => _
@@ -29,16 +28,16 @@ trait [t] divide = [
 use [t: int] divide with int
 use [t: dec] divide with dec
 
+trait [t] less = [
+	fun [t] less = self, t other => _
+]
+
+use [t: int] less with int
+use [t: dec] less with dec
+
 trait [original, new] cast = [
 	fun [new] cast = self => _
 ]
 
 use [original: int, new: dec] cast with int
 use [original: dec, new: int] cast with dec
-
-map [int, string] my_map = [
-	0: 'a',
-	1: 'b'
-]
-
-log (my_map)
