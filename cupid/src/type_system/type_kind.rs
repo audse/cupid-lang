@@ -1,6 +1,7 @@
 // use std::hash::{Hash, Hasher};
 use std::fmt::{Display, Formatter, Result as DisplayResult};
 use std::collections::HashMap;
+// use std::hash::{Hash, Hasher};
 use serde::{Serialize, Deserialize};
 use crate::*;
 
@@ -49,7 +50,7 @@ impl TypeKind {
 			Value::Function(_) => Self::new_function(),
 			Value::Array(array) => {
 				if !array.is_empty() {
-					let element_type = TypeKind::infer(&array[0]);
+					let element_type = TypeKind::infer(&array[0].value);
 					Self::new_array(element_type)
 				} else {
 					Self::new_array(Self::new_generic("e"))
@@ -57,15 +58,16 @@ impl TypeKind {
 			},
 			Value::Map(map) => {
 				if let Some((key, (_, value))) = map.iter().next() {
-					let key_type = TypeKind::infer(key);
-					let value_type = TypeKind::infer(value);
+					let key_type = TypeKind::infer(&key.value);
+					let value_type = TypeKind::infer(&value.value);
 					Self::new_map(key_type, value_type)
 				} else {
 					Self::new_map(Self::new_generic("k"), Self::new_generic("v"))
 				}
 			},
 			Value::Type(t) => t.clone(),
-			Value::Values(_) => Self::Type,
+			Value::Values(_) => Self::Placeholder,
+			Value::Implementation(_) => Self::Type,
 			x => {
 				println!("Cannot infer type of {:?}", x);
 				unreachable!()
@@ -115,6 +117,16 @@ impl TypeKind {
 			(x, y) => x == &y,
 		}
 	}
+	
+	pub fn most_specific<'a>(a: &'a Self, b: &'a Self) -> &'a Self {
+		use TypeKind::*;
+		match (a, b) {
+			(Array(x), Array(_)) => if matches!(*x.element_type, Generic(_)) { b } else { a },
+			(Map(x), Map(_)) => if matches!(*x.key_type, Generic(_)) && matches!(*x.value_type, Generic(_)) { b } else { a },
+			_ => a
+		}
+	}
+	
 	pub fn get_implementation(&mut self) -> &mut Implementation {
 		match self {
 			Self::Alias(x) => &mut x.implementation,
@@ -124,13 +136,47 @@ impl TypeKind {
 			Self::Primitive(x) => &mut x.implementation,
 			Self::Struct(x) => &mut x.implementation,
 			Self::Sum(x) => &mut x.implementation,
-			_ => panic!()
+			_ => panic!("cannot get implementation of {}", self)
 		}
 	}
 	pub fn apply_args(&mut self, args: Vec<TypeKind>) -> Result<(), &str> {
 		match self {
 			Self::Array(x) => x.apply_args(args),
 			_ => Ok(()) // todo
+		}
+	}
+	pub fn get_name(&self) -> String {
+		match self {
+			Self::Alias(x) => format!("alias [{}]", x.true_type.get_name()),
+			Self::Array(x) => format!("array [{}]", x.element_type.get_name()),
+			Self::Function(x) => format!("fun [{}]", x.return_type.get_name()),
+			Self::Generic(x) => {
+				let type_value = if let Some(type_value) = &x.type_value {
+					format!(": {}", type_value.get_name())
+				} else {
+					String::new()
+				};
+				format!("<{}{}>", x.identifier, type_value)
+			},
+			Self::Map(x) => format!("map [{}, {}]", x.key_type.get_name(), x.value_type.get_name()),
+			Self::Primitive(x) => format!("{}", x.identifier),
+			Self::Struct(x) => {
+				let members: Vec<String> = x.members
+					.iter()
+					.map(|(k, v)| format!("{k}: {}", v.get_name()))
+					.collect();
+				format!("struct [{}]", members.join(", "))
+			},
+			Self::Sum(x) => {
+				let members: Vec<String> = x.types
+					.iter()
+					.map(|t| format!("{}", t.get_name()))
+					.collect();
+				format!("sum [{}]", members.join(", "))
+			},
+			Self::Type => "type".to_string(),
+			Self::Placeholder => "placeholder".to_string(),
+			// _ => panic!()
 		}
 	}
 }
@@ -157,29 +203,38 @@ pub trait Type {
 
 impl Display for TypeKind {
 	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
-		match self {
-			Self::Primitive(x) => write!(f, "{:8} {}", x.identifier, x.implementation),
-			Self::Array(x) => write!(f, "{:8} {} {}", "array", x.element_type, x.implementation),
-			Self::Map(x) => write!(f, "{}", x.to_string()),
-			Self::Function(x) => write!(f, "{}", x.to_string()),
-			Self::Generic(x) => write!(f, "<{}>", x.identifier),
-			Self::Struct(x) => {
-				let members: Vec<String> = x.members
-					.iter()
-					.map(|(symbol, member)| format!("{}: {member}", symbol.0))
-					.collect();
-				write!(f, "{:8} [{}] {}", "struct", members.join(", "), x.implementation)
-			},
-			Self::Sum(x) => {
-				let members: Vec<String> = x.types
-					.iter()
-					.map(|member| member.to_string())
-					.collect();
-				write!(f, "{:8} [{}] {}", "sum", members.join(", "), x.implementation)
-			},
-			Self::Alias(x) => write!(f, "{:8} {} {}", "alias", x.true_type, x.implementation),
-			Self::Type => write!(f, "{:8}", "type kind"),
-			Self::Placeholder => write!(f, "{:8}", "placeholder"),
-		}
+		write!(f, "{} {}", self.get_name(), self.to_owned().get_implementation())
 	}
 }
+
+
+// IDK TODO
+
+// impl PartialEq for TypeKind {
+// 	fn eq(&self, other: &Self) -> bool {
+// 		use TypeKind::*;
+//     	match (self, other) {
+// 			(Generic(_), _) => true,
+// 			(_, Generic(_)) => true,
+// 			(_, _) => false
+// 		}
+// 	}
+// }
+// 
+// impl Eq for TypeKind {}
+// 
+// impl Hash for TypeKind {
+// 	fn hash<H: Hasher>(&self, state: &mut H) {
+// 		match self {
+// 			Self::Alias(x) => x.hash(state),
+// 			Self::Array(x) => x.hash(state),
+// 			Self::Function(x) => x.hash(state),
+// 			Self::Generic(x) => x.hash(state),
+// 			Self::Map(x) => x.hash(state),
+// 			Self::Primitive(x) => x.hash(state),
+// 			Self::Struct(x) => x.hash(state),
+// 			Self::Sum(x) => x.hash(state),
+// 			_ => (),
+// 		}
+// 	}
+// }

@@ -75,11 +75,11 @@ impl Display for Implementation {
 	fn fmt(&self, f: &mut Formatter) -> DisplayResult {		
 		let functions: Vec<String> = self.functions
 			.iter()
-			.map(|(key, value)| format!("{key}: {value}"))
+			.map(|(key, _)| key.to_string())
 			.collect();
 		let traits: Vec<String> = self.traits
 			.iter()
-			.map(|(key, value)| format!("{key}: {value}"))
+			.map(|(key, _)| key.to_string())
 			.collect();
 		let generics: Vec<String> = self.generics
 			.iter()

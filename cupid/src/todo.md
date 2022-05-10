@@ -30,6 +30,7 @@
     -   [ ] Array
     -   [ ] Map
     -   [ ] Generics
+    -   [ ] Round decimal instead of clipping
 -   [ ] First-class types
     -   [ ] Pass as values/args
     -   [x] Log
@@ -41,25 +42,6 @@
 -   [ ] Param type hints in fun signature
 
 ### Traits
-
-```
-type my_struct = [
-  int my_data,
-  fun [int] do_something
-]
-
-use default with my_struct [
-  do_something: self => self.my_data
-]
-
-trait [t] add [
-  fun [t] add
-]
-
-use add with my_struct [
-  add: self, my_struct other => self.my_data + other
-]
-```
 
 -   [ ] Type implementations
 
@@ -233,7 +215,8 @@ someone istype person # should be false
 -   [ ] Report errors before compiling
 -   [ ] Function param & return type mismatches
 -   [ ] Add more error handling in the parsing phase
--   [ ] Change errors as values to Result/Ok
+-   [x] Change errors as values to Result/Ok
+-   [ ] Account for tabs in line/index
 
 ## Parser
 

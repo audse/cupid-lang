@@ -15,8 +15,8 @@ impl StructType {
 		match other {
 			Value::Map(x) => {
 				x.iter().all(|(key, (_, value))| {
-					if let Some((_, member_type)) = self.members.iter().find(|(symbol, _)| &symbol.0.value == key)  {
-						member_type.is_equal(value)
+					if let Some((_, member_type)) = self.members.iter().find(|(symbol, _)| &symbol.0.value == &key.value)  {
+						member_type.is_equal(&value.value)
 					} else {
 						false
 					}

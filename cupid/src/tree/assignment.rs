@@ -24,6 +24,6 @@ impl AST for AssignmentNode {
 		// add meta info to value node
 		value.set_meta_identifier(&self.symbol.0);
 		
-		scope.set_symbol(&self.symbol, &SymbolValue::Assignment { value })
+		scope.set_symbol(&self.symbol, SymbolValue::Assignment { value })
 	}
 }

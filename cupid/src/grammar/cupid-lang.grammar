@@ -106,7 +106,8 @@
 -~equal: '=' !'>'
 
 -~atom:
-	function_call
+	empty
+	| function_call
 	| range
 	| map
 	| bracket_array
@@ -121,9 +122,10 @@
 	| self
 	| identifier
 
+- empty: ~'_'
 - group: ~'(' term? closing_paren
 - function: parameters  function_body
--~function_body: group | block
+-~function_body: arrow ~empty | arrow group | block
 - parameters: (parameter ~',')*
 -~parameter: ~'_' | 'mut'? self | annotated_parameter
 - annotated_parameter: type_hint identifier
@@ -134,8 +136,8 @@
 
 -~log_keyword: 'log' | 'logs' | 'log_line' | 'logs_line'
 
--~bracket_array: '[' !'.' array? !'.' closing_bracket
-- array:  (term ~',')* term?
+- bracket_array: '[' !'.' array? !'.' closing_bracket
+-~array:  (term ~',')* term?
 
 - map: '[' (map_entry !']' ',')* ']'
 - map_entry: atom ':' term

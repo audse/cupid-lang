@@ -8,7 +8,7 @@ use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Value {
-	Array(Vec<Value>),
+	Array(Vec<ValueNode>),
 	Boolean(bool),
 	Break(Box<Value>),
 	Char(char),
@@ -19,12 +19,36 @@ pub enum Value {
 	Implementation(Implementation),
 	Integer(i32),
 	Log(Box<Value>),
-	Map(HashMap<Value, (usize, Value)>),
+	Map(HashMap<ValueNode, (usize, ValueNode)>),
 	None,
 	Return(Box<Value>),
 	String(String),
 	Type(TypeKind),
 	Values(Vec<Value>),
+	TypeIdentifier(TypeId),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TypeId(pub Box<Value>, pub Vec<TypeKind>);
+
+impl PartialEq for TypeId {
+	fn eq(&self, other: &Self) -> bool {
+    	self.0 == other.0
+		&& self.1
+			.iter()
+			.enumerate()
+			.all(|(i, t)|
+			 	matches!(t, TypeKind::Generic(_)) 
+			 	|| matches!(&other.1[i], TypeKind::Generic(_))
+			 	|| t == &other.1[i]
+		 	)
+	}
+}
+
+impl Hash for TypeId {
+	fn hash<H: Hasher>(&self, state: &mut H) {
+		self.0.hash(state);
+	}
 }
 
 impl Add for Value {
@@ -160,11 +184,11 @@ impl PartialEq for Value {
 			(Value::String(x), Value::String(y)) => x == y,
 			(Value::Decimal(a, b), Value::Decimal(x, y)) => a == x && b == y,
 			(Value::Boolean(x), Value::Boolean(y)) => x == y,
-			// (Value::FunctionBody(x, ..), Value::FunctionBody(y, ..)) => x == y,
 			(Value::Type(x), Value::Type(y)) => x == y,
 			(Value::None, Value::None) => true,
 			(Value::Error(_), Value::Error(_)) => false,
 			(Value::Break(x), Value::Break(y)) => x == y,
+			(Value::TypeIdentifier(x), Value::TypeIdentifier(y)) => x == y,
 			_ => false
 		}
 	}
@@ -196,6 +220,7 @@ impl Hash for Value {
 			Value::Implementation(x) => x.hash(state),
 			Value::Continue => (),
 			Value::Values(v) => v.iter().for_each(|v| v.hash(state)),
+			Value::TypeIdentifier(x) => x.hash(state),
 			_ => ()
 		}
 	}
@@ -297,14 +322,14 @@ impl Value {
 			_ => panic!()
 		}
 	}
-	pub fn get_property(&self, property: &Value) -> Result<Value, String> {
+	pub fn get_property(&self, property: &ValueNode) -> Result<ValueNode, String> {
 		match self {
 			Value::Map(map) => if let Some((_, value)) = map.get(property) {
 				Ok(value.to_owned())
 			} else {
 				Err(format!("map has no property {property}"))
 			},
-			Value::Array(array) => match property {
+			Value::Array(array) => match &property.value {
 				Value::Integer(i) => Ok(array[*i as usize].to_owned()),
 				x => Err(format!("arrays can only be accessed with integers (not {x})"))
 			},
@@ -331,19 +356,7 @@ impl Display for Value {
 				Ok(())
 			},
 			Self::Map(map) => {
-				let mut entries: Vec<(&Value, &(usize, Value))> = map
-					.iter()
-					.collect();
-				entries.sort_by(|(a, (_, _)), (z, (_, _))| {
-					if let (Value::String(a), Value::String(z)) = (a, z) {
-						a.to_lowercase().cmp(&z.to_lowercase())
-					} else if let Some(order) = a.partial_cmp(z) {
-						order
-					} else {
-						Ordering::Equal
-					}
-				});
-				let entries: Vec<String> = entries
+				let entries: Vec<String> = map
 					.iter()
 					.map(|(key, (_, value))| format!("{key}: {value}"))
 					.collect();
@@ -351,6 +364,13 @@ impl Display for Value {
 				Ok(())
 			},
 			Self::Type(type_kind) => write!(f, "{type_kind}"),
+			Self::TypeIdentifier(TypeId(name, args)) => {
+				let args: Vec<String> = args
+					.iter()
+					.map(|v| v.get_name())
+					.collect();
+				write!(f, "{} [{}]", name, args.join("\n"))
+			},
 			Self::Log(log) => write!(f, "{log}"),
 			Self::Implementation(trait_map) => write!(f, "{:8} {trait_map}", "trait"),
 			Self::Values(values) => {

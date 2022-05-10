@@ -32,6 +32,12 @@ impl From<&SymbolNode> for GenericType {
 	}
 }
 
+impl From<&str> for GenericType {
+	fn from(string: &str) -> Self {
+		Self { identifier: Cow::Owned(string.to_string()), type_value: None }
+	}
+}
+
 impl Into<TypeKind> for GenericType {
 	fn into(self) -> TypeKind { TypeKind::Generic(self) }
 }

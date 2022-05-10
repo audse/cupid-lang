@@ -4,6 +4,7 @@ use crate::*;
 pub struct FunctionNode {
 	pub params: ParametersNode,
 	pub body: BlockNode,
+	pub meta: Meta<()>,
 }
 
 impl From<&mut ParseNode> for FunctionNode {
@@ -11,13 +12,18 @@ impl From<&mut ParseNode> for FunctionNode {
 		Self {
 			params: ParametersNode::from(&mut node.children[0]),
 			body: BlockNode::from(&mut node.children[1]),
+			meta: Meta::with_tokens(node.tokens.to_owned())
 		}
 	}
 }
 
 impl AST for FunctionNode {
 	fn resolve(&self, _scope: &mut LexicalScope) -> Result<ValueNode, Error> {
-		Ok(ValueNode::from_value(Value::Function(self.to_owned())))
+		let meta = Meta::<Flag>::from(&self.meta);
+		Ok(ValueNode::from((
+			Value::Function(self.to_owned()), 
+			&meta
+		)))
 	}
 }
 
@@ -43,7 +49,7 @@ impl FunctionNode {
 				.map(|(i, p)| ((*p).to_owned(), args.0[i].to_owned()))
 				.collect()
 		} else {
-			panic!("wrong number of args")
+			panic!("wrong number of args: expected {}, got: {}", params.len(), args.0.len())
 		}
 	}
 	pub fn set_params(&self, args:  &ArgumentsNode, scope: &mut LexicalScope) -> Result<(), Error> {
@@ -115,17 +121,17 @@ impl From<&mut ParseNode> for ParametersNode {
 impl AST for ParametersNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		for Parameter { type_hint, symbol, .. } in self.symbols.iter() {
-			let type_hint = if let Some(t) = type_hint {
-				t.resolve_to_type_kind(scope)?
-			} else {
-				TypeKind::Type
-			};
-			let symbol_value = SymbolValue::Declaration { 
-				type_hint, 
-				mutable: false, 
-				value: ValueNode::new_none() 
-			};
-			scope.set_symbol(symbol, &symbol_value)?;
+			
+			// only set symbols with type hints (meaning not `self`)
+			if let Some(type_hint) = type_hint {
+				let type_hint = type_hint.resolve_to_type_kind(scope)?;
+				let symbol_value = SymbolValue::Declaration { 
+					type_hint, 
+					mutable: false, 
+					value: ValueNode::new_none() 
+				};
+				scope.set_symbol(symbol, symbol_value)?;
+			}
 		}
 		Ok(ValueNode::new_none())
 	}

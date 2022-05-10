@@ -38,7 +38,7 @@ impl AST for PropertyNode {
 		
 		match &self.right {
 			FunctionCall(function_call) => {
-				if let Some(implementation_value) = self.resolve_implementation_function(&mut left, function_call, scope) {
+				if let Some(implementation_value) = function_call.call_implemented_function(&mut left, scope) {
 					return implementation_value;
 				}
 				if let Some(map_value) = self.resolve_map_function(&left, function_call, scope) {
@@ -49,8 +49,8 @@ impl AST for PropertyNode {
 			Symbol(symbol) => self.resolve_symbol_property(&left, symbol, scope),
 			Other(value) => {
 				let right = value.resolve(scope)?;
-				match left.value.get_property(&right.value) {
-					Ok(value) => Ok(ValueNode::from_value(value)),
+				match left.value.get_property(&right) {
+					Ok(value) => Ok(value),
 					Err(string) => Err(right.error_raw(string)),
 				}
 			}
@@ -58,85 +58,35 @@ impl AST for PropertyNode {
 	}
 }
 
-impl PropertyNode {
-	fn create_self_symbol(&self, function: &FunctionNode, value: ValueNode, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
-		let self_symbol = &function.params.symbols[0].symbol;
-		let declare = SymbolValue::Declaration { 
-			type_hint: value.type_kind.to_owned(), 
-			mutable: function.params.mut_self,
-			value
-		};
-		scope.set_symbol(self_symbol, &declare)
-	}
-	
-	fn create_generic_symbol(&self, generic: &GenericType, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
-		let symbol: SymbolNode = generic.identifier.to_string().into();
-		let value = if let Some(generic_value) = &generic.type_value {
-			ValueNode::from(Value::Type(*generic_value.to_owned()))
-		} else {
-			generic.to_owned().into()
-		};
-		let declare = SymbolValue::Declaration { 
-			type_hint: TypeKind::Type, 
-			mutable: false, 
-			value
-		};
-		scope.set_symbol(&symbol, &declare)
-	}
-	
-	fn resolve_implementation_function(&self, left: &mut ValueNode, function_call: &FunctionCallNode, scope: &mut LexicalScope) -> Option<Result<ValueNode, Error>> {
-		// the property is a function from a type or trait implementation
-		let left_value = left.to_owned();
-		if let Some((implementation, function)) = left.type_kind.get_trait_function(&function_call.function) {
-			scope.add(Context::Function);
-			for generic in implementation.generics.iter() {
-				if let Err(e) = self.create_generic_symbol(generic, scope) {
-					return Some(Err(e))
-				}
-			}
-			if function.params.use_self {
-				if let Err(e) = self.create_self_symbol(&function, left_value, scope) {
-					return Some(Err(e))
-				};
-			}
-			let val = function.call_function(&function_call.args, scope);
-			scope.pop();
-			Some(val)
-		} else {
-			None
-		}
-	}
-	
+impl PropertyNode {	
 	fn resolve_map_function(&self, left: &ValueNode, function_call: &FunctionCallNode, scope: &mut LexicalScope) -> Option<Result<ValueNode, Error>> {
 		// the property is a function within a map
-		if let Ok(Value::Function(function)) = &left.value.get_property(&function_call.function.0.value) {
-			if function.params.use_self {
-				if let Err(e) = self.create_self_symbol(function, left.to_owned(), scope) {
-					return Some(Err(e))
-				};
-			}
-			Some(function.call_function(&function_call.args, scope))
-		} else {
-			None
+		match &left.value.get_property(&function_call.function.0) {
+			Ok(property) => if let Value::Function(function) = &property.value {
+				Some(function.call_function(&function_call.args, scope))
+			} else {
+				None
+			},
+			Err(e) => Some(Err(left.error_raw(e)))
 		}
 	}
 	
 	fn resolve_symbol_property(&self, left: &ValueNode, right: &SymbolNode, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		match &left.value {
 			// try to get symbol's identifier first
-			Value::Map(_) => match left.value.get_property(&right.0.value) {
-				Ok(value) => Ok(ValueNode::from_value(value)),
+			Value::Map(_) => match left.value.get_property(&right.0) {
+				Ok(value) => Ok(value),
 				Err(_) => {
 					// then try to get symbol's scoped meaning
 					let property = right.resolve(scope)?;
-					match left.value.get_property(&property.value) {
-						Ok(value) => Ok(ValueNode::from_value(value)),
+					match left.value.get_property(&property) {
+						Ok(value) => Ok(value),
 						Err(string) => Err(right.0.error_raw(string))
 					}
 				}
 			},
-			x => match x.get_property(&right.0.value) {
-				Ok(value) => Ok(ValueNode::from_value(value)),
+			x => match x.get_property(&right.0) {
+				Ok(value) => Ok(value),
 				Err(string) => Err(right.0.error_raw(string)),
 			}
 		}
@@ -144,5 +94,8 @@ impl PropertyNode {
 }
 
 fn no_function_error(node: &ValueNode, function: &FunctionCallNode) -> Error {
-	node.error_raw(format!("undefined: could not find function {} in {}", function.function, node))
+	function.function.error_raw_context(
+		format!("undefined: could not find function {} in {node}", function.function),
+		format!("accessing {node} (type {})", node.type_kind)
+	)
 }

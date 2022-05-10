@@ -31,6 +31,9 @@ pub use implementation_node::*;
 mod log;
 pub use log::*;
 
+mod map;
+pub use map::*;
+
 mod operation;
 pub use operation::*;
 
@@ -45,6 +48,9 @@ pub use symbol::*;
 
 mod traits;
 pub use traits::*;
+
+mod type_declaration;
+pub use type_declaration::*;
 
 mod type_hint;
 pub use type_hint::*;

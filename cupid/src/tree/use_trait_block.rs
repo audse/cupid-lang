@@ -25,18 +25,29 @@ impl From<&mut ParseNode> for UseTraitBlockNode {
 
 impl AST for UseTraitBlockNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
-		let mut trait_value = self.trait_name.resolve(scope)?;
-		let mut type_kind = self.type_kind.resolve_to_type_kind(scope)?;
+		scope.add(Context::Implementation);
+		
+		let type_symbol = self.type_kind.to_symbol(scope)?;
+		
 		let implementation = self.functions.resolve_to_implementation(scope)?;
+		
+		let trait_symbol = SymbolNode::from((&self.trait_name, &implementation.generics));
+		let mut trait_value = trait_symbol.resolve(scope)?;
+		
+		if let Some(generics) = &self.functions.1 {
+			generics.create_symbols(scope)?;
+		}
 		
 		if let Value::Implementation(ref mut trait_value) = trait_value.value {
 			trait_value.generics = implementation.generics;
 			trait_value.implement(implementation.functions);
-			type_kind.implement_trait(self.trait_name.to_owned(), trait_value.to_owned());
-			let symbol_value = SymbolValue::Assignment { 
-				value: ValueNode::from_value(Value::Type(type_kind)) 
+			let symbol_value = SymbolValue::Implementation { 
+				trait_symbol: Some(self.trait_name.to_owned()),
+				value: trait_value.to_owned()
 			};
-			scope.set_symbol(&self.type_kind.type_kind, &symbol_value)
+			let value = scope.set_symbol(&type_symbol, symbol_value);
+			scope.pop();
+			value
 		} else {
 			Err(trait_value.error_raw("expected a trait"))
 		}

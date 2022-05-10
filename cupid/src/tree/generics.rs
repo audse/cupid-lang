@@ -74,14 +74,25 @@ impl AST for GenericsNode {
 
 impl GenericsNode {
 	pub fn resolve_to_generics(&self, scope: &mut LexicalScope) -> Result<Vec<GenericType>, Error> {
+		scope.add(Context::Block);
 		let mut generics: Vec<GenericType> = vec![];
 		for generic in self.0.iter() {
-			let generic = generic.resolve_to_generic(scope)?;
-			generics.push(generic);
+			let generic_type = generic.resolve_to_generic(scope)?;
+			create_generic_symbol(&generic_type, &generic.identifier.0.meta, scope)?;
+			generics.push(generic_type);
 		}
+		scope.pop();
 		Ok(generics)
 	}
 	pub fn find(&self, symbol: &SymbolNode) -> Option<&GenericNode> {
 		self.0.iter().find(|generic| generic.identifier.0.value == symbol.0.value)
+	}
+	pub fn create_symbols(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error>  {
+		let mut result = ValueNode::new_none();
+		for symbol in self.0.iter() {
+			let generic = symbol.resolve_to_generic(scope)?;
+			result = create_generic_symbol(&generic, &symbol.identifier.0.meta, scope)?;
+		}
+		Ok(result)
 	}
 }

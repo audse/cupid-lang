@@ -35,7 +35,8 @@ impl OperationNode {
 			">=" => ("greater_equal", GreaterEqual),
 			"and" => ("and", And),
 			"or" => ("or", Or),
-			"as" => ("as", As),
+			"as" => ("cast", As),
+			"istype" => ("istype", IsType),
 			x => panic!("unrecognized operation {}", x),
 		};
 		let function = Value::String(function.to_string());

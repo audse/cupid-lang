@@ -22,6 +22,43 @@ impl From<String> for SymbolNode {
 	}
 }
 
+impl From<(String, &Meta<Flag>)> for SymbolNode {
+	fn from(value: (String, &Meta<Flag>)) -> Self {
+		Self(ValueNode::from((Value::String(value.0), value.1)))
+	}
+}
+
+impl From<(&Self, &Vec<GenericType>)> for SymbolNode {
+	fn from(symbol: (&Self, &Vec<GenericType>)) -> Self {
+		let mut new_symbol = symbol.0.to_owned();
+		new_symbol.0.value = Value::TypeIdentifier(TypeId(
+			Box::new(symbol.0.0.value.to_owned()), 
+			symbol.1
+				.iter()
+				.cloned()
+				.map(|g| 
+					TypeKind::Generic(GenericType { 
+						identifier: g.identifier, 
+						type_value: None 
+					})
+				)
+				.collect()
+		));
+		new_symbol
+	}
+}
+
+impl From<(&Self, &Vec<TypeKind>)> for SymbolNode {
+	fn from(symbol: (&Self, &Vec<TypeKind>)) -> Self {
+		let mut new_symbol = symbol.0.to_owned();
+		new_symbol.0.value = Value::TypeIdentifier(TypeId(
+			Box::new(symbol.0.0.value.to_owned()), 
+			symbol.1.to_owned()
+		));
+		new_symbol
+	}
+}
+
 impl AST for SymbolNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		scope.get_symbol(self)
@@ -30,7 +67,7 @@ impl AST for SymbolNode {
 
 impl ErrorHandler for SymbolNode {
 	fn get_token(&self) -> &crate::Token {
-    	self.0.meta.tokens.get(0).unwrap_or_else(|| panic!("no token for `{self}`"))
+    	self.0.get_token()
 	}
 	fn get_context(&self) -> String {
     	format!("accessing identifier {}", self.0.value)

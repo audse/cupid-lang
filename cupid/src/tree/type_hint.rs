@@ -38,24 +38,13 @@ impl From<&mut ParseNode> for TypeHintNode {
 
 impl AST for TypeHintNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
-		// 1. get from scope
-		let mut value = self.type_kind.resolve(scope)?;
-		
-		let mut args: Vec<TypeKind> = vec![];
-		for arg in self.args.iter() {
-			let arg = arg.resolve_to_type_kind(scope)?;
-			args.push(arg);
-		}
-		
-		// 2. apply args to generics
+		let type_symbol: SymbolNode = self.to_symbol(scope)?;
+		let mut value: ValueNode = type_symbol.resolve(scope)?;
 		match &mut value.value {
-			Value::Type(ref mut type_value) => {
-				if let Err(_) = type_value.apply_args(args) {
-					// return Err(value.error_raw(e))
-				}
+			Value::Type(_) => {
 				Ok(value)
 			},
-			_ => Err(value.error_raw("not a type"))
+			_ => Err(value.error_raw(format!("expected a type, found {value} (type {})", value.type_kind)))
 		}
 	}
 }
@@ -65,7 +54,15 @@ impl TypeHintNode {
 		let value = self.resolve(scope)?;
 		match value.value {
 			Value::Type(type_kind) => Ok(type_kind),
-			_ => Err(value.error_raw("not a type"))
+			_ => Err(value.error_raw(format!("expected a type, found {value} (type {})", value.type_kind)))
 		}
+	}
+	pub fn to_symbol(&self, scope: &mut LexicalScope) -> Result<SymbolNode, Error> {
+		let mut args: Vec<TypeKind> = vec![];
+		for arg in self.args.iter() {
+			let arg = arg.resolve_to_type_kind(scope)?;
+			args.push(arg);
+		}
+		Ok(SymbolNode::from((&self.type_kind, &args)))
 	}
 }

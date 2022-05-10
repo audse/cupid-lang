@@ -85,6 +85,9 @@ impl Node {
     pub fn map_mut<R>(&mut self, function: &dyn Fn(&mut Self) -> R) -> Vec<R> {
         self.children.iter_mut().map(function).collect()
     }
+	pub fn filter_map_mut<R>(&mut self, function: &dyn Fn(&mut Self) -> Option<R>) -> Vec<R> {
+		self.children.iter_mut().filter_map(function).collect()
+	}
     pub fn has(&self, name: &str) -> bool {
         self.children
             .iter()

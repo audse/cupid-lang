@@ -71,6 +71,16 @@ impl<F> Meta<F> {
 	}
 }
 
+impl From<&Meta<()>> for Meta<Flag> {
+	fn from(meta: &Meta<()>) -> Self {
+    	Self {
+			tokens: meta.tokens.to_owned(),
+			identifier: meta.identifier.to_owned(),
+			flags: vec![]
+		}
+	}
+}
+
 impl From<&mut ParseNode> for ValueNode {
 	fn from(node: &mut ParseNode) -> Self {
 		let (value, tokens) = Self::parse_value(node);
@@ -82,6 +92,16 @@ impl From<&mut ParseNode> for ValueNode {
 				identifier: None,
 				flags: vec![],
 			},
+		}
+	}
+}
+
+impl From<(Value, &Meta<Flag>)> for ValueNode {
+	fn from(value: (Value, &Meta<Flag>)) -> Self {
+		Self {
+			type_kind: TypeKind::infer(&value.0),
+			value: value.0,
+			meta: value.1.to_owned()
 		}
 	}
 }
@@ -151,13 +171,6 @@ impl ValueNode {
 			meta,
 		}
 	}
-	pub fn from_value(value: Value) -> Self {
-		Self {
-			type_kind: TypeKind::infer(&value),
-			value,
-			meta: Meta::new(vec![], None, vec![])
-		}
-	}
 	pub fn new_none() -> Self {
 		let none = Value::None;
 		Self {
@@ -180,7 +193,11 @@ impl AST for ValueNode {
 
 impl ErrorHandler for ValueNode {
 	fn get_token(&self) -> &Token {
-    	&self.meta.tokens[0]
+		if !self.meta.tokens.is_empty() {
+    		&self.meta.tokens[0]
+		} else {
+			panic!("An error occurred for `{self}`, but it has no tokens to reference for position/line information")
+		}
 	}
 	fn get_context(&self) -> String {
     	format!("{}", self.value)

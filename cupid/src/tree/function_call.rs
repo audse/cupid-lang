@@ -17,6 +17,7 @@ pub enum FunctionFlag {
 	And,
 	Or,
 	As,
+	IsType,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -38,10 +39,15 @@ impl From<&mut ParseNode> for FunctionCallNode {
 
 impl AST for FunctionCallNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
-		// check for builtin functions first
-		if !self.meta.flags.is_empty() {
-			return self.resolve_builtin_function(scope);
+		
+		// check for builtin/implemented functions first
+		if !self.args.0.is_empty() {
+			let mut left = self.args.0[0].resolve(scope)?;
+			if let Some(value) = self.call_implemented_function(&mut left, scope) {
+				return value;
+			}
 		}
+		
 		let function = self.function.resolve(scope)?;
 		
 		if let Value::Function(function) = &function.value {
@@ -53,12 +59,12 @@ impl AST for FunctionCallNode {
 }
 
 impl FunctionCallNode {
-	fn resolve_builtin_function(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
+	pub fn resolve_builtin_function(&self, left_value: ValueNode, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		use FunctionFlag::*;
 		use Value::*;
-		let left = self.args.0[0].resolve(scope)?.value;
+		let left = left_value.value;
 		let right = self.args.0[1].resolve(scope)?.value;
-		// if let Some(body) = function.body
+		
 		let value = match self.meta.flags[..] {
 			[Add, ..] => left + right,
 			[Subtract, ..] => left - right,
@@ -77,7 +83,55 @@ impl FunctionCallNode {
 			[As, ..] => left.cast(right),
 			_ => left
 		};
-		Ok(ValueNode::from_value(value))
+		Ok(ValueNode::from((value, &left_value.meta)))
+	}
+	
+	pub fn call_implemented_function(&self, from: &mut ValueNode, scope: &mut LexicalScope) -> Option<Result<ValueNode, Error>> {
+		let from_clone = from.to_owned();
+		if let Some((implementation, function)) = &from.type_kind.get_trait_function(&self.function) {
+			
+			// use built in for empty function bodies
+			if function.body.expressions.is_empty() && !self.meta.flags.is_empty() {
+				return Some(self.resolve_builtin_function(from_clone, scope));
+			}
+			
+			scope.add(Context::Function);
+			for generic in implementation.generics.iter() {
+				if let Err(e) = create_generic_symbol(generic, &from.meta, scope) {
+					return Some(Err(e))
+				}
+			}
+			if function.params.use_self {
+				if let Err(e) = create_self_symbol(&function, from_clone, scope) {
+					return Some(Err(e))
+				};
+			}
+			
+			let value = if !self.meta.flags.is_empty() {
+				let args = ArgumentsNode(self.args.0.iter().skip(1).cloned().collect());
+				function.call_function(&args, scope)
+			} else {
+				function.call_function(&self.args, scope)
+			};
+			
+			scope.pop();
+			Some(value)
+		} else {
+			if !self.meta.flags.is_empty() {
+				let right = match self.args.0[1].resolve(scope) {
+					Ok(right) => right,
+					Err(e) => return Some(Err(e))
+				};
+				let err = from.error_raw(format!(
+					"function {} is not implemented for ({}, {})", 
+					self.function, 
+					from.type_kind.get_name(),
+					right.type_kind.get_name()
+				));
+				return Some(Err(err));
+			}
+			None
+		}
 	}
 }
 

@@ -113,6 +113,7 @@ impl FileHandler {
 		self.scope.add(Context::Block);
 		match semantics.resolve(&mut self.scope) {
 			Err(e) => {
+				println!("{}", self.scope);
 				panic!("{}", self.make_error_string(&e))
 			},
 			Ok(val) => val,
@@ -165,7 +166,7 @@ impl FileHandler {
 			}.italic()
 		);
 		return format!(
-			"{error}\n\t{overline}\n\t{line}\n\t{underline}\n{context}",
+			"\n{error}\n\t{overline}\n\t{line}\n\t{underline}\n{context}\n\n",
 			error = e.string(&self.path),
 			overline = overline,
 			line = line,

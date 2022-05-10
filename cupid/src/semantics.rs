@@ -5,27 +5,33 @@ pub fn parse(node: &mut ParseNode) -> BoxAST {
 	match node.name.as_str() {
 		"file" => BoxAST::new(FileNode::from(node)),
 		"expression" => parse(&mut node.children[0]),
-		"comment" => BoxAST::new(EmptyNode),
+		"empty" 
+		| "comment" => BoxAST::new(EmptyNode),
 		
+		// Type definitions
 		"builtin_type_definition" => BoxAST::new(BuiltinTypeNode::from(node)),
+		"alias_type_definition" => BoxAST::new(AliasTypeDeclaration::from(node)),
+		
+		// Type implementations
 		"trait_definition" => BoxAST::new(TraitNode::from(node)),
 		"implement_type" => BoxAST::new(UseBlockNode::from(node)),
 		"implement_trait" => BoxAST::new(UseTraitBlockNode::from(node)),
 		
+		// Variable definitions
 		"typed_declaration" => BoxAST::new(DeclarationNode::from(node)),	
 		"assignment" => BoxAST::new(AssignmentNode::from(node)),
-				
+		
+		// Type hints
 		"array_type_hint"
 		| "function_type_hint"
 		| "map_type_hint"
 		| "primitive_type_hint"
 		| "struct_type_hint" => BoxAST::new(TypeHintNode::from(node)),
 		
+		// Terms
 		"block" => BoxAST::new(BlockNode::from(node)),
-		
 		"property_access" => BoxAST::new(PropertyNode::from(node)),
 		
-		/* TODO */
 		"compare_op" 
 		| "add"
 		| "multiply" 
@@ -34,13 +40,15 @@ pub fn parse(node: &mut ParseNode) -> BoxAST {
 		} else {
 			 parse(&mut node.children[0])
 		},
-		"unary_op" => parse(&mut node.children[0]),
-		/* END TODO */
+		"unary_op" => parse(&mut node.children[0]), // TODO
 		
 		"log" => BoxAST::new(LogNode::from(node)),
+		
+		// Atoms
 		"function_call" => BoxAST::new(FunctionCallNode::from(node)),
 		"function" => BoxAST::new(FunctionNode::from(node)),
-		"array" => BoxAST::new(ArrayNode::from(node)),
+		"bracket_array" => BoxAST::new(ArrayNode::from(node)),
+		"map" => BoxAST::new(MapNode::from(node)),
 		
 		"identifier"
 		| "self"

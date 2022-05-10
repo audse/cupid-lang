@@ -1,4 +1,4 @@
-use crate::{parse, SymbolNode, AST, ParseNode, LexicalScope, SymbolValue, Scope, ValueNode, Error, Meta, TypeHintNode, Value, TypeKind, BoxAST};
+use crate::*;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct DeclarationNode {
@@ -43,7 +43,16 @@ impl AST for DeclarationNode {
 		let mut symbol = self.symbol.to_owned();
 		symbol.0.type_kind = type_hint.to_owned();
 		
-		scope.set_symbol(&symbol, &SymbolValue::Declaration { 
+		if type_hint.is_equal(&value.value) {
+			value.type_kind = TypeKind::most_specific(&type_hint, &value.type_kind).to_owned();
+		} else {
+			return Err(value.error_raw_context(
+				format!("type mismatch: cannot assign {value} to {symbol}"),
+				format!("assigning type {} to type {type_hint}", TypeKind::infer(&value.value))
+			));
+		}
+		
+		scope.set_symbol(&symbol, SymbolValue::Declaration { 
 			type_hint, 
 			mutable: self.mutable, 
 			value

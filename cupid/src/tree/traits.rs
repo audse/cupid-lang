@@ -20,15 +20,19 @@ impl From<&mut ParseNode> for TraitNode {
 impl AST for TraitNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		let implementation = self.functions.resolve_to_implementation(scope)?;
+		
+		let symbol = SymbolNode::from((&self.symbol, &implementation.generics));
+		
 		let symbol_value = SymbolValue::Declaration { 
 			type_hint: TypeKind::Type,
 			value: ValueNode {
 				type_kind: TypeKind::Type,
 				value: Value::Implementation(implementation),
-				meta: Meta::new(vec![], None, vec![]),
+				meta: self.functions.2.to_owned(),
 			},
 			mutable: false,
 		};
-		scope.set_symbol(&self.symbol, &symbol_value)
+		
+		scope.set_symbol(&symbol, symbol_value)
 	}
 }

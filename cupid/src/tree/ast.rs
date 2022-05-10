@@ -58,3 +58,7 @@ pub enum OptionAST {
 pub trait FromParent<T> {
 	fn from_parent(parent: T) -> Self;
 }
+
+trait FromTo<F, T> {
+	fn from_to(node: F) -> T;
+}
