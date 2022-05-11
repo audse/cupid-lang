@@ -1,14 +1,14 @@
 use crate::*;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct ForInLoopNode<'src> {
-	pub symbols: Vec<SymbolNode<'src>>,
+pub struct ForInLoopNode {
+	pub symbols: Vec<SymbolNode>,
 	pub map: BoxAST,
 	pub body: BlockNode,
-	pub meta: Meta<'src, ()>
+	pub meta: Meta<()>
 }
 
-impl<'src> From<&mut ParseNode<'src>> for ForInLoopNode<'src> {
+impl From<&mut ParseNode> for ForInLoopNode {
 	fn from(node: &mut ParseNode) -> Self {
 		Self {
 			symbols: if let Some(params) = node.get_mut("for_loop_parameters") {
@@ -23,7 +23,7 @@ impl<'src> From<&mut ParseNode<'src>> for ForInLoopNode<'src> {
 	}
 }
 
-impl<'src> AST for ForInLoopNode<'src> {
+impl AST for ForInLoopNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		let map_value = self.map.resolve(scope)?;
 		let not_map_err = error_expected_map(&map_value);

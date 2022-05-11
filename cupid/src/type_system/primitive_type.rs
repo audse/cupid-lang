@@ -5,37 +5,37 @@ use serde::{Serialize, Deserialize};
 use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PrimitiveType<'src> {
-	pub identifier: Cow<'src, str>,
-	pub implementation: Implementation<'src>,
+pub struct PrimitiveType {
+	pub identifier: Cow<'static, str>,
+	pub implementation: Implementation,
 }
 
-impl<'src> PrimitiveType<'src> {
-	pub fn new(identifier: &str) -> Self {
+impl PrimitiveType {
+	pub fn new(identifier: Cow<'static, str>) -> Self {
 		Self { 
-			identifier: identifier.into(),
+			identifier,
 			implementation: Implementation::default()
 		}
 	}
 }
 
-impl<'src> Type for PrimitiveType<'src> {}
+impl Type for PrimitiveType {}
 
-impl<'src> PartialEq for PrimitiveType<'src> {
+impl PartialEq for PrimitiveType {
 	fn eq(&self, other: &Self) -> bool {
     	self.identifier == other.identifier
 	}
 }
 
-impl<'src> Eq for PrimitiveType<'src> {}
+impl Eq for PrimitiveType {}
 
-impl<'src> Hash for PrimitiveType<'src> {
+impl Hash for PrimitiveType {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		self.identifier.hash(state);
 	}
 }
 
-impl<'src> Display for PrimitiveType<'src> {
+impl Display for PrimitiveType {
 	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
 		write!(f, "{}", self.identifier)
 	}

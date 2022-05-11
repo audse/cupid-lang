@@ -6,7 +6,7 @@ pub struct LogNode {
 	pub args: ArgumentsNode,
 }
 
-impl From<&mut ParseNode<'_>> for LogNode {
+impl From<&mut ParseNode> for LogNode {
 	fn from(node: &mut ParseNode) -> Self {
     	Self {
 			identifier: node.tokens[0].source.to_owned(),
@@ -18,7 +18,7 @@ impl From<&mut ParseNode<'_>> for LogNode {
 impl AST for LogNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
     	let args: ValueNode = self.args.resolve(scope)?;
-		let args_list: &Vec<Value> = if let Value::Values(values) = &args.value {
+		let args_list: &Vec<ValueNode> = if let Value::Values(values) = &args.value {
 			values
 		} else {
 			panic!("expected value list in log args")

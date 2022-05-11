@@ -2,11 +2,11 @@ use std::fmt::{Display, Formatter, Result};
 use std::borrow::Cow;
 use serde::{Serialize, Deserialize};
 
-pub struct Tokenizer<'src> {
-	pub source: Cow<'src, str>,
+pub struct Tokenizer {
+	pub source: Cow<'static, str>,
 	pub index: usize,
 	pub chars: Vec<char>,
-	pub tokens: Vec<Token<'src>>,
+	pub tokens: Vec<Token>,
 	pub line: usize,
 	pub line_index: usize,
 	pub bracket_stack: Vec<char>,
@@ -16,14 +16,14 @@ const OPEN: [char; 3] = ['[', '(', '{'];
 const CLOSE: [char; 3] = [']', ')', '}'];
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Serialize, Deserialize)]
-pub struct Token<'src> {
-	pub source: Cow<'src, str>,
+pub struct Token {
+	pub source: Cow<'static, str>,
 	pub line: usize,
 	pub index: usize
 }
 
-impl<'src> Tokenizer<'src> {
-	pub fn new(string: Cow<'src, str>) -> Self {
+impl Tokenizer {
+	pub fn new(string: Cow<'static, str>) -> Self {
 		Self {
 			chars: string.chars().collect(),
 			source: string,
@@ -141,15 +141,15 @@ impl<'src> Tokenizer<'src> {
 	}
 }
 
-impl<'src> Display for Token<'src> {
+impl Display for Token {
 	fn fmt(&self, f: &mut Formatter) -> Result {
 		writeln!(f, "Token `{}` ({}:{})", self.source, self.line, self.index)
 	}
 }
 
-pub struct TokenList<'src>(Vec<Token<'src>>);
+pub struct TokenList(Vec<Token>);
 
-impl<'src> Display for TokenList<'src> {
+impl Display for TokenList {
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
 		_ = writeln!(f, "Tokens:");
     	self.0.iter().for_each(|t| { _ = write!(f, "{}", t); });

@@ -6,7 +6,7 @@ pub struct WhileLoopNode {
 	pub body: BlockNode
 }
 
-impl From<&mut ParseNode<'_>> for WhileLoopNode {
+impl From<&mut ParseNode> for WhileLoopNode {
 	fn from(node: &mut ParseNode) -> Self {
     	Self {
 			condition: parse(&mut node.children[0]),

@@ -1,15 +1,15 @@
 use crate::*;
 
-pub struct FileHandler<'src> {
+pub struct FileHandler {
 	pub path: String,
 	pub contents: String,
-	pub parser: CupidParser<'src>,
-	pub scope: LexicalScope<'src>,
+	pub parser: CupidParser,
+	pub scope: LexicalScope,
 	pub errors: Vec<Error>,
 	pub warnings: Vec<Warning>,
 }
 
-impl<'src> FileHandler<'src> {
+impl FileHandler {
 	
 	pub fn new(path: &str) -> Self {
 		let contents = std::fs::read_to_string(path)
@@ -47,10 +47,10 @@ impl<'src> FileHandler<'src> {
 	pub fn use_stdlib(&mut self) -> Result<(), Error> {
 		let packages = vec![
 			"./../stdlib/typedef.cupid",
-			// "./../stdlib/decimal.cupid",
-			// "./../stdlib/integer.cupid",
-			// "./../stdlib/math.cupid",
-			// "./../stdlib/compare.cupid",
+			"./../stdlib/ops.cupid",
+			"./../stdlib/typecast.cupid",
+			"./../stdlib/decimal.cupid",
+			"./../stdlib/integer.cupid",
 		];
 		let stdlib: Vec<String> = packages
 			.iter()

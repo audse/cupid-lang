@@ -5,12 +5,12 @@ use std::hash::{Hash, Hasher};
 use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GenericType<'src> {
-	pub identifier: Cow<'src, str>,
-	pub type_value: Option<Box<TypeKind<'src>>>
+pub struct GenericType {
+	pub identifier: Cow<'static, str>,
+	pub type_value: Option<Box<TypeKind>>
 }
 
-impl<'src> GenericType<'src> {
+impl GenericType {
 	pub const fn new_const(identifier: &'static str) -> Self {
 		Self { identifier: Cow::Borrowed(identifier), type_value: None }
 	}
@@ -19,11 +19,11 @@ impl<'src> GenericType<'src> {
 	}
 }
 
-impl<'src> From<&SymbolNode<'src>> for GenericType<'src> {
+impl From<&SymbolNode> for GenericType {
 	fn from(symbol: &SymbolNode) -> Self {
 		if let Value::String(string) = &symbol.0.value {
 			Self {
-				identifier: (*string).to_owned(),
+				identifier: string.to_owned(),
 				type_value: None
 			}
 		} else {
@@ -32,40 +32,44 @@ impl<'src> From<&SymbolNode<'src>> for GenericType<'src> {
 	}
 }
 
-impl<'src> From<&'src str> for GenericType<'src> {
-	fn from(string: &'src str) -> Self {
+impl From<&'static str> for GenericType {
+	fn from(string: &'static str) -> Self {
 		Self { identifier: string.into(), type_value: None }
 	}
 }
 
-impl<'src> Into<TypeKind<'src>> for GenericType<'src> {
-	fn into(self) -> TypeKind<'src> { TypeKind::Generic(self) }
+impl Into<TypeKind> for GenericType {
+	fn into(self) -> TypeKind { TypeKind::Generic(self) }
 }
-impl<'src> Into<Value<'src>> for GenericType<'src> {
-	fn into(self) -> Value<'src> { Value::Type(self.into()) }
+impl Into<Value> for GenericType {
+	fn into(self) -> Value { Value::Type(self.into()) }
 }
-impl<'src> Into<ValueNode<'src>> for GenericType<'src> {
-	fn into(self) -> ValueNode<'src> { ValueNode::from(Value::from(self.into())) }
+impl Into<ValueNode> for GenericType {
+	fn into(self) -> ValueNode { ValueNode::from(Value::from(self.into())) }
 }
 
-impl<'src> Type for GenericType<'src> {}
+impl Type for GenericType {}
 
-impl<'src> PartialEq for GenericType<'src> {
+impl PartialEq for GenericType {
 	fn eq(&self, other: &Self) -> bool {
 		self.identifier == other.identifier
+		&& match (&self.type_value, &other.type_value) {
+			(Some(x), Some(y)) => x == y,
+			_ => true,
+		}
 	}
 }
 
-impl<'src> Eq for GenericType<'src> {}
+impl Eq for GenericType {}
 
-impl<'src> Hash for GenericType<'src> {
+impl Hash for GenericType {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		self.identifier.hash(state);
 		self.type_value.hash(state);
 	}
 }
 
-impl<'src> Display for GenericType<'src> {
+impl Display for GenericType {
 	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
 		let type_value = if let Some(type_value) = &self.type_value {
 			format!(": {}", type_value)

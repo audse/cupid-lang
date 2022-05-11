@@ -4,18 +4,18 @@ use serde::{Serialize, Deserialize};
 use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct StructType<'src> {
-	pub members: Vec<(SymbolNode<'src>, TypeKind<'src>)>,
-	pub implementation: Implementation<'src>
+pub struct StructType {
+	pub members: Vec<(ValueNode, TypeKind)>,
+	pub implementation: Implementation
 }
 
-impl<'src> StructType<'src> {
+impl StructType {
 	pub fn is_map_equal(&self, other: &Value) -> bool {
 		// todo
 		match other {
 			Value::Map(x) => {
 				x.iter().all(|(key, (_, value))| {
-					if let Some((_, member_type)) = self.members.iter().find(|(symbol, _)| &symbol.0.value == &key.value)  {
+					if let Some((_, member_type)) = self.members.iter().find(|(symbol, _)| &symbol.value == &key.value)  {
 						member_type.is_equal(&value.value)
 					} else {
 						false
@@ -27,23 +27,23 @@ impl<'src> StructType<'src> {
 	}
 }
 
-impl<'src> Type for StructType<'src> {}
+impl Type for StructType {}
 
-impl<'src> PartialEq for StructType<'src> {
+impl PartialEq for StructType {
 	fn eq(&self, other: &Self) -> bool {
 		self.members == other.members
 	}
 }
 
-impl<'src> Eq for StructType<'src> {}
+impl Eq for StructType {}
 
-impl<'src> Hash for StructType<'src> {
+impl Hash for StructType {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		self.members.hash(state);
 	}
 }
 
-impl<'src> Display for StructType<'src> {
+impl Display for StructType {
 	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
 		let members: Vec<String> = self.members
 			.iter()

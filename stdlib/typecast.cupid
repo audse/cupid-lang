@@ -1,6 +1,10 @@
-trait [t] into = [
-	fun [t] = self => self as t
+trait [f, t] cast = [
+	fun [t] cast = self => _
 ]
 
-use [bool] into with int
-use [bool] into with dec
+use [f: int, t: bool] cast with int
+use [f: int, t: dec] cast with int
+use [f: int, t: string] cast with int
+use [f: dec, t: bool] cast with dec
+use [f: dec, t: int] cast with dec
+use [f: dec, t: string] cast with dec

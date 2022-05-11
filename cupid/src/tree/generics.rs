@@ -1,12 +1,12 @@
 use crate::*;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct GenericNode<'src> {
-	pub identifier: SymbolNode<'src>,
-	pub type_value: Option<TypeHintNode<'src>>,
+pub struct GenericNode {
+	pub identifier: SymbolNode,
+	pub type_value: Option<TypeHintNode>,
 }
 
-impl<'src> From<&mut ParseNode<'src>> for GenericNode<'src> {
+impl From<&mut ParseNode> for GenericNode {
 	fn from(node: &mut ParseNode) -> Self {
 		let mut identifier = SymbolNode::from(&mut node.children[0]);
 		identifier.0.type_kind = TypeKind::new_generic(identifier.get_identifier_string());
@@ -21,7 +21,7 @@ impl<'src> From<&mut ParseNode<'src>> for GenericNode<'src> {
 	}
 }
 
-impl<'src> AST for GenericNode<'src> {
+impl AST for GenericNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		let type_kind = self.resolve_to_generic(scope)?;	
 		let type_id = TypeId::from(TypeKind::Generic(type_kind));
@@ -33,7 +33,7 @@ impl<'src> AST for GenericNode<'src> {
 	}
 }
 
-impl<'src> GenericNode<'src> {
+impl GenericNode {
 	fn resolve_to_generic(&self, scope: &mut LexicalScope) -> Result<GenericType, Error> {
 		let mut type_kind = self.identifier.0.type_kind.to_owned();
 		let type_value = self.type_value.as_ref();
@@ -52,28 +52,28 @@ impl<'src> GenericNode<'src> {
 }
 
 #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
-pub struct GenericsNode<'src>(pub Vec<GenericNode<'src>>);
+pub struct GenericsNode(pub Vec<GenericNode>);
 
-impl<'src> FromParent<&mut ParseNode<'src>> for Option<GenericsNode<'src>> {
+impl FromParent<&mut ParseNode> for Option<GenericsNode> {
 	fn from_parent(node: &mut ParseNode) -> Self {
 		let generics_node = node.children.iter_mut().find(|n| &*n.name == "generics");
 		generics_node.map(GenericsNode::from)
 	}
 }
 
-impl<'src> From<&mut ParseNode<'src>> for GenericsNode<'src> {
+impl From<&mut ParseNode> for GenericsNode {
 	fn from(node: &mut ParseNode) -> Self {
 		Self(node.children.iter_mut().map(GenericNode::from).collect())
 	}
 }
 
-impl<'src> AST for GenericsNode<'src> {
+impl AST for GenericsNode {
 	fn resolve(&self, _scope: &mut LexicalScope) -> Result<ValueNode, Error> {
     	todo!()
 	}
 }
 
-impl<'src> GenericsNode<'src> {
+impl GenericsNode {
 	pub fn resolve_to_generics(&self, scope: &mut LexicalScope) -> Result<Vec<GenericType>, Error> {
 		scope.add(Context::Block);
 		let mut generics: Vec<GenericType> = vec![];

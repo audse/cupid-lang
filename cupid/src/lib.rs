@@ -43,24 +43,24 @@ extern {
 
 
 #[derive(Serialize, Deserialize)]
-pub struct ScopeEntry<'src> {
+pub struct ScopeEntry {
 	pub context: Context,
-	pub storage: Vec<StorageEntry<'src>>,
+	pub storage: Vec<StorageEntry>,
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct StorageEntry<'src> {
-	pub symbol: ValueNode<'src>,
-	pub value: SymbolValue<'src>
+pub struct StorageEntry {
+	pub symbol: ValueNode,
+	pub value: SymbolValue
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct Cupid<'src> {
-	pub values: Vec<(String, ValueNode<'src>)>,
+pub struct Cupid {
+	pub values: Vec<(String, ValueNode)>,
 	pub semantics: Vec<BoxAST>,
-	pub parse: ParseNode<'src>,
+	pub parse: ParseNode,
 	pub errors: Vec<Error>,
-	pub scope: Vec<ScopeEntry<'src>>
+	pub scope: Vec<ScopeEntry>
 }
 
 #[wasm_bindgen]

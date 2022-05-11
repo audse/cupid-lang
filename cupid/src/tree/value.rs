@@ -4,27 +4,27 @@ use std::fmt::{Display, Formatter, Result as DisplayResult};
 use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ValueNode<'src> {
-	pub value: Value<'src>,
-	pub type_kind: TypeKind<'src>,
-	pub meta: Meta<'src, Flag>,
+pub struct ValueNode {
+	pub value: Value,
+	pub type_kind: TypeKind,
+	pub meta: Meta<Flag>,
 }
 
-impl<'src> PartialEq for ValueNode<'src> {
+impl PartialEq for ValueNode {
 	fn eq(&self, other: &Self) -> bool {
     	self.value == other.value
 	}
 }
 
-impl<'src> Eq for ValueNode<'src> {}
+impl Eq for ValueNode {}
 
-impl<'src> Hash for ValueNode<'src> {
+impl Hash for ValueNode {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		self.value.hash(state);
 	}
 }
 
-impl<'src> Display for ValueNode<'src> {
+impl Display for ValueNode {
 	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
 		write!(f, "{}", self.value)
 	}
@@ -38,13 +38,13 @@ pub enum Flag {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct Meta<'src, F> {
-	pub tokens: Vec<Token<'src>>,
-	pub identifier: Option<Box<ValueNode<'src>>>,
+pub struct Meta<F> {
+	pub tokens: Vec<Token>,
+	pub identifier: Option<Box<ValueNode>>,
 	pub flags: Vec<F>,
 }
 
-impl<'src, F> Default for Meta<'src, F> {
+impl<F> Default for Meta<F> {
 	fn default() -> Self {
     	Self {
 			tokens: vec![],
@@ -54,7 +54,7 @@ impl<'src, F> Default for Meta<'src, F> {
 	}
 }
 
-impl<'src, F> Meta<'src, F> {
+impl<F> Meta<F> {
 	pub fn new(tokens: Vec<Token>, identifier: Option<Box<ValueNode>>, flags: Vec<F>) -> Self {
 		Self {
 			tokens,
@@ -71,7 +71,7 @@ impl<'src, F> Meta<'src, F> {
 	}
 }
 
-impl<'src> From<&Meta<'src, ()>> for Meta<'src, Flag> {
+impl From<&Meta<()>> for Meta<Flag> {
 	fn from(meta: &Meta<()>) -> Self {
     	Self {
 			tokens: meta.tokens.to_owned(),
@@ -81,7 +81,7 @@ impl<'src> From<&Meta<'src, ()>> for Meta<'src, Flag> {
 	}
 }
 
-impl<'src> From<&mut ParseNode<'src>> for ValueNode<'src> {
+impl From<&mut ParseNode> for ValueNode {
 	fn from(node: &mut ParseNode) -> Self {
 		let (value, tokens) = Self::parse_value(node);
 		Self {
@@ -96,7 +96,7 @@ impl<'src> From<&mut ParseNode<'src>> for ValueNode<'src> {
 	}
 }
 
-impl<'src> From<(Value<'src>, &Meta<'src, Flag>)> for ValueNode<'src> {
+impl From<(Value, &Meta<Flag>)> for ValueNode {
 	fn from(value: (Value, &Meta<Flag>)) -> Self {
 		Self {
 			type_kind: TypeKind::infer(&value.0),
@@ -106,7 +106,7 @@ impl<'src> From<(Value<'src>, &Meta<'src, Flag>)> for ValueNode<'src> {
 	}
 }
 
-impl<'src> From<Value<'src>> for ValueNode<'src> {
+impl From<Value> for ValueNode {
 	fn from(value: Value) -> Self {
 		Self {
 			type_kind: TypeKind::infer(&value),
@@ -116,8 +116,8 @@ impl<'src> From<Value<'src>> for ValueNode<'src> {
 	}
 }
 
-impl<'src> From<Cow<'src, str>> for ValueNode<'src> {
-	fn from(value: Cow<'src, str>) -> Self {
+impl From<Cow<'static, str>> for ValueNode {
+	fn from(value: Cow<'static, str>) -> Self {
 		let value = Value::String(value);
 		Self {
 			type_kind: TypeKind::infer(&value),
@@ -127,8 +127,8 @@ impl<'src> From<Cow<'src, str>> for ValueNode<'src> {
 	}
 }
 
-impl<'src> ValueNode<'src> {
-	fn parse_value(node: &mut ParseNode) -> (Value<'src>, Vec<Token<'src>>) {
+impl ValueNode {
+	fn parse_value(node: &mut ParseNode) -> (Value, Vec<Token>) {
 		let tokens = node.tokens.to_owned();
 		(match &*node.name {
 			"boolean" => match &*tokens[0].source {
@@ -147,7 +147,7 @@ impl<'src> ValueNode<'src> {
 				let mut string = tokens[0].source.clone();
 				if let Some(first) = string.chars().next() {
 					if first == '"' || first == '\'' { 
-						string = Cow::Owned(string[1..string.len()].to_string());
+						string = Cow::Owned(string[1..string.len()-1].to_string());
 					}
 				}
 				Value::String(string)
@@ -180,7 +180,7 @@ impl<'src> ValueNode<'src> {
 	}
 }
 
-impl<'src> AST for ValueNode<'src> {
+impl AST for ValueNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		let mut value = self.to_owned();
 		if let Some(type_kind) = TypeKind::infer_from_scope(&value, scope) {
@@ -190,7 +190,7 @@ impl<'src> AST for ValueNode<'src> {
 	}
 }
 
-impl<'src> ErrorHandler for ValueNode<'src> {
+impl ErrorHandler for ValueNode {
 	fn get_token(&self) -> &Token {
 		if !self.meta.tokens.is_empty() {
     		&self.meta.tokens[0]

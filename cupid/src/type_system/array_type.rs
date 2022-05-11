@@ -4,12 +4,12 @@ use std::fmt::{Display, Formatter, Result as DisplayResult};
 use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ArrayType<'src> {
-	pub element_type: Box<TypeKind<'src>>,
-	pub implementation: Implementation<'src>,
+pub struct ArrayType {
+	pub element_type: Box<TypeKind>,
+	pub implementation: Implementation,
 }
 
-impl<'src> Type for ArrayType<'src> {
+impl Type for ArrayType {
 	fn apply_args(&mut self, args: Vec<TypeKind>) -> Result<(), &str> {
 		if let TypeKind::Generic(_) = &*self.element_type {
 			if !args.is_empty() {
@@ -24,7 +24,7 @@ impl<'src> Type for ArrayType<'src> {
 	}
 }
 
-impl<'src> PartialEq for ArrayType<'src> {
+impl PartialEq for ArrayType {
 	fn eq(&self, other: &Self) -> bool {
 		match &*self.element_type {
 			TypeKind::Generic(GenericType	{ identifier: _, type_value: _ }) => true,
@@ -33,15 +33,15 @@ impl<'src> PartialEq for ArrayType<'src> {
 	}
 }
 
-impl<'src> Eq for ArrayType<'src> {}
+impl Eq for ArrayType {}
 
-impl<'src> Hash for ArrayType<'src> {
+impl Hash for ArrayType {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		self.element_type.hash(state);
 	}
 }
 
-impl<'src> Display for ArrayType<'src> {
+impl Display for ArrayType {
 	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
 		write!(f, "array [{}] {}", self.element_type, self.implementation)
 	}

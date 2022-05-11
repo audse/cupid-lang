@@ -1,13 +1,13 @@
 use crate::*;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct ImplementationNode<'src>(
-	pub Vec<DeclarationNode<'src>>, 
-	pub Option<GenericsNode<'src>>, 
-	pub Meta<'src, Flag>
+pub struct ImplementationNode(
+	pub Vec<DeclarationNode>, 
+	pub Option<GenericsNode>, 
+	pub Meta<Flag>
 );
 
-impl<'src> From<&mut ParseNode<'src>> for ImplementationNode<'src> {
+impl From<&mut ParseNode> for ImplementationNode {
 	fn from(node: &mut ParseNode) -> Self {
 		Self(
 			node.children
@@ -24,7 +24,7 @@ impl<'src> From<&mut ParseNode<'src>> for ImplementationNode<'src> {
 	}
 }
 
-impl<'src> AST for ImplementationNode<'src> {
+impl AST for ImplementationNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		let generics = if let Some(generics) = &self.1 {
 			generics.resolve_to_generics(scope)?
@@ -40,7 +40,7 @@ impl<'src> AST for ImplementationNode<'src> {
 	}
 }
 
-impl<'src> ImplementationNode<'src> {
+impl ImplementationNode {
 	pub fn resolve_to_implementation(&self, scope: &mut LexicalScope) -> Result<Implementation, Error> {
 		match self.resolve(scope) {
 			Ok(val) => if let Value::Implementation(val) = val.value {

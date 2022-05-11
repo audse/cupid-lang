@@ -1,17 +1,31 @@
 use std::collections::HashMap;
 use crate::*;
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct MapNode<'src> {
-	pub items: Vec<(BoxAST, BoxAST)>,
-	pub meta: Meta<'src, ()>
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum MapKey {
+	AST(BoxAST),
+	Symbol(SymbolNode),
 }
 
-impl<'src> From<&mut ParseNode<'_>> for MapNode<'src> {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MapNode {
+	pub items: Vec<(MapKey, BoxAST)>,
+	pub meta: Meta<()>
+}
+
+impl From<&mut ParseNode> for MapNode {
 	fn from(node: &mut ParseNode) -> Self {
+		use MapKey::*;
 		Self {
 			items: node.filter_map_mut(&|child| if &*child.name == "map_entry" {
-				Some((parse(&mut child.children[0]), parse(&mut child.children[1])))
+				Some((
+					if child.children[0].name == "identifier" {
+						Symbol(SymbolNode::from(&mut child.children[0]))
+					} else {
+						AST(parse(&mut child.children[0]))
+					}, 
+					parse(&mut child.children[1])
+				))
 			} else {
 				None
 			}),
@@ -20,11 +34,14 @@ impl<'src> From<&mut ParseNode<'_>> for MapNode<'src> {
 	}
 }
 
-impl<'src> AST for MapNode<'src> {
+impl AST for MapNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		let mut items = HashMap::new();
     	for (i, (key_node, value_node)) in self.items.iter().enumerate() {
-			let key = key_node.resolve(scope)?;
+			let key = match key_node {
+				MapKey::Symbol(symbol) => symbol.0.to_owned(),
+				MapKey::AST(node) => node.resolve(scope)?
+			};
 			let value = value_node.resolve(scope)?;
 			items.insert(key, (i, value));
 		}

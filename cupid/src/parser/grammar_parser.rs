@@ -1,32 +1,35 @@
 use crate::*;
 
-pub struct GrammarParser<'src> {
-	pub tokens: BiDirectionalIterator<Token<'src>>,
+pub struct GrammarParser {
+	pub tokens: BiDirectionalIterator<Token>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct Rule<'src> {
-	pub name: Cow<'src, str>,
-	pub alts: Vec<Vec<AltGroup<'src>>>,
+pub struct Rule {
+	pub name: Cow<'static, str>,
+	pub alts: Vec<Vec<AltGroupCow>>,
 	pub pass_through: bool, // to be included in the rule tree, or "passed through" to an encapsulating rule
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct Alt<'src> {
-	pub kind: Cow<'src, str>,
-	pub source: Token<'src>,
-	pub prefix_modifier: Option<Cow<'src, str>>,
-	pub suffix_modifier: Option<Cow<'src, str>>
-}
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct AltGroup<'src> {
-	pub alts: Vec<Alt<'src>>,
+pub struct Alt {
+	pub kind: Cow<'static, str>,
+	pub source: Token,
+	pub prefix_modifier: Option<Cow<'static, str>>,
+	pub suffix_modifier: Option<Cow<'static, str>>
+}
+type AltCow = Cow<'static, Alt>;
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct AltGroup {
+	pub alts: Vec<AltCow>,
 	pub prefix_modifier: Option<Cow<'static, str>>,
 	pub suffix_modifier: Option<Cow<'static, str>>,
 }
+type AltGroupCow = Cow<'static, AltGroup>;
 
-impl<'src> GrammarParser<'src> {
+impl GrammarParser {
 	pub fn new(source: Cow<'static, str>) -> Self {
 		let mut tokenizer = Tokenizer::new(source);
 		tokenizer.scan();
@@ -114,7 +117,11 @@ impl<'src> GrammarParser<'src> {
 						alt_pos = self.tokens.index();
 					}
 					self.tokens.goto(alt_pos);
-					return Some(Rule { name: name.source, alts, pass_through });
+					return Some(Rule { 
+						name: name.source, 
+						alts, 
+						pass_through 
+					});
 				}
 			}
 		}
@@ -122,7 +129,7 @@ impl<'src> GrammarParser<'src> {
 		None
 	}
 	
-	fn group(&mut self) -> Vec<Alt> {
+	fn group(&mut self) -> Vec<AltCow> {
 		let mut items = vec![];
 		loop {
 			if let Some(_paren) = self.expect(")") {
@@ -137,22 +144,22 @@ impl<'src> GrammarParser<'src> {
 		items
 	}
 	
-	fn alternative(&mut self) -> Vec<AltGroup> {
-		let mut items = vec![];
+	fn alternative(&mut self) -> Vec<AltGroupCow> {
+		let mut items: Vec<AltGroupCow> = vec![];
 		loop {
 			let mut group = AltGroup {
-				alts: vec![],
+				alts: vec![].into(),
 				prefix_modifier: self.prefix_modifier(),
 				suffix_modifier: None
 			};
 			if let Some(_paren) = self.expect("(") {
 				group.alts = self.group();
 				group.suffix_modifier = self.suffix_modifier();
-				items.push(group);
+				items.push(Cow::Owned(group));
 			} else if let Some(item) = self.item() {
 				group.suffix_modifier = self.suffix_modifier();
 				group.alts.push(item);
-				items.push(group);
+				items.push(Cow::Owned(group));
 			} else {
 				break;
 			}
@@ -160,26 +167,26 @@ impl<'src> GrammarParser<'src> {
 		items
 	}
 	
-	fn item(&mut self) -> Option<Alt> {
+	fn item(&mut self) -> Option<AltCow> {
 		if let Some(_end) = self.expect("EOF") {
 			return None;
 		}
 		let prefix_modifier = self.prefix_modifier();
 		if let Some(con) = self.expect_constant() {
 			let suffix_modifier = self.suffix_modifier();
-			return Some(Alt { kind: "constant".into(), source: con, prefix_modifier, suffix_modifier });
+			return Some(Cow::Owned(Alt { kind: "constant".into(), source: con, prefix_modifier, suffix_modifier }));
 		}
 		if let Some(name) = self.expect_name() {
 			let suffix_modifier = self.suffix_modifier();
-			return Some(Alt { kind: "name".into(), source: name, prefix_modifier, suffix_modifier });
+			return Some(Cow::Owned(Alt { kind: "name".into(), source: name, prefix_modifier, suffix_modifier }));
 		}
 		if let Some(string) = self.expect_string() {
 			let suffix_modifier = self.suffix_modifier();
-			return Some(Alt { kind: "string".into(), source: string, prefix_modifier, suffix_modifier });
+			return Some(Cow::Owned(Alt { kind: "string".into(), source: string, prefix_modifier, suffix_modifier }));
 		}
 		if let Some(tag) = self.expect_tag() {
 			let suffix_modifier = self.suffix_modifier();
-			return Some(Alt { kind: "tag".into(), source: tag, prefix_modifier, suffix_modifier })
+			return Some(Cow::Owned(Alt { kind: "tag".into(), source: tag, prefix_modifier, suffix_modifier }))
 		}
 		None
 	}

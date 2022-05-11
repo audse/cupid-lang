@@ -1,13 +1,13 @@
 use crate::*;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct OperationNode<'src> {
+pub struct OperationNode {
 	pub left: BoxAST,
 	pub right: BoxAST,
-	pub operator: Cow<'src, str>,
+	pub operator: Cow<'static, str>,
 }
 
-impl<'src> From<&mut ParseNode<'src>> for OperationNode<'src> {
+impl From<&mut ParseNode> for OperationNode {
 	fn from(node: &mut ParseNode) -> Self {
     	Self {
 			left: parse(&mut node.children[0]),
@@ -17,8 +17,8 @@ impl<'src> From<&mut ParseNode<'src>> for OperationNode<'src> {
 	}
 }
 
-impl<'src> OperationNode<'src> {
-	pub fn parse_as_function(node: &mut ParseNode) -> FunctionCallNode<'src> {
+impl OperationNode {
+	pub fn parse_as_function(node: &mut ParseNode) -> FunctionCallNode {
 		use FunctionFlag::*;
 		let (function, flag) = match &*node.tokens[0].source {
 			"+" => ("add", Add),
@@ -52,6 +52,31 @@ impl<'src> OperationNode<'src> {
 			function: function_symbol,
 			args: ArgumentsNode(vec![left, right]),
 			meta: Meta::new(node.tokens.to_owned(), None, vec![flag])
+		}
+	}
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TypeCastNode {
+	pub left: BoxAST,
+	pub right: TypeHintNode,
+}
+
+impl TypeCastNode {
+	pub fn parse_as_function(node: &mut ParseNode) -> FunctionCallNode {
+		let function = Value::String("cast".into());
+		let function_symbol = SymbolNode(ValueNode {
+			type_kind: TypeKind::infer(&function),
+			value: function,
+			meta: Meta::with_tokens(node.tokens.to_owned()),
+		});
+		let left = parse(&mut node.children[0]);
+		let right = TypeHintNode::from(&mut node.children[1]);
+		
+		FunctionCallNode {
+			function: function_symbol,
+			args: ArgumentsNode(vec![left, BoxAST::new(right)]),
+			meta: Meta::new(node.tokens.to_owned(), None, vec![FunctionFlag::As])
 		}
 	}
 }

@@ -11,6 +11,8 @@ pub fn parse(node: &mut ParseNode) -> BoxAST {
 		// Type definitions
 		"builtin_type_definition" => BoxAST::new(BuiltinTypeNode::from(node)),
 		"alias_type_definition" => BoxAST::new(AliasTypeDeclaration::from(node)),
+		"struct_type_definition" => BoxAST::new(StructTypeDeclaration::from(node)),
+		"sum_type_definition" => BoxAST::new(SumTypeDeclaration::from(node)),
 		
 		// Type implementations
 		"trait_definition" => BoxAST::new(TraitNode::from(node)),
@@ -34,6 +36,7 @@ pub fn parse(node: &mut ParseNode) -> BoxAST {
 		"while_loop" => BoxAST::new(WhileLoopNode::from(node)),
 		"property_access" => BoxAST::new(PropertyNode::from(node)),
 		
+		"type_cast" => BoxAST::new(TypeCastNode::parse_as_function(node)),
 		"compare_op" 
 		| "add"
 		| "multiply" 
@@ -70,12 +73,12 @@ pub fn parse(node: &mut ParseNode) -> BoxAST {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct FileNode<'src> {
+pub struct FileNode {
 	pub expressions: Vec<BoxAST>,
-	pub meta: Meta<'src, ()>
+	pub meta: Meta<()>
 }
 
-impl<'src> From<&mut ParseNode<'src>> for FileNode<'src> {
+impl From<&mut ParseNode> for FileNode {
 	fn from(node: &mut ParseNode) -> Self {
     	Self {
 			expressions: node.children.iter_mut().map(parse).collect(),
@@ -84,12 +87,12 @@ impl<'src> From<&mut ParseNode<'src>> for FileNode<'src> {
 	}
 }
 
-impl<'src> AST for FileNode<'src> {
+impl AST for FileNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
-		let mut values: Vec<Value> = vec![];
+		let mut values: Vec<ValueNode> = vec![];
 		for exp in self.expressions.iter() {
 			let value = exp.resolve(scope)?;
-			values.push(value.value);
+			values.push(value);
 		}
 		let meta: Meta<Flag> = Meta {
 			tokens: self.meta.tokens.to_owned(),

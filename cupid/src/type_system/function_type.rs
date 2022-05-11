@@ -4,15 +4,15 @@ use std::fmt::{Display, Formatter, Result as DisplayResult};
 use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FunctionType<'src> {
-	pub return_type: Box<TypeKind<'src>>,
-	pub param_types: Vec<TypeKind<'src>>, // TODO
-	pub implementation: Implementation<'src>,
+pub struct FunctionType {
+	pub return_type: Box<TypeKind>,
+	pub param_types: Vec<TypeKind>, // TODO
+	pub implementation: Implementation,
 }
 
-impl<'src> Type for FunctionType<'src> {}
+impl Type for FunctionType {}
 
-impl<'src> PartialEq for FunctionType<'src> {
+impl PartialEq for FunctionType {
 	fn eq(&self, other: &Self) -> bool {
 		// TODO params as well?
 		match (&*self.return_type, &*other.return_type) {
@@ -23,15 +23,15 @@ impl<'src> PartialEq for FunctionType<'src> {
 	}
 }
 
-impl<'src> Eq for FunctionType<'src> {}
+impl Eq for FunctionType {}
 
-impl<'src> Hash for FunctionType<'src> {
+impl Hash for FunctionType {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		self.return_type.hash(state);
 	}
 }
 
-impl<'src> Display for FunctionType<'src> {
+impl Display for FunctionType {
 	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
 		let param_types: Vec<String> = self.param_types.iter().map(|p| p.to_string()).collect();
 		write!(f, "{:8} [{}: {}] {}", "fun", self.return_type, param_types.join(", "), self.implementation)

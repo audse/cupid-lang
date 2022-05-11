@@ -1,13 +1,13 @@
 use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FunctionNode<'src> {
-	pub params: ParametersNode<'src>,
+pub struct FunctionNode {
+	pub params: ParametersNode,
 	pub body: BlockNode,
-	pub meta: Meta<'src, ()>,
+	pub meta: Meta<()>,
 }
 
-impl<'src> From<&mut ParseNode<'src>> for FunctionNode<'src> {
+impl From<&mut ParseNode> for FunctionNode {
 	fn from(node: &mut ParseNode) -> Self {
 		Self {
 			params: ParametersNode::from(&mut node.children[0]),
@@ -17,7 +17,7 @@ impl<'src> From<&mut ParseNode<'src>> for FunctionNode<'src> {
 	}
 }
 
-impl<'src> AST for FunctionNode<'src> {
+impl AST for FunctionNode {
 	fn resolve(&self, _scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		let meta = Meta::<Flag>::from(&self.meta);
 		Ok(ValueNode::from((
@@ -27,7 +27,7 @@ impl<'src> AST for FunctionNode<'src> {
 	}
 }
 
-impl<'src> FunctionNode<'src> {
+impl FunctionNode {
 	// fn infer_return_type(&self) -> TypeKind { todo!() }
 	
 	pub fn call_function(&self, args: &ArgumentsNode, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
@@ -76,20 +76,20 @@ impl<'src> FunctionNode<'src> {
 
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct Parameter<'src> {
-	pub type_hint: Option<TypeHintNode<'src>>,
-	pub symbol: SymbolNode<'src>,
+pub struct Parameter {
+	pub type_hint: Option<TypeHintNode>,
+	pub symbol: SymbolNode,
 	pub default: OptionAST,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct ParametersNode<'src> {
-	pub symbols: Vec<Parameter<'src>>,
+pub struct ParametersNode {
+	pub symbols: Vec<Parameter>,
 	pub use_self: bool,
 	pub mut_self: bool,
 }
 
-impl<'src> From<&mut ParseNode<'_>> for ParametersNode<'src> {
+impl From<&mut ParseNode> for ParametersNode {
 	fn from(node: &mut ParseNode) -> Self {
 		let mut_self = node.tokens
 			.iter_mut()
@@ -118,7 +118,7 @@ impl<'src> From<&mut ParseNode<'_>> for ParametersNode<'src> {
 	}
 }
 
-impl<'src> AST for ParametersNode<'src> {
+impl AST for ParametersNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		for Parameter { type_hint, symbol, .. } in self.symbols.iter() {
 			

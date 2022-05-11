@@ -1,12 +1,12 @@
 use crate::*;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct TraitNode<'src> {
-	pub symbol: SymbolNode<'src>,
-	pub functions: ImplementationNode<'src>,
+pub struct TraitNode {
+	pub symbol: SymbolNode,
+	pub functions: ImplementationNode,
 }
 
-impl<'src> From<&mut ParseNode<'src>> for TraitNode<'src> {
+impl From<&mut ParseNode> for TraitNode {
 	fn from(node: &mut ParseNode) -> Self {
 		let generics = node.get_mut("generics");
 		let symbol_i = if let Some(_) = generics { 1 } else { 0 };
@@ -17,7 +17,7 @@ impl<'src> From<&mut ParseNode<'src>> for TraitNode<'src> {
 	}
 }
 
-impl<'src> AST for TraitNode<'src> {
+impl AST for TraitNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		let implementation = self.functions.resolve_to_implementation(scope)?;
 		

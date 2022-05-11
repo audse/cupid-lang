@@ -4,12 +4,12 @@ use serde::{Serialize, Deserialize};
 use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SumType<'src> {
-	pub types: Vec<TypeKind<'src>>,
-	pub implementation: Implementation<'src>
+pub struct SumType {
+	pub types: Vec<TypeKind>,
+	pub implementation: Implementation
 }
 
-impl<'src> SumType<'src> {
+impl SumType {
 	pub fn contains(&self, other: &Value) -> bool {
 		self.types
 			.iter()
@@ -17,23 +17,23 @@ impl<'src> SumType<'src> {
 	}
 }
 
-impl<'src> Type for SumType<'src> {}
+impl Type for SumType {}
 
-impl<'src> PartialEq for SumType<'src> {
+impl PartialEq for SumType {
 	fn eq(&self, other: &Self) -> bool {
 		self.types == other.types
 	}
 }
 
-impl<'src> Eq for SumType<'src> {}
+impl Eq for SumType {}
 
-impl<'src> Hash for SumType<'src> {
+impl Hash for SumType {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		self.types.hash(state);
 	}
 }
 
-impl<'src> Display for SumType<'src> {
+impl Display for SumType {
 	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
 		let types: Vec<String> = self.types
 			.iter()

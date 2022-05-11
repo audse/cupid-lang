@@ -5,13 +5,13 @@ use serde::{Serialize, Deserialize};
 use crate::*;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct Implementation<'src> {
-	pub functions: HashMap<ValueNode<'src>, ValueNode<'src>>,
-	pub traits: HashMap<SymbolNode<'src>, Implementation<'src>>,
-	pub generics: Vec<GenericType<'src>>,
+pub struct Implementation {
+	pub functions: HashMap<ValueNode, ValueNode>,
+	pub traits: HashMap<SymbolNode, Implementation>,
+	pub generics: Vec<GenericType>,
 }
 
-impl<'src> From<HashMap<ValueNode<'src>, ValueNode<'src>>> for Implementation<'src> {
+impl From<HashMap<ValueNode, ValueNode>> for Implementation {
 	fn from(functions: HashMap<ValueNode, ValueNode>) -> Self {
 		Self {
 			functions,
@@ -21,7 +21,7 @@ impl<'src> From<HashMap<ValueNode<'src>, ValueNode<'src>>> for Implementation<'s
 	}
 }
 
-impl<'src> Implementation<'src> {
+impl Implementation {
 	// TODO make sure params match
 	pub fn get_function(&self, symbol: &SymbolNode) -> Option<&FunctionNode> {
 		if let Some(func) = self.functions.get(&symbol.0) {
@@ -32,7 +32,10 @@ impl<'src> Implementation<'src> {
 		None
 	}
 	pub fn get_trait_function(&self, symbol: &SymbolNode) -> Option<(&Implementation, &FunctionNode)> {
-		if let Some(implement) = self.traits.iter().find(|(k, _)| k.0 == symbol.0) {
+		if let Some(function) = self.get_function(symbol) {
+			return Some((self, function))
+		}
+		for implement in self.traits.iter() {
 			if let Some(function) = implement.1.get_function(symbol) {
 				return Some((implement.1, &function));
 			}
@@ -49,29 +52,29 @@ impl<'src> Implementation<'src> {
 	}
 }
 
-impl<'src> Hash for Implementation<'src> {
+impl Hash for Implementation {
 	fn hash<H: Hasher>(&self, state: &mut H) {
-		for (symbol, func) in self.functions.iter() {
+		for (symbol, _) in self.functions.iter() {
 			symbol.hash(state);
-			func.hash(state);
+			// func.hash(state);
 		}
-		for (trait_symbol, implement) in self.traits.iter() {
+		for (trait_symbol, _) in self.traits.iter() {
 			trait_symbol.hash(state);
-			implement.hash(state);
+			// implement.hash(state);
 		}
 	}
 }
 
-impl<'src> PartialEq for Implementation<'src> {
+impl PartialEq for Implementation {
 	fn eq(&self, other: &Self) -> bool {
 		self.functions == other.functions
 			&& self.traits == other.traits
 	}
 }
 
-impl<'src> Eq for Implementation<'src> {}
+impl Eq for Implementation {}
 
-impl<'src> Display for Implementation<'src> {
+impl Display for Implementation {
 	fn fmt(&self, f: &mut Formatter) -> DisplayResult {		
 		let functions: Vec<String> = self.functions
 			.iter()
@@ -90,6 +93,6 @@ impl<'src> Display for Implementation<'src> {
 		} else { 
 			String::new() 
 		};
-		write!(f, "[{}functions: [{}], traits: [{}]]", generics, functions.join(", "), traits.join(", "))
+		write!(f, "[{generics}functions: [{}], traits: [{}]]", functions.join(", "), traits.join(", "))
 	}
 }

@@ -1,3 +1,6 @@
+mod alias_type_declaration;
+pub use alias_type_declaration::*;
+
 mod ast;
 pub use ast::*;
 
@@ -46,14 +49,17 @@ pub use property::*;
 mod scope;
 pub use scope::*;
 
+mod struct_type_declaration;
+pub use struct_type_declaration::*;
+
+mod sum_type_declaration;
+pub use sum_type_declaration::*;
+
 mod symbol;
 pub use symbol::*;
 
 mod traits;
 pub use traits::*;
-
-mod type_declaration;
-pub use type_declaration::*;
 
 mod type_hint;
 pub use type_hint::*;

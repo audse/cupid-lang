@@ -103,7 +103,7 @@ someone istype person # should be false
 -   [x] Block functions
 -   [ ] Function chaining
 -   [ ] Closed scope
--   [x] Return statement
+-   [ ] Return statement
 -   [ ] Keyword args
 -   [x] Typed parameters
 -   [x] Return type
@@ -202,8 +202,8 @@ someone istype person # should be false
 
 ### Optimization
 
--   [ ] `String` to `Cow`
--   [ ] Cut down on clones- use `Rc`
+-   [x] `String` to `Cow`
+-   [ ] Cut down on clones/owned- use `Rc`
 -   [ ] Instead of reassigning whole symbol, mutate symbol value
 -   [ ] Make parsing faster
     -   [ ] Branching rather than repeats

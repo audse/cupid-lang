@@ -21,13 +21,13 @@ pub enum FunctionFlag {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FunctionCallNode<'src> {
-	pub function: SymbolNode<'src>,
+pub struct FunctionCallNode {
+	pub function: SymbolNode,
 	pub args: ArgumentsNode,
-	pub meta: Meta<'src, FunctionFlag>,
+	pub meta: Meta<FunctionFlag>,
 }
 
-impl<'src> From<&mut ParseNode<'_>> for FunctionCallNode<'src> {
+impl From<&mut ParseNode> for FunctionCallNode {
 	fn from(node: &mut ParseNode) -> Self {
 		Self {
 			function: SymbolNode::from(&mut node.children[0]),
@@ -37,7 +37,7 @@ impl<'src> From<&mut ParseNode<'_>> for FunctionCallNode<'src> {
 	}
 }
 
-impl<'src> AST for FunctionCallNode<'src> {
+impl AST for FunctionCallNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		
 		// check for builtin/implemented functions first
@@ -58,7 +58,7 @@ impl<'src> AST for FunctionCallNode<'src> {
 	}
 }
 
-impl<'src> FunctionCallNode<'src> {
+impl FunctionCallNode {
 	pub fn resolve_builtin_function(&self, left_value: ValueNode, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		use FunctionFlag::*;
 		use Value::*;
@@ -142,7 +142,7 @@ impl<'src> FunctionCallNode<'src> {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ArgumentsNode(pub Vec<BoxAST>);
 
-impl From<&mut ParseNode<'_>> for ArgumentsNode {
+impl From<&mut ParseNode> for ArgumentsNode {
 	fn from(node: &mut ParseNode) -> Self {
 		Self(node.map_mut(&parse))
 	}
@@ -150,10 +150,10 @@ impl From<&mut ParseNode<'_>> for ArgumentsNode {
 
 impl AST for ArgumentsNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
-		let mut values: Vec<Value> = vec![];
+		let mut values: Vec<ValueNode> = vec![];
 		for arg in self.0.iter() {
 			let value = arg.resolve(scope)?;
-			values.push(value.value);
+			values.push(value);
 		}
 		Ok(ValueNode::from(Value::Values(values)))
 	}

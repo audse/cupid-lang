@@ -1,13 +1,13 @@
 use crate::{parse, SymbolNode, AST, ParseNode, LexicalScope, ValueNode, Error, Meta, SymbolValue, Scope, BoxAST};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct AssignmentNode<'src> {
-	pub symbol: SymbolNode<'src>,
+pub struct AssignmentNode {
+	pub symbol: SymbolNode,
 	pub value: BoxAST,
-	pub meta: Meta<'src, ()>
+	pub meta: Meta<()>
 }
 
-impl<'src> From<&mut ParseNode<'src>> for AssignmentNode<'src> {
+impl From<&mut ParseNode> for AssignmentNode {
 	fn from(node: &mut ParseNode) -> Self {
     	Self {
 			symbol: SymbolNode::from(&mut node.children[0]),
@@ -17,7 +17,7 @@ impl<'src> From<&mut ParseNode<'src>> for AssignmentNode<'src> {
 	}
 }
 
-impl<'src> AST for AssignmentNode<'src> {
+impl AST for AssignmentNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		let mut value = self.value.resolve(scope)?;
 		

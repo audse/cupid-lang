@@ -6,21 +6,21 @@ use serde::{Serialize, Deserialize};
 use crate::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum TypeKind<'src> {
-	Array(ArrayType<'src>),
-	Function(FunctionType<'src>),
-	Generic(GenericType<'src>),
-	Map(MapType<'src>),
-	Primitive(PrimitiveType<'src>),
-	Struct(StructType<'src>),
-	Sum(SumType<'src>),
-	Alias(AliasType<'src>),
+pub enum TypeKind {
+	Array(ArrayType),
+	Function(FunctionType),
+	Generic(GenericType),
+	Map(MapType),
+	Primitive(PrimitiveType),
+	Struct(StructType),
+	Sum(SumType),
+	Alias(AliasType),
 	Type,
 	Placeholder,
 }
 
-impl<'src> TypeKind<'src> {
-	pub fn new_primitive(identifier: &str) -> Self {
+impl TypeKind {
+	pub fn new_primitive(identifier: Cow<'static, str>) -> Self {
 		Self::Primitive(PrimitiveType::new(identifier))
 	}
 	pub fn new_array(element_type: Self) -> Self {
@@ -41,12 +41,12 @@ impl<'src> TypeKind<'src> {
 	}
 	pub fn infer(value: &Value) -> Self {
 		match value {
-			Value::Boolean(_) => Self::new_primitive("bool"),
-			Value::Integer(_) =>  Self::new_primitive("int"),
-			Value::Char(_) => Self::new_primitive("char"),
-			Value::Decimal(_, _) => Self::new_primitive("dec"),
-			Value::String(_) => Self::new_primitive("string"),
-			Value::None => Self::new_primitive("nothing"),
+			Value::Boolean(_) => Self::new_primitive("bool".into()),
+			Value::Integer(_) =>  Self::new_primitive("int".into()),
+			Value::Char(_) => Self::new_primitive("char".into()),
+			Value::Decimal(_, _) => Self::new_primitive("dec".into()),
+			Value::String(_) => Self::new_primitive("string".into()),
+			Value::None => Self::new_primitive("nothing".into()),
 			Value::Function(_) => Self::new_function(),
 			Value::Array(array) => {
 				if !array.is_empty() {
@@ -90,10 +90,14 @@ impl<'src> TypeKind<'src> {
 		}
 	}
 	pub fn infer_from_scope(value: &ValueNode, scope: &mut LexicalScope) -> Option<Self> {
-		// TODO allow for args, e.g. array[<e>]
-		let name = Value::String(Self::infer_name(&value.value).into());
-		let symbol_value = ValueNode::new(name, Meta::with_tokens(value.meta.tokens.to_owned()));
-		let symbol = SymbolNode(symbol_value);
+		let meta = Meta::with_tokens(value.meta.tokens.to_owned());
+		let type_kind = TypeKind::infer_name(&value.value);
+		let type_id = Value::TypeIdentifier(TypeId::from(Value::String(type_kind.into())));
+		let symbol = SymbolNode(ValueNode {
+			type_kind: TypeKind::Type,
+			value: type_id,
+			meta
+		});
 		if let Ok(type_kind) = scope.get_symbol(&symbol) {
 			if let Value::Type(type_kind) = type_kind.value {
 				Some(type_kind)
@@ -182,7 +186,7 @@ impl<'src> TypeKind<'src> {
 	}
 }
 
-impl<'src> Type for TypeKind<'src> {
+impl Type for TypeKind {
 	fn implement(&mut self, functions: HashMap<ValueNode, ValueNode>) {
 		self.get_implementation().implement(functions)
 	}
@@ -202,7 +206,7 @@ pub trait Type {
 	fn apply_args(&mut self, _args: Vec<TypeKind>) -> Result<(), &str> { Ok(()) }
 }
 
-impl<'src> Display for TypeKind<'src> {
+impl Display for TypeKind {
 	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
 		if let Self::Generic(_) = self {
 			write!(f, "{}", self.get_name())
@@ -211,35 +215,3 @@ impl<'src> Display for TypeKind<'src> {
 		}
 	}
 }
-
-
-// IDK TODO
-
-// impl PartialEq for TypeKind {
-// 	fn eq(&self, other: &Self) -> bool {
-// 		use TypeKind::*;
-//     	match (self, other) {
-// 			(Generic(_), _) => true,
-// 			(_, Generic(_)) => true,
-// 			(_, _) => false
-// 		}
-// 	}
-// }
-// 
-// impl Eq for TypeKind {}
-// 
-// impl Hash for TypeKind {
-// 	fn hash<H: Hasher>(&self, state: &mut H) {
-// 		match self {
-// 			Self::Alias(x) => x.hash(state),
-// 			Self::Array(x) => x.hash(state),
-// 			Self::Function(x) => x.hash(state),
-// 			Self::Generic(x) => x.hash(state),
-// 			Self::Map(x) => x.hash(state),
-// 			Self::Primitive(x) => x.hash(state),
-// 			Self::Struct(x) => x.hash(state),
-// 			Self::Sum(x) => x.hash(state),
-// 			_ => (),
-// 		}
-// 	}
-// }

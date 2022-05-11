@@ -1,13 +1,13 @@
 use crate::*;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct AliasTypeDeclaration<'src> {
-	pub symbol: SymbolNode<'src>,
-	pub type_kind: TypeHintNode<'src>,
-	pub meta: Meta<'src, ()>,
+pub struct AliasTypeDeclaration {
+	pub symbol: SymbolNode,
+	pub type_kind: TypeHintNode,
+	pub meta: Meta<()>,
 }
 
-impl<'src> From<&mut ParseNode<'src>> for AliasTypeDeclaration<'src> {
+impl From<&mut ParseNode> for AliasTypeDeclaration {
 	fn from(node: &mut ParseNode) -> Self {
 		Self {
 			symbol: SymbolNode::from(&mut node.children[0]),
@@ -17,7 +17,7 @@ impl<'src> From<&mut ParseNode<'src>> for AliasTypeDeclaration<'src> {
 	}
 }
 
-impl<'src> AST for AliasTypeDeclaration<'src> {
+impl AST for AliasTypeDeclaration {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		let type_value = self.type_kind.resolve(scope)?;
 		let declare = SymbolValue::Declaration { 
@@ -28,9 +28,3 @@ impl<'src> AST for AliasTypeDeclaration<'src> {
 		scope.set_symbol(&self.symbol, declare)
 	}
 }
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct StructTypeDeclaration;
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct SumTypeDeclaration;

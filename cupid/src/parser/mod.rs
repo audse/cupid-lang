@@ -28,10 +28,10 @@ pub fn read(grammar_path: &str) -> (Cow<'static, str>, Cow<'static, str>) {
 
 pub fn generate(grammar_path: &str, destination_path: &str) {
 	let (base, body) = read(grammar_path);
-	let mut parser = GrammarParser::new(body);
+	let mut parser: GrammarParser = GrammarParser::new(body);
 	let rules = parser.grammar();
 	let result = generate_parser(rules);
-	let _ok = write(destination_path, base.replace(PLACEHOLDER, result.as_str()));
+	let _ok = write(destination_path, base.replace(PLACEHOLDER, &result));
 }
 
 pub fn test_generator() {

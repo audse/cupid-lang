@@ -159,7 +159,8 @@
 
 -~operation: binary_op
 
--~binary_op: compare_op
+-~binary_op: type_cast | compare_op
+- type_cast: add 'as' type_hint
 
 - compare_op: add compare_suffix?
 -~compare_suffix: keyword_operator compare_op
