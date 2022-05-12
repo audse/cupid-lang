@@ -1,0 +1,45 @@
+trait [t] equal = [
+	fun [bool] equal = self, t other => _
+]
+
+use [t: int] equal with int
+use [t: dec] equal with dec
+use [t: string] equal with string
+use [t: char] equal with char
+	
+trait [t] not_equal = [
+	fun [bool] not_equal = self, t other => _
+]
+
+use [t: int] not_equal with int
+use [t: dec] not_equal with dec
+use [t: string] not_equal with string
+use [t: char] not_equal with char
+
+trait [t] less = [
+	fun [bool] less = self, t other => _
+]
+
+use [t: int] less with int
+use [t: dec] less with dec
+
+trait [t] less_equal = [
+	fun [bool] less_equal = self, t other => _
+]
+
+use [t: int] less_equal with int
+use [t: dec] less_equal with dec
+
+trait [t] greater = [
+	fun [bool] greater = self, t other => _
+]
+
+use [t: int] greater with int
+use [t: dec] greater with dec
+
+trait [t] greater_equal = [
+	fun [bool] greater_equal = self, t other => _
+]
+
+use [t: int] greater_equal with int
+use [t: dec] greater_equal with dec

@@ -20,6 +20,9 @@ pub use file_handler::FileHandler;
 mod utils;
 pub use utils::*;
 
+mod packages;
+pub use packages::*;
+
 mod parser;
 pub use parser::*;
 

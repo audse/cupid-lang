@@ -47,10 +47,11 @@ impl FileHandler {
 	pub fn use_stdlib(&mut self) -> Result<(), Error> {
 		let packages = vec![
 			"./../stdlib/typedef.cupid",
-			"./../stdlib/typecast.cupid",
-			"./../stdlib/ops.cupid",
-			"./../stdlib/decimal.cupid",
-			"./../stdlib/integer.cupid",
+			// "./../stdlib/typecast.cupid",
+			// "./../stdlib/ops.cupid",
+			// "./../stdlib/compare.cupid",
+			// "./../stdlib/decimal.cupid",
+			// "./../stdlib/integer.cupid",
 		];
 		let stdlib: Vec<String> = packages
 			.iter()
@@ -63,9 +64,23 @@ impl FileHandler {
 		let semantics = parse(&mut parse_tree.unwrap().0);
 		
 		match semantics.resolve(&mut self.scope) {
-			Err(e) => panic!("{}", self.make_error_string(&stdlib, &e)),
+			Err(e) => panic!("{}", self.make_error_string(&stdlib, &self.path, &e)),
 			Ok(_) => Ok(())
 		}
+	}
+	
+	pub fn run_package(&mut self, package: PackageContents) -> Result<(), Error> {
+		self.report_loading_package(&package.path);
+		let mut parser = CupidParser::new(package.contents.to_owned());
+		let parse_tree = parser._file(None);
+		if let Some((mut tree, _)) = parse_tree {
+			let semantics = parse(&mut tree);
+			if let Err(e) = semantics.resolve(&mut self.scope) {
+				panic!("{}", self.make_error_string(&package.contents, &package.path, &e));
+			}
+			self.report_loading_package_success();
+		}
+		Ok(())
 	}
 	
 	pub fn preload_contents<S>(&mut self, string: S) -> Result<(), Error> where S: Into<String> {
@@ -90,7 +105,7 @@ impl FileHandler {
 		self.scope.add(Context::Block);
 		let result = match semantics.resolve(&mut self.scope) {
 			Err(e) => {
-				panic!("{}", self.make_error_string(&self.contents, &e))
+				panic!("{}", self.make_error_string(&self.contents, &self.path, &e))
 			},
 			Ok(val) => val,
 		};
@@ -104,19 +119,33 @@ impl FileHandler {
 		parse(&mut parse_tree.unwrap().0)
 	}
 	
+	pub fn use_packages(&mut self, contents: String) -> Result<(), Error> {
+		let mut package_parser = PackageParser::new(contents.to_owned());
+		if let Some((mut tree, _)) = package_parser._packages(None) {
+			let package_semantics = parse_import(&mut tree);
+			let packages: Vec<PackageContents> = package_semantics.use_packages();
+			for package in packages {
+				self.use_packages(package.contents.to_owned())?;
+				self.run_package(package)?;
+			}
+		}
+		Ok(())
+	}
+	
 	pub fn run(&mut self) -> Result<(), Error> {
 		self.report_build_started();
 		
 		self.use_stdlib()?;
+		self.use_packages(self.contents.to_owned())?;
 		
-		let parse_tree = self.parser._file(None);        
+		let parse_tree = self.parser._file(None);
 		let semantics = parse(&mut parse_tree.unwrap().0);
 		
 		self.scope.add(Context::Block);
 		match semantics.resolve(&mut self.scope) {
 			Err(e) => {
 				println!("{}", self.scope);
-				panic!("{}", self.make_error_string(&self.contents, &e))
+				panic!("{}", self.make_error_string(&self.contents, &self.path, &e))
 			},
 			Ok(val) => val,
 		};
@@ -140,10 +169,10 @@ impl FileHandler {
 	pub fn report_errors(&self) {
 		self.errors
 			.iter()
-			.for_each(|e| println!("{}", self.make_error_string(&self.contents, e)));
+			.for_each(|e| println!("{}", self.make_error_string(&self.contents, &self.path, e)));
 	}
 	
-	pub fn make_error_string(&self, contents: &str, e: &Error) -> String {
+	pub fn make_error_string(&self, contents: &str, path: &str, e: &Error) -> String {
 		let line = Self::get_line_of(contents, e.line).trim();
 		let underline_indent = vec![" "; e.index].join("");
 		let number_indent = vec![" "; e.line.to_string().len()].join("");
@@ -173,7 +202,7 @@ impl FileHandler {
 		);
 		return format!(
 			"\n{error}\n\t{overline}\n\t{line}\n\t{underline}\n{context}\n\n",
-			error = e.string(&self.path),
+			error = e.string(path),
 			overline = overline,
 			line = line,
 			underline = underline,
@@ -184,6 +213,13 @@ impl FileHandler {
 	pub fn report_build_started(&self) {
 		println!("\n{}\n", vec!["-"; 60].join(""));
 		println!("{} {}\n", "Building".green().bold(), format!("{}...\n", self.path).bold());
+	}
+	
+	pub fn report_loading_package(&self, path: &str) {
+		print!("{} {}", "Loading".bold().italic(), format!("{path}...").italic());
+	}
+	pub fn report_loading_package_success(&self) {
+		print!("{}\n", "success!".bold().italic().green());
 	}
 	
 	pub fn report_build_complete(&self) {

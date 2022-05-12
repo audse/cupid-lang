@@ -1,5 +1,9 @@
 - file: expression+
--~expression: comment | statement | term
+-~expression: package | comment | statement | term
+
+- package: 'package' name_space? items
+- name_space: WORD ':' ':' name_space?
+-~items: '[' (WORD ',')* ']' | WORD
 
 -~statement:
 	type_definition

@@ -6,7 +6,8 @@ pub fn parse(node: &mut ParseNode) -> BoxAST {
 		"file" => BoxAST::new(FileNode::from(node)),
 		"expression" => parse(&mut node.children[0]),
 		"empty" 
-		| "comment" => BoxAST::new(EmptyNode),
+		| "comment"
+		| "package" => BoxAST::new(EmptyNode),
 		
 		// Type definitions
 		"builtin_type_definition" => BoxAST::new(BuiltinTypeNode::from(node)),
@@ -73,7 +74,7 @@ pub fn parse(node: &mut ParseNode) -> BoxAST {
 		| "decimal"
 		| "number" => BoxAST::new(ValueNode::from(node)),
 		
-		_ => panic!("unexpected node")
+		_ => panic!("unexpected node {node:?}")
 	}
 }
 

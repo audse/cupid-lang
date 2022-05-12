@@ -61,7 +61,7 @@
         e.g. `use [bool] into with int` and `use [dec] into with int`
 
 -   [x] Require `self` on functions that use self
--   [ ] Require `mut self`
+-   [x] Require `mut self`
 
 ### Type checker
 
@@ -93,9 +93,10 @@ someone istype person # should be false
 -   [x] Logical and
 -   [x] Logical or
 -   [ ] Negation
--   [ ] Operator overloading
+-   [x] Operator overloading
 -   [x] Type of
--   [ ] Use trait implementations instead of simple value checking
+-   [x] Use trait implementations instead of simple value checking
+-   [ ] Unary op
 
 ## Functions
 
@@ -115,9 +116,9 @@ someone istype person # should be false
 
 ## Blocks
 
--   [x] If blocks
--   [x] Else blocks
--   [x] Else if blocks
+-   [ ] If blocks
+-   [ ] Else blocks
+-   [ ] Else if blocks
 
 ## Loops
 
@@ -126,10 +127,10 @@ someone istype person # should be false
 -   [ ] Indeterminate loop
 -   [ ] Named loops
 -   [ ] Break statements
-    -   [x] `break`
-    -   [x] `break (return_value)`
+    -   [ ] `break`
+    -   [ ] `break (return_value)`
     -   [ ] `break identifier(return_value)`
-    -   [x] Continue
+    -   [ ] Continue
 
 ## Values
 
@@ -218,6 +219,12 @@ someone istype person # should be false
 -   [x] Change errors as values to Result/Ok
 -   [ ] Account for tabs in line/index
 
+## Packages
+
+-   [x] Import files
+-   [ ] Import specific symbols from files
+    -   [ ] Bring in dependencies of those symbols
+
 ## Parser
 
 -   [ ] Error handling by using branching grammar syntax
@@ -228,7 +235,6 @@ someone istype person # should be false
 
 ## Ideas the future
 
--   [ ] Module import & export
 -   [ ] Language server
 -   [ ] Command line tools
     -   [ ] Testing
@@ -259,11 +265,13 @@ someone istype person # should be false
 
 -   [ ] Overview
 -   [ ] Standard library
-    -   [ ] Integer
+    -   [x] Integer
         -   [x] Built in methods
         -   [ ] Trait implementations
     -   [ ] Char
     -   [ ] Decimal
+        -   [ ] Built in methods
+        -   [ ] Trait implementations
     -   [ ] String
     -   [ ] Array
     -   [ ] Map

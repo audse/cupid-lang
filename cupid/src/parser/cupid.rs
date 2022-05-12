@@ -255,6 +255,13 @@ use_repeat!(&mut node, self._expression(None), false);
 				children: vec![],
 			};
 			loop { 
+use_item!(&mut node, self._package(None), false);
+
+			return Some((node, true));
+		
+}
+		self.reset_parse(&mut node, pos);
+loop { 
 use_item!(&mut node, self._comment(None), false);
 
 			return Some((node, true));
@@ -270,6 +277,76 @@ use_item!(&mut node, self._statement(None), false);
 		self.reset_parse(&mut node, pos);
 loop { 
 use_item!(&mut node, self._term(None), false);
+
+			return Some((node, true));
+		
+}
+		self.reset_parse(&mut node, pos);
+			None
+		}
+		
+		pub fn _package(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
+			let start_pos = self.tokens.index();
+			let pos = start_pos;
+			let mut node = Node {
+				name: "package".into(),
+				tokens: vec![],
+				children: vec![],
+			};
+			loop { 
+use_item!(&mut node, self.expect("package"), false);
+use_optional!(&mut node, self._name_space(None), false);
+use_item!(&mut node, self._items(None), false);
+
+			return Some((node, false));
+		
+}
+		self.reset_parse(&mut node, pos);
+			None
+		}
+		
+		pub fn _name_space(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
+			let start_pos = self.tokens.index();
+			let pos = start_pos;
+			let mut node = Node {
+				name: "name_space".into(),
+				tokens: vec![],
+				children: vec![],
+			};
+			loop { 
+use_item!(&mut node, self.expect_word(None), false);
+use_item!(&mut node, self.expect(":"), false);
+use_item!(&mut node, self.expect(":"), false);
+use_optional!(&mut node, self._name_space(None), false);
+
+			return Some((node, false));
+		
+}
+		self.reset_parse(&mut node, pos);
+			None
+		}
+		
+		pub fn _items(&mut self, _arg: Option<Token>) -> Option<(Node, bool)> {
+			let start_pos = self.tokens.index();
+			let pos = start_pos;
+			let mut node = Node {
+				name: "items".into(),
+				tokens: vec![],
+				children: vec![],
+			};
+			loop { 
+use_item!(&mut node, self.expect("["), false);
+loop { 
+use_item!(&mut node, self.expect_word(None), false);
+use_item!(&mut node, self.expect(","), false);
+}use_item!(&mut node, self.expect("]"), false);
+
+			return Some((node, true));
+		
+}
+		self.reset_parse(&mut node, pos);
+loop { 
+use_item!(&mut node, self.expect_word(None), false);
 
 			return Some((node, true));
 		

@@ -1,20 +1,18 @@
 use std::fs::{write, read_to_string};
-// extern crate test;
-// use test::bench::Bencher;
+use crate::Cow;
+
 mod grammar_parser;
 pub use grammar_parser::*;
+
 mod parser_generator;
 pub use parser_generator::generate_parser;
+
 mod cupid;
 pub use self::cupid::{Parser as CupidParser, Node as ParseNode};
-use crate::Cow;
-mod grammar;
 
-// mod parser_macros;
-// pub use parser_macros::*;
+mod cupid_package;
+pub use cupid_package::{Parser as PackageParser, Node as PackageNode};
 
-// mod cupid_macro;
-// pub use cupid_macro::{Parser as MacroParser, Node as ParseNode};
 
 const BASE_PATH: &str = "src/parser/parser_base.rs";
 const PLACEHOLDER: &str = "/*RULES*/";
@@ -36,4 +34,8 @@ pub fn generate(grammar_path: &str, destination_path: &str) {
 
 pub fn test_generator() {
 	generate("src/grammar/cupid-lang.grammar", "src/parser/cupid.rs");
+}
+
+pub fn generate_package_parser() {
+	generate("src/grammar/cupid-package.grammar", "src/parser/cupid_package.rs");
 }

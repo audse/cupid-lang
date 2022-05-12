@@ -41,4 +41,5 @@ fn run_path(path: &str, debug: bool)-> Result<(), Error> {
 
 fn run_generator() {
     test_generator();
+	// generate_package_parser();
 }
