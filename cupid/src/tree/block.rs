@@ -16,7 +16,7 @@ impl From<&mut ParseNode> for BlockNode {
 impl AST for BlockNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		let mut values: Vec<ValueNode> = vec![
-			ValueNode::from(Value::None)
+			ValueNode::new_none()
 		];
 		for exp in self.expressions.iter() {
 			let value = exp.resolve(scope)?;

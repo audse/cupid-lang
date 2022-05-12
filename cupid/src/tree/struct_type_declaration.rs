@@ -2,19 +2,22 @@ use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StructTypeDeclaration {
-	pub symbol: SymbolNode,
+	pub symbol: TypeHintNode,
 	pub members: Vec<(TypeHintNode, SymbolNode)>,
-	pub generics: Option<GenericsNode>,
 	pub meta: Meta<()>,
 }
 
 impl From<&mut ParseNode> for StructTypeDeclaration {
 	fn from(node: &mut ParseNode) -> Self {
-		let generics = Option::<GenericsNode>::from_parent(node);
-		let i = if generics.is_some() { 1 } else { 0 };
+		let generics = if let Some(generics) = Option::<GenericsNode>::from_parent(node) {
+			generics.0
+		} else {
+			vec![]
+		};
+		let i = if !generics.is_empty() { 1 } else { 0 };
+		let name = node.children[i].tokens[0].source.to_owned();
 		Self {
-			generics,
-			symbol: SymbolNode::from(&mut node.children[i]),
+			symbol: TypeHintNode::new(name, TypeFlag::Struct, generics, node.children[0].tokens.to_owned()),
 			members: node.filter_map_mut(&|child| if &*child.name == "struct_member" {
 				Some((
 					TypeHintNode::from(&mut child.children[0]), 
@@ -30,17 +33,11 @@ impl From<&mut ParseNode> for StructTypeDeclaration {
 
 impl AST for StructTypeDeclaration {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
-		let generics: Vec<GenericType> = if let Some(generics) = &self.generics {
-			generics.resolve_to_generics(scope)?
-		} else {
-			vec![]
-		};
-		let symbol = SymbolNode::from((&self.symbol, &generics));
+		let symbol = SymbolNode::from(&self.symbol);
 		
-		let mut members = vec![];
+		let mut members: Vec<(ValueNode, TypeHintNode)> = vec![];
 		for (type_value, member_name) in self.members.iter() {
-			let type_value = type_value.resolve_to_type_kind(scope)?;
-			members.push((member_name.0.to_owned(), type_value));
+			members.push((member_name.0.to_owned(), type_value.to_owned()));
 		}
 		
 		let type_value = TypeKind::Struct(StructType {
@@ -49,7 +46,7 @@ impl AST for StructTypeDeclaration {
 		});
 		
 		let declare = SymbolValue::Declaration { 
-			type_hint: TypeKind::Type, 
+			type_hint: None, 
 			mutable: false, 
 			value: ValueNode::from((Value::Type(type_value), &symbol.0.meta)),
 		};

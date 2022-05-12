@@ -21,7 +21,7 @@ impl AST for AliasTypeDeclaration {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		let type_value = self.type_kind.resolve(scope)?;
 		let declare = SymbolValue::Declaration { 
-			type_hint: TypeKind::Type, 
+			type_hint: None, 
 			mutable: false, 
 			value: type_value,
 		};

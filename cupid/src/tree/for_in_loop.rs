@@ -78,6 +78,6 @@ impl AST for ForInLoopNode {
 fn error_expected_map(node: &ValueNode) -> Error {
 	node.error_raw(format!(
 		"expected an array or map, found {node} ({})", 
-		node.type_kind.get_name()
+		unwrap_or_string(&node.type_hint)
 	))
 }

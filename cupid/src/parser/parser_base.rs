@@ -3,8 +3,8 @@
 #![allow(unused_variables)]
 #![allow(dead_code)]
 #![allow(unused_macros)]
-use serde::{Serialize, Deserialize};
 use crate::*;
+use serde::{Deserialize, Serialize};
 
 macro_rules! use_item {
 	($item:expr, $method:expr, $is_concealed:expr) => {{
@@ -87,15 +87,10 @@ impl Node {
 		self.children.iter_mut().filter_map(function).collect()
 	}
 	pub fn has(&self, name: &str) -> bool {
-		self.children
-			.iter()
-			.find(|c| c.name == name)
-			.is_some()
+		self.children.iter().find(|c| c.name == name).is_some()
 	}
 	pub fn get_mut(&mut self, name: &str) -> Option<&mut Self> {
-		self.children
-			.iter_mut()
-			.find(|c| c.name == name)
+		self.children.iter_mut().find(|c| c.name == name)
 	}
 }
 
@@ -114,17 +109,20 @@ impl Parser {
 			tokens: BiDirectionalIterator::new(tokenizer.tokens),
 		}
 	}
-	
+
 	#[inline]
 	fn expect(&mut self, rule_name: &'static str) -> Option<(Node, bool)> {
 		if let Some(token) = self.tokens.peek(0) {
 			if token.source == rule_name {
-				return Some((node_from_token(self.tokens.next().unwrap(), rule_name), true));
+				return Some((
+					node_from_token(self.tokens.next().unwrap(), rule_name),
+					true,
+				));
 			}
 		}
 		None
 	}
-	
+
 	#[inline]
 	fn expect_one(&mut self, rule_names: Vec<&'static str>) -> Option<(Node, bool)> {
 		for rule_name in rule_names {
@@ -134,7 +132,7 @@ impl Parser {
 		}
 		None
 	}
-	
+
 	#[inline]
 	fn expect_constant(&mut self, _arg: Option<()>) -> Option<(Node, bool)> {
 		if let Some(next) = self.tokens.peek(0) {
@@ -145,7 +143,7 @@ impl Parser {
 		}
 		None
 	}
-	
+
 	#[inline]
 	fn expect_word(&mut self, _arg: Option<()>) -> Option<(Node, bool)> {
 		if let Some(next) = self.tokens.peek(0) {
@@ -156,7 +154,7 @@ impl Parser {
 		}
 		None
 	}
-	
+
 	#[inline]
 	fn expect_string(&mut self, _arg: Option<()>) -> Option<(Node, bool)> {
 		if let Some(next) = self.tokens.peek(0) {
@@ -167,7 +165,7 @@ impl Parser {
 		}
 		None
 	}
-	
+
 	#[inline]
 	fn expect_letter(&mut self, _arg: Option<()>) -> Option<(Node, bool)> {
 		if let Some(next) = self.tokens.peek(0) {
@@ -178,7 +176,7 @@ impl Parser {
 		}
 		None
 	}
-	
+
 	#[inline]
 	fn expect_number(&mut self, _arg: Option<()>) -> Option<(Node, bool)> {
 		if let Some(next) = self.tokens.peek(0) {
@@ -189,7 +187,7 @@ impl Parser {
 		}
 		None
 	}
-	
+
 	#[inline]
 	fn expect_tag(&mut self, arg: &'static str) -> Option<(Node, bool)> {
 		if !self.tokens.at_end() {
@@ -203,7 +201,7 @@ impl Parser {
 							index: current_token.index + 1,
 							line: current_token.line,
 						},
-						current_token.to_owned()
+						current_token.to_owned(),
 					],
 					children: vec![],
 				},
@@ -212,7 +210,7 @@ impl Parser {
 		}
 		None
 	}
-	
+
 	#[inline]
 	fn expect_any(&mut self, _arg: Option<()>) -> Option<(Node, bool)> {
 		if let Some(next) = self.tokens.next() {
@@ -220,7 +218,7 @@ impl Parser {
 		}
 		None
 	}
-	
+
 	#[inline]
 	fn reset_parse(&mut self, item: &mut Node, pos: usize) {
 		item.tokens.clear();
@@ -233,9 +231,9 @@ impl Parser {
 }
 
 fn node_from_token(token: Token, name: &'static str) -> Node {
-	Node { 
+	Node {
 		name: Cow::Borrowed(name),
-		tokens: vec![token], 
-		children: vec![] 
+		tokens: vec![token],
+		children: vec![],
 	}
 }

@@ -24,3 +24,11 @@ pub fn pluralize_word<N, S>(number: N, word: S) -> String where N:Into<usize>, S
 		false => word.into()
 	}
 }
+
+pub (crate) fn unwrap_or_string<T>(option: &Option<T>) -> String where T: ToString {
+	if let Some(val) = option {
+		val.to_string()
+	} else {
+		String::from("?")
+	}
+}

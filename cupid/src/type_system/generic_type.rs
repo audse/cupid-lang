@@ -7,14 +7,14 @@ use crate::*;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GenericType {
 	pub identifier: Cow<'static, str>,
-	pub type_value: Option<Box<TypeKind>>
+	pub type_value: Option<TypeHintNode>
 }
 
 impl GenericType {
 	pub const fn new_const(identifier: &'static str) -> Self {
 		Self { identifier: Cow::Borrowed(identifier), type_value: None }
 	}
-	pub fn new(identifier: &str, type_value: Option<Box<TypeKind>>) -> Self {
+	pub fn new(identifier: &str, type_value: Option<TypeHintNode>) -> Self {
 		Self { identifier: Cow::Owned(identifier.to_string()), type_value }
 	}
 }
@@ -43,9 +43,6 @@ impl Into<TypeKind> for GenericType {
 }
 impl Into<Value> for GenericType {
 	fn into(self) -> Value { Value::Type(self.into()) }
-}
-impl Into<ValueNode> for GenericType {
-	fn into(self) -> ValueNode { ValueNode::from(Value::from(self.into())) }
 }
 
 impl Type for GenericType {}

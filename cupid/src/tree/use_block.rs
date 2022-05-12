@@ -24,8 +24,8 @@ impl From<&mut ParseNode> for UseBlockNode {
 
 impl AST for UseBlockNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
-		let implementation = self.functions.resolve_to_implementation(scope)?;
-		let type_symbol = self.type_kind.to_symbol(scope)?;
+		let implementation = self.functions.resolve_to(scope)?;
+		let type_symbol = SymbolNode::from(&self.type_kind);
 		let symbol_value = SymbolValue::Implementation { 
 			trait_symbol: None,
 			value: implementation,

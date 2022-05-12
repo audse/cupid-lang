@@ -17,13 +17,8 @@ impl From<&mut ParseNode> for LogNode {
 
 impl AST for LogNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
-    	let args: ValueNode = self.args.resolve(scope)?;
-		let args_list: &Vec<ValueNode> = if let Value::Values(values) = &args.value {
-			values
-		} else {
-			panic!("expected value list in log args")
-		};
-		let strings: Vec<String> = args_list.iter().map(|a| a.to_string()).collect();
+    	let args: Vec<ValueNode> = self.args.resolve_to(scope)?;
+		let strings: Vec<String> = args.iter().map(|a| a.to_string()).collect();
 		let log_string = match &*self.identifier {
 			"log" => format!("\n{}", strings.join("")),
 			"log_line" => strings.join(""),
@@ -32,6 +27,6 @@ impl AST for LogNode {
 			_ => panic!("unexpected log keyword")
 		};
 		print!("{log_string}");
-		Ok(args)
+		Ok(ValueNode::new_none()) // TODO change to values
 	}
 }

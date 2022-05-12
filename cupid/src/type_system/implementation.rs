@@ -7,7 +7,7 @@ use crate::*;
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Implementation {
 	pub functions: HashMap<ValueNode, ValueNode>,
-	pub traits: HashMap<SymbolNode, Implementation>,
+	pub traits: HashMap<TypeHintNode, Implementation>,
 	pub generics: Vec<GenericType>,
 }
 
@@ -23,32 +23,53 @@ impl From<HashMap<ValueNode, ValueNode>> for Implementation {
 
 impl Implementation {
 	// TODO make sure params match
-	pub fn get_function(&self, symbol: &SymbolNode) -> Option<&FunctionNode> {
+	pub fn get_function(&self, symbol: &SymbolNode) -> Option<FunctionNode> {
 		if let Some(func) = self.functions.get(&symbol.0) {
 			if let Value::Function(function) = &func.value {
-				return Some(function)
+				return Some(function.to_owned())
 			}
 		}
 		None
 	}
-	pub fn get_trait_function(&self, symbol: &SymbolNode) -> Option<(&Implementation, &FunctionNode)> {
+	pub fn get_trait_function(&self, symbol: &SymbolNode, scope: &mut LexicalScope) -> Option<(Implementation, FunctionNode)> {
 		if let Some(function) = self.get_function(symbol) {
-			return Some((self, function))
+			return Some((self.to_owned(), function.to_owned()))
 		}
 		for implement in self.traits.iter() {
 			if let Some(function) = implement.1.get_function(symbol) {
-				return Some((implement.1, &function));
+				return Some((implement.1.to_owned(), function.to_owned()));
+			} else {
+				let prev_implement = scope.get_value(&SymbolNode::from(implement.0), &Self::from_scope_value);
+				if let Ok(Some(prev)) = prev_implement {
+					if let Some(trait_function) = prev.get_trait_function(symbol, scope) {
+						return Some(trait_function);
+					}
+				}
 			}
 		}
 		None
+	}
+	pub fn from_scope_value(symbol_value: &SymbolValue) -> Result<Option<Implementation>, Error> {
+		Ok(Option::<Implementation>::from(symbol_value))
 	}
 	pub fn implement(&mut self, functions: HashMap<ValueNode, ValueNode>) {
 		functions.into_iter().for_each(|(k, v)| {
 			self.functions.insert(k, v); 
 		});
 	}
-	pub fn implement_trait(&mut self, trait_symbol: SymbolNode, implement: Implementation) {
+	pub fn implement_trait(&mut self, trait_symbol: TypeHintNode, implement: Implementation) {
 		self.traits.insert(trait_symbol, implement);
+	}
+}
+
+impl From<&SymbolValue> for Option<Implementation> {
+	fn from(symbol_value: &SymbolValue) -> Self {
+		if let SymbolValue::Declaration { value, .. } = symbol_value {
+			if let Value::Implementation(v) = &value.value {
+				return Some(v.to_owned());
+			}
+		}
+		None
 	}
 }
 

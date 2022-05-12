@@ -74,7 +74,6 @@ impl FunctionNode {
 	}
 }
 
-
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Parameter {
 	pub type_hint: Option<TypeHintNode>,
@@ -124,9 +123,8 @@ impl AST for ParametersNode {
 			
 			// only set symbols with type hints (meaning not `self`)
 			if let Some(type_hint) = type_hint {
-				let type_hint = type_hint.resolve_to_type_kind(scope)?;
 				let symbol_value = SymbolValue::Declaration { 
-					type_hint, 
+					type_hint:  Some(type_hint.to_owned()), 
 					mutable: false, 
 					value: ValueNode::new_none() 
 				};

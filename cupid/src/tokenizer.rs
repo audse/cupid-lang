@@ -34,24 +34,23 @@ impl Tokenizer {
 			bracket_stack: vec![],
 		}
 	}
-	pub fn add_token(&mut self, source: String) {
+	pub fn add_token(&mut self, source: Cow<'static, str>) {
 		let index = if self.line_index > source.len() { 
 			self.line_index - source.len()
 		} else { 0 };
 		self.tokens.push(Token { source: source.into(), index, line: self.line });
 	}
-	pub fn current(&self) -> &char { self.chars.get(self.index).unwrap_or(&'\0') }
+	pub fn current(&self) -> char { *self.chars.get(self.index).unwrap_or(&'\0') }
 	pub fn is_done(&self) -> bool { self.index >= self.chars.len() }
-	pub fn peek(&self, amount: usize) -> Option<&char> { self.chars.get(self.index + amount) }
-	pub fn advance(&mut self) -> &char {
+	pub fn peek(&self, amount: usize) -> Option<char> { self.chars.get(self.index + amount).cloned() }
+	pub fn advance(&mut self) -> char {
 		self.index += 1;
 		self.line_index += 1;
 		self.current()
 	}
-	pub fn scan(&mut self) {
-		
+	pub fn scan(&mut self) {		
 		while !self.is_done() {
-			let c = *self.current();
+			let c = self.current();
 			self.handle_bracket(c);
 			
 			match c {
@@ -65,35 +64,38 @@ impl Tokenizer {
 					self.line += 1;
 					self.line_index = 0;
 				}
-				_ => self.add_token(c.to_string())
+				_ => {
+					let char_str: Cow<'static, str> = Cow::Owned(c.to_string());
+					self.add_token(char_str)
+				}
 			}
 			self.advance();
 		}
-		self.add_token("EOF".to_string());
+		self.add_token("EOF".into());
 	}
 	fn line_comment(&mut self) {
 		while let Some(c) = self.peek(1) {
-			if *c == '\n' || self.is_done() { break; }
+			if c == '\n' || self.is_done() { break; }
 			self.advance();
 		}
 	}
 	fn identifier(&mut self, start_char: char) {
 		let mut source = start_char.to_string();
 		while let Some(c) = self.peek(1) {
-			if c.is_alphanumeric() || *c == '_' {
+			if c.is_alphanumeric() || c == '_' {
 				source += &mut *self.advance().encode_utf8(&mut [0; 4]);
 			} else { break; }
 		}
-		self.add_token(source);
+		self.add_token(source.into());
 	}
 	fn string(&mut self, start_char: char) {
 		let mut source = start_char.to_string();
 		while let Some(c) = self.peek(1) {
-			if *c == start_char { break; }
-			source.push(*self.advance()); 
+			if c == start_char { break; }
+			source.push(self.advance()); 
 		}
-		source.push(*self.advance()); 
-		self.add_token(source);
+		source.push(self.advance()); 
+		self.add_token(source.into());
 	}
 	fn tag(&mut self, start_char: char) {
 		let mut source = start_char.to_string();
@@ -101,20 +103,20 @@ impl Tokenizer {
 		// tags can be either <e 'message'> or <w 'message'>
 		// error or warning
 		if let Some(c) = self.peek(1) {
-			if *c == 'e' || *c == 'w' {
-				source.push(*self.advance());
+			if c == 'e' || c == 'w' {
+				source.push(self.advance());
 			} else {
-				self.add_token(source);
+				self.add_token(source.into());
 				return 
 			}
 		}
 		
 		while let Some(c) = self.peek(1) {
-			if *c == '>' || self.is_done() { break; }
-			source.push(*self.advance()); 
+			if c == '>' || self.is_done() { break; }
+			source.push(self.advance()); 
 		}
-		source.push(*self.advance()); 
-		self.add_token(source);
+		source.push(self.advance()); 
+		self.add_token(source.into());
 	}
 	pub fn handle_bracket(&mut self, c: char) {		
 		if OPEN.contains(&c) {
@@ -131,7 +133,7 @@ impl Tokenizer {
 							"<e 'Expected closing bracket `{}`, not `{}`'>", 
 							CLOSE[close_index],
 							c
-						))
+						).into())
 					} else {
 						self.bracket_stack.pop();
 					}

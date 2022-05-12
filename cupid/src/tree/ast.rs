@@ -1,5 +1,5 @@
 use std::ops::Deref;
-use crate::{Error, LexicalScope, ValueNode};
+use crate::*;
 
 pub trait CloneAST {
 	fn clone_ast(&self) -> Box<dyn AST>;
@@ -15,13 +15,17 @@ pub trait AST: std::fmt::Debug + CloneAST + serde_traitobject::Serialize + serde
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error>;
 }
 
+pub trait ResolveTo<T>: AST {
+	fn resolve_to(&self, scope: &mut LexicalScope) -> Result<T, Error>;
+}
+
 impl Clone for Box<dyn AST> {
 	fn clone(&self) -> Self {
     	self.clone_ast()
 	}
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BoxAST {
 	#[serde(with = "serde_traitobject")]
 	pub inner: Box<dyn AST>,
@@ -48,7 +52,7 @@ impl From<Box<dyn AST>> for BoxAST {
 	}
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum OptionAST {
 	#[serde(with = "serde_traitobject")]
 	Some(Box<dyn AST>),
@@ -57,8 +61,4 @@ pub enum OptionAST {
 
 pub trait FromParent<T> {
 	fn from_parent(parent: T) -> Self;
-}
-
-trait FromTo<F, T> {
-	fn from_to(node: F) -> T;
 }

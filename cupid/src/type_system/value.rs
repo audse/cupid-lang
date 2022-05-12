@@ -10,47 +10,18 @@ use crate::*;
 pub enum Value {
 	Array(Vec<ValueNode>),
 	Boolean(bool),
-	Break(Box<Value>),
 	Char(char),
-	Continue,
 	Decimal(i32, u32),
-	Error(Error),
 	Function(FunctionNode),
 	Implementation(Implementation),
 	Integer(i32),
 	Log(Box<Value>),
 	Map(HashMap<ValueNode, (usize, ValueNode)>),
 	None,
-	Return(Box<Value>),
 	String(Cow<'static, str>),
 	Type(TypeKind),
 	Values(Vec<ValueNode>),
-	TypeIdentifier(TypeId),
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TypeId(pub Box<Value>, pub Vec<TypeKind>);
-
-impl From<Value> for TypeId {
-	fn from(t: Value) -> Self { Self(Box::new(t), vec![]) }
-}
-impl From<TypeKind> for TypeId {
-	fn from(t: TypeKind) -> Self { Self::from(Value::Type(t)) }
-}
-impl From<GenericType> for TypeId {
-	fn from(t: GenericType) -> Self { Self::from(TypeKind::Generic(t)) }
-}
-
-impl PartialEq for TypeId {
-	fn eq(&self, other: &Self) -> bool {
-    	self.0 == other.0 && self.1 == other.1
-	}
-}
-
-impl Hash for TypeId {
-	fn hash<H: Hasher>(&self, state: &mut H) {
-		self.0.hash(state);
-	}
+	TypeHint(TypeHintNode),
 }
 
 impl Add for Value {
@@ -187,9 +158,7 @@ impl PartialEq for Value {
 			(Value::Boolean(x), Value::Boolean(y)) => x == y,
 			(Value::Type(x), Value::Type(y)) => x == y,
 			(Value::None, Value::None) => true,
-			(Value::Error(_), Value::Error(_)) => false,
-			(Value::Break(x), Value::Break(y)) => x == y,
-			(Value::TypeIdentifier(x), Value::TypeIdentifier(y)) => x == y,
+			(Value::TypeHint(x), Value::TypeHint(y)) => x == y,
 			_ => false
 		}
 	}
@@ -205,7 +174,6 @@ impl Hash for Value {
 			Value::Boolean(x) => x.hash(state),
 			Value::Char(x) => x.hash(state),
 			Value::Array(x) => x.hash(state),
-			Value::Error(x) => x.hash(state),
 			Value::Decimal(x, y) => {
 				x.hash(state);
 				y.hash(state);
@@ -215,13 +183,10 @@ impl Hash for Value {
 				entry.hash(state)
 			},
 			Value::Type(x) => x.hash(state),
-			Value::Break(x) => x.hash(state),
-			Value::Return(x) => x.hash(state),
 			Value::Log(x) => x.hash(state),
 			Value::Implementation(x) => x.hash(state),
-			Value::Continue => (),
 			Value::Values(v) => v.iter().for_each(|v| v.hash(state)),
-			Value::TypeIdentifier(x) => x.hash(state),
+			Value::TypeHint(x) => x.hash(state),
 			_ => ()
 		}
 	}
@@ -240,12 +205,6 @@ pub fn float_to_dec(float: f64) -> Value {
 }
 
 impl Value {
-	pub fn error<S>(token: &Token, message: S, context: S) -> Value where S: Into<String> {
-		Value::Error(Error::from_token(token, &message.into(), &context.into()))
-	}
-	pub fn is_poisoned(&self) -> bool {
-		matches!(self, Value::Error(_))
-	}
 	pub fn is_truthy(&self) -> bool {
 		match self {
 			Value::Integer(x) => *x >= 0,
@@ -257,21 +216,17 @@ impl Value {
 			_ => true
 		}
 	}
-	pub fn pow(&self, right: &Self, operator: &Token) -> Self {
+	pub fn pow(&self, right: &Self, _operator: &Token) -> Result<Self, String> {
 		match (self, right) {
 			(Value::Integer(x), Value::Integer(y)) => {
 				if let Some(z) = x.checked_pow(*y as u32) {
-					Value::Integer(z)
+					Ok(Value::Integer(z))
 				} else {
-					Value::error(operator, format!("Overflow raising {} to the power of {}", x, y), String::new())
+					Err(format!("Overflow raising {x} to the power of {y}"))
 				}
 			},
-			(Value::Decimal(a, b), Value::Decimal(x, y)) => float_to_dec(dec_to_float(*a, *b).powf(dec_to_float(*x, *y))),
-			(x, y) => Value::error(
-				operator, 
-				format!("Unable to raise {} ({}) to the power of {} ({})", x, TypeKind::infer(x), y, TypeKind::infer(y)), 
-				String::new()
-			)
+			(Value::Decimal(a, b), Value::Decimal(x, y)) => Ok(float_to_dec(dec_to_float(*a, *b).powf(dec_to_float(*x, *y)))),
+			(x, y) => Err(format!("Unable to raise {x} to the power of {y}"))
 		}
 	}
 	
@@ -316,12 +271,6 @@ impl Value {
 	}
 	pub fn as_string(&self) -> Value {
 		Value::String(self.to_string().into())
-	}
-	pub fn is_type(&self, other: Value) -> Value {
-		match other {
-			Value::Type(type_kind) => Value::Boolean(type_kind.is_equal(self)),
-			_ => panic!()
-		}
 	}
 	pub fn get_property(&self, property: &ValueNode) -> Result<ValueNode, String> {
 		match self {
@@ -371,7 +320,6 @@ impl Display for Value {
 			Self::Integer(v) => write!(f, "{v}"),
 			Self::Char(x) => write!(f, "{x}"),
 			Self::Decimal(v, w) => write!(f, "{v}.{w}"),
-			Self::Error(e) => write!(f, "{e}"), // TODO change this
 			Self::String(s) => write!(f, "{s}"),
 			Self::Array(array) => {
 				let entries: Vec<String> = array
@@ -390,13 +338,6 @@ impl Display for Value {
 				Ok(())
 			},
 			Self::Type(type_kind) => write!(f, "{type_kind}"),
-			Self::TypeIdentifier(TypeId(name, args)) => {
-				let args: Vec<String> = args
-					.iter()
-					.map(|v| v.get_name())
-					.collect();
-				write!(f, "{} [{}]", name, args.join(", "))
-			},
 			Self::Log(log) => write!(f, "{log}"),
 			Self::Implementation(trait_map) => write!(f, "trait {trait_map}"),
 			Self::Values(values) => {
@@ -412,7 +353,8 @@ impl Display for Value {
 					.map(|p|p.symbol.0.to_string())
 					.collect();
 				write!(f, "{}", params.join(", "))
-			}
+			},
+			Self::TypeHint(id) => write!(f, "{id}"),
 			v => write!(f, "{:?}", v)
 		}
 	}

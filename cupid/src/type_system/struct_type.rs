@@ -5,18 +5,18 @@ use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StructType {
-	pub members: Vec<(ValueNode, TypeKind)>,
+	pub members: Vec<(ValueNode, TypeHintNode)>,
 	pub implementation: Implementation
 }
 
 impl StructType {
-	pub fn is_map_equal(&self, other: &Value) -> bool {
+	pub fn is_map_equal(&self, other: &ValueNode) -> bool {
 		// todo
-		match other {
+		match &other.value {
 			Value::Map(x) => {
 				x.iter().all(|(key, (_, value))| {
 					if let Some((_, member_type)) = self.members.iter().find(|(symbol, _)| &symbol.value == &key.value)  {
-						member_type.is_equal(&value.value)
+						member_type == &TypeKind::infer_id(&value).unwrap()
 					} else {
 						false
 					}

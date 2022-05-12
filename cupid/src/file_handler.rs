@@ -47,8 +47,8 @@ impl FileHandler {
 	pub fn use_stdlib(&mut self) -> Result<(), Error> {
 		let packages = vec![
 			"./../stdlib/typedef.cupid",
-			"./../stdlib/ops.cupid",
 			"./../stdlib/typecast.cupid",
+			"./../stdlib/ops.cupid",
 			"./../stdlib/decimal.cupid",
 			"./../stdlib/integer.cupid",
 		];
@@ -58,12 +58,14 @@ impl FileHandler {
 			.collect();
 		let stdlib = stdlib.join("\n");
 		
-		let mut parser = CupidParser::new(stdlib);
+		let mut parser = CupidParser::new(stdlib.to_owned());
 		let parse_tree = parser._file(None);
 		let semantics = parse(&mut parse_tree.unwrap().0);
 		
-		semantics.resolve(&mut self.scope)?;
-		Ok(())
+		match semantics.resolve(&mut self.scope) {
+			Err(e) => panic!("{}", self.make_error_string(&stdlib, &e)),
+			Ok(_) => Ok(())
+		}
 	}
 	
 	pub fn preload_contents<S>(&mut self, string: S) -> Result<(), Error> where S: Into<String> {
@@ -88,7 +90,7 @@ impl FileHandler {
 		self.scope.add(Context::Block);
 		let result = match semantics.resolve(&mut self.scope) {
 			Err(e) => {
-				panic!("{}", self.make_error_string(&e))
+				panic!("{}", self.make_error_string(&self.contents, &e))
 			},
 			Ok(val) => val,
 		};
@@ -114,16 +116,20 @@ impl FileHandler {
 		match semantics.resolve(&mut self.scope) {
 			Err(e) => {
 				println!("{}", self.scope);
-				panic!("{}", self.make_error_string(&e))
+				panic!("{}", self.make_error_string(&self.contents, &e))
 			},
 			Ok(val) => val,
-		};		
+		};
 		self.report_build_complete();
 		Ok(())
 	}
 	
 	pub fn get_line(&self, index: usize) -> &str {
-		self.contents
+		Self::get_line_of(&self.contents, index)
+	}
+	
+	pub fn get_line_of(contents: &str, index: usize) -> &str {
+		contents
 			.lines()
 			.enumerate()
 			.find(|(i, _l)| *i == index - 1)
@@ -134,11 +140,11 @@ impl FileHandler {
 	pub fn report_errors(&self) {
 		self.errors
 			.iter()
-			.for_each(|e| println!("{}", self.make_error_string(e)));
+			.for_each(|e| println!("{}", self.make_error_string(&self.contents, e)));
 	}
 	
-	pub fn make_error_string(&self, e: &Error) -> String {
-		let line = self.get_line(e.line).trim();
+	pub fn make_error_string(&self, contents: &str, e: &Error) -> String {
+		let line = Self::get_line_of(contents, e.line).trim();
 		let underline_indent = vec![" "; e.index].join("");
 		let number_indent = vec![" "; e.line.to_string().len()].join("");
 		

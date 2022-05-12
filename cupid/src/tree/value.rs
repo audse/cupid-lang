@@ -6,7 +6,7 @@ use crate::*;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ValueNode {
 	pub value: Value,
-	pub type_kind: TypeKind,
+	pub type_hint: Option<TypeHintNode>,
 	pub meta: Meta<Flag>,
 }
 
@@ -71,8 +71,8 @@ impl<F> Meta<F> {
 	}
 }
 
-impl From<&Meta<()>> for Meta<Flag> {
-	fn from(meta: &Meta<()>) -> Self {
+impl<F, T> From<&Meta<F>> for Meta<T> {
+	fn from(meta: &Meta<F>) -> Self {
     	Self {
 			tokens: meta.tokens.to_owned(),
 			identifier: meta.identifier.to_owned(),
@@ -84,46 +84,40 @@ impl From<&Meta<()>> for Meta<Flag> {
 impl From<&mut ParseNode> for ValueNode {
 	fn from(node: &mut ParseNode) -> Self {
 		let (value, tokens) = Self::parse_value(node);
-		Self {
-			type_kind: TypeKind::infer(&value),
+		let mut node = Self {
+			type_hint: None,
 			value,
 			meta: Meta {
 				tokens,
 				identifier: None,
 				flags: vec![],
 			},
-		}
+		};
+		node.type_hint = TypeKind::infer_id(&node);
+		node
 	}
 }
 
 impl From<(Value, &Meta<Flag>)> for ValueNode {
 	fn from(value: (Value, &Meta<Flag>)) -> Self {
-		Self {
-			type_kind: TypeKind::infer(&value.0),
+		let mut node = Self {
+			type_hint: None,
 			value: value.0,
 			meta: value.1.to_owned()
-		}
+		};
+		node.type_hint = TypeKind::infer_id(&node);
+		node
 	}
 }
-
-impl From<Value> for ValueNode {
-	fn from(value: Value) -> Self {
-		Self {
-			type_kind: TypeKind::infer(&value),
-			value,
-			meta: Meta::default()
-		}
-	}
-}
-
-impl From<Cow<'static, str>> for ValueNode {
-	fn from(value: Cow<'static, str>) -> Self {
-		let value = Value::String(value);
-		Self {
-			type_kind: TypeKind::infer(&value),
-			value,
-			meta: Meta::default()
-		}
+impl From<(Value, Meta<Flag>)> for ValueNode {
+	fn from(value: (Value, Meta<Flag>)) -> Self {
+		let mut node = Self {
+			type_hint: None,
+			value: value.0,
+			meta: value.1
+		};
+		node.type_hint = TypeKind::infer_id(&node);
+		node
 	}
 }
 
@@ -146,7 +140,7 @@ impl ValueNode {
 			| "fun_kw" => {
 				let mut string = tokens[0].source.clone();
 				if let Some(first) = string.chars().next() {
-					if first == '"' || first == '\'' { 
+					if is_quote(first) {
 						string = Cow::Owned(string[1..string.len()-1].to_string());
 					}
 				}
@@ -164,28 +158,18 @@ impl ValueNode {
 		self.meta.identifier = Some(Box::new(identifier.to_owned()));
 	}
 	pub fn new(value: Value, meta: Meta<Flag>) -> Self {
-		Self {
-			type_kind: TypeKind::infer(&value),
-			value,
-			meta,
-		}
+		Self::from((value, meta))
 	}
 	pub fn new_none() -> Self {
-		let none = Value::None;
-		Self {
-			type_kind: TypeKind::infer(&none),
-			value: none,
-			meta: Meta::new(vec![], None, vec![])
-		}
+		let value = Value::None;
+		Self::from((value, Meta::default()))
 	}
 }
 
 impl AST for ValueNode {
-	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
+	fn resolve(&self, _scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		let mut value = self.to_owned();
-		if let Some(type_kind) = TypeKind::infer_from_scope(&value, scope) {
-			value.type_kind = type_kind;
-		}
+		value.type_hint = TypeKind::infer_id(&value);
 		Ok(value)
 	}
 }
@@ -201,4 +185,8 @@ impl ErrorHandler for ValueNode {
 	fn get_context(&self) -> String {
     	format!("{}", self.value)
 	}
+}
+
+fn is_quote(c: char) -> bool {
+	c == '"' || c =='\''
 }

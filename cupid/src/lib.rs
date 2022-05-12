@@ -8,6 +8,8 @@ pub use serde::{Serialize, Deserialize};
 // Stdlib
 pub use std::collections::HashMap;
 pub use std::borrow::Cow;
+pub use std::hash::{Hash, Hasher};
+pub use std::fmt::{Display, Formatter, Result as DisplayResult};
 
 mod errors;
 pub use errors::*;

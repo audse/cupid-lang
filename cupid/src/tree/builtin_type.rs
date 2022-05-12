@@ -2,33 +2,44 @@ use crate::*;
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BuiltinTypeNode {
-	pub symbol: SymbolNode,
+	pub type_hint: TypeHintNode,
 	pub type_kind: TypeKind,
-	pub generics: Vec<GenericType>,
+}
+
+fn generic(name: &'static str, tokens: &Vec<Token>) -> TypeHintNode {
+	TypeHintNode::generic(name.into(), tokens.to_owned())
 }
 
 impl From<&mut ParseNode> for BuiltinTypeNode {
 	fn from(node: &mut ParseNode) -> Self {
 		let tokens = node.tokens.to_owned();
 		let name = tokens[1].source.to_owned();
-		let (type_kind, generics) = match &*name {
+		let (type_hint, type_kind) = match &*name {
 			"bool"
 			| "char"
 			| "int"
 			| "dec"
 			| "nothing"
-			| "string" => (TypeKind::new_primitive(name.to_owned()), vec![]),
-			"array" => (TypeKind::new_array(TypeKind::new_generic("e")), vec![GenericType::from("e")]),
-			"map" => (
-				TypeKind::new_map(TypeKind::new_generic("k"), TypeKind::new_generic("v")),
-				vec![GenericType::from("k"), GenericType::from("v")]
+			| "string" => (
+				TypeHintNode::new(name.to_owned(), TypeFlag::Primitive, vec![], tokens),
+				TypeKind::new_primitive(name)
 			),
-			"fun" => (TypeKind::new_function(), vec![]),
+			"array" => (
+				TypeHintNode::new(name, TypeFlag::Array, vec![generic("e", &tokens)], tokens),
+				TypeKind::new_array(None)
+			),
+			"map" => (
+				TypeHintNode::new(name, TypeFlag::Map, vec![generic("k", &tokens), generic("v", &tokens)], tokens),
+				TypeKind::new_map(None)
+			),
+			"fun" => (
+				TypeHintNode::new(name, TypeFlag::Function, vec![generic("r", &tokens)], tokens),
+				TypeKind::new_function()
+			),
 			_ => panic!("unexpected builtin type")
 		};
 		Self {
-			symbol: SymbolNode::new_string(name, Meta::with_tokens(tokens)),
-			generics,
+			type_hint,
 			type_kind,
 		}
 	}
@@ -36,17 +47,16 @@ impl From<&mut ParseNode> for BuiltinTypeNode {
 
 impl AST for BuiltinTypeNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
-		let meta = Meta::with_tokens(self.symbol.0.meta.tokens.to_owned());
-		
-		let symbol: (&SymbolNode, &Vec<GenericType>) = (&self.symbol, &self.generics);
-		let symbol = SymbolNode::from(symbol);
-		
-		let value = ValueNode::new(Value::Type(self.type_kind.to_owned()), meta);
-		let symbol_value = SymbolValue::Declaration {
-			type_hint: TypeKind::Type,
-			value,
+		let symbol = SymbolNode::from(&self.type_hint);
+		let value = SymbolValue::Declaration {
+			type_hint: None,
+			value: ValueNode {
+				type_hint: None,
+				value: Value::Type(self.type_kind.to_owned()),
+				meta: Meta::<Flag>::from(&self.type_hint.meta)
+			},
 			mutable: false,
 		};
-		scope.set_symbol(&symbol, symbol_value)
+		scope.set_symbol(&symbol, value)
 	}
 }

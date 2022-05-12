@@ -5,15 +5,15 @@ use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SumType {
-	pub types: Vec<TypeKind>,
+	pub types: Vec<TypeHintNode>,
 	pub implementation: Implementation
 }
 
 impl SumType {
-	pub fn contains(&self, other: &Value) -> bool {
+	pub fn contains(&self, other: &ValueNode) -> bool {
 		self.types
 			.iter()
-			.any(|t| t.is_equal(other))
+			.any(|t| t == &TypeKind::infer_id(&other).unwrap())
 	}
 }
 

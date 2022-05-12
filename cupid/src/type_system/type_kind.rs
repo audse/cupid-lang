@@ -1,8 +1,3 @@
-// use std::hash::{Hash, Hasher};
-use std::fmt::{Display, Formatter, Result as DisplayResult};
-use std::collections::HashMap;
-// use std::hash::{Hash, Hasher};
-use serde::{Serialize, Deserialize};
 use crate::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -23,11 +18,35 @@ impl TypeKind {
 	pub fn new_primitive(identifier: Cow<'static, str>) -> Self {
 		Self::Primitive(PrimitiveType::new(identifier))
 	}
-	pub fn new_array(element_type: Self) -> Self {
-		Self::Array(ArrayType { element_type: Box::new(element_type), implementation: Implementation::default() })
+	pub fn new_array(element: Option<&ValueNode>) -> Self {
+		Self::Array(ArrayType { 
+			element_type: if let Some(element) = element {
+				if let Some(t) = TypeKind::infer_id(&element) {
+					t
+				} else {
+					generic("e")
+				}
+			} else {
+				generic("e")
+			}, 
+			implementation: Implementation::default() 
+		})
 	}
-	pub fn new_map(key_type: Self, value_type: Self) -> Self {
-		Self::Map(MapType { key_type: Box::new(key_type), value_type: Box::new(value_type), implementation: Implementation::default() })
+	pub fn new_map(pair: Option<(&ValueNode, &(usize, ValueNode))>) -> Self {
+		let (key, value) = if let Some((key, (_, value))) = pair {
+			if let (Some(k), Some(v)) = (TypeKind::infer_id(&key), TypeKind::infer_id(&value)) {
+				(k, v)
+			} else {
+				(generic("k"), generic("v"))
+			}
+		} else {
+			(generic("k"), generic("v"))
+		};
+		Self::Map(MapType { 
+			key_type: key,
+			value_type: value,
+			implementation: Implementation::default() 
+		})
 	}
 	pub fn new_generic(identifier: &str) -> Self {
 		Self::Generic(GenericType::new(identifier, None))
@@ -39,99 +58,44 @@ impl TypeKind {
 			implementation: Implementation::default() 
 		})
 	}
-	pub fn infer(value: &Value) -> Self {
-		match value {
-			Value::Boolean(_) => Self::new_primitive("bool".into()),
-			Value::Integer(_) =>  Self::new_primitive("int".into()),
-			Value::Char(_) => Self::new_primitive("char".into()),
-			Value::Decimal(_, _) => Self::new_primitive("dec".into()),
-			Value::String(_) => Self::new_primitive("string".into()),
-			Value::None => Self::new_primitive("nothing".into()),
-			Value::Function(_) => Self::new_function(),
-			Value::Array(array) => {
-				if !array.is_empty() {
-					let element_type = TypeKind::infer(&array[0].value);
-					Self::new_array(element_type)
+	pub fn infer_id(value: &ValueNode) -> Option<TypeHintNode> {
+		use Value::*;
+		use TypeFlag::{Primitive, Array as TArray, Map as TMap, Function as TFunction};
+		let tokens = value.meta.tokens.to_owned();
+		if let Some((name, flag, args)) = match &value.value {
+			Boolean(_) => Some(("bool", Primitive, vec![])),
+			Char(_) => Some(("char", Primitive, vec![])),
+			Integer(_) => Some(("int", Primitive, vec![])),
+			Decimal(_, _) => Some(("dec", Primitive, vec![])),
+			None => Some(("nothing", Primitive, vec![])),
+			String(_) => Some(("string", Primitive, vec![])),
+			Array(a) => Some(("array", TArray, if !a.is_empty() {
+				if let Some(t) = Self::infer_id(&a[0]) {
+					vec![t]
 				} else {
-					Self::new_array(Self::new_generic("e"))
+					vec![generic("e")]
 				}
-			},
-			Value::Map(map) => {
-				if let Some((key, (_, value))) = map.iter().next() {
-					let key_type = TypeKind::infer(&key.value);
-					let value_type = TypeKind::infer(&value.value);
-					Self::new_map(key_type, value_type)
-				} else {
-					Self::new_map(Self::new_generic("k"), Self::new_generic("v"))
-				}
-			},
-			Value::Type(t) => t.to_owned(),
-			Value::Values(_) => Self::Placeholder,
-			Value::Implementation(_) => Self::Type,
-			Value::TypeIdentifier(_) => Self::Type,
-			x => {
-				println!("Cannot infer type of {:?}", x);
-				unreachable!()
-			}
-		}
-	}
-	pub fn infer_name(value: &Value) -> &'static str {
-		match value {
-			Value::Boolean(_) => "bool",
-			Value::Integer(_) =>  "int",
-			Value::Char(_) => "char",
-			Value::Decimal(_, _) => "dec",
-			Value::String(_) => "string",
-			Value::None => "nothing",
-			Value::Array(_) => "array",
-			Value::Map(_) => "map",
-			Value::Function(..) => "fun",
-			_ => panic!()
-		}
-	}
-	pub fn infer_from_scope(value: &ValueNode, scope: &mut LexicalScope) -> Option<Self> {
-		let meta = Meta::with_tokens(value.meta.tokens.to_owned());
-		let type_kind = TypeKind::infer_name(&value.value);
-		let type_id = Value::TypeIdentifier(TypeId::from(Value::String(type_kind.into())));
-		let symbol = SymbolNode(ValueNode {
-			type_kind: TypeKind::Type,
-			value: type_id,
-			meta
-		});
-		if let Ok(type_kind) = scope.get_symbol(&symbol) {
-			if let Value::Type(type_kind) = type_kind.value {
-				Some(type_kind)
 			} else {
-				None
-			}
+				vec![generic("e")]
+			})),
+			Map(m) => Some(("map", TMap, if let Some((k, (_, v))) = &m.iter().next() {
+				if let (Some(k), Some(v)) = (Self::infer_id(&k), Self::infer_id(&v)) {
+					vec![k, v]
+				} else {
+					vec![generic("k"), generic("v")]
+				}
+			} else {
+				vec![generic("k"), generic("v")]
+			})),
+			Function(_) => Some(("fun", TFunction, vec![generic("r")])),
+			Values(_) => Option::None,
+			_ => Option::None,
+		} {
+			Some(TypeHintNode::new(name.into(), flag, args, tokens))
 		} else {
-			None
+			Option::None
 		}
 	}
-	
-	pub fn is_equal(&self, other: &Value) -> bool {
-		match (self, TypeKind::infer(other)) {
-			(_, Self::Alias(y)) => y.true_type.is_equal(other),
-			(Self::Alias(x), _) => x.true_type.is_equal(other),
-			(_, Self::Sum(y)) => y.contains(other),
-			(Self::Sum(x), _) => x.contains(other),
-			(Self::Struct(x), Self::Map(_)) => x.is_map_equal(other),
-			(Self::Map(_), Self::Struct(y)) => y.is_map_equal(other),
-			(_, Self::Generic(_)) => true,
-			(Self::Generic(_), _) => true,
-			(x, y) => x == &y,
-		}
-	}
-	
-	pub fn most_specific<'a>(a: &'a Self, b: &'a Self) -> &'a Self {
-		use TypeKind::*;
-		match (a, b) {
-			(Array(x), Array(_)) => if matches!(*x.element_type, Generic(_)) { b } else { a },
-			(Map(x), Map(_)) => if matches!(*x.key_type, Generic(_)) && matches!(*x.value_type, Generic(_)) { b } else { a },
-			_ => a
-		}
-	}
-	
 	pub fn get_implementation(&mut self) -> &mut Implementation {
 		match self {
 			Self::Alias(x) => &mut x.implementation,
@@ -150,39 +114,38 @@ impl TypeKind {
 			_ => Ok(()) // todo
 		}
 	}
-	pub fn get_name(&self) -> String {
+	pub fn get_name(&self) -> Cow<'static, str> {
 		match self {
-			Self::Alias(x) => format!("alias [{}]", x.true_type.get_name()),
-			Self::Array(x) => format!("array [{}]", x.element_type.get_name()),
-			Self::Function(x) => format!("fun [{}]", x.return_type.get_name()),
+			Self::Alias(x) => format!("alias [{}]", x.true_type),
+			Self::Array(x) => format!("array [{}]", x.element_type),
+			Self::Function(x) => format!("fun [{}]", x.return_type),
 			Self::Generic(x) => {
 				let type_value = if let Some(type_value) = &x.type_value {
-					format!(": {}", type_value.get_name())
+					format!(": {}", type_value)
 				} else {
 					String::new()
 				};
 				format!("<{}{}>", x.identifier, type_value)
 			},
-			Self::Map(x) => format!("map [{}, {}]", x.key_type.get_name(), x.value_type.get_name()),
+			Self::Map(x) => format!("map [{}, {}]", x.key_type, x.value_type),
 			Self::Primitive(x) => format!("{}", x.identifier),
 			Self::Struct(x) => {
 				let members: Vec<String> = x.members
 					.iter()
-					.map(|(k, v)| format!("{k}: {}", v.get_name()))
+					.map(|(k, v)| format!("{k}: {v}"))
 					.collect();
 				format!("struct [{}]", members.join(", "))
 			},
 			Self::Sum(x) => {
 				let members: Vec<String> = x.types
 					.iter()
-					.map(|t| format!("{}", t.get_name()))
+					.map(|t| format!("{t}"))
 					.collect();
 				format!("sum [{}]", members.join(", "))
 			},
 			Self::Type => "type".to_string(),
 			Self::Placeholder => "placeholder".to_string(),
-			// _ => panic!()
-		}
+		}.into()
 	}
 }
 
@@ -190,19 +153,19 @@ impl Type for TypeKind {
 	fn implement(&mut self, functions: HashMap<ValueNode, ValueNode>) {
 		self.get_implementation().implement(functions)
 	}
-	fn implement_trait(&mut self, trait_symbol: SymbolNode, implementation: Implementation) {
+	fn implement_trait(&mut self, trait_symbol: TypeHintNode, implementation: Implementation) {
 		self.get_implementation().implement_trait(trait_symbol, implementation)
 	}
-	fn get_trait_function(&mut self, symbol: &SymbolNode) -> Option<(&Implementation, &FunctionNode)> { 
-		self.get_implementation().get_trait_function(symbol) 
+	fn get_trait_function(&mut self, symbol: &SymbolNode, scope: &mut LexicalScope) -> Option<(Implementation, FunctionNode)> { 
+		self.get_implementation().get_trait_function(symbol, scope) 
 	}
 }
 
 pub trait Type {
 	fn implement(&mut self, _functions: HashMap<ValueNode, ValueNode>) {}
-	fn implement_trait(&mut self, _trait_symbol: SymbolNode, _implement: Implementation) {}
-	fn get_function(&mut self, _symbol: &SymbolNode) -> Option<&FunctionNode> { None }
-	fn get_trait_function(&mut self, _symbol: &SymbolNode) -> Option<(&Implementation, &FunctionNode)> { None }
+	fn implement_trait(&mut self, _trait_symbol: TypeHintNode, _implement: Implementation) {}
+	fn get_function(&mut self, _symbol: &SymbolNode) -> Option<FunctionNode> { None }
+	fn get_trait_function(&mut self, _symbol: &SymbolNode, _scope: &mut LexicalScope) -> Option<(Implementation, FunctionNode)> { None }
 	fn apply_args(&mut self, _args: Vec<TypeKind>) -> Result<(), &str> { Ok(()) }
 }
 
@@ -214,4 +177,8 @@ impl Display for TypeKind {
 			write!(f, "{} {}", self.get_name(), self.to_owned().get_implementation())
 		}
 	}
+}
+
+fn generic(name: &'static str) -> TypeHintNode {
+	TypeHintNode::generic(name.into(), vec![])
 }

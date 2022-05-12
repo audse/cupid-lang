@@ -5,8 +5,8 @@ use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MapType {
-	pub key_type: Box<TypeKind>,
-	pub value_type: Box<TypeKind>,
+	pub key_type: TypeHintNode,
+	pub value_type: TypeHintNode,
 	pub implementation: Implementation,
 }
 
@@ -14,17 +14,19 @@ impl Type for MapType {}
 
 impl PartialEq for MapType {
 	fn eq(&self, other: &Self) -> bool {
-		let key_match = match (&*self.key_type, &*other.key_type) {
-			(TypeKind::Generic(GenericType { identifier: _, type_value: _ }), _)
-			| (_, TypeKind::Generic(GenericType { identifier: _, type_value: _ })) => true,
-			(k, v) => k == v
+		let key_match = match (self.key_type.is_generic(), other.key_type.is_generic()) {
+			(true, true)
+			| (false, true)
+			| (true, false) => true,
+			_ => self.key_type == other.key_type
 		};
-		let value_match = match (&*self.value_type, &*other.value_type) {
-			(TypeKind::Generic(GenericType { identifier: _, type_value: _ }), _)
-			| (_, TypeKind::Generic(GenericType { identifier: _, type_value: _ })) => true,
-			(k, v) => k == v
+		let val_match = match (self.value_type.is_generic(), other.value_type.is_generic()) {
+			(true, true)
+			| (false, true)
+			| (true, false) => true,
+			_ => self.value_type == other.value_type
 		};
-		key_match && value_match
+		key_match && val_match
 	}
 }
 

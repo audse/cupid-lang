@@ -5,7 +5,7 @@ use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AliasType {
-	pub true_type: Box<TypeKind>,
+	pub true_type: Box<TypeHintNode>,
 	pub implementation: Implementation
 }
 

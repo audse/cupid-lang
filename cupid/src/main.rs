@@ -8,7 +8,7 @@ use clap::Parser;
 struct Cli {
     pattern: String,
     
-    #[clap(default_value_t = String::from("refactor.cupid"))]
+    #[clap(default_value_t = String::from("main.cupid"))]
     path: String,
     
     #[clap(short, long)]

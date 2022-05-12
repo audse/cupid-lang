@@ -36,7 +36,12 @@ pub fn parse(node: &mut ParseNode) -> BoxAST {
 		"while_loop" => BoxAST::new(WhileLoopNode::from(node)),
 		"property_access" => BoxAST::new(PropertyNode::from(node)),
 		
-		"type_cast" => BoxAST::new(TypeCastNode::parse_as_function(node)),
+		"type_cast" =>  if node.children.len() > 1 {
+			BoxAST::new(TypeCastNode::parse_as_function(node))
+		} else {
+			 parse(&mut node.children[0])
+		},
+		
 		"compare_op" 
 		| "add"
 		| "multiply" 
@@ -89,11 +94,7 @@ impl From<&mut ParseNode> for FileNode {
 
 impl AST for FileNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
-		let mut values: Vec<ValueNode> = vec![];
-		for exp in self.expressions.iter() {
-			let value = exp.resolve(scope)?;
-			values.push(value);
-		}
+		let values = self.resolve_to(scope)?;
 		let meta: Meta<Flag> = Meta {
 			tokens: self.meta.tokens.to_owned(),
 			identifier: None,
@@ -103,11 +104,26 @@ impl AST for FileNode {
 	}
 }
 
+impl ResolveTo<Vec<ValueNode>> for FileNode {
+	fn resolve_to(&self, scope: &mut LexicalScope) -> Result<Vec<ValueNode>, Error> {
+		let mut values: Vec<ValueNode> = vec![];
+		for exp in self.expressions.iter() {
+			let value = exp.resolve(scope)?;
+			values.push(value);
+		}
+		Ok(values)
+	}
+}
+
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct EmptyNode;
 impl AST for EmptyNode {
 	fn resolve(&self, _scope: &mut LexicalScope) -> Result<ValueNode, Error> {
-		Ok(ValueNode::from(Value::None))
+		Ok(ValueNode {
+			value: Value::None,
+			type_hint: None,
+			meta: Meta::default()
+		})
 	}
 }

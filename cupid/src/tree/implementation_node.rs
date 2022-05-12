@@ -26,14 +26,9 @@ impl From<&mut ParseNode> for ImplementationNode {
 
 impl AST for ImplementationNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
-		let generics = if let Some(generics) = &self.1 {
-			generics.resolve_to_generics(scope)?
-		} else { 
-			vec![] 
-		};
-		let implementation = self.resolve_with_generics(&generics, scope)?;
+		let implementation: Implementation = self.resolve_to(scope)?;
 		Ok(ValueNode {
-			type_kind: TypeKind::Type,
+			type_hint: None,
 			value: Value::Implementation(implementation),
 			meta: self.2.to_owned(),
 		})
@@ -41,17 +36,7 @@ impl AST for ImplementationNode {
 }
 
 impl ImplementationNode {
-	pub fn resolve_to_implementation(&self, scope: &mut LexicalScope) -> Result<Implementation, Error> {
-		match self.resolve(scope) {
-			Ok(val) => if let Value::Implementation(val) = val.value {
-				Ok(val)
-			} else {
-				Err(val.error_raw("expected implementation"))
-			},
-			Err(e) => Err(e)
-		}
-	}
-	pub fn resolve_with_generics(&self, generics: &[GenericType], scope: &mut LexicalScope) -> Result<Implementation, Error> {
+	pub fn make(&self, generics: &[GenericType], scope: &mut LexicalScope) -> Result<Implementation, Error> {
 		// creates hashmap of functions/symbols and applies generic types wherever needed
 		let mut implementation = Implementation::default();
 		implementation.generics = generics.to_owned();
@@ -60,5 +45,16 @@ impl ImplementationNode {
 			implementation.functions.insert(function.symbol.0.to_owned(), value);
 		}
 		Ok(implementation)
+	}
+}
+
+impl ResolveTo<Implementation> for ImplementationNode {
+	fn resolve_to(&self, scope: &mut LexicalScope) -> Result<Implementation, Error> {
+		let generics: Vec<GenericType> = if let Some(generics) = &self.1 {
+			generics.resolve_to(scope)?
+		} else { 
+			vec![] 
+		};
+		self.make(&generics, scope)
 	}
 }

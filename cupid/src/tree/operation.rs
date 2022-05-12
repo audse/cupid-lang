@@ -40,11 +40,12 @@ impl OperationNode {
 			_ => panic!("unrecognized operation"),
 		};
 		let function = Value::String(function.into());
-		let function_symbol = SymbolNode(ValueNode {
-			type_kind: TypeKind::infer(&function),
+		let mut function_symbol = SymbolNode(ValueNode {
+			type_hint: None,
 			value: function,
 			meta: Meta::with_tokens(node.tokens.to_owned()),
 		});
+		function_symbol.0.type_hint = TypeKind::infer_id(&function_symbol.0);
 		let left = parse(&mut node.children[0]);
 		let right = parse(&mut node.children[1]);
 		
@@ -65,11 +66,13 @@ pub struct TypeCastNode {
 impl TypeCastNode {
 	pub fn parse_as_function(node: &mut ParseNode) -> FunctionCallNode {
 		let function = Value::String("cast".into());
-		let function_symbol = SymbolNode(ValueNode {
-			type_kind: TypeKind::infer(&function),
+		let mut function_symbol = SymbolNode(ValueNode {
+			type_hint: None,
 			value: function,
 			meta: Meta::with_tokens(node.tokens.to_owned()),
 		});
+		function_symbol.0.type_hint = TypeKind::infer_id(&function_symbol.0);
+		
 		let left = parse(&mut node.children[0]);
 		let right = TypeHintNode::from(&mut node.children[1]);
 		

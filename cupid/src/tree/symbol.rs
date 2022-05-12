@@ -9,48 +9,8 @@ impl From<&mut ParseNode> for SymbolNode {
 	fn from(node: &mut ParseNode) -> Self {
 		let mut value_node = ValueNode::from(node);
 		// symbols do not have their own type
-		value_node.type_kind = TypeKind::Placeholder;
+		value_node.type_hint = None;
     	Self(value_node)
-	}
-}
-
-impl From<Cow<'static, str>> for SymbolNode {
-    fn from(string: Cow<'static, str>) -> Self {
-		let mut value_node = ValueNode::from(string);
-		value_node.type_kind = TypeKind::Placeholder;
-		Self(value_node)
-	}
-}
-
-impl From<(Cow<'static, str>, &Meta<Flag>)> for SymbolNode {
-	fn from(value: (Cow<'static, str>, &Meta<Flag>)) -> Self {
-		Self(ValueNode::from((Value::String(value.0), value.1)))
-	}
-}
-
-impl From<(&Self, &Vec<GenericType>)> for SymbolNode {
-	fn from(symbol: (&Self, &Vec<GenericType>)) -> Self {
-		let mut new_symbol = symbol.0.to_owned();
-		new_symbol.0.value = Value::TypeIdentifier(TypeId(
-			Box::new(symbol.0.0.value.to_owned()), 
-			symbol.1
-				.iter()
-				.cloned()
-				.map(|g| TypeKind::Generic(g.to_owned()))
-				.collect()
-		));
-		new_symbol
-	}
-}
-
-impl From<(&Self, &Vec<TypeKind>)> for SymbolNode {
-	fn from(symbol: (&Self, &Vec<TypeKind>)) -> Self {
-		let mut new_symbol = symbol.0.to_owned();
-		new_symbol.0.value = Value::TypeIdentifier(TypeId(
-			Box::new(symbol.0.0.value.to_owned()), 
-			symbol.1.to_owned()
-		));
-		new_symbol
 	}
 }
 
@@ -76,18 +36,6 @@ impl SymbolNode {
 		} else {
 			panic!()
 		}
-	}
-	pub fn new_string(string: Cow<'static, str>, meta: Meta<Flag>) -> Self {
-		let mut value_node = ValueNode::from(string);
-		value_node.meta = meta;
-		Self(value_node)
-	}
-	pub fn new_generic(name: Cow<'static, str>, meta: Meta<Flag>) -> Self {
-		Self(ValueNode {
-			type_kind: TypeKind::new_generic(&*name),
-			value: Value::String(name),
-			meta
-		})
 	}
 }
 

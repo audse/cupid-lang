@@ -16,7 +16,7 @@ impl From<&mut ParseNode> for DeclarationNode {
 		} else {
 			BoxAST::new(ValueNode { 
 				value: Value::None, 
-				type_kind: TypeKind::infer(&Value::None),
+				type_hint: None,
 				meta: Meta::new(vec![], None, vec![]) 
 			})
 		};
@@ -37,20 +37,11 @@ impl AST for DeclarationNode {
 		// add meta info to value node
 		value.set_meta_identifier(&self.symbol.0);
 		
-		let type_hint = self.type_hint.resolve_to_type_kind(scope)?;
+		let type_hint = Some(self.type_hint.to_owned());
 		
 		// set symbol type as value's type
 		let mut symbol = self.symbol.to_owned();
-		symbol.0.type_kind = type_hint.to_owned();
-		
-		if type_hint.is_equal(&value.value) {
-			value.type_kind = TypeKind::most_specific(&type_hint, &value.type_kind).to_owned();
-		} else {
-			return Err(value.error_raw_context(
-				format!("type mismatch: cannot assign {value} to {symbol}"),
-				format!("assigning type {} to type {type_hint}", TypeKind::infer(&value.value))
-			));
-		}
+		symbol.0.type_hint = type_hint.to_owned();
 		
 		scope.set_symbol(&symbol, SymbolValue::Declaration { 
 			type_hint, 

@@ -1,68 +1,153 @@
 use crate::*;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-pub enum TypeKindFlag {
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum TypeFlag {
+	Alias,
 	Array,
 	Function,
+	Generic,
 	Map,
 	Primitive,
 	Struct,
-	Generic,
+	Sum,
+	Trait,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TypeHintNode {
-	pub type_kind: SymbolNode,
+	pub identifier: Cow<'static, str>,
 	pub args: Vec<TypeHintNode>,
-	pub meta: Meta<TypeKindFlag>,
+	pub meta: Meta<TypeFlag>,
 }
 
 impl From<&mut ParseNode> for TypeHintNode {
 	fn from(node: &mut ParseNode) -> Self {
-		use TypeKindFlag::*;
-		let flag = match &*node.name {
-			"array_type_hint" => Array,
-			"function_type_hint" => Function,
-			"map_type_hint" => Map,
-			"primitive_type_hint" => Primitive,
-			"struct_type_hint" => Struct,
-			_ => panic!("unexpected type hint")
-		};
 		Self {
-			type_kind: SymbolNode::from(&mut node.children[0]),
+			identifier: node.children[0].tokens[0].source.to_owned(),
 			args: node.children.iter_mut().skip(1).map(Self::from).collect(),
-			meta: Meta::new(node.tokens.to_owned(), None, vec![flag])
+			meta: Meta::new(node.children[0].tokens.to_owned(), None, vec![])
 		}
 	}
 }
 
 impl AST for TypeHintNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
-		let type_symbol: SymbolNode = self.to_symbol(scope)?;
-		let mut value: ValueNode = type_symbol.resolve(scope)?;
-		match &mut value.value {
-			Value::Type(_) => {
-				Ok(value)
-			},
-			_ => Err(value.error_raw(format!("expected a type, found {value} (type {})", value.type_kind)))
-		}
+		let (mut symbol, type_kind) = self.resolve_to(scope)?;
+		symbol.0.value = Value::Type(type_kind);
+		Ok(symbol.0)
 	}
 }
 
 impl TypeHintNode {
-	pub fn resolve_to_type_kind(&self, scope: &mut LexicalScope) -> Result<TypeKind, Error> {
-		let value = self.resolve(scope)?;
-		match value.value {
-			Value::Type(type_kind) => Ok(type_kind),
-			_ => Err(value.error_raw(format!("expected a type, found {value} (type {})", value.type_kind)))
+	pub fn new(identifier: Cow<'static, str>, flag: TypeFlag, args: Vec<Self>, tokens: Vec<Token>) -> Self {
+		Self {
+			identifier,
+			args,
+			meta: Meta {
+				tokens,
+				flags: vec![flag],
+				identifier: None
+			}
 		}
 	}
-	pub fn to_symbol(&self, scope: &mut LexicalScope) -> Result<SymbolNode, Error> {
-		let mut args: Vec<TypeKind> = vec![];
-		for arg in self.args.iter() {
-			let arg = arg.resolve_to_type_kind(scope)?;
-			args.push(arg);
+	pub fn generic(identifier: Cow<'static, str>, tokens: Vec<Token>) -> Self {
+		Self {
+			identifier,
+			args: vec![],
+			meta: Meta {
+				tokens,
+				flags: vec![TypeFlag::Generic],
+				identifier: None
+			}
 		}
-		Ok(SymbolNode::from((&self.type_kind, &args)))
+	}
+	pub fn is_generic(&self) -> bool {
+		self.meta.flags.contains(&TypeFlag::Generic)
+	}
+}
+
+impl ResolveTo<(SymbolNode, TypeKind)> for TypeHintNode {
+	fn resolve_to(&self, scope: &mut LexicalScope) -> Result<(SymbolNode, TypeKind), Error> {
+		let symbol = SymbolNode::from(self);
+		scope.get_value(
+			&symbol,
+			&|symbol_value| {
+				if let Value::Type(type_kind) = symbol_value.get_value(&symbol).value {
+					Ok((symbol.to_owned(), type_kind))
+				} else {
+					Err(symbol.error_raw("expected type"))
+				}
+			}
+		)
+	}
+}
+
+impl ResolveTo<TypeKind> for TypeHintNode {
+	fn resolve_to(&self, scope: &mut LexicalScope) -> Result<TypeKind, Error> {
+		let (_, type_kind) = self.resolve_to(scope)?;
+		Ok(type_kind)
+	}
+}
+
+impl From<&TypeHintNode> for SymbolNode {
+	fn from(node: &TypeHintNode) -> Self {
+		Self(ValueNode {
+			value: Value::TypeHint(node.to_owned()),
+			type_hint: None,
+			meta: Meta::<Flag>::from(&node.meta)
+		})
+	}
+}
+
+impl PartialEq for TypeHintNode {
+	fn eq(&self, other: &Self) -> bool {
+		self.identifier == other.identifier 
+		&& self.args.len() == other.args.len()
+		&& self.args
+			.iter()
+			.enumerate()
+			.all(|(i, arg)| 
+				arg.is_generic() 
+				|| other.args[i].is_generic() 
+				|| arg == &other.args[i]
+			)
+	}
+}
+
+impl Eq for TypeHintNode {}
+
+impl Hash for TypeHintNode {
+	fn hash<H: Hasher>(&self, state: &mut H) {
+		self.identifier.hash(state);
+	}
+}
+
+impl Display for TypeHintNode {
+	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
+		let identifier = if self.is_generic() { 
+			format!("<{}>", self.identifier) 
+		} else { 
+			self.identifier.to_string() 
+		};
+		let args: Vec<String> = self.args.iter().map(|a| a.to_string()).collect();
+		let args: String = if args.is_empty() { 
+			String::new() 
+		} else { 
+			format!(" [{}]", args.join(", ")) 
+		};
+		write!(f, "{identifier}{args}")
+	}
+}
+
+impl ErrorHandler for TypeHintNode {
+	fn get_token(&self) -> &Token {
+    	if !self.meta.tokens.is_empty() {
+			&self.meta.tokens[0]
+		} else {
+			panic!("an error occured for type {self}, but there is no positional info")
+		}
+	}
+	fn get_context(&self) -> String {
+    	format!("accessing type {self}")
 	}
 }

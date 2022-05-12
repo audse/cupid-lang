@@ -96,6 +96,6 @@ impl PropertyNode {
 fn no_function_error(node: &ValueNode, function: &FunctionCallNode) -> Error {
 	function.function.error_raw_context(
 		format!("undefined: could not find function {} in {node}", function.function),
-		format!("accessing {node} (type {})", node.type_kind)
+		format!("accessing {node} (type {})", unwrap_or_string(&node.type_hint))
 	)
 }
