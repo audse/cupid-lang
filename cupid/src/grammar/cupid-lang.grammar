@@ -1,9 +1,11 @@
 - file: expression+
 -~expression: package | comment | statement | term
 
+-~list[inner]: (inner ',')* inner?
+
 - package: 'package' name_space? items
 - name_space: WORD ':' ':' name_space?
--~items: '[' (WORD ',')* ']' | WORD
+-~items: '[' list[WORD] ']' | WORD
 
 -~statement:
 	type_definition
@@ -34,7 +36,7 @@
 	| infinite_loop
 
 - for_loop: 'for' for_loop_parameters ~'in' term block
-- for_loop_parameters: (identifier ~',')*
+- for_loop_parameters: list[identifier]
 - while_loop: 'while' term block
 - infinite_loop: 'loop' block
 
@@ -68,16 +70,16 @@
 
 - builtin_type_definition: 'type' WORD !'='
 
-- struct_type_definition: type_symbol ~equal '[' (struct_member ~',')* ~']'
+- struct_type_definition: type_symbol ~equal '[' list[struct_member] ~']'
 - struct_member: type_hint identifier
 
-- sum_type_definition: type_symbol ~equal '[' (sum_member ~',')* ~']'
+- sum_type_definition: type_symbol ~equal '[' list[sum_member] ~']'
 - sum_member: type_hint
 
 - alias_type_definition: type_symbol ~equal type_hint
 
 -~type_symbol: 'type' generics? identifier
-- generics: '[' (generic_argument ',')* closing_bracket
+- generics: '[' list[generic_argument] closing_bracket
 - generic_argument: identifier !':' | identifier ':' type_hint
 
 - typed_declaration: type_hint 'mut'? identifier (~equal term)?
@@ -97,7 +99,7 @@
 - map_kw: 'map'
 - fun_kw: 'fun'
 
-- struct_type_hint: identifier '[' (struct_member_type_hint ',')* ']'
+- struct_type_hint: identifier '[' list[struct_member_type_hint] ']'
 - struct_member_type_hint: identifier ':' type_hint
 
 - implement_type: 'use' generics? type_hint '{' typed_declaration* closing_brace
@@ -105,7 +107,7 @@
 - implement_trait: 'use' generics? identifier 'with' type_hint implement_trait_body?
 -~implement_trait_body: '{' typed_declaration* closing_brace
 
-- trait_definition: 'trait' generics identifier ~equal ~'[' (typed_declaration ',')* closing_bracket
+- trait_definition: 'trait' generics identifier ~equal ~'[' list[typed_declaration] closing_bracket
 
 -~equal: '=' !'>'
 
@@ -130,20 +132,20 @@
 - group: ~'(' term? closing_paren
 - function: parameters  function_body
 -~function_body: arrow ~empty | arrow group | block
-- parameters: (parameter ~',')*
+- parameters: list[parameter]
 -~parameter: ~'_' | 'mut'? self | annotated_parameter
 - annotated_parameter: type_hint identifier
 
 - log: log_keyword ~'(' arguments closing_paren
 - function_call: identifier ~'(' arguments closing_paren
-- arguments: (term ~',')*
+- arguments: list[term]
 
 -~log_keyword: 'log' | 'logs' | 'log_line' | 'logs_line'
 
 - bracket_array: '[' !'.' array? !'.' closing_bracket
--~array:  (term ~',')* term?
+-~array:  list[term]
 
-- map: '[' (map_entry !']' ',')* ']'
+- map: '[' list[map_entry] ']'
 - map_entry: atom ':' term
 
 - range: 

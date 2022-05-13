@@ -74,7 +74,7 @@ pub fn run_and_collect_logs(string: &str) -> JsValue {
 	let stdlib = read_file();
 	_ = file_handler.preload_contents(stdlib);
 	
-	let parse_tree = file_handler.parser._file(None);
+	let parse_tree = file_handler.parser._file();
 	let mut parse = parse_tree.unwrap().0;
 	let file = FileNode::from(&mut parse);
 	

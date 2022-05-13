@@ -232,6 +232,7 @@ someone istype person # should be false
     -   [ ] `recover!` macro
 -   [ ] Inline start/end comments
 -   [ ] Lookbehind (for array)
+-   [x] Functions
 
 ## Ideas the future
 

@@ -1,6 +1,6 @@
 use crate::*;
 
-pub fn parse_import(node: &mut PackageNode) -> ImportNode {
+pub fn parse_import(node: &mut ParseNode) -> ImportNode {
 	match &*node.name {
 		"packages" => ImportNode::PackageList(node.filter_map_mut(&|n| {
 			if let ImportNode::Package(package) = parse_import(n) {

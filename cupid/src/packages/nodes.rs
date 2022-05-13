@@ -31,7 +31,6 @@ impl ImportNode {
 		let mut package_list: Vec<PackageContents> = vec![];
 		if let Self::PackageList(packages) = self {
 			for package in packages {
-				let contents = get_contents(&package);
 				package_list.push(get_contents(&package));
 			}
 		} else {

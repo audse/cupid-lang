@@ -10,3 +10,7 @@
 -~items: item_group | item
 - item_group: '[' (item ',')* ']'
 - item: WORD
+
+- objects: list[WORD]
+
+- list[item]: (item ',')* item?

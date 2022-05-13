@@ -107,7 +107,7 @@ impl From<&mut ParseNode> for ParametersNode {
 						default: OptionAST::None
 					}
 				},
-				_ => panic!("unexpected params")
+				_ => panic!("unexpected params, {n:?}")
 			});
 		Self {
 			symbols,

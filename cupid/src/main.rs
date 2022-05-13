@@ -1,8 +1,5 @@
-use cupid::*;
-// mod lib;
-// use lib::{FileHandler}
-
 use clap::Parser;
+use cupid::*;
 
 #[derive(Parser)]
 struct Cli {

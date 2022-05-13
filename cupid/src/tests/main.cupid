@@ -1,3 +1,11 @@
 package stdlib::stdlib
 
-log (10 + 10)
+fun [int] x = int a, int b, int c => log (a, b, c)
+x(1, 2, 3)
+
+# int mut x = 100
+# 
+# while x > 0 => {
+# 	x = x - 1
+# 	log (x)
+# }

@@ -60,7 +60,7 @@ impl FileHandler {
 		let stdlib = stdlib.join("\n");
 		
 		let mut parser = CupidParser::new(stdlib.to_owned());
-		let parse_tree = parser._file(None);
+		let parse_tree = parser._file();
 		let semantics = parse(&mut parse_tree.unwrap().0);
 		
 		match semantics.resolve(&mut self.scope) {
@@ -72,7 +72,7 @@ impl FileHandler {
 	pub fn run_package(&mut self, package: PackageContents) -> Result<(), Error> {
 		self.report_loading_package(&package.path);
 		let mut parser = CupidParser::new(package.contents.to_owned());
-		let parse_tree = parser._file(None);
+		let parse_tree = parser._file();
 		if let Some((mut tree, _)) = parse_tree {
 			let semantics = parse(&mut tree);
 			if let Err(e) = semantics.resolve(&mut self.scope) {
@@ -85,7 +85,7 @@ impl FileHandler {
 	
 	pub fn preload_contents<S>(&mut self, string: S) -> Result<(), Error> where S: Into<String> {
 		let mut parser = CupidParser::new(string.into());
-		let parse_tree = parser._file(None);
+		let parse_tree = parser._file();
 		let semantics = parse(&mut parse_tree.unwrap().0);
 		semantics.resolve(&mut self.scope)?;
 		Ok(())
@@ -96,7 +96,7 @@ impl FileHandler {
 		
 		println!("Contents: {:?}", self.contents);
 		
-		let parse_tree = self.parser._file(None);
+		let parse_tree = self.parser._file();
 		println!("Parse Tree: {:#?}", parse_tree);
 		
 		let semantics = parse(&mut parse_tree.unwrap().0);
@@ -115,13 +115,13 @@ impl FileHandler {
 	}
 	
 	pub fn parse(&mut self) -> BoxAST {
-		let parse_tree = self.parser._file(None);
+		let parse_tree = self.parser._file();
 		parse(&mut parse_tree.unwrap().0)
 	}
 	
 	pub fn use_packages(&mut self, contents: String) -> Result<(), Error> {
 		let mut package_parser = PackageParser::new(contents.to_owned());
-		if let Some((mut tree, _)) = package_parser._packages(None) {
+		if let Some((mut tree, _)) = package_parser._packages() {
 			let package_semantics = parse_import(&mut tree);
 			let packages: Vec<PackageContents> = package_semantics.use_packages();
 			for package in packages {
@@ -138,7 +138,7 @@ impl FileHandler {
 		self.use_stdlib()?;
 		self.use_packages(self.contents.to_owned())?;
 		
-		let parse_tree = self.parser._file(None);
+		let parse_tree = self.parser._file();
 		let semantics = parse(&mut parse_tree.unwrap().0);
 		
 		self.scope.add(Context::Block);
