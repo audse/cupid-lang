@@ -1,6 +1,7 @@
 use crate::*;
 
 pub struct GrammarParser {
+	pub name: Str,
 	pub tokens: BiDirectionalIterator<Token>,
 }
 
@@ -11,11 +12,11 @@ impl Parser for GrammarParser {
 }
 
 impl GrammarParser {
-	pub fn new(source: Cow<'static, str>) -> Self {
-		Self { tokens: Self::build(source.into()) }
+	pub fn new(name: Str, source: Cow<'static, str>) -> Self {
+		Self { name, tokens: Self::build(source.into()) }
 	}
 	
-	pub fn grammar(&mut self) -> Vec<Rule> {
+	pub fn grammar(&mut self) -> Grammar {
 		let mut pos = self.tokens.index();
 		let mut rules = vec![];
 		while let Some(rule) = self.rule() {
@@ -26,8 +27,21 @@ impl GrammarParser {
 			}
 		}
 		self.tokens.goto(pos);
-		rules
+		Grammar {
+			name: self.name.to_owned(),
+			rules,
+		}
 	}
+	
+	// fn dependencies(&mut self) -> Vec<Str> {
+	// 	let mut dependencies = vec![];
+	// 	while let Some(_) = self.expect("use") {
+	// 		if let Some((name, _)) = self.expect_word() {
+	// 			dependencies.push(name.source())
+	// 		}
+	// 	}
+	// 	dependencies
+	// }
 	
 	fn rule(&mut self) -> Option<Rule> {
 		let mut pass_through = false;
@@ -181,6 +195,11 @@ impl GrammarParser {
 	}
 	
 	fn prefix_modifier(&mut self) -> Option<Str> {
+		if let Some((token_a, _)) = self.expect_one(vec!["="]) {
+			if let Some((token_b, _)) = self.expect_one(vec!["&", "!"]) {
+				return Some((token_a.source().to_string() + &token_b.source()).into());
+			}
+		}
 		if let Some((token, _)) = self.expect_one(vec!["~", "&", "!"]) {
 			return Some(token.source());
 		}

@@ -1,6 +1,3 @@
-use serde::{Serialize, Deserialize};
-use std::hash::{Hash, Hasher};
-use std::fmt::{Display, Formatter, Result as DisplayResult};
 use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -134,6 +131,7 @@ impl ValueNode {
 			"char" => Value::Char(tokens[1].source.chars().next().unwrap_or('\0')),
 			"string"
 			| "identifier"
+			| "builtin_function"
 			| "self"
 			| "array_kw"
 			| "map_kw"
@@ -151,7 +149,7 @@ impl ValueNode {
 				tokens[1].source.parse::<u32>().unwrap(),
 			),
 			"number" => Value::Integer(tokens[0].source.parse::<i32>().unwrap()),
-			_ => panic!("could not parse value")
+			_ => panic!("could not parse value: {node:?}")
 		}, tokens)
 	}
 	pub fn set_meta_identifier(&mut self, identifier: &Self) {
@@ -163,6 +161,9 @@ impl ValueNode {
 	pub fn new_none() -> Self {
 		let value = Value::None;
 		Self::from((value, Meta::default()))
+	}
+	pub fn as_assignment(&self) -> SymbolValue {
+		SymbolValue::Assignment { value: self.to_owned() }
 	}
 }
 

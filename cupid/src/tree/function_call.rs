@@ -48,10 +48,19 @@ impl AST for FunctionCallNode {
 			}
 		}
 		
-		let function = self.function.resolve(scope)?;
+		let mut function = self.function.resolve(scope)?;
 		
-		if let Value::Function(function) = &function.value {
-			function.call_function(&self.args, scope)
+		if let Value::Function(function) = &mut function.value {
+			let (function, value) = function.call_function(&self.args, scope)?;
+			
+			scope.modify_symbol(&self.function, &|symbol_value| match symbol_value {
+				SymbolValue::Declaration { value: fun_value, .. } => if let Value::Function(_) = fun_value.value {
+					fun_value.value = Value::Function(function.to_owned());
+				},
+				_ => ()
+			})?;
+			
+			Ok(value)
 		} else {
 			Err(function.error_raw(format!("expected a function, not {function}")))
 		}
@@ -59,7 +68,7 @@ impl AST for FunctionCallNode {
 }
 
 impl FunctionCallNode {
-	pub fn resolve_builtin_function(&self, mut left_value: ValueNode, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
+	pub fn resolve_operation(&self, mut left_value: ValueNode, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		use FunctionFlag::*;
 		use Value::*;
 		let left = left_value.value.to_owned();
@@ -89,44 +98,49 @@ impl FunctionCallNode {
 		left_value.value = value;
 		Ok(left_value)
 	}
+	fn is_builtin(&self) -> bool {
+		!self.meta.flags.is_empty()
+	}
 	
 	pub fn call_implemented_function(&self, from: &mut ValueNode, scope: &mut LexicalScope) -> Option<Result<ValueNode, Error>> {
 		let from_clone = from.to_owned();
 		if let Some(type_hint) = &from.type_hint {
-			let (_, mut type_kind) = match type_hint.resolve_to(scope) {
-				Ok((s, t)) => (s, t),
+			let mut type_kind = match type_hint.resolve_to(scope) {
+				Ok((_, t)) => t,
 				Err(e) => return Some(Err(e))
 			};
-			if let Some((implementation, function)) = type_kind.get_trait_function(&self.function, scope) {
+			if let Some((implementation, mut function)) = type_kind.get_trait_function(&self.function, scope) {
 				
 				// use built in for empty function bodies
-				if function.body.expressions.is_empty() && !self.meta.flags.is_empty() {
-					return Some(self.resolve_builtin_function(from_clone, scope));
+				if function.body.expressions.is_empty() && self.is_builtin() {
+					return Some(self.resolve_operation(from_clone, scope));
 				}
 				
 				scope.add(Context::Function);
-				for generic in implementation.generics.iter() {
-					if let Err(e) = create_generic_symbol(generic, &from.meta, scope) {
-						return Some(Err(e))
-					}
-				}
-				if function.params.use_self {
-					if let Err(e) = create_self_symbol(&function, from_clone, scope) {
-						return Some(Err(e))
-					};
+				
+				if let Err(e) = implementation.set_generic_symbols(&from.meta, scope) {
+					return Some(Err(e));
 				}
 				
-				let value = if !self.meta.flags.is_empty() {
+				if let Err(e) = function.set_self_symbol(from_clone, scope) {
+					return Some(Err(e))
+				}
+				
+				let value = if self.is_builtin() {
 					let args = ArgumentsNode(self.args.0.iter().skip(1).cloned().collect());
 					function.call_function(&args, scope)
 				} else {
 					function.call_function(&self.args, scope)
 				};
+				let value = match value {
+					Ok((_, value)) => value,
+					Err(e) => return Some(Err(e))
+				};
 				
 				scope.pop();
-				Some(value)
+				Some(Ok(value))
 			} else {
-				if !self.meta.flags.is_empty() {
+				if self.is_builtin() {
 					_ = match self.args.0[1].resolve(scope) {
 						Ok(right) => right,
 						Err(e) => return Some(Err(e))
@@ -145,31 +159,6 @@ impl FunctionCallNode {
 	}
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ArgumentsNode(pub Vec<BoxAST>);
-
-impl From<&mut ParseNode> for ArgumentsNode {
-	fn from(node: &mut ParseNode) -> Self {
-		Self(node.map_mut(&parse))
-	}
-}
-
-impl AST for ArgumentsNode {
-	fn resolve(&self, _scope: &mut LexicalScope) -> Result<ValueNode, Error> {
-		unreachable!("cannot resolve arguments as a whole")
-	}
-}
-
-impl ResolveTo<Vec<ValueNode>> for ArgumentsNode {
-	fn resolve_to(&self, scope: &mut LexicalScope) -> Result<Vec<ValueNode>, Error> {
-		let mut values = vec![];
-		for arg in self.0.iter() {
-			let value = arg.resolve(scope)?;
-			values.push(value);
-		}
-		Ok(values)
-	}
-}
 
 fn error_not_implemented(value: &ValueNode, function: &ValueNode, args: &Vec<ValueNode>) -> Error {
 	let args: Vec<String> = args

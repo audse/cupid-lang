@@ -1,0 +1,27 @@
+
+use string {
+	
+	fun [array [string]]
+	split = self, string pattern => split (self, pattern)
+	
+	fun [array [string]]
+	split_n = self, string pattern, int index => split_n (self, patter, index)
+	
+	fun [array [string]]
+	split_at = self, int index => split_at (self, index)
+	
+	fun [string]
+	replace = self, string pattern, string new => replace (self, pattern, new)
+	
+	fun [string]
+	replace_n = self, string pattern, string new, int index => replace_n (self, pattern, new, index)
+	
+	fun [char]
+	char = self, int index => char (self, index)
+	
+	fun [int]
+	length = self => length (self)
+	
+	# fun [string]
+	# trim = self => 
+}

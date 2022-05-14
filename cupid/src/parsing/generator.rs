@@ -3,10 +3,31 @@ use crate::*;
 pub type Str = Cow<'static, str>;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
+pub struct Grammar {
+	pub name: Str,
+	pub rules: Vec<Rule>,
+}
+
+impl Grammar {
+	pub fn stringify(&self) -> String {
+		let (_, body) = (&self.name, self.body());
+		body
+	}
+	fn body(&self) -> String {
+		let body: Vec<String> = self.rules
+			.iter()
+			.map(|rule| rule.stringify())
+			.collect();
+		body.join("")
+	}
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Rule {
 	pub name: Str,
 	pub alts: Vec<Alt>,
-	pub pass_through: bool, // to be included in the rule tree, or "passed through" to an encapsulating rule
+	// to be included in the rule tree, or "passed through" to an encapsulating rule
+	pub pass_through: bool,
 	pub params: Vec<Str>,
 }
 
@@ -50,7 +71,7 @@ impl Rule {
 				{alt_body}
 			}});",
 			pass_through = self.pass_through,
-			alt_body = group_strings.join("")
+			alt_body = group_strings.join("\n")
 		).into()
 	}
 }
@@ -72,8 +93,7 @@ impl Group {
 		let items = self.items(params).join("\n");
 		
 		let (once, multiple, optional) = self.repeat();
-		println!("{:?}", self.suffix());
-		
+				
 		if once {
 			string += &items;
 		}
@@ -129,7 +149,7 @@ pub type StaticItem = Cow<'static, Item>;
 
 impl Item {
 	pub fn stringify(&self, group_prefix: &str, params: &Vec<Str>) -> String {
-		let body = self.body(group_prefix, self.is_param(params));
+		let body = self.body(group_prefix, params);
 		body.join("\n")
 	}
 	fn source(&self) -> &Str {
@@ -154,24 +174,28 @@ impl Item {
 			_ => format!("expect({})", escape(source)),
 		}.into()
 	}
-	fn method_call(&self, is_param: bool) -> String {
-		let args = self.args(is_param);
-		if is_param {
+	fn method_call(&self, params: &Vec<Str>) -> String {
+		let args = self.args(params);
+		if self.is_param(params) {
 			format!("{}{args}", self.source())
 		} else {
 			let method = self.method();
 			format!("self.{method}{args}")
 		}
 	}
-	fn args(&self, is_param: bool) -> String {
+	fn args(&self, params: &Vec<Str>) -> String {
 		if !["constant", "name"].contains(&&*self.kind) {
 			return String::new();
 		}
 		let args: Vec<String> = self.args
 			.iter()
-			.map(|arg| format!("&Self::{}", arg.method()))
+			.map(|arg| if arg.is_param(params) {
+				format!("{}", arg.source())
+			} else {
+				format!("&Self::{}", arg.method())
+			})
 			.collect();
-		if is_param {
+		if self.is_param(params) {
 			"(self)".to_string()
 		} else if args.is_empty() {
 			"()".to_string()
@@ -183,6 +207,8 @@ impl Item {
 		match (&*(self.prefix()), group_prefix) {
 			("&", _) | (_, "&") => return vec!["positive_lookahead"],
 			("!", _) | (_, "!") => return vec!["negative_lookahead"],
+			("=!", _) | (_, "=!") => return vec!["negative_lookbehind"],
+			("=&", _) | (_, "=&") => return vec!["positive_lookbehind"],
 			_ => ()
 		};
 		match &*(self.suffix()) {
@@ -195,13 +221,15 @@ impl Item {
 	fn concealed(&self, group_prefix: &str) -> bool {
 		&*(self.prefix()) == "~" || group_prefix == "~"
 	}
-	fn body(&self, group_prefix: &str, is_param: bool) -> Vec<String> {
-		let method = self.method_call(is_param);
+	fn body(&self, group_prefix: &str, params: &Vec<Str>) -> Vec<String> {
+		let method = self.method_call(params);
 		let concealed = self.concealed(group_prefix);
 		let macros = self.macros(group_prefix);
 		match macros[..] {
 			["positive_lookahead", ..]
-			| ["negative_lookahead", ..] => {
+			| ["negative_lookahead", ..]
+			| ["negative_lookbehind", ..]
+			| ["positive_lookbehind", ..] => {
 				let name = macros[0];
 				vec![format!("use_{name}!(self, self.tokens().index(), {method});")]
 			},

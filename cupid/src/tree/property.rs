@@ -1,13 +1,13 @@
 use crate::*;
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Property {
 	FunctionCall(FunctionCallNode),
 	Symbol(SymbolNode),
 	Other(BoxAST),
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PropertyNode {
 	pub left: BoxAST,
 	pub right: Property,
@@ -63,7 +63,11 @@ impl PropertyNode {
 		// the property is a function within a map
 		match &left.value.get_property(&function_call.function.0) {
 			Ok(property) => if let Value::Function(function) = &property.value {
-				Some(function.call_function(&function_call.args, scope))
+				if let Ok((_, value)) = function.to_owned().call_function(&function_call.args, scope) {
+					Some(Ok(value))
+				} else {
+					None
+				}
 			} else {
 				None
 			},

@@ -56,6 +56,7 @@ pub fn parse(node: &mut ParseNode) -> BoxAST {
 		"log" => BoxAST::new(LogNode::from(node)),
 		
 		// Atoms
+		"builtin_function_call" => BoxAST::new(BuiltinFunctionCallNode::from(node)),
 		"function_call" => BoxAST::new(FunctionCallNode::from(node)),
 		"function" => BoxAST::new(FunctionNode::from(node)),
 		"bracket_array" => BoxAST::new(ArrayNode::from(node)),

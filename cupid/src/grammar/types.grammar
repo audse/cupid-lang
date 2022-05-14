@@ -1,0 +1,53 @@
+# depends on cupid.grammar
+
+-~type_definition:
+	builtin_type_definition
+	| struct_type_definition
+	| sum_type_definition
+	| alias_type_definition
+
+- builtin_type_definition: 'type' WORD !'='
+
+- struct_type_definition: type_symbol ~equal bracket_list[struct_member]
+- struct_member: type_hint identifier
+
+- sum_type_definition: type_symbol ~equal bracket_list[sum_member]
+- sum_member: type_hint
+
+- alias_type_definition: type_symbol ~equal type_hint
+
+-~type_symbol: 'type' generics? identifier
+- generics: bracket_list[generic_argument]
+- generic_argument: identifier !':' | identifier ':' type_hint
+
+- typed_declaration: type_hint 'mut'? identifier ~equal term
+
+-~type_hint:
+	array_type_hint
+	| function_type_hint
+	| map_type_hint
+	| struct_type_hint
+	| primitive_type_hint
+
+- array_type_hint: array_kw bracket[type_hint]
+- map_type_hint: map_kw bracket_list[type_hint]
+- function_type_hint: fun_kw bracket[type_hint]
+- primitive_type_hint: identifier
+
+- array_kw: 'array'
+- map_kw: 'map'
+- fun_kw: 'fun'
+
+- struct_type_hint: identifier bracket_list[struct_member_type_hint]
+- struct_member_type_hint: identifier ':' type_hint
+
+- implement_type: 'use' generics? type_hint brace[declarations]
+
+- implement_trait: 'use' generics? identifier 'with' type_hint implement_trait_body?
+-~implement_trait_body: brace[declarations]
+
+- trait_definition: 'trait' generics identifier ~equal bracket_list[typed_declaration]
+
+-~equal: '=' !'>'
+
+-~declarations: typed_declaration*

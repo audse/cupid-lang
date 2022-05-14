@@ -5,6 +5,7 @@ pub struct FunctionNode {
 	pub params: ParametersNode,
 	pub body: BlockNode,
 	pub meta: Meta<()>,
+	pub scope: SingleScope,
 }
 
 impl From<&mut ParseNode> for FunctionNode {
@@ -12,16 +13,26 @@ impl From<&mut ParseNode> for FunctionNode {
 		Self {
 			params: ParametersNode::from(&mut node.children[0]),
 			body: BlockNode::from(&mut node.children[1]),
-			meta: Meta::with_tokens(node.tokens.to_owned())
+			meta: Meta::with_tokens(node.tokens.to_owned()),
+			scope: SingleScope::new(Context::Closure),
 		}
 	}
 }
 
 impl AST for FunctionNode {
-	fn resolve(&self, _scope: &mut LexicalScope) -> Result<ValueNode, Error> {
+	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		let meta = Meta::<Flag>::from(&self.meta);
+		let mut function = self.to_owned();
+		
+		// save surrounding closure as scope
+		if let Some(last_scope) = scope.last() {
+			if last_scope.context == Context::Closure {
+				function.scope = last_scope.to_owned();
+			}
+		}
+		
 		Ok(ValueNode::from((
-			Value::Function(self.to_owned()), 
+			Value::Function(function), 
 			&meta
 		)))
 	}
@@ -30,18 +41,17 @@ impl AST for FunctionNode {
 impl FunctionNode {
 	// fn infer_return_type(&self) -> TypeKind { todo!() }
 	
-	pub fn call_function(&self, args: &ArgumentsNode, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
-		scope.add(Context::Function);
+	pub fn call_function(&mut self, args: &ArgumentsNode, scope: &mut LexicalScope) -> Result<(&mut Self, ValueNode), Error> {
+		scope.add_closure(self.scope.to_owned());
+		
 		self.set_params(args, scope)?;
-		let value = self.body.resolve(scope);
-		scope.pop();
-		value
+		let value = self.body.resolve(scope)?;
+		
+		self.scope = scope.drop_closure();
+		Ok((self, value))
 	}
 	pub fn match_params_to_args(&self, args: &ArgumentsNode) -> Vec<(Parameter, BoxAST)> {
-		let params: Vec<&Parameter> = self.params.symbols
-			.iter()
-			.filter(|p| p.type_hint.is_some())
-			.collect();
+		let params: &Vec<Parameter> = &self.params.symbols;
 		if params.len() == args.0.len() {
 			params
 				.iter()
@@ -53,84 +63,22 @@ impl FunctionNode {
 		}
 	}
 	pub fn set_params(&self, args:  &ArgumentsNode, scope: &mut LexicalScope) -> Result<(), Error> {
-		for (mut param, arg) in self.match_params_to_args(args) {
-			
-			let type_hint = if let Some(ref mut type_hint) = param.type_hint {
-				type_hint.to_owned()
-			} else {
-				panic!("all params should have types ..")
-			};
-			
+		for (param, arg) in self.match_params_to_args(args) {
 			let declaration = DeclarationNode {
-				type_hint,
+				type_hint: param.type_hint.to_owned(),
 				symbol: param.symbol.to_owned(),
 				value: arg.to_owned(),
 				meta: Meta::new(vec![], None, vec![]),
-				mutable: false,
+				mutable: true,
 			};
 			declaration.resolve(scope)?;
 		}
 		Ok(())
 	}
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct Parameter {
-	pub type_hint: Option<TypeHintNode>,
-	pub symbol: SymbolNode,
-	pub default: OptionAST,
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct ParametersNode {
-	pub symbols: Vec<Parameter>,
-	pub use_self: bool,
-	pub mut_self: bool,
-}
-
-impl From<&mut ParseNode> for ParametersNode {
-	fn from(node: &mut ParseNode) -> Self {
-		let mut_self = node.tokens
-			.iter_mut()
-			.any(|t| &*t.source == "mut");
-		let use_self = node.has("self");
-		let symbols = node.map_mut(&|n: &mut ParseNode| match &*n.name {
-				"annotated_parameter" => Parameter {
-					type_hint: Some(TypeHintNode::from(&mut n.children[0])), 
-					symbol: SymbolNode::from(&mut n.children[1]), 
-					default: OptionAST::None // TODO default vals
-				},
-				"self" => {
-					Parameter {
-						type_hint: None, 
-						symbol: SymbolNode::from(n), 
-						default: OptionAST::None
-					}
-				},
-				_ => panic!("unexpected params, {n:?}")
-			});
-		Self {
-			symbols,
-			use_self,
-			mut_self
+	pub fn set_self_symbol(&self, value: ValueNode, scope: &mut LexicalScope) -> Result<(), Error> {
+		if let Some(_) = &self.params.self_symbol {
+			create_self_symbol(&self, value, scope)?;
 		}
-	}
-}
-
-impl AST for ParametersNode {
-	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
-		for Parameter { type_hint, symbol, .. } in self.symbols.iter() {
-			
-			// only set symbols with type hints (meaning not `self`)
-			if let Some(type_hint) = type_hint {
-				let symbol_value = SymbolValue::Declaration { 
-					type_hint:  Some(type_hint.to_owned()), 
-					mutable: false, 
-					value: ValueNode::new_none() 
-				};
-				scope.set_symbol(symbol, symbol_value)?;
-			}
-		}
-		Ok(ValueNode::new_none())
+		Ok(())
 	}
 }

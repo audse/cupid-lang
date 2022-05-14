@@ -226,6 +226,21 @@ macro_rules! use_negative_lookahead {
 	}};
 }
 
+macro_rules! use_negative_lookbehind {
+	($parser:expr, $index:expr, $method:expr) => {{
+		let index = $index;
+		if $parser.tokens.index() > 0 {
+			$parser.tokens.goto(index - 1);
+			if let Some((_val, _pass_through)) = $method {
+				$parser.tokens.goto(index);
+				break;
+			} else {
+				$parser.tokens.goto(index);
+			}
+		}
+	}};
+}
+
 
 macro_rules! use_positive_lookahead {
 	($parser:expr, $index:expr, $method:expr) => {{
@@ -238,10 +253,27 @@ macro_rules! use_positive_lookahead {
 	}};
 }
 
+macro_rules! use_positive_lookbehind {
+	($parser:expr, $index:expr, $method:expr) => {{
+		let index = $index;
+		if $parser.tokens.index() > 0 {
+			$parser.tokens.goto(index - 1);
+			if let Some((_val, _pass_through)) = $method {
+				$parser.tokens.goto(index);
+			} else {
+				$parser.tokens.goto(index);
+				break;
+			}
+		}
+	}};
+}
+
 pub(crate) use alt;
 pub(crate) use group;
 pub(crate) use once;
 pub(crate) use optional;
 pub(crate) use repeat;
+pub(crate) use use_negative_lookbehind;
 pub(crate) use use_negative_lookahead;
 pub(crate) use use_positive_lookahead;
+pub(crate) use use_positive_lookbehind;

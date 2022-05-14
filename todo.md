@@ -8,6 +8,7 @@
 -   [x] Deep immutable
 -   [x] Rework grammar
 -   [ ] Add const/let for type inference
+-   [ ] Do I want references/pointers?
 
 ## Type system
 
@@ -40,6 +41,7 @@
 -   [ ] Gradual typing
 -   [ ] Compound implementations
 -   [ ] Param type hints in fun signature
+-   [ ] Resolve types before other symbols
 
 ### Traits
 
@@ -112,7 +114,9 @@ someone istype person # should be false
 -   [ ] Default values (allow fewer/skipped args)
 -   [x] No arguments
 -   [ ] Call immediately
--   [ ] Closures need some help..capture scope inside function body
+-   [x] Closures need some help..capture scope inside function body
+-   [ ] Mutable params? E.g. passing a mutable struct to a function, the original struct should be mutated, right?
+-   [ ] Universal call syntax (I kind of already have this)
 
 ## Blocks
 
@@ -168,7 +172,7 @@ someone istype person # should be false
 -   [ ] Pattern matching
 -   [ ] Array slices using range syntax e.g. `my_array[0..5]`
     -   [ ] Include negative numbers
--   [x] Variable shadowing
+-   [ ] Variable shadowing
 -   [ ] Template strings `'my favorite number is {{ 30 + 7 }}'`
 -   [ ] Escape keywords like Rusts `r#type` (only better ...)
 -   [ ] Method overloading

@@ -1,6 +1,3 @@
-use std::hash::{Hash, Hasher};
-use serde::{Serialize, Deserialize};
-use std::fmt::{Display, Formatter, Result as DisplayResult};
 use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -34,6 +31,6 @@ impl Hash for FunctionType {
 impl Display for FunctionType {
 	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
 		let param_types: Vec<String> = self.param_types.iter().map(|p| p.to_string()).collect();
-		write!(f, "{:8} [{}: {}] {}", "fun", self.return_type, param_types.join(", "), self.implementation)
+		write!(f, "fun [{}: {}] {}", self.return_type, param_types.join(", "), self.implementation)
 	}
 }

@@ -1,35 +1,35 @@
 use dec {
-	fun [int] 
-	sq = _ => self = self ^ 2
+	fun [dec] 
+	sq = self => self = self ^ 2
 	
-	fun [int] 
-	abs = _ => {
-		self = if self > 0.0 => self
-			else => -self
-	}
+	# fun [dec] 
+	# abs = self => {
+	# 	self = if self > 0.0 => self
+	# 		else => -self
+	# }
 	
-	fun [int]
-	sign = _ => {
-		self = if self > 1.0 => 1.0
-			else if self < 0.0 => -1.0
-			else => 0
-	}
-	
-	fun [int]
-	floor = int f => {
-		if self < f => self = f
-		self
-	}
-	
-	fun [int]
-	ceil = int c => {
-		if self > c => self = c
-		self
-	}
-	
-	fun [bool]
-	is_negative = _ => self < 0.0
+	# fun [dec]
+	# sign = self => {
+	# 	self = if self > 1.0 => 1.0
+	# 		else if self < 0.0 => -1.0
+	# 		else => 0
+	# }
+	# 
+	# fun [dec]
+	# floor = self, dec f => {
+	# 	if self < f => self = f
+	# 	self
+	# }
+	# 
+	# fun [dec]
+	# ceil = self, dec c => {
+	# 	if self > c => self = c
+	# 	self
+	# }
 	
 	fun [bool]
-	is_positive = _ => self > 0.0
+	is_negative = self => self < 0.0
+	
+	fun [bool]
+	is_positive = self => self > 0.0
 }

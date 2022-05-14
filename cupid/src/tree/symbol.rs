@@ -18,6 +18,7 @@ impl AST for SymbolNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		scope.get_symbol(self)
 	}
+	fn as_symbol(&self) -> Option<&SymbolNode> { Some(&self) }
 }
 
 impl ErrorHandler for SymbolNode {

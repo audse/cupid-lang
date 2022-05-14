@@ -25,6 +25,87 @@ impl BaseParser {
         }
     }
 
+    pub fn _list(&mut self, inner: &ParseFun) -> Option<(ParseNode, bool)> {
+        let (mut node, pos) = self.start_parse("list");
+
+        alt! ((self, true, node, pos) {
+
+                        group! ((self, false, node, pos) {
+                            once!(&mut node, inner(self), false);
+        once!(&mut node, self.expect(","), false);
+
+                        });
+                    optional!(&mut node, inner(self), false);
+                    });
+        None
+    }
+
+    pub fn _paren(&mut self, inner: &ParseFun) -> Option<(ParseNode, bool)> {
+        let (mut node, pos) = self.start_parse("paren");
+
+        alt! ((self, true, node, pos) {
+            once!(&mut node, self.expect("("), false);once!(&mut node, inner(self), false);once!(&mut node, self._closing_paren(), false);
+        });
+        None
+    }
+
+    pub fn _brace(&mut self, inner: &ParseFun) -> Option<(ParseNode, bool)> {
+        let (mut node, pos) = self.start_parse("brace");
+
+        alt! ((self, true, node, pos) {
+            once!(&mut node, self.expect("{"), false);once!(&mut node, inner(self), false);once!(&mut node, self._closing_brace(), false);
+        });
+        None
+    }
+
+    pub fn _bracket(&mut self, inner: &ParseFun) -> Option<(ParseNode, bool)> {
+        let (mut node, pos) = self.start_parse("bracket");
+
+        alt! ((self, true, node, pos) {
+            once!(&mut node, self.expect("["), false);once!(&mut node, inner(self), false);once!(&mut node, self._closing_bracket(), false);
+        });
+        None
+    }
+
+    pub fn _closing_paren(&mut self) -> Option<(ParseNode, bool)> {
+        let (mut node, pos) = self.start_parse("closing_paren");
+
+        alt! ((self, true, node, pos) {
+            once!(&mut node, self.expect(")"), true);
+        });
+
+        alt! ((self, true, node, pos) {
+            once!(&mut node, self.expect_tag("<e 'missing closing parenthesis'>"), false);
+        });
+        None
+    }
+
+    pub fn _closing_brace(&mut self) -> Option<(ParseNode, bool)> {
+        let (mut node, pos) = self.start_parse("closing_brace");
+
+        alt! ((self, true, node, pos) {
+            once!(&mut node, self.expect("}"), true);
+        });
+
+        alt! ((self, true, node, pos) {
+            once!(&mut node, self.expect_tag("<e 'missing closing brace'>"), false);
+        });
+        None
+    }
+
+    pub fn _closing_bracket(&mut self) -> Option<(ParseNode, bool)> {
+        let (mut node, pos) = self.start_parse("closing_bracket");
+
+        alt! ((self, true, node, pos) {
+            once!(&mut node, self.expect("]"), true);
+        });
+
+        alt! ((self, true, node, pos) {
+            once!(&mut node, self.expect_tag("<e 'missing closing bracket'>"), false);
+        });
+        None
+    }
+
     pub fn _packages(&mut self) -> Option<(ParseNode, bool)> {
         let (mut node, pos) = self.start_parse("packages");
 
@@ -95,19 +176,6 @@ impl BaseParser {
         alt! ((self, false, node, pos) {
             once!(&mut node, self._list(&Self::expect_word), false);
         });
-        None
-    }
-
-    pub fn _list(&mut self, item: &ParseFun) -> Option<(ParseNode, bool)> {
-        let (mut node, pos) = self.start_parse("list");
-
-        alt! ((self, false, node, pos) {
-			group! ((self, false, node, pos) {
-				once!(&mut node, self._item(), false);
-				once!(&mut node, self.expect(","), false);
-			});
-			optional!(&mut node, self._item(), false);
-		});
         None
     }
 }

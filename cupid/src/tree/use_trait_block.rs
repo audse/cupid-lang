@@ -1,6 +1,6 @@
 use crate::*;
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UseTraitBlockNode {
 	pub trait_symbol: TypeHintNode,
 	pub type_symbol: TypeHintNode,

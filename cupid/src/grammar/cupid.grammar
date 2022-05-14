@@ -1,12 +1,6 @@
 - file: expression+
 -~expression: package | comment | statement | term
 
--~list[inner]: (inner ',')* inner?
-
-- package: 'package' name_space? items
-- name_space: WORD ':' ':' name_space?
--~items: '[' list[WORD] ']' | WORD
-
 -~statement:
 	type_definition
 	| trait_definition
@@ -62,57 +56,9 @@
 - op_assignment: identifier operator equal term
 -~operator: '+' | '-' | '*' | '/' | '^' | '%'
 
--~type_definition:
-	builtin_type_definition
-	| struct_type_definition
-	| sum_type_definition
-	| alias_type_definition
-
-- builtin_type_definition: 'type' WORD !'='
-
-- struct_type_definition: type_symbol ~equal '[' list[struct_member] ~']'
-- struct_member: type_hint identifier
-
-- sum_type_definition: type_symbol ~equal '[' list[sum_member] ~']'
-- sum_member: type_hint
-
-- alias_type_definition: type_symbol ~equal type_hint
-
--~type_symbol: 'type' generics? identifier
-- generics: '[' list[generic_argument] closing_bracket
-- generic_argument: identifier !':' | identifier ':' type_hint
-
-- typed_declaration: type_hint 'mut'? identifier (~equal term)?
-
--~type_hint:
-	array_type_hint
-	| function_type_hint
-	| map_type_hint
-	| struct_type_hint
-	| primitive_type_hint
-
-- array_type_hint: array_kw '[' type_hint closing_bracket
-- map_type_hint: map_kw '[' type_hint ',' type_hint closing_bracket
-- function_type_hint: fun_kw '[' type_hint closing_bracket
-- primitive_type_hint: identifier
-- array_kw: 'array'
-- map_kw: 'map'
-- fun_kw: 'fun'
-
-- struct_type_hint: identifier '[' list[struct_member_type_hint] ']'
-- struct_member_type_hint: identifier ':' type_hint
-
-- implement_type: 'use' generics? type_hint '{' typed_declaration* closing_brace
-
-- implement_trait: 'use' generics? identifier 'with' type_hint implement_trait_body?
--~implement_trait_body: '{' typed_declaration* closing_brace
-
-- trait_definition: 'trait' generics identifier ~equal ~'[' list[typed_declaration] closing_bracket
-
--~equal: '=' !'>'
-
 -~atom:
 	empty
+	| builtin_function_call
 	| function_call
 	| range
 	| map
@@ -136,16 +82,16 @@
 -~parameter: ~'_' | 'mut'? self | annotated_parameter
 - annotated_parameter: type_hint identifier
 
-- log: log_keyword ~'(' arguments closing_paren
-- function_call: identifier ~'(' arguments closing_paren
+- log: log_keyword paren[arguments]
+- builtin_function_call: =!'.' builtin_function paren[arguments]
+- function_call: identifier paren[arguments]
 - arguments: list[term]
 
 -~log_keyword: 'log' | 'logs' | 'log_line' | 'logs_line'
 
-- bracket_array: '[' !'.' array? !'.' closing_bracket
--~array:  list[term]
+- bracket_array: bracket_list[term]
 
-- map: '[' list[map_entry] ']'
+- map: '[' list[map_entry] ']' # not `bracket_list` so that error doesn't come up before trying to make a regular array
 - map_entry: atom ':' term
 
 - range: 
@@ -190,53 +136,12 @@
 
 - boolean: 'true' | 'false'
 - none: 'none'
-- identifier: !keyword WORD
 - char: '\\' LETTER 
 - string: STRING
 - decimal: NUMBER ~'.' NUMBER
 - number: NUMBER
 
-# Error handling
--~require_term: term | <e 'missing expression'>
--~closing_paren: ~')' | <e 'missing closing parenthesis'>
--~closing_brace: ~'}' | <e 'missing closing brace'>
--~closing_bracket: ~']' | <e 'missing closing bracket'>
-
--~keyword:
-	keyword_variable
-	| keyword_operator
-	| reserved_word
-	| boolean
-	| none
-
 - self: 'self'
-
--~reserved_word:
-	'for'
-	| 'while'
-	| 'else'
-	| 'if'
-	| 'mut'
-	| 'loop'
-	| 'box'
-	| 'break'
-	| 'return'
-	| 'continue'
-	| 'type'
-	| 'log'
-	| 'logs'
-	| 'log_line'
-	| 'logs_line'
-	| 'use'
-	| 'trait'
-	| 'self'
-	| 'array'
-	| 'fun'
-	| 'map'
-
--~keyword_variable:
-	'let'
-	| 'const'
 
 -~keyword_operator:
 	'in'

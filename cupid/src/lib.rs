@@ -10,6 +10,7 @@ pub use std::collections::HashMap;
 pub use std::borrow::Cow;
 pub use std::hash::{Hash, Hasher};
 pub use std::fmt::{Display, Formatter, Result as DisplayResult};
+pub use std::collections::hash_map::Entry;
 
 mod errors;
 pub use errors::*;
@@ -23,8 +24,8 @@ pub use utils::*;
 mod packages;
 pub use packages::*;
 
-mod parser;
-pub use parser::*;
+mod parsing;
+pub use parsing::*;
 
 mod semantics;
 pub use semantics::*;

@@ -1,9 +1,5 @@
-use std::fmt::{Display, Formatter, Result as DisplayResult};
-use std::collections::HashMap;
-use std::hash::{Hash, Hasher};
 use std::ops::{Add, Sub, Mul, Neg, Div, Rem, BitAnd, BitOr};
 use std::cmp::Ordering;
-use serde::{Serialize, Deserialize};
 use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -320,7 +316,7 @@ impl Display for Value {
 			Self::Integer(v) => write!(f, "{v}"),
 			Self::Char(x) => write!(f, "{x}"),
 			Self::Decimal(v, w) => write!(f, "{v}.{w}"),
-			Self::String(s) => write!(f, "{s}"),
+			Self::String(s) => write!(f, "'{s}'"),
 			Self::Array(array) => {
 				let entries: Vec<String> = array
 					.iter()

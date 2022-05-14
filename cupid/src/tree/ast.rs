@@ -13,6 +13,8 @@ impl <T> CloneAST for T where T: AST + Clone + 'static {
 
 pub trait AST: std::fmt::Debug + CloneAST + serde_traitobject::Serialize + serde_traitobject::Deserialize {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error>;
+	
+	fn as_symbol(&self) -> Option<&SymbolNode> { None }
 }
 
 pub trait ResolveTo<T>: AST {

@@ -12,13 +12,13 @@ struct Cli {
     debug: bool,
     
     #[clap(short, long)]
-    generate: bool,
+    generate: Option<i32>,
 }
 
 fn main() {
     let args = Cli::parse();
-    if args.generate {
-        run_generator();
+    if let Some(which) = args.generate {
+        run_generator(which);
 	} else {
         match run_path(&args.path, args.debug) {
 			Err(e) => eprintln!("{e}"),
@@ -36,7 +36,6 @@ fn run_path(path: &str, debug: bool)-> Result<(), Error> {
 	}
 }
 
-fn run_generator() {
-    test_generator();
-	// generate_package_parser();
+fn run_generator(which: i32) {
+    use_generator(which);
 }

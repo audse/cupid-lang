@@ -1,11 +1,31 @@
 package stdlib::stdlib
 
-fun [int] x = int a, int b, int c => log (a, b, c)
-x(1, 2, 3)
-
+# fun [int] logger = int a, int b, int c => log (a, b, c)
+# logger(1, 2, 3)
+# 
 # int mut x = 100
 # 
 # while x > 0 => {
 # 	x = x - 1
 # 	log (x)
 # }
+
+# fun [int] counter = _ => {
+# 	int mut count = 0
+# 	
+# 	fun [int] increase = int amt => {
+# 		count = count + amt
+# 		
+# 		fun [int] double_increase = int another => {
+# 			count = count * another
+# 		}
+# 	}
+# 	increase
+# }
+# 
+# fun [int] my_counter = counter()
+# fun [int] second_counter = my_counter(10)
+# log (second_counter(20))
+
+array [int] mut my_array = [10, 20, 30]
+my_array.push(40)

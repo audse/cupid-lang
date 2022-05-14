@@ -1,0 +1,53 @@
+
+-~list[inner]: (inner ',')* inner?
+
+-~paren[inner]: '(' inner closing_paren
+-~paren_list[inner]: '(' list[inner] closing_paren
+
+-~brace[inner]: '{' inner closing_brace
+
+-~bracket[inner]: '[' inner closing_bracket
+-~bracket_list[inner]: '[' list[inner] closing_bracket
+
+-~closing_paren: ~')' | <e 'missing closing parenthesis'>
+-~closing_brace: ~'}' | <e 'missing closing brace'>
+-~closing_bracket: ~']' | <e 'missing closing bracket'>
+
+- identifier: !reserved_word WORD
+-~reserved_word:
+	'for'
+	| 'while'
+	| 'else'
+	| 'if'
+	| 'mut'
+	| 'loop'
+	| 'box'
+	| 'break'
+	| 'return'
+	| 'continue'
+	| 'type'
+	| 'log'
+	| 'logs'
+	| 'log_line'
+	| 'logs_line'
+	| 'use'
+	| 'with'
+	| 'trait'
+	| 'self'
+	| 'array'
+	| 'fun'
+	| 'map'
+	| 'let'
+	| 'const'
+	| 'in'
+	| 'is'
+	| 'and'
+	| 'not'
+	| 'or'
+	| 'as'
+	| 'istype'
+	| 'self'
+	| 'true'
+	| 'false'
+	| 'none'
+	| 'package'

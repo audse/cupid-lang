@@ -1,7 +1,3 @@
-use std::fmt::{Display, Formatter, Result as DisplayResult};
-use std::hash::{Hash, Hasher};
-use std::collections::HashMap;
-use serde::{Serialize, Deserialize};
 use crate::*;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -60,6 +56,12 @@ impl Implementation {
 	pub fn implement_trait(&mut self, trait_symbol: TypeHintNode, implement: Implementation) {
 		self.traits.insert(trait_symbol, implement);
 	}
+	pub fn set_generic_symbols(&self, meta: &Meta<Flag>, scope: &mut LexicalScope) -> Result<(), Error> {
+		for generic in self.generics.iter() {
+			create_generic_symbol(generic, meta, scope)?;
+		}
+		Ok(())
+	}
 }
 
 impl From<&SymbolValue> for Option<Implementation> {
@@ -77,11 +79,9 @@ impl Hash for Implementation {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		for (symbol, _) in self.functions.iter() {
 			symbol.hash(state);
-			// func.hash(state);
 		}
 		for (trait_symbol, _) in self.traits.iter() {
 			trait_symbol.hash(state);
-			// implement.hash(state);
 		}
 	}
 }
