@@ -44,31 +44,6 @@ impl FileHandler {
 		(parser, scope, vec![], vec![])
 	}
 	
-	pub fn use_stdlib(&mut self) -> Result<(), Error> {
-		let packages = vec![
-			"./../stdlib/typedef.cupid",
-			// "./../stdlib/typecast.cupid",
-			// "./../stdlib/ops.cupid",
-			// "./../stdlib/compare.cupid",
-			// "./../stdlib/decimal.cupid",
-			// "./../stdlib/integer.cupid",
-		];
-		let stdlib: Vec<String> = packages
-			.iter()
-			.map(|p| std::fs::read_to_string(p).unwrap_or_else(|_| String::from("Unable to find file")))
-			.collect();
-		let stdlib = stdlib.join("\n");
-		
-		let mut parser = CupidParser::new(stdlib.to_owned());
-		let parse_tree = parser._file();
-		let semantics = parse(&mut parse_tree.unwrap().0);
-		
-		match semantics.resolve(&mut self.scope) {
-			Err(e) => panic!("{}", self.make_error_string(&stdlib, &self.path, &e)),
-			Ok(_) => Ok(())
-		}
-	}
-	
 	pub fn run_package(&mut self, package: PackageContents) -> Result<(), Error> {
 		self.report_loading_package(&package.path);
 		let mut parser = CupidParser::new(package.contents.to_owned());
@@ -92,9 +67,9 @@ impl FileHandler {
 	}
 	
 	pub fn run_debug(&mut self) -> Result<(), Error> {
-		self.use_stdlib()?;
-		
 		println!("Contents: {:?}", self.contents);
+		
+		self.use_packages(self.contents.to_owned())?;
 		
 		let parse_tree = self.parser._file();
 		println!("Parse Tree: {:#?}", parse_tree);
@@ -135,7 +110,6 @@ impl FileHandler {
 	pub fn run(&mut self) -> Result<(), Error> {
 		self.report_build_started();
 		
-		self.use_stdlib()?;
 		self.use_packages(self.contents.to_owned())?;
 		
 		let parse_tree = self.parser._file();
@@ -144,7 +118,7 @@ impl FileHandler {
 		self.scope.add(Context::Block);
 		match semantics.resolve(&mut self.scope) {
 			Err(e) => {
-				println!("{}", self.scope);
+				// println!("{}", self.scope);
 				panic!("{}", self.make_error_string(&self.contents, &self.path, &e))
 			},
 			Ok(val) => val,

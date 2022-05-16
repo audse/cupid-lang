@@ -25,15 +25,21 @@ impl From<&mut ParseNode> for TraitNode {
 impl AST for TraitNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		let symbol = SymbolNode::from(&self.symbol);
-		
-		let generics = if let Some(generics) = &self.functions.1 {
+		let mut type_generics = if let Some(generics) = &self.functions.type_generics {
 			generics.resolve_to(scope)?
 		} else {
 			vec![]
 		};
+		let mut trait_generics = if let Some(generics) = &self.functions.trait_generics {
+			generics.resolve_to(scope)?
+		} else {
+			vec![]
+		};
+		type_generics.append(&mut trait_generics);
+		
 		scope.add(Context::Implementation);
-		for generic in generics {
-			create_generic_symbol(&generic, &self.functions.2, scope)?;
+		for generic in type_generics {
+			create_generic_symbol(&generic, &self.functions.meta, scope)?;
 		}
 		let implementation = self.functions.resolve_to(scope)?;
 		scope.pop();
@@ -43,7 +49,7 @@ impl AST for TraitNode {
 			value: ValueNode {
 				type_hint: None,
 				value: Value::Implementation(implementation),
-				meta: self.functions.2.to_owned(),
+				meta: self.functions.meta.to_owned(),
 			},
 			mutable: false,
 		};

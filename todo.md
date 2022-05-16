@@ -9,6 +9,8 @@
 -   [x] Rework grammar
 -   [ ] Add const/let for type inference
 -   [ ] Do I want references/pointers?
+    -   [ ] Pass by value/copy automatically
+    -   [ ] Explicit references can be made with `&`
 
 ## Type system
 

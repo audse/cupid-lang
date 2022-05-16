@@ -2,7 +2,7 @@ use serde::{Serialize, Deserialize};
 use std::fmt::{Display, Formatter, Result as DisplayResult};
 use crate::*;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct SymbolNode(pub ValueNode);
 
 impl From<&mut ParseNode> for SymbolNode {
@@ -44,5 +44,11 @@ impl SymbolNode {
 impl Display for SymbolNode {
 	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
 		write!(f, "{}", self.0)
+	}
+}
+
+impl std::fmt::Debug for SymbolNode {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(f, "Symbol({:?})", self.0.value)
 	}
 }

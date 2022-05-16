@@ -10,16 +10,16 @@ pub struct UseTraitBlockNode {
 impl From<&mut ParseNode> for UseTraitBlockNode {
 	fn from(node: &mut ParseNode) -> Self {
 		let implementation = ImplementationNode::from(&mut node.to_owned());
-		let generics = node.get_mut("generics");
-		let (trait_i, type_kind_i) = if let Some(_) = generics {
-			(1, 2)
-		} else {
-			(0, 1)
+		let (trait_i, type_kind_i) = match (&implementation.type_generics, &implementation.trait_generics) {
+			(Some(_), Some(_)) => (1, 3),
+			(Some(_), None) => (1, 2),
+			(None, Some(_)) => (0, 2),
+			(None, None) => (0, 1)
 		};
-		Self {
+		let new = Self {
 			trait_symbol: TypeHintNode {
 				identifier: node.children[trait_i].tokens[0].source.to_owned(),
-				args: if let Some(generics) = implementation.1 {
+				args: if let Some(generics) = implementation.trait_generics {
 					generics.0.to_owned()
 				} else {
 					vec![]
@@ -28,7 +28,8 @@ impl From<&mut ParseNode> for UseTraitBlockNode {
 			},
 			type_symbol: TypeHintNode::from(&mut node.children[type_kind_i]),
 			functions: ImplementationNode::from(node),
-		}
+		};
+		new
 	}
 }
 
@@ -38,10 +39,23 @@ impl AST for UseTraitBlockNode {
 		let type_symbol = SymbolNode::from(&self.type_symbol);
 		
 		let implementation = self.functions.resolve_to(scope)?;
+		
+		let mut trait_generics = if let Some(trait_generics) = &self.functions.trait_generics {
+			trait_generics.resolve_to(scope)?
+		} else {
+			vec![]
+		};
+		let mut type_generics = if let Some(type_generics) = &self.functions.type_generics {
+			type_generics.resolve_to(scope)?
+		} else {
+			vec![]
+		};
+		trait_generics.append(&mut type_generics);
+		
 		let mut trait_value = trait_symbol.resolve(scope)?;
 		
 		if let Value::Implementation(ref mut trait_value) = trait_value.value {
-			trait_value.generics = implementation.generics;
+			trait_value.generics = trait_generics;
 			trait_value.implement(implementation.functions);
 			
 			let symbol_value = SymbolValue::Implementation { 

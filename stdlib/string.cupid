@@ -5,7 +5,7 @@ use string {
 	split = self, string pattern => split (self, pattern)
 	
 	fun [array [string]]
-	split_n = self, string pattern, int index => split_n (self, patter, index)
+	split_n = self, string pattern, int index => split_n (self, pattern, index)
 	
 	fun [array [string]]
 	split_at = self, int index => split_at (self, index)

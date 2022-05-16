@@ -15,11 +15,17 @@ pub struct Tokenizer {
 const OPEN: [char; 3] = ['[', '(', '{'];
 const CLOSE: [char; 3] = [']', ')', '}'];
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Hash, Clone, Serialize, Deserialize)]
 pub struct Token {
 	pub source: Cow<'static, str>,
 	pub line: usize,
 	pub index: usize
+}
+
+impl std::fmt::Debug for Token {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(f, "(\"{}\", {}:{})", self.source, self.line, self.index)
+	}
 }
 
 impl Tokenizer {

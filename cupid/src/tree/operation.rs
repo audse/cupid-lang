@@ -18,9 +18,27 @@ impl From<&mut ParseNode> for OperationNode {
 }
 
 impl OperationNode {
+	pub fn parse_as_get_function(node: &mut ParseNode) -> FunctionCallNode {
+		let (function, flag) = ("get", FunctionFlag::Get);
+		let function = Value::String(function.into());
+		let mut function_symbol = SymbolNode(ValueNode {
+			type_hint: None,
+			value: function,
+			meta: Meta::with_tokens(node.tokens.to_owned()),
+		});
+		function_symbol.0.type_hint = TypeKind::infer_id(&function_symbol.0);
+		let left = parse(&mut node.children[0]);
+		let right = BoxAST::new(Self::parse_as_function(node));
+		
+		FunctionCallNode {
+			function: function_symbol,
+			args: ArgumentsNode(vec![left, right]),
+			meta: Meta::new(node.tokens.to_owned(), None, vec![flag])
+		}
+	}
 	pub fn parse_as_function(node: &mut ParseNode) -> FunctionCallNode {
 		use FunctionFlag::*;
-		let (function, flag) = match &*node.tokens[0].source {
+		let (function_name, flag) = match &*node.tokens[0].source {
 			"+" => ("add", Add),
 			"-" => ("subtract", Subtract),
 			"*" => ("multiply", Multiply),
@@ -37,9 +55,10 @@ impl OperationNode {
 			"or" => ("or", Or),
 			"as" => ("cast", As),
 			"istype" => ("istype", IsType),
+			"." => ("get", Get),
 			_ => panic!("unrecognized operation"),
 		};
-		let function = Value::String(function.into());
+		let function = Value::String(function_name.into());
 		let mut function_symbol = SymbolNode(ValueNode {
 			type_hint: None,
 			value: function,
@@ -48,10 +67,15 @@ impl OperationNode {
 		function_symbol.0.type_hint = TypeKind::infer_id(&function_symbol.0);
 		let left = parse(&mut node.children[0]);
 		let right = parse(&mut node.children[1]);
+		let args = if function_name == "get" {
+			vec![left, right]
+		} else {
+			vec![right]
+		};
 		
 		FunctionCallNode {
 			function: function_symbol,
-			args: ArgumentsNode(vec![left, right]),
+			args: ArgumentsNode(args),
 			meta: Meta::new(node.tokens.to_owned(), None, vec![flag])
 		}
 	}

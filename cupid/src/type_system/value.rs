@@ -21,105 +21,111 @@ pub enum Value {
 }
 
 impl Add for Value {
-	type Output = Self;
+	type Output = Result<Self, String>;
 	fn add(self, rhs: Self) -> Self::Output {
     	match (self, rhs) {
-			(Value::Integer(x), Value::Integer(y)) => Value::Integer(x + y),
-			(Value::Decimal(x, y), Value::Decimal(a, b)) => float_to_dec(dec_to_float(x, y) + dec_to_float(a, b)),
-			(Value::String(x), Value::String(y)) => {
-				Value::String(x.to_owned() + y)
-			},
-			(Value::Map(mut x), Value::Map(y)) => {
-				y.into_iter().for_each(|(entry, (_, value))| {
-					x.insert(entry, (x.len(), value));
-				});
-				Value::Map(x)
-			},
-			(Value::Array(mut x), Value::Array(mut y)) => {
-				x.append(&mut y);
-				Value::Array(x)
-			},
-			_ => Value::None,
+			(Value::Integer(x), Value::Integer(y)) => Ok(Value::Integer(x + y)),
+			(Value::Decimal(x, y), Value::Decimal(a, b)) => Ok(float_to_dec(dec_to_float(x, y) + dec_to_float(a, b))),
+			(Value::String(x), Value::String(y)) => Ok(Value::String(x.to_owned() + y)),
+			// (Value::Map(mut x), Value::Map(y)) => {
+			// 	y.into_iter().for_each(|(entry, (_, value))| {
+			// 		x.insert(entry, (x.len(), value));
+			// 	});
+			// 	Value::Map(x)
+			// },
+			// (Value::Array(mut x), Value::Array(mut y)) => {
+			// 	x.append(&mut y);
+			// 	Value::Array(x)
+			// },
+			(x, y) => Err(format!("cannot add {x} and {y}")),
 		}
 	}
 }
 
 impl Sub for Value {
-	type Output = Self;
+	type Output = Result<Self, String>;
 	fn sub(self, rhs: Self) -> Self::Output {
 		match (self, rhs) {
-			(Value::Integer(x), Value::Integer(y)) => Value::Integer(x - y),
-			(Value::Decimal(x, y), Value::Decimal(a, b)) => float_to_dec(dec_to_float(x, y) - dec_to_float(a, b)),
-			_ => Value::None
+			(Value::Integer(x), Value::Integer(y)) => Ok(Value::Integer(x - y)),
+			(Value::Decimal(x, y), Value::Decimal(a, b)) => Ok(float_to_dec(dec_to_float(x, y) - dec_to_float(a, b))),
+			(x, y) => Err(format!("cannot subtract {y} from {x}"))
 		}
 	}
 }
 
 impl Mul for Value {
-	type Output = Self;
+	type Output = Result<Self, String>;
 	fn mul(self, rhs: Self) -> Self::Output {
 		match (self, rhs) {
-			(Value::Integer(x), Value::Integer(y)) => Value::Integer(x * y),
-			(Value::Decimal(x, y), Value::Decimal(a, b)) => float_to_dec(dec_to_float(x, y) * dec_to_float(a, b)),
-			_ => Value::None
+			(Value::Integer(x), Value::Integer(y)) => Ok(Value::Integer(x * y)),
+			(Value::Decimal(x, y), Value::Decimal(a, b)) => Ok(float_to_dec(dec_to_float(x, y) * dec_to_float(a, b))),
+			(x, y) => Err(format!("cannot multiply {x} with {y}"))
 		}
 	}
 }
 
 impl Div for Value {
-	type Output = Self;
+	type Output = Result<Self, String>;
 	fn div(self, rhs: Self) -> Self::Output {
 		match (self, rhs) {
-			(Value::Integer(x), Value::Integer(y)) => Value::Integer(x / y),
-			(Value::Decimal(x, y), Value::Decimal(a, b)) => float_to_dec(dec_to_float(x, y) / dec_to_float(a, b)),
-			_ => Value::None
+			(Value::Integer(x), Value::Integer(y)) => Ok(Value::Integer(x / y)),
+			(Value::Decimal(x, y), Value::Decimal(a, b)) => Ok(float_to_dec(dec_to_float(x, y) / dec_to_float(a, b))),
+			(x, y) => Err(format!("cannot divide {x} by {y}"))
 		}
 	}
 }
 
 impl Neg for Value {
-	type Output = Self;
+	type Output = Result<Self, String>;
 	fn neg(self) -> Self::Output {
 		match self {
-			Value::Integer(x) => Value::Integer(-x),
-			Value::Decimal(x, y) => float_to_dec(-dec_to_float(x, y)),
-			_ => Value::None
+			Value::Integer(x) => Ok(Value::Integer(-x)),
+			Value::Decimal(x, y) => Ok(float_to_dec(-dec_to_float(x, y))),
+			x => Err(format!("cannot negate {x}"))
 		}
 	}
 }
 
 impl Rem for Value {
-	type Output = Self;
+	type Output = Result<Self, String>;
 	fn rem(self, rhs: Self) -> Self::Output {
     	match (self, rhs) {
-			(Value::Integer(x), Value::Integer(y)) => Value::Integer(x % y),
-			(Value::Decimal(x, y), Value::Decimal(a, b)) => float_to_dec(dec_to_float(x, y) % dec_to_float(a, b)),
-			_ => Value::None
+			(Value::Integer(x), Value::Integer(y)) => Ok(Value::Integer(x % y)),
+			(Value::Decimal(x, y), Value::Decimal(a, b)) => Ok(float_to_dec(dec_to_float(x, y) % dec_to_float(a, b))),
+			(x, y) => Err(format!("cannot get remainder from {x} % {y}"))
 		}
 	}
 }
 
 impl BitAnd for Value {
-	type Output = Self;
+	type Output = Result<Self, String>;
 	fn bitand(self, rhs: Self) -> Self::Output {
-		let left_truthy = self.is_truthy();
-		let right_truthy = rhs.is_truthy();
-		if left_truthy && right_truthy {
-			rhs
+		if self.type_eq(&rhs) {
+			let left_truthy = self.is_truthy();
+			let right_truthy = rhs.is_truthy();
+			if left_truthy && right_truthy {
+				Ok(rhs)
+			} else {
+				Ok(self)
+			}
 		} else {
-			self
+			Err(format!("all values must have the same type to use the `and` operator"))
 		}
 	}
 }
 
 impl BitOr for Value {
-	type Output = Self;
+	type Output = Result<Self, String>;
 	fn bitor(self, rhs: Self) -> Self::Output {
-		let left_truthy = self.is_truthy();
-		if left_truthy {
-			self
+		if self.type_eq(&rhs) {
+			let left_truthy = self.is_truthy();
+			if left_truthy {
+				Ok(self)
+			} else {
+				Ok(rhs)
+			}
 		} else {
-			rhs
+			Err(format!("all values must have the same type to use the `or` operator"))
 		}
 	}
 }
@@ -201,6 +207,9 @@ pub fn float_to_dec(float: f64) -> Value {
 }
 
 impl Value {
+	pub fn type_eq(&self, other: &Self) -> bool {
+		std::mem::discriminant(self) == std::mem::discriminant(other)
+	}
 	pub fn is_truthy(&self) -> bool {
 		match self {
 			Value::Integer(x) => *x >= 0,
@@ -212,7 +221,7 @@ impl Value {
 			_ => true
 		}
 	}
-	pub fn pow(&self, right: &Self, _operator: &Token) -> Result<Self, String> {
+	pub fn pow(&self, right: &Self) -> Result<Self, String> {
 		match (self, right) {
 			(Value::Integer(x), Value::Integer(y)) => {
 				if let Some(z) = x.checked_pow(*y as u32) {
@@ -225,17 +234,30 @@ impl Value {
 			(x, y) => Err(format!("Unable to raise {x} to the power of {y}"))
 		}
 	}
+	pub fn compare(self, rhs: Self, operator: &str) -> Result<Self, String> {
+		if self.type_eq(&rhs) {
+			Ok(Self::Boolean(match operator {
+				"<" => self < rhs,
+				">" => self > rhs,
+				"<=" => self <= rhs,
+				">=" => self >= rhs,
+				_ => panic!("unexpected comparison operator")
+			}))
+		} else {
+			Err(format!("cannot compare values with different types"))
+		}
+	}
 	
-	pub fn cast(&self, type_kind: Value) -> Value {
+	pub fn cast(&self, type_kind: Value) -> Result<Self, String> {
 		match type_kind {
 			Value::Type(TypeKind::Primitive(t)) => match t.identifier.into_owned().as_str() {
-				"int" => self.as_int(),
-				"dec" => self.as_dec(),
-				"bool" => self.as_bool(),
-				"string" => self.as_string(),
-				_ => panic!("unable to cast")
+				"int" => Ok(self.as_int()),
+				"dec" => Ok(self.as_dec()),
+				"bool" => Ok(self.as_bool()),
+				"string" => Ok(self.as_string()),
+				t => Err(format!("unable to cast {self} into type `{t}`"))
 			},
-			_ => panic!("unable to cast")
+			_ => Err(format!("unable to cast {self} into type `{type_kind}`"))
 		}
 	}
 	pub fn as_int(&self) -> Value {

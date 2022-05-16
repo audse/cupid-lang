@@ -32,40 +32,23 @@ impl AST for ForInLoopNode {
 			Value::Map(m) => Value::Map(m).map_to_vec(),
 			_ => return Err(not_map_err)
 		};
-		
 		let mut result = ValueNode::from((Value::None, &Meta::<Flag>::from(&self.meta)));
 		
-		for (i, (mut key, mut value)) in map.into_iter().enumerate() {
+		for (i, (key, value)) in map.into_iter().enumerate() {
 			scope.add(Context::Loop);
+			
 			match self.symbols.len() {
 				3 => {
-					// index
-					let mut index = ValueNode::from((Value::Integer(i as i32), &key.meta));
-					index.set_meta_identifier(&self.symbols[0].0);
-					scope.set_symbol(&self.symbols[0], SymbolValue::from(index))?;
-					
-					// key
-					key.set_meta_identifier(&self.symbols[1].0);
-					scope.set_symbol(&self.symbols[1], SymbolValue::from(key))?;
-					
-					// value
-					value.set_meta_identifier(&self.symbols[2].0);
-					scope.set_symbol(&self.symbols[2], SymbolValue::from(value))?;
+					let index = ValueNode::from((Value::Integer(i as i32), &key.meta));
+					set_loop_symbol(&self.symbols[0], index, scope)?;
+					set_loop_symbol(&self.symbols[1], key, scope)?;
+					set_loop_symbol(&self.symbols[2], value, scope)?;
 				},
 				2 => {
-					// key
-					key.set_meta_identifier(&self.symbols[0].0);
-					scope.set_symbol(&self.symbols[0], SymbolValue::from(key))?;
-					
-					// value
-					value.set_meta_identifier(&self.symbols[1].0);
-					scope.set_symbol(&self.symbols[1], SymbolValue::from(value))?;
+					set_loop_symbol(&self.symbols[0], key, scope)?;
+					set_loop_symbol(&self.symbols[1], value, scope)?;
 				},
-				1 => {
-					// value
-					value.set_meta_identifier(&self.symbols[0].0);
-					scope.set_symbol(&self.symbols[0], SymbolValue::from(value))?;
-				},
+				1 => set_loop_symbol(&self.symbols[0], value, scope)?,
 				_ => panic!("too many params")
 			}
 			result = self.body.resolve(scope)?;
@@ -73,6 +56,13 @@ impl AST for ForInLoopNode {
 		}
 		Ok(result)
 	}
+}
+
+fn set_loop_symbol(symbol: &SymbolNode, mut value: ValueNode, scope: &mut LexicalScope) -> Result<(), Error> {
+	value.set_meta_identifier(&symbol.0);
+	let declaration = value.into_declaration(false);
+	scope.set_symbol(symbol, declaration)?;
+	Ok(())
 }
 
 fn error_expected_map(node: &ValueNode) -> Error {

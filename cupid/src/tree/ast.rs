@@ -15,6 +15,8 @@ pub trait AST: std::fmt::Debug + CloneAST + serde_traitobject::Serialize + serde
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error>;
 	
 	fn as_symbol(&self) -> Option<&SymbolNode> { None }
+	fn as_function_call(&self) -> Option<&FunctionCallNode> { None }
+	fn as_builtin_function_call(&self) -> Option<&BuiltinFunctionCallNode> { None }
 }
 
 pub trait ResolveTo<T>: AST {
@@ -27,7 +29,7 @@ impl Clone for Box<dyn AST> {
 	}
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct BoxAST {
 	#[serde(with = "serde_traitobject")]
 	pub inner: Box<dyn AST>,
@@ -51,6 +53,12 @@ impl Deref for BoxAST {
 impl From<Box<dyn AST>> for BoxAST {
 	fn from(b: Box<dyn AST>) -> Self {
     	BoxAST { inner: b }
+	}
+}
+
+impl std::fmt::Debug for BoxAST {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(f, "Box({:#?})", self.inner)
 	}
 }
 

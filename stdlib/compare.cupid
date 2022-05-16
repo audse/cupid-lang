@@ -2,44 +2,44 @@ trait [t] equal = [
 	fun [bool] equal = self, t other => _
 ]
 
-use [t: int] equal with int
-use [t: dec] equal with dec
-use [t: string] equal with string
-use [t: char] equal with char
+use equal [t: int] with int
+use equal [t: dec] with dec
+use equal [t: string] with string
+use equal [t: char] with char
 	
 trait [t] not_equal = [
 	fun [bool] not_equal = self, t other => _
 ]
 
-use [t: int] not_equal with int
-use [t: dec] not_equal with dec
-use [t: string] not_equal with string
-use [t: char] not_equal with char
+use not_equal [t: int] with int
+use not_equal [t: dec] with dec
+use not_equal [t: string] with string
+use not_equal [t: char] with char
 
 trait [t] less = [
 	fun [bool] less = self, t other => _
 ]
 
-use [t: int] less with int
-use [t: dec] less with dec
+use less [t: int] with int
+use less [t: dec] with dec
 
 trait [t] less_equal = [
 	fun [bool] less_equal = self, t other => _
 ]
 
-use [t: int] less_equal with int
-use [t: dec] less_equal with dec
+use less_equal [t: int] with int
+use less_equal [t: dec] with dec
 
 trait [t] greater = [
 	fun [bool] greater = self, t other => _
 ]
 
-use [t: int] greater with int
-use [t: dec] greater with dec
+use greater [t: int] with int
+use greater [t: dec] with dec
 
 trait [t] greater_equal = [
 	fun [bool] greater_equal = self, t other => _
 ]
 
-use [t: int] greater_equal with int
-use [t: dec] greater_equal with dec
+use greater_equal [t: int] with int
+use greater_equal [t: dec] with dec

@@ -28,6 +28,7 @@ pub struct Rule {
 	pub alts: Vec<Alt>,
 	// to be included in the rule tree, or "passed through" to an encapsulating rule
 	pub pass_through: bool,
+	pub inverse: bool,
 	pub params: Vec<Str>,
 }
 
@@ -66,8 +67,13 @@ impl Rule {
 			.iter()
 			.map(|group| group.stringify(&self.params))
 			.collect();
+		let macro_name = if self.inverse {
+			"alt_inverse"
+		} else {
+			"alt"
+		};
 		format!("
-			alt! ((self, {pass_through}, node, pos) {{
+			{macro_name}! ((self, {pass_through}, node, pos) {{
 				{alt_body}
 			}});",
 			pass_through = self.pass_through,
@@ -171,7 +177,7 @@ impl Item {
 			"constant" => format!("expect_{}", source.to_lowercase()),
 			"name" => format!("_{source}"),
 			"tag" => format!("expect_tag(\"{source}\")"),
-			_ => format!("expect({})", escape(source)),
+			_ => format!("expect(r{})", escape(source)),
 		}.into()
 	}
 	fn method_call(&self, params: &Vec<Str>) -> String {

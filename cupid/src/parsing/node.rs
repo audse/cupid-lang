@@ -29,4 +29,7 @@ impl ParseNode {
 	pub fn get_mut(&mut self, name: &str) -> Option<&mut Self> {
 		self.children.iter_mut().find(|c| c.name == name)
 	}
+	pub fn child_is(&mut self, index: usize, name: &str) -> bool {
+		&*(self.children[index].name) == name
+	}
 }

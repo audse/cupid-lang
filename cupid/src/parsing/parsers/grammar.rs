@@ -45,6 +45,7 @@ impl GrammarParser {
 	
 	fn rule(&mut self) -> Option<Rule> {
 		let mut pass_through = false;
+		let mut inverse = false;
 		let pos = self.tokens.index();
 		if let Some(_) = self.expect("-") {
 			
@@ -52,7 +53,9 @@ impl GrammarParser {
 			if let Some(_) = self.expect("~") {
 				pass_through = true;
 			}
-			
+			if let Some(_) = self.expect("!") {
+				inverse = true;
+			}
 			if let Some((name, _)) = self.expect_word() {
 				if let Some(_) = self.expect(":") {
 					let alts = self.rule_body();
@@ -60,6 +63,7 @@ impl GrammarParser {
 						name: name.source(), 
 						alts, 
 						pass_through,
+						inverse,
 						params: vec![],
 					});
 				} else {
@@ -68,6 +72,7 @@ impl GrammarParser {
 						name: name.source(),
 						alts,
 						pass_through,
+						inverse,
 						params,
 					})
 				}

@@ -2,41 +2,41 @@ trait [t] add = [
 	fun [t] add = self, t other => _
 ]
 
-use [t: int] add with int
-use [t: dec] add with dec
-use [t: string] add with string
+use add [t: int] with int
+use add [t: dec] with dec
+use add [t: string] with string
 
 trait [t] subtract = [
 	fun [t] subtract = self, t other => _
 ]
 
-use [t: int] subtract with int
-use [t: dec] subtract with dec
+use subtract [t: int] with int
+use subtract [t: dec] with dec
 
 trait [t] multiply = [
 	fun [t] multiply = self, t other => _
 ]
 
-use [t: int] multiply with int
-use [t: dec] multiply with dec
+use multiply [t: int] with int
+use multiply [t: dec] with dec
 
 trait [t] divide = [
 	fun [t] divide = self, t other => _
 ]
 
-use [t: int] divide with int
-use [t: dec] divide with dec
+use divide [t: int] with int
+use divide [t: dec] with dec
 
 trait [t] power = [
 	fun [t] power = self, t other => _
 ]
 
-use [t: int] power with int
-use [t: dec] power with dec
+use power [t: int] with int
+use power [t: dec] with dec
 
 trait [t] modulus = [
 	fun [t] modulus = self, t other => _
 ]
 
-use [t: int] modulus with int
-use [t: dec] modulus with dec
+use modulus [t: int] with int
+use modulus [t: dec] with dec

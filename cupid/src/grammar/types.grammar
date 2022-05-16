@@ -43,10 +43,10 @@
 
 - implement_type: 'use' generics? type_hint brace[declarations]
 
-- implement_trait: 'use' generics? identifier 'with' type_hint implement_trait_body?
+- implement_trait: 'use' generics? identifier generics? 'with' type_hint implement_trait_body?
 -~implement_trait_body: brace[declarations]
 
-- trait_definition: 'trait' generics identifier ~equal bracket_list[typed_declaration]
+- trait_definition: 'trait' generics? identifier ~equal bracket_list[typed_declaration]
 
 -~equal: '=' !'>'
 

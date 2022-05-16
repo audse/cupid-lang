@@ -61,6 +61,17 @@ impl TypeHintNode {
 			}
 		}
 	}
+	pub fn generic_arg(identifier: Cow<'static, str>, arg: Option<TypeHintNode>, tokens: Vec<Token>) -> Self {
+		Self {
+			identifier,
+			args: if let Some(arg) = arg { vec![arg] } else { vec![] },
+			meta: Meta {
+				tokens,
+				flags: vec![TypeFlag::Generic],
+				identifier: None
+			}
+		}
+	}
 	pub fn is_generic(&self) -> bool {
 		self.meta.flags.contains(&TypeFlag::Generic)
 	}
@@ -86,6 +97,21 @@ impl ResolveTo<TypeKind> for TypeHintNode {
 	fn resolve_to(&self, scope: &mut LexicalScope) -> Result<TypeKind, Error> {
 		let (_, type_kind) = self.resolve_to(scope)?;
 		Ok(type_kind)
+	}
+}
+
+impl ResolveTo<TypeHintNode> for TypeHintNode {
+	fn resolve_to(&self, scope: &mut LexicalScope) -> Result<TypeHintNode, Error> {
+		let (_, type_kind) = self.resolve_to(scope)?;
+		if let TypeKind::Generic(generic) = type_kind {
+			if let Some(value) = &generic.type_value {
+				Ok(value.to_owned())
+			} else {
+				Ok(self.to_owned())
+			}
+		} else {
+			Ok(self.to_owned())
+		}
 	}
 }
 

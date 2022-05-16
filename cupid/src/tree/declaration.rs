@@ -37,7 +37,12 @@ impl AST for DeclarationNode {
 		// add meta info to value node
 		value.set_meta_identifier(&self.symbol.0);
 		
-		let type_hint = Some(self.type_hint.to_owned());
+		let type_hint: TypeKind = self.type_hint.resolve_to(scope)?;
+		let type_hint = if let TypeKind::Generic(type_kind) = type_hint {
+			type_kind.type_value
+		} else {
+			Some(self.type_hint.to_owned())
+		};
 		
 		// set symbol type as value's type
 		let mut symbol = self.symbol.to_owned();

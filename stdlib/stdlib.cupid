@@ -4,5 +4,6 @@ package stdlib::integer
 package stdlib::decimal
 package stdlib::string
 package stdlib::array
+package stdlib::map
 package stdlib::ops
 package stdlib::compare

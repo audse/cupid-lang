@@ -1,3 +1,4 @@
+#![allow(unused_macros)]
 use crate::*;
 
 pub trait Parser {
@@ -156,11 +157,60 @@ impl From<(Token, &'static str)> for ParseNode {
 	}
 }
 
+macro_rules! add_child {
+	($pass_through:tt, $is_concealed:expr, $item:expr, $val:expr) => {
+		if $pass_through && !$is_concealed {
+			// move returned node's children to current node
+			$item.tokens.append(&mut $val.tokens);
+			$item.children.append(&mut $val.children);
+		} else if !$is_concealed {
+			$item.children.push($val);
+		}
+	}
+}
+
+pub fn invert_binary_op(mut node: ParseNode) -> ParseNode {
+	/* 
+	Invert the precedence of a binary operation for left recursion
+	ex. `person.name.first`
+		 parses as:
+			property[ "person", property["name", "first"] ]
+		 and is transformed into
+			property[ property["person", "name"], "first" ]
+	*/
+	let is_op = node.children.len() == 2 && node.children[1].children.len() == 2;
+	if is_op {
+		let mut right_node = node.children.pop().unwrap();
+		let left_node = node.children.pop().unwrap();
+		
+		let r_right_node = right_node.children.pop().unwrap();
+		let r_left_node = right_node.children.pop().unwrap();
+		
+		right_node.children.push(left_node);
+		right_node.children.push(r_left_node);
+		
+		node.children.push(right_node);
+		node.children.push(r_right_node);
+	}
+	node
+}
+
 macro_rules! alt {
 	(($parser:tt, $pass_through:tt, $node:ident, $pos:ident) { $($item:stmt;)* }) => {{
 		loop {
 			$($item)*
 			return Some(($node, $pass_through));
+		}
+		$parser.reset_parse(&mut $node, $pos);
+	}}
+}
+
+macro_rules! alt_inverse {
+	(($parser:tt, $pass_through:tt, $node:ident, $pos:ident) { $($item:stmt;)* }) => {{
+		loop {
+			$($item)*
+			
+			return Some((invert_binary_op($node), $pass_through));
 		}
 		$parser.reset_parse(&mut $node, $pos);
 	}}
@@ -177,13 +227,7 @@ macro_rules! group {
 macro_rules! once {
 	($item:expr, $method:expr, $is_concealed:expr) => {{
 		if let Some((mut val, pass_through)) = $method {
-			if pass_through && !$is_concealed {
-				// move returned node's children to current node
-				$item.tokens.append(&mut val.tokens);
-				$item.children.append(&mut val.children);
-			} else if !$is_concealed {
-				$item.children.push(val);
-			}
+			add_child!(pass_through, $is_concealed, $item, val);
 		} else {
 			break;
 		}
@@ -193,12 +237,7 @@ macro_rules! once {
 macro_rules! optional {
 	($item:expr, $method:expr, $is_concealed:expr) => {{
 		if let Some((mut val, pass_through)) = $method {
-			if pass_through && !$is_concealed {
-				$item.tokens.append(&mut val.tokens);
-				$item.children.append(&mut val.children);
-			} else if !$is_concealed {
-				$item.children.push(val);
-			}
+			add_child!(pass_through, $is_concealed, $item, val);
 		}
 	}};
 }
@@ -206,12 +245,7 @@ macro_rules! optional {
 macro_rules! repeat {
 	($item:expr, $method:expr, $is_concealed:expr) => {{
 		while let Some((mut val, pass_through)) = $method {
-			if pass_through && !$is_concealed {
-				$item.tokens.append(&mut val.tokens);
-				$item.children.append(&mut val.children);
-			} else if !$is_concealed {
-				$item.children.push(val);
-			}
+			add_child!(pass_through, $is_concealed, $item, val);
 		}
 	}};
 }
@@ -268,7 +302,9 @@ macro_rules! use_positive_lookbehind {
 	}};
 }
 
+pub(crate) use add_child;
 pub(crate) use alt;
+pub(crate) use alt_inverse;
 pub(crate) use group;
 pub(crate) use once;
 pub(crate) use optional;

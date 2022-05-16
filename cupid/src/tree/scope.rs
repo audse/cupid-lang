@@ -247,7 +247,6 @@ impl Scope for SingleScope {
 	}
 }
 
-
 impl Display for SingleScope {
 	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
 		let storage: Vec<String> = self.storage
@@ -263,27 +262,10 @@ impl Display for SingleScope {
 	}
 }
 
-pub fn create_self_symbol(function: &FunctionNode, value: ValueNode, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
-	if let Some(self_symbol) = &function.params.self_symbol {
-		let declare = SymbolValue::Declaration { 
-			type_hint: value.type_hint.to_owned(), 
-			mutable: function.params.mut_self,
-			value
-		};
-		scope.set_symbol(self_symbol, declare)
-	} else {
-		Err(value.error_raw("unable to set `self` symbol for {value}"))
-	}
-}
-
 pub fn create_generic_symbol(generic: &GenericType, meta: &Meta<Flag>, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
-	let symbol = SymbolNode::from(&TypeHintNode::new(generic.identifier.to_owned(), TypeFlag::Generic, vec![], meta.tokens.to_owned()));
-	let value: TypeKind = if let Some(generic_value) = &generic.type_value {
-		generic_value.resolve_to(scope)?
-	} else {
-		TypeKind::Generic(generic.to_owned())
-	};
-	let value = ValueNode::from((Value::Type(value), meta));
+	let symbol = SymbolNode::from(&TypeHintNode::new(generic.identifier.to_owned(), TypeFlag::Primitive, vec![], meta.tokens.to_owned()));
+	
+	let value = ValueNode::from((Value::Type(TypeKind::Generic(generic.to_owned())), meta));
 	
 	let declare = SymbolValue::Declaration { 
 		type_hint: None, 

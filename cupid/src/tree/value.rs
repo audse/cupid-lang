@@ -1,6 +1,6 @@
 use crate::*;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct ValueNode {
 	pub value: Value,
 	pub type_hint: Option<TypeHintNode>,
@@ -24,6 +24,11 @@ impl Hash for ValueNode {
 impl Display for ValueNode {
 	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
 		write!(f, "{}", self.value)
+		// write!(f, "{} ({})", self.value, if let Some(type_hint) = &self.type_hint {
+		// 	type_hint.to_string()
+		// } else {
+		// 	String::new()
+		// })
 	}
 }
 
@@ -34,7 +39,7 @@ pub enum Flag {
 	Continue,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Meta<F> {
 	pub tokens: Vec<Token>,
 	pub identifier: Option<Box<ValueNode>>,
@@ -65,6 +70,16 @@ impl<F> Meta<F> {
 			identifier: None,
 			flags: vec![]
 		}
+	}
+}
+
+impl<F: std::fmt::Debug> std::fmt::Debug for Meta<F> {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		f.debug_struct("Meta")
+			.field("tokens", &format_args!("{:?}", self.tokens))
+			.field("identifier", &self.identifier)
+			.field("flags",&format_args!("{:?}", self.flags))
+			.finish()
 	}
 }
 
@@ -165,6 +180,40 @@ impl ValueNode {
 	pub fn as_assignment(&self) -> SymbolValue {
 		SymbolValue::Assignment { value: self.to_owned() }
 	}
+	pub fn into_declaration(self, mutable: bool) -> SymbolValue {
+		SymbolValue::Declaration { 
+			type_hint: if let Some(type_hint) = self.type_hint.to_owned() {
+				Some(type_hint)
+			} else {
+				TypeKind::infer_id(&self)
+			}, 
+			mutable, 
+			value: self
+		}
+	}
+	pub fn get_property(&self, property: &ValueNode) -> Result<ValueNode, Error> {
+		// try to get direct property from arrays/maps
+		if let Ok(value) = self.value.get_property(property) {
+			return Ok(value);
+		}
+		Err(property.error_raw("could not find property"))
+	}
+	pub fn get_method(&self, method: &SymbolNode, scope: &mut LexicalScope) -> Result<(Option<Implementation>, FunctionNode), Error> {
+		// try to get implemented function or trait
+		if let Some(type_hint) = &self.type_hint {
+			let type_hint: TypeHintNode = type_hint.resolve_to(scope)?;
+			let mut type_hint: TypeKind = type_hint.resolve_to(scope)?;
+			
+			if let Some((implementation, function)) = type_hint.get_trait_function(&method, scope) {
+				return Ok((Some(implementation), function));
+			}
+		} else if let Ok(property) = self.get_property(&method.0) {
+			if let Value::Function(function) = property.value {
+				return Ok((None, function));
+			}
+		}
+		Err(method.error_raw("could not find associated method"))
+	}
 }
 
 impl AST for ValueNode {
@@ -185,6 +234,22 @@ impl ErrorHandler for ValueNode {
 	}
 	fn get_context(&self) -> String {
     	format!("{}", self.value)
+	}
+}
+
+
+impl std::fmt::Debug for ValueNode {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		let type_hint_str = if let Some(t) = &self.type_hint {
+			format!("{:#?}", t)
+		} else {
+			"None".to_string()
+		};
+		f.debug_struct("ValueNode")
+			.field("value", &format_args!("{:?}", self.value))
+			.field("type_hint", &format_args!("{type_hint_str}"))
+			.field("meta", &self.meta)
+			.finish()
 	}
 }
 

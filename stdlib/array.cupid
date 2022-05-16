@@ -4,7 +4,7 @@ use [e] array [e] {
 	push = mut self, e element => push (self, element)
 	
 	fun [e]
-	pop = mut self => pop (self, element)
+	pop = mut self => pop (self)
 	
 	fun [e]
 	remove = mut self, int index => remove (self, index)

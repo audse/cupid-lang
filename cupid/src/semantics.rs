@@ -4,7 +4,8 @@ use crate::*;
 pub fn parse(node: &mut ParseNode) -> BoxAST {
 	match &*node.name {
 		"file" => BoxAST::new(FileNode::from(node)),
-		"expression" => parse(&mut node.children[0]),
+		"expression"
+		| "group" => parse(&mut node.children[0]),
 		"empty" 
 		| "comment"
 		| "package" => BoxAST::new(EmptyNode),
@@ -35,7 +36,6 @@ pub fn parse(node: &mut ParseNode) -> BoxAST {
 		"block" => BoxAST::new(BlockNode::from(node)),
 		"for_loop" => BoxAST::new(ForInLoopNode::from(node)),
 		"while_loop" => BoxAST::new(WhileLoopNode::from(node)),
-		"property_access" => BoxAST::new(PropertyNode::from(node)),
 		
 		"type_cast" =>  if node.children.len() > 1 {
 			BoxAST::new(TypeCastNode::parse_as_function(node))
@@ -46,11 +46,18 @@ pub fn parse(node: &mut ParseNode) -> BoxAST {
 		"compare_op" 
 		| "add"
 		| "multiply" 
-		| "exponent" => if node.children.len() > 1 {
+		| "exponent"=> if node.children.len() > 1 {
+			 BoxAST::new(OperationNode::parse_as_get_function(node))
+		} else {
+			 parse(&mut node.children[0])
+		},
+		
+		"property" => if node.children.len() > 1 {
 			 BoxAST::new(OperationNode::parse_as_function(node))
 		} else {
 			 parse(&mut node.children[0])
 		},
+		
 		"unary_op" => parse(&mut node.children[0]), // TODO
 		
 		"log" => BoxAST::new(LogNode::from(node)),

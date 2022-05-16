@@ -1,5 +1,17 @@
 package stdlib::stdlib
 
+use [e] add [t: array [e]] with array [e] {
+	fun [t] add = self, t other => {
+		t mut copy = self
+		for item in other => copy.push(item)
+		copy
+	}
+}
+
+array [int] mut my_array = [10, 20, 30]
+log (my_array + [40])
+log (my_array)
+
 # fun [int] logger = int a, int b, int c => log (a, b, c)
 # logger(1, 2, 3)
 # 
@@ -26,6 +38,3 @@ package stdlib::stdlib
 # fun [int] my_counter = counter()
 # fun [int] second_counter = my_counter(10)
 # log (second_counter(20))
-
-array [int] mut my_array = [10, 20, 30]
-my_array.push(40)
