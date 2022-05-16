@@ -21,19 +21,19 @@ impl From<&mut ParseNode> for BuiltinTypeNode {
 			| "dec"
 			| "nothing"
 			| "string" => (
-				TypeHintNode::new(name.to_owned(), TypeFlag::Primitive, vec![], tokens),
+				TypeHintNode::new(name.to_owned(), vec![TypeFlag::Primitive], vec![], tokens),
 				TypeKind::new_primitive(name)
 			),
 			"array" => (
-				TypeHintNode::new(name, TypeFlag::Array, vec![generic("e", &tokens)], tokens),
+				TypeHintNode::new(name, vec![TypeFlag::Array], vec![generic("e", &tokens)], tokens),
 				TypeKind::new_array(None)
 			),
 			"map" => (
-				TypeHintNode::new(name, TypeFlag::Map, vec![generic("k", &tokens), generic("v", &tokens)], tokens),
+				TypeHintNode::new(name, vec![TypeFlag::Map], vec![generic("k", &tokens), generic("v", &tokens)], tokens),
 				TypeKind::new_map(None)
 			),
 			"fun" => (
-				TypeHintNode::new(name, TypeFlag::Function, vec![generic("r", &tokens)], tokens),
+				TypeHintNode::new(name, vec![TypeFlag::Function], vec![generic("r", &tokens)], tokens),
 				TypeKind::new_function()
 			),
 			_ => panic!("unexpected builtin type")

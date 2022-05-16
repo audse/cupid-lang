@@ -72,7 +72,11 @@ impl FileHandler {
 		self.use_packages(self.contents.to_owned())?;
 		
 		let parse_tree = self.parser._file();
-		println!("Parse Tree: {:#?}", parse_tree);
+		println!("Parse Tree: {}", if let Some((parse_tree, _)) = &parse_tree {
+			parse_tree.to_string()
+		} else {
+			String::new()
+		});
 		
 		let semantics = parse(&mut parse_tree.unwrap().0);
 		println!("Semantics: {:#?}", semantics);

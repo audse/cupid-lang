@@ -17,7 +17,7 @@ impl From<&mut ParseNode> for SumTypeDeclaration {
 		let i = if !generics.is_empty() { 1 } else { 0 };
 		let name = &node.children[i].tokens[0].source;
     	Self {
-			symbol: TypeHintNode::new(name.to_owned(), TypeFlag::Sum, generics, node.children[0].tokens.to_owned()),
+			symbol: TypeHintNode::new(name.to_owned(), vec![TypeFlag::Sum], generics, node.children[0].tokens.to_owned()),
 			types: node.filter_map_mut(&|child| if &*child.name == "sum_member" {
 				Some(TypeHintNode::from(&mut child.children[0]))
 			} else {

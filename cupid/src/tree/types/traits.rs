@@ -16,7 +16,7 @@ impl From<&mut ParseNode> for TraitNode {
 		let i = if !generics.is_empty() { 1 } else { 0 };
 		let name = node.children[i].tokens[0].source.to_owned();
 		Self {
-			symbol: TypeHintNode::new(name, TypeFlag::Trait, generics, node.children[0].tokens.to_owned()),
+			symbol: TypeHintNode::new(name, vec![TypeFlag::Trait], generics, node.children[0].tokens.to_owned()),
 			functions: ImplementationNode::from(node),
 		}
 	}

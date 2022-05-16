@@ -11,6 +11,8 @@ pub enum TypeFlag {
 	Struct,
 	Sum,
 	Trait,
+	
+	Inferred,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -22,10 +24,11 @@ pub struct TypeHintNode {
 
 impl From<&mut ParseNode> for TypeHintNode {
 	fn from(node: &mut ParseNode) -> Self {
+		let tokens = node.collect_tokens();
 		Self {
 			identifier: node.children[0].tokens[0].source.to_owned(),
 			args: node.children.iter_mut().skip(1).map(Self::from).collect(),
-			meta: Meta::new(node.children[0].tokens.to_owned(), None, vec![])
+			meta: Meta::with_tokens(tokens)
 		}
 	}
 }
@@ -39,13 +42,13 @@ impl AST for TypeHintNode {
 }
 
 impl TypeHintNode {
-	pub fn new(identifier: Cow<'static, str>, flag: TypeFlag, args: Vec<Self>, tokens: Vec<Token>) -> Self {
+	pub fn new(identifier: Cow<'static, str>, flags: Vec<TypeFlag>, args: Vec<Self>, tokens: Vec<Token>) -> Self {
 		Self {
 			identifier,
 			args,
 			meta: Meta {
 				tokens,
-				flags: vec![flag],
+				flags,
 				identifier: None
 			}
 		}

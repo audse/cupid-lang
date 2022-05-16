@@ -24,6 +24,14 @@ impl AST for LogNode {
 			"log_line" => strings.join(""),
 			"logs" => format!("\n{}", strings.join(" ")),
 			"logs_line" => strings.join(" "),
+			"debug" => if let Value::String(string) = &args[0].value {
+				match &**string {
+					"scope" => format!("{scope}"),
+					_ => panic!("unexpected debug keyword")
+				}
+			} else {
+				panic!("unexpected debug argument")
+			}
 			_ => panic!("unexpected log keyword")
 		};
 		print!("{log_string}");

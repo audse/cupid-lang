@@ -59,7 +59,7 @@
 -~atom:
 	empty
 	| builtin_function_call
-	| function_call
+	#| function_call
 	| range
 	| map
 	| bracket_array
@@ -71,8 +71,7 @@
 	| char
 	| decimal
 	| number
-	| self
-	| identifier
+	| self_identifier
 
 - empty: ~'_'
 - group: ~'(' term? closing_paren
@@ -84,10 +83,10 @@
 
 - log: log_keyword paren[arguments]
 - builtin_function_call: =!'.' builtin_function paren[arguments]
-- function_call: identifier paren[arguments]
+#- function_call: self_identifier paren[arguments]
 - arguments: list[term]
 
--~log_keyword: 'log' | 'logs' | 'log_line' | 'logs_line'
+-~log_keyword: 'log' | 'logs' | 'log_line' | 'logs_line' | 'debug'
 
 - bracket_array: bracket_list[term]
 
@@ -104,7 +103,7 @@
 - range_inclusive_exclusive: '[' range_term ~'.' ~'.' ']' range_term
 - range_exclusive_inclusive: range_term '[' ~'.' ~'.' range_term ']'
 - range_exclusive_exclusive: range_term '[' ~'.' ~'.' ']' range_term
--~range_term: function_call | group | unary_op | number | identifier
+-~range_term: group | unary_op | number | identifier
 
 # operations can be kinda slow, going through all that, so this is a shortcut
 -~no_op: !'-' atom !'.' !operator !keyword_operator
@@ -128,8 +127,11 @@
 - exponent: property exponent_suffix?
 -~exponent_suffix: '^' exponent
 
--!property: atom property_suffix?
+-!property: function_call property_suffix?
 -~property_suffix: '.' property
+
+- function_call: atom function_call_suffix*
+-~function_call_suffix: '(' arguments ')'
 
 - unary_op: '-' atom
 
@@ -143,6 +145,8 @@
 - string: STRING
 - decimal: NUMBER ~'.' NUMBER
 - number: NUMBER
+
+-~self_identifier: self | identifier
 
 - self: 'self'
 
@@ -159,7 +163,7 @@
 	| '<'
 	| '<' '='
 
-- arrow: ~'=' ~'>'
+- arrow: '=' '>'
 	
 -~comment_delimiter: '*' '*' '*'
 -~comment_content: ANY !comment_delimiter

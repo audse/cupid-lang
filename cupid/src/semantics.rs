@@ -58,13 +58,18 @@ pub fn parse(node: &mut ParseNode) -> BoxAST {
 			 parse(&mut node.children[0])
 		},
 		
+		"function_call" => if node.children.len() > 1 {
+			BoxAST::new(FunctionCallNode::from(node))
+		} else {
+			 parse(&mut node.children[0])
+		},
+		
 		"unary_op" => parse(&mut node.children[0]), // TODO
 		
 		"log" => BoxAST::new(LogNode::from(node)),
 		
 		// Atoms
 		"builtin_function_call" => BoxAST::new(BuiltinFunctionCallNode::from(node)),
-		"function_call" => BoxAST::new(FunctionCallNode::from(node)),
 		"function" => BoxAST::new(FunctionNode::from(node)),
 		"bracket_array" => BoxAST::new(ArrayNode::from(node)),
 		"map" => BoxAST::new(MapNode::from(node)),
@@ -86,7 +91,7 @@ pub fn parse(node: &mut ParseNode) -> BoxAST {
 	}
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileNode {
 	pub expressions: Vec<BoxAST>,
 	pub meta: Meta<()>
@@ -129,10 +134,7 @@ impl ResolveTo<Vec<ValueNode>> for FileNode {
 pub struct EmptyNode;
 impl AST for EmptyNode {
 	fn resolve(&self, _scope: &mut LexicalScope) -> Result<ValueNode, Error> {
-		Ok(ValueNode {
-			value: Value::None,
-			type_hint: None,
-			meta: Meta::default()
-		})
+		Ok(ValueNode::new_none())
+		// Ok(())
 	}
 }

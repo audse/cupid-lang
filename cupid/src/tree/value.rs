@@ -117,7 +117,12 @@ impl From<(Value, &Meta<Flag>)> for ValueNode {
 			value: value.0,
 			meta: value.1.to_owned()
 		};
-		node.type_hint = TypeKind::infer_id(&node);
+		node.type_hint = if let Some(mut type_hint) = TypeKind::infer_id(&node) {
+			type_hint.meta.tokens = node.meta.tokens.to_owned();
+			Some(type_hint)
+		} else {
+			None
+		};
 		node
 	}
 }

@@ -1,6 +1,6 @@
 use crate::*;
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Hash, Clone, Serialize, Deserialize)]
 pub struct ParseNode {
 	pub name: Cow<'static, str>,
 	pub children: Vec<ParseNode>,
@@ -31,5 +31,45 @@ impl ParseNode {
 	}
 	pub fn child_is(&mut self, index: usize, name: &str) -> bool {
 		&*(self.children[index].name) == name
+	}
+	pub fn collect_tokens(&mut self) -> Vec<Token> {
+		self.children.iter_mut().flat_map(|c| {
+			let mut tokens = c.tokens.to_owned();
+			tokens.append(&mut c.collect_tokens());
+			tokens
+		}).collect()
+	}
+}
+
+impl std::fmt::Debug for ParseNode {
+	fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+		match (self.children.len() > 0, self.tokens.len() > 0) {
+			(true, true) => {
+				f.debug_struct(&format!("\"{}\"", self.name))
+					.field("tokens", &format!("{}", DisplayVec::new(&self.tokens, false)))
+					.field("children", &self.children)
+					.finish()
+			},
+			(true, false) => {
+				f.debug_struct(&*self.name)
+					.field("children", &self.children)
+					.finish()
+			},
+			(false, true) => {
+				f.debug_struct(&*self.name)
+					.field("tokens", &format!("{}", DisplayVec::new(&self.tokens, false)))
+					.finish()
+			},
+			(false, false) => {
+				f.debug_struct(&*self.name)
+					.finish()
+			},
+		}
+	}
+}
+
+impl Display for ParseNode {
+	fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+		write!(f, "{:#?}", self)
 	}
 }

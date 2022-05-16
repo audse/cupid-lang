@@ -1,6 +1,6 @@
 use crate::*;
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OperationNode {
 	pub left: BoxAST,
 	pub right: BoxAST,
@@ -51,10 +51,10 @@ impl OperationNode {
 			"<=" => ("less_equal", LessEqual),
 			">" => ("greater", Greater),
 			">=" => ("greater_equal", GreaterEqual),
-			"and" => ("and", And),
-			"or" => ("or", Or),
+			"and" => ("logic_and", And),
+			"or" => ("logic_or", Or),
 			"as" => ("cast", As),
-			"istype" => ("istype", IsType),
+			"istype" => ("is_type", IsType),
 			"." => ("get", Get),
 			_ => panic!("unrecognized operation"),
 		};

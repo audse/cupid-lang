@@ -6,6 +6,8 @@ use equal [t: int] with int
 use equal [t: dec] with dec
 use equal [t: string] with string
 use equal [t: char] with char
+use [e] equal [t: array [e]] with array [e]
+use [k, v] equal [t: map [k, v]] with map [k, v]
 	
 trait [t] not_equal = [
 	fun [bool] not_equal = self, t other => _
@@ -15,6 +17,8 @@ use not_equal [t: int] with int
 use not_equal [t: dec] with dec
 use not_equal [t: string] with string
 use not_equal [t: char] with char
+use [e] not_equal [t: array [e]] with array [e]
+use [k, v] not_equal [t: map [k, v]] with map [k, v]
 
 trait [t] less = [
 	fun [bool] less = self, t other => _
@@ -43,3 +47,30 @@ trait [t] greater_equal = [
 
 use greater_equal [t: int] with int
 use greater_equal [t: dec] with dec
+
+trait [t] logic_and = [
+	fun [t] logic_and = self, t other => _
+]
+
+use logic_and [t: int] with int
+use logic_and [t: dec] with dec
+use logic_and [t: char] with char
+
+trait [t] logic_or = [
+	fun [t] logic_or = self, t other => _
+]
+
+use logic_or [t: int] with int
+use logic_or [t: dec] with dec
+use logic_or [t: char] with char
+
+trait [t] is_type = [
+	fun [t] is_type = self, t other => _
+]
+
+use is_type [t: int] with int
+use is_type [t: dec] with dec
+use is_type [t: char] with char
+use is_type [t: string] with string
+use [e] is_type [t: array [e]] with array [e]
+use [k, v] is_type [t: map [k, v]] with map [k, v]

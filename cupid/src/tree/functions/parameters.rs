@@ -36,7 +36,11 @@ impl From<&mut ParseNode> for ParametersNode {
 		let self_symbol: Option<Box<SymbolNode>> = symbols
 			.iter()
 			.find(|s| s.type_hint.is_none())
-			.map(|s| Box::new(s.symbol.to_owned()));
+			.map(|s| {
+				let mut s = s.symbol.to_owned();
+				s.0.type_hint = None;
+				Box::new(s)
+			});
 		Self {
 			symbols,
 			self_symbol,

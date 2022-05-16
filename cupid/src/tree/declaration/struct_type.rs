@@ -17,7 +17,7 @@ impl From<&mut ParseNode> for StructTypeDeclaration {
 		let i = if !generics.is_empty() { 1 } else { 0 };
 		let name = node.children[i].tokens[0].source.to_owned();
 		Self {
-			symbol: TypeHintNode::new(name, TypeFlag::Struct, generics, node.children[0].tokens.to_owned()),
+			symbol: TypeHintNode::new(name, vec![TypeFlag::Struct], generics, node.children[0].tokens.to_owned()),
 			members: node.filter_map_mut(&|child| if &*child.name == "struct_member" {
 				Some((
 					TypeHintNode::from(&mut child.children[0]), 

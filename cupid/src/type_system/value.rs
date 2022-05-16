@@ -27,16 +27,6 @@ impl Add for Value {
 			(Value::Integer(x), Value::Integer(y)) => Ok(Value::Integer(x + y)),
 			(Value::Decimal(x, y), Value::Decimal(a, b)) => Ok(float_to_dec(dec_to_float(x, y) + dec_to_float(a, b))),
 			(Value::String(x), Value::String(y)) => Ok(Value::String(x.to_owned() + y)),
-			// (Value::Map(mut x), Value::Map(y)) => {
-			// 	y.into_iter().for_each(|(entry, (_, value))| {
-			// 		x.insert(entry, (x.len(), value));
-			// 	});
-			// 	Value::Map(x)
-			// },
-			// (Value::Array(mut x), Value::Array(mut y)) => {
-			// 	x.append(&mut y);
-			// 	Value::Array(x)
-			// },
 			(x, y) => Err(format!("cannot add {x} and {y}")),
 		}
 	}
@@ -368,9 +358,16 @@ impl Display for Value {
 			Self::Function(function) => {
 				let params: Vec<String> = function.params.symbols
 					.iter()
-					.map(|p|p.symbol.0.to_string())
+					.map(|p| {
+						let type_hint = if let Some(type_hint) = &p.type_hint {
+							format!("{type_hint} ")
+						} else {
+							String::new()
+						};
+						format!("{}{}", type_hint, p.symbol.0)
+					})
 					.collect();
-				write!(f, "{}", params.join(", "))
+				write!(f, "fun ({})", params.join(", "))
 			},
 			Self::TypeHint(id) => write!(f, "{id}"),
 			v => write!(f, "{:?}", v)

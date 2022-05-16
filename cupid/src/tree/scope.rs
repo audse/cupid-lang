@@ -263,8 +263,7 @@ impl Display for SingleScope {
 }
 
 pub fn create_generic_symbol(generic: &GenericType, meta: &Meta<Flag>, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
-	let symbol = SymbolNode::from(&TypeHintNode::new(generic.identifier.to_owned(), TypeFlag::Primitive, vec![], meta.tokens.to_owned()));
-	
+	let symbol = SymbolNode::from(&TypeHintNode::new(generic.identifier.to_owned(), vec![TypeFlag::Primitive], vec![], meta.tokens.to_owned()));
 	let value = ValueNode::from((Value::Type(TypeKind::Generic(generic.to_owned())), meta));
 	
 	let declare = SymbolValue::Declaration { 

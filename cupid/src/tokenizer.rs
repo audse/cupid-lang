@@ -151,7 +151,7 @@ impl Tokenizer {
 
 impl Display for Token {
 	fn fmt(&self, f: &mut Formatter) -> Result {
-		writeln!(f, "Token `{}` ({}:{})", self.source, self.line, self.index)
+		writeln!(f, "`{}`", self.source)
 	}
 }
 

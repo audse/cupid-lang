@@ -10,10 +10,11 @@ pub struct FunctionNode {
 
 impl From<&mut ParseNode> for FunctionNode {
 	fn from(node: &mut ParseNode) -> Self {
+		let tokens: Vec<Token> = node.collect_tokens();
 		Self {
 			params: ParametersNode::from(&mut node.children[0]),
 			body: BlockNode::from(&mut node.children[1]),
-			meta: Meta::with_tokens(node.tokens.to_owned()),
+			meta: Meta::with_tokens(tokens),
 			scope: SingleScope::new(Context::Closure),
 		}
 	}
@@ -64,20 +65,20 @@ impl FunctionNode {
 		self.scope = scope.drop_closure();
 		Ok(())
 	}
-	pub fn match_params_to_args(&self, args: &ArgumentsNode) -> Vec<(Parameter, BoxAST)> {
+	pub fn match_params_to_args(&self, args: &ArgumentsNode) -> Result<Vec<(Parameter, BoxAST)>, Error> {
 		let params: &Vec<Parameter> = &self.params.symbols;
 		if params.len() == args.0.len() {
-			params
+			Ok(params
 				.iter()
 				.enumerate()
 				.map(|(i, p)| ((*p).to_owned(), args.0[i].to_owned()))
-				.collect()
+				.collect())
 		} else {
-			panic!("wrong number of args: expected {}, found {}", self.params.symbols.len(), args.0.len())
+			Err(self.error_raw(format!("wrong number of args: expected {}, found {}", self.params.symbols.len(), args.0.len())))
 		}
 	}
 	pub fn set_params(&self, args:  &ArgumentsNode, scope: &mut LexicalScope) -> Result<(), Error> {
-		for (param, arg) in self.match_params_to_args(args) {
+		for (param, arg) in self.match_params_to_args(args)? {
 			if let Some(type_hint) = &param.type_hint {
 				let type_hint: TypeHintNode = type_hint.resolve_to(scope)?;
 				
@@ -106,5 +107,18 @@ impl FunctionNode {
 	}
 	pub fn empty(&self) -> bool {
 		self.body.expressions.is_empty()
+	}
+}
+
+impl ErrorHandler for FunctionNode {
+	fn get_token(&self) -> &Token {
+		if self.meta.tokens.len() > 0 {
+    		&self.meta.tokens[0]
+		} else {
+			panic!("error occurred for {self:?} but there is no positional information")
+		}
+	}
+	fn get_context(&self) -> String {
+    	format!("accessing function ({:?})", self.params)
 	}
 }

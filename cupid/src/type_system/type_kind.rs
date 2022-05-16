@@ -60,7 +60,7 @@ impl TypeKind {
 	}
 	pub fn infer_id(value: &ValueNode) -> Option<TypeHintNode> {
 		use Value::*;
-		use TypeFlag::{Primitive, Array as TArray, Map as TMap, Function as TFunction};
+		use TypeFlag::{Primitive, Inferred, Array as TArray, Map as TMap, Function as TFunction};
 		let tokens = value.meta.tokens.to_owned();
 		if let Some((name, flag, args)) = match &value.value {
 			Boolean(_) => Some(("bool", Primitive, vec![])),
@@ -91,7 +91,7 @@ impl TypeKind {
 			Values(_) => Option::None,
 			_ => Option::None,
 		} {
-			Some(TypeHintNode::new(name.into(), flag, args, tokens))
+			Some(TypeHintNode::new(name.into(), vec![flag, Inferred], args, tokens))
 		} else {
 			Option::None
 		}
