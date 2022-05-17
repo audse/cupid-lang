@@ -38,6 +38,15 @@ impl SymbolNode {
 			panic!()
 		}
 	}
+	pub fn from_value_and_tokens(value: Value, tokens: Vec<Token>) -> Self {
+		let mut symbol = Self(ValueNode {
+			value,
+			type_hint: None,
+			meta: Meta::with_tokens(tokens)
+		});
+		symbol.0.type_hint = TypeKind::infer_id(&symbol.0);
+		symbol
+	}
 }
 
 

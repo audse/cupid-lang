@@ -1,24 +1,33 @@
 package stdlib::stdlib
 
-use [e] add [t: array [e]] with array [e] {
-	fun [t] add = self, t other => {
-		t mut copy = self
-		for item in other => copy.push(item)
-		copy
-	}
+type parser = [
+	string source,
+	int index,
+	int line,
+]
+
+use default [t: parser] with parser {
+	fun [parser] default = _ => [
+		source: '',
+		index: 0,
+		line: 0
+	]
 }
 
-use [r] fun [r] {
-	fun [fun [r]] bind = self, int arg => {
-		fun [r] bound = _ => {
-			self(arg)
-		}
-		bound
-	}
+use parser {
+	fun [parser] new = string source => [
+		source: source,
+		index: 0,
+		line: 0
+	]
+	
+	# fun [char] next = _ => {
+	# 	self.index += 1
+	# 	self.source.char(index)
+	# }
 }
 
-fun [int] square = int num => num ^ 2
+parser mut cupid = parser.new('hello world')
 
-fun [int] bound_square = square.bind(10)
 
-log (bound_square())
+log (cupid)

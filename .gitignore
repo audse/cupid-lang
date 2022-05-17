@@ -7,3 +7,4 @@ antlr/.antlr/
 playground/node_modules/
 .nova/
 .codeedit/
+.idea/

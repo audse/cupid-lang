@@ -204,17 +204,25 @@ impl ValueNode {
 		Err(property.error_raw("could not find property"))
 	}
 	pub fn get_method(&self, method: &SymbolNode, scope: &mut LexicalScope) -> Result<(Option<Implementation>, FunctionNode), Error> {
-		// try to get implemented function or trait
 		if let Some(type_hint) = &self.type_hint {
+			// try to get implemented method or trait of variable
 			let type_hint: TypeHintNode = type_hint.resolve_to(scope)?;
-			let mut type_hint: TypeKind = type_hint.resolve_to(scope)?;
+			let mut type_kind: TypeKind = type_hint.resolve_to(scope)?;
 			
-			if let Some((implementation, function)) = type_hint.get_trait_function(&method, scope) {
+			if let Some((implementation, function)) = type_kind.get_trait_function(&method, scope) {
 				return Ok((Some(implementation), function));
 			}
 		} else if let Ok(property) = self.get_property(&method.0) {
 			if let Value::Function(function) = property.value {
 				return Ok((None, function));
+			}
+		} else {
+			let value = self.resolve(scope)?;
+			if let Value::Type(mut type_kind) = value.value {
+				// try to get associated method or trait of type kinds
+				if let Some((implementation, function)) = type_kind.get_trait_function(&method, scope) {
+					return Ok((Some(implementation), function));
+				}
 			}
 		}
 		Err(method.error_raw("could not find associated method"))

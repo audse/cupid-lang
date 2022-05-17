@@ -53,7 +53,10 @@
         -   [x] Primitives
         -   [ ] Array
         -   [ ] Map
-        -   [ ] Function (this can be how to implement things like call, bind, decorators, etc)
+        -   [x] Function
+            -   [ ] `call`
+            -   [ ] `bind`
+            -   [ ] Decorators
         -   [x] Struct
         -   [x] Alias
         -   [x] Sum
@@ -116,7 +119,7 @@ someone istype person # should be false
 -   [ ] Default values (allow fewer/skipped args)
 -   [x] No arguments
 -   [ ] Call immediately
--   [x] Closures need some help..capture scope inside function body
+-   [x] Closures need some help...capture scope inside function body
 -   [ ] Mutable params? E.g. passing a mutable struct to a function, the original struct should be mutated, right?
 -   [ ] Universal call syntax (I kind of already have this)
 

@@ -39,7 +39,7 @@
 - fun_kw: 'fun'
 
 - struct_type_hint: identifier bracket_list[struct_member_type_hint]
-- struct_member_type_hint: identifier ':' type_hint
+- struct_member_type_hint: type_hint identifier
 
 - implement_type: 'use' generics? type_hint brace[declarations]
 

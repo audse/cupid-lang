@@ -16,5 +16,8 @@ pub use log::*;
 mod operation;
 pub use operation::*;
 
+mod operation_utils;
+pub use operation_utils::*;
+
 mod parameters;
 pub use parameters::*;

@@ -191,7 +191,14 @@ impl Scope for SingleScope {
     	if let Some(result) = self.storage.get(&symbol.0) {
 			Ok(result.get_value(&symbol))
 		} else {
-			Err(error_undefined(symbol, self))
+			// attempt to match symbol to type hint
+			if let Some((_, result)) = self.storage.iter().find(|(key, _)| {
+				(&key.value).type_hint_eq_to(&symbol.0.value)
+			}) {
+				Ok(result.get_value(&symbol))
+			} else {
+				Err(error_undefined(symbol, self))
+			}
 		}
 	}	
 	fn get_value<T>(&self, symbol: &SymbolNode, function: &dyn Fn(&SymbolValue) -> Result<T, Error>) -> Result<T, Error> {

@@ -200,6 +200,13 @@ impl Value {
 	pub fn type_eq(&self, other: &Self) -> bool {
 		std::mem::discriminant(self) == std::mem::discriminant(other)
 	}
+	pub fn type_hint_eq_to(&self, other: &Self) -> bool {
+		if let (Value::TypeHint(type_hint), Value::String(string)) = (&self, &other) {
+			&type_hint.identifier == string
+		} else {
+			false
+		}
+	}
 	pub fn is_truthy(&self) -> bool {
 		match self {
 			Value::Integer(x) => *x >= 0,

@@ -42,6 +42,16 @@ impl BoxAST {
 			inner: Box::new(inner),
 		}
 	}
+	pub fn symbol_or_resolve(&self, scope: &mut LexicalScope) -> Result<Self, Error> {
+		// there are a few situations where we don't want to resolve symbols,
+		// but we do want to resolve anything else
+		// e.g. `person.name` (name is undefined) vs `people.0`
+		if let Some(_) = self.as_symbol() {
+			Ok(self.to_owned())
+		} else {
+			Ok(Self::new(self.resolve(scope)?))
+		}
+	}
 }
 
 impl Deref for BoxAST {

@@ -7,64 +7,23 @@ pub struct OperationNode {
 	pub operator: Cow<'static, str>,
 }
 
-impl From<&mut ParseNode> for OperationNode {
-	fn from(node: &mut ParseNode) -> Self {
-    	Self {
-			left: parse(&mut node.children[0]),
-			right: parse(&mut node.children[1]),
-			operator: node.tokens[0].source.to_owned(),
-		}
-	}
-}
-
 impl OperationNode {
 	pub fn parse_as_get_function(node: &mut ParseNode) -> FunctionCallNode {
-		let (function, flag) = ("get", FunctionFlag::Get);
-		let function = Value::String(function.into());
-		let mut function_symbol = SymbolNode(ValueNode {
-			type_hint: None,
-			value: function,
-			meta: Meta::with_tokens(node.tokens.to_owned()),
-		});
-		function_symbol.0.type_hint = TypeKind::infer_id(&function_symbol.0);
+		let (function_name, flag) = get_operation(".");
 		let left = parse(&mut node.children[0]);
 		let right = BoxAST::new(Self::parse_as_function(node));
 		
 		FunctionCallNode {
-			function: function_symbol,
+			function: SymbolNode::from_value_and_tokens(
+				Value::String(function_name.into()), 
+				node.tokens.to_owned()
+			),
 			args: ArgumentsNode(vec![left, right]),
-			meta: Meta::new(node.tokens.to_owned(), None, vec![flag])
+			meta: Meta::new(node.tokens.to_owned(), None, vec![flag.into()])
 		}
 	}
 	pub fn parse_as_function(node: &mut ParseNode) -> FunctionCallNode {
-		use FunctionFlag::*;
-		let (function_name, flag) = match &*node.tokens[0].source {
-			"+" => ("add", Add),
-			"-" => ("subtract", Subtract),
-			"*" => ("multiply", Multiply),
-			"/" => ("divide", Divide),
-			"%" => ("modulus", Modulus),
-			"^" => ("power", Power),
-			"is" => ("equal", Equal),
-			"not" => ("not_equal", NotEqual),
-			"<" => ("less", Less),
-			"<=" => ("less_equal", LessEqual),
-			">" => ("greater", Greater),
-			">=" => ("greater_equal", GreaterEqual),
-			"and" => ("logic_and", And),
-			"or" => ("logic_or", Or),
-			"as" => ("cast", As),
-			"istype" => ("is_type", IsType),
-			"." => ("get", Get),
-			_ => panic!("unrecognized operation"),
-		};
-		let function = Value::String(function_name.into());
-		let mut function_symbol = SymbolNode(ValueNode {
-			type_hint: None,
-			value: function,
-			meta: Meta::with_tokens(node.tokens.to_owned()),
-		});
-		function_symbol.0.type_hint = TypeKind::infer_id(&function_symbol.0);
+		let (function_name, flag) = get_operation(&*node.tokens[0].source);
 		let left = parse(&mut node.children[0]);
 		let right = parse(&mut node.children[1]);
 		let args = if function_name == "get" {
@@ -72,11 +31,40 @@ impl OperationNode {
 		} else {
 			vec![right]
 		};
-		
 		FunctionCallNode {
-			function: function_symbol,
+			function: SymbolNode::from_value_and_tokens(
+				Value::String(function_name.into()), 
+				node.tokens.to_owned()
+			),
 			args: ArgumentsNode(args),
-			meta: Meta::new(node.tokens.to_owned(), None, vec![flag])
+			meta: Meta::new(node.tokens.to_owned(), None, vec![flag.into()])
+		}
+	}
+	pub fn resolve_as_default(
+		function: &FunctionCallNode,
+		mut left_value: ValueNode,
+		right_value: ValueNode,
+	) -> Result<ValueNode, Error> {	
+		let left = left_value.value.to_owned();
+		let right = right_value.value.to_owned();
+	
+		let value = if let Some(operation_flag) = function.meta.flags.get(0) {
+			do_operation((*operation_flag).into(), left, right)
+		} else {
+			Err(format!("unrecognized operation: {:?}", function.meta.flags))
+		};
+		match value {
+			Ok(value) => {
+				left_value.value = value;
+				Ok(left_value.to_owned())
+			}
+			Err(string) => Err(left_value.error_raw_context(
+				string,
+				format!(
+					"attempting to perform operation {:?} on {left_value} and {right_value}",
+					function.meta.flags
+				),
+			)),
 		}
 	}
 }
@@ -89,21 +77,17 @@ pub struct TypeCastNode {
 
 impl TypeCastNode {
 	pub fn parse_as_function(node: &mut ParseNode) -> FunctionCallNode {
-		let function = Value::String("cast".into());
-		let mut function_symbol = SymbolNode(ValueNode {
-			type_hint: None,
-			value: function,
-			meta: Meta::with_tokens(node.tokens.to_owned()),
-		});
-		function_symbol.0.type_hint = TypeKind::infer_id(&function_symbol.0);
-		
+		let (function_name, flag) = get_operation(".");	
 		let left = parse(&mut node.children[0]);
 		let right = TypeHintNode::from(&mut node.children[1]);
 		
 		FunctionCallNode {
-			function: function_symbol,
+			function: SymbolNode::from_value_and_tokens(
+				Value::String(function_name.into()),
+				node.tokens.to_owned()
+			),
 			args: ArgumentsNode(vec![left, BoxAST::new(right)]),
-			meta: Meta::new(node.tokens.to_owned(), None, vec![FunctionFlag::As])
+			meta: Meta::new(node.tokens.to_owned(), None, vec![flag.into()])
 		}
 	}
 }

@@ -12,8 +12,6 @@
 	| continue
 	| op_assignment
 	| assignment
-	#| property_assignment
-	#| property_op_assignment
 	| log
 
 -~term:
@@ -21,7 +19,6 @@
 	| block
 	| function
 	| no_op
-	#| property_access
 	| operation
 
 -~loop:
@@ -48,10 +45,6 @@
 -~arrow_block: ~arrow expression
 
 - assignment: identifier equal term
-#- property_assignment: property_access equal term
-
-#- property_op_assignment: property_access operator equal term
-#- property_access: atom '.' term
 
 - op_assignment: identifier operator equal term
 -~operator: '+' | '-' | '*' | '/' | '^' | '%'
@@ -59,7 +52,6 @@
 -~atom:
 	empty
 	| builtin_function_call
-	#| function_call
 	| range
 	| map
 	| bracket_array
@@ -83,7 +75,6 @@
 
 - log: log_keyword paren[arguments]
 - builtin_function_call: =!'.' builtin_function paren[arguments]
-#- function_call: self_identifier paren[arguments]
 - arguments: list[term]
 
 -~log_keyword: 'log' | 'logs' | 'log_line' | 'logs_line' | 'debug'
@@ -106,7 +97,7 @@
 -~range_term: group | unary_op | number | identifier
 
 # operations can be kinda slow, going through all that, so this is a shortcut
--~no_op: !'-' atom !'.' !operator !keyword_operator
+-~no_op: !'-' atom !'.' !'(' !operator !keyword_operator
 
 -~operation: binary_op
 
@@ -130,7 +121,7 @@
 -!property: function_call property_suffix?
 -~property_suffix: '.' property
 
-- function_call: atom function_call_suffix*
+- function_call: atom function_call_suffix?
 -~function_call_suffix: '(' arguments ')'
 
 - unary_op: '-' atom

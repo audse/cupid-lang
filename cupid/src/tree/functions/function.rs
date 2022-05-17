@@ -41,18 +41,6 @@ impl AST for FunctionNode {
 impl FunctionNode {
 	// fn infer_return_type(&self) -> TypeKind { todo!() }
 	
-	pub fn call_function(&mut self, args: &ArgumentsNode, scope: &mut LexicalScope) -> Result<(&mut Self, ValueNode), Error> {
-		self.create_environment(None, args, scope)?;
-		let value = self.body.resolve(scope)?;
-		self.drop_environment(scope)?;
-		Ok((self, value))
-	}
-	pub fn call_function_with(&mut self, self_value: ValueNode, args: &ArgumentsNode, scope: &mut LexicalScope) -> Result<(ValueNode, ValueNode), Error> {
-		self.create_environment(Some(self_value), args, scope)?;
-		let value = self.body.resolve(scope)?;
-		let self_symbol = self.get_self_symbol(scope).unwrap();
-		Ok((self_symbol, value))
-	}
 	pub fn create_environment(&mut self, self_value: Option<ValueNode>, args: &ArgumentsNode, scope: &mut LexicalScope) -> Result<(), Error> {
 		if let (Some(self_symbol), Some(self_value)) = (&self.params.self_symbol, self_value) {
 			self.scope.set_symbol(&self_symbol, self_value.into_declaration(self.params.mut_self))?;
@@ -64,6 +52,20 @@ impl FunctionNode {
 	pub fn drop_environment(&mut self, scope: &mut LexicalScope) -> Result<(), Error> {
 		self.scope = scope.drop_closure();
 		Ok(())
+	}
+	pub fn drop_and_modify(&mut self, symbol: &SymbolNode, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
+		self.drop_environment(scope)?;
+		self.modify_closure(symbol, scope)
+	}
+	pub fn modify_closure(&self, symbol: &SymbolNode, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
+		scope.modify_symbol(symbol, &|symbol_value| match symbol_value {
+			SymbolValue::Declaration { value, .. } => {
+				if let Value::Function(_) = &mut value.value {
+					value.value = Value::Function(self.to_owned())
+				}
+			}
+			_ => (),
+		})
 	}
 	pub fn match_params_to_args(&self, args: &ArgumentsNode) -> Result<Vec<(Parameter, BoxAST)>, Error> {
 		let params: &Vec<Parameter> = &self.params.symbols;
@@ -94,9 +96,9 @@ impl FunctionNode {
 		}
 		Ok(())
 	}
-	pub fn get_self_symbol(&self, scope: &mut LexicalScope) -> Option<ValueNode> {
+	pub fn get_self_symbol(&self) -> Option<ValueNode> {
 		if let Some(symbol) = &self.params.self_symbol {
-			return match scope.get_symbol(&symbol) {
+			return match self.scope.get_symbol(&symbol) {
 				Ok(val) => {
 					Some(val)
 				},
@@ -120,5 +122,22 @@ impl ErrorHandler for FunctionNode {
 	}
 	fn get_context(&self) -> String {
     	format!("accessing function ({:?})", self.params)
+	}
+}
+
+impl Display for FunctionNode {
+	fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+		let params: Vec<String> = self.params.symbols
+			.iter()
+			.map(|p| {
+				let type_hint = if let Some(type_hint) = &p.type_hint {
+					format!("{type_hint} ")
+				} else {
+					String::new()
+				};
+				format!("{}{}", type_hint, p.symbol.0)
+			})
+			.collect();
+		write!(f, "fun ({})", params.join(", "))
 	}
 }

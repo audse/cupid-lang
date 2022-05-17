@@ -6,6 +6,22 @@ use add [t: int] with int
 use add [t: dec] with dec
 use add [t: string] with string
 
+use [e] add [t: array [e]] with array [e] {
+	fun [t] add = self, t other => {
+		t mut copy = self
+		for item in other => copy.push(item)
+		copy
+	}
+}
+
+use [k, v] add [t: map [k, v]] with map [k, v] {
+	fun [t] add = self, t other => {
+		t mut copy = self
+		for key, value in other => copy.set(key, value)
+		copy
+	}
+}
+
 trait [t] subtract = [
 	fun [t] subtract = self, t other => _
 ]
