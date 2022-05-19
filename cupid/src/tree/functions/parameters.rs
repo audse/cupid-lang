@@ -14,25 +14,42 @@ pub struct ParametersNode {
 	pub mut_self: bool,
 }
 
-impl From<&mut ParseNode> for ParametersNode {
+impl From<&mut ParseNode> for Result<ParametersNode, Error> {
 	fn from(node: &mut ParseNode) -> Self {
 		let mut_self = node.tokens
 			.iter_mut()
 			.any(|t| &*t.source == "mut");
 		
-		let symbols = node.filter_map_mut(&|n: &mut ParseNode| match &*n.name {
-				"annotated_parameter" => Some(Parameter {
-					type_hint: Some(TypeHintNode::from(&mut n.children[0])), 
-					symbol: SymbolNode::from(&mut n.children[1]), 
-					default: OptionAST::None // TODO default vals
-				}),
-				"self" => Some(Parameter {
-					type_hint: None,
-					symbol: SymbolNode::from(n), 
-					default: OptionAST::None // TODO default vals
-				}),
+		// TODO make separate impl?
+		let symbols = node.filter_map_mut_result(&|n: &mut ParseNode| {
+			let (type_hint, symbol, default) = match &*n.name {
+				"annotated_parameter" => (
+					match Result::<TypeHintNode, Error>::from(&mut n.children[0]) {
+						Ok(type_hint) => Some(type_hint),
+						Err(e) => return Some(Err(e)),
+					}, 
+					match Result::<SymbolNode, Error>::from(&mut n.children[1]) {
+						Ok(symbol) => symbol,
+						Err(e) => return Some(Err(e)),
+					}, 
+					OptionAST::None // TODO default vals
+				),
+				"self" => (
+					None,
+					match Result::<SymbolNode, Error>::from(n) {
+						Ok(symbol) => symbol,
+						Err(e) => return Some(Err(e)),
+					}, 
+					OptionAST::None // TODO default vals
+				),
 				_ => panic!("unexpected params, {n:?}")
-			});
+			};
+			Some(Ok(Parameter {
+				type_hint, 
+				symbol, 
+				default
+			}))
+		})?;
 		let self_symbol: Option<Box<SymbolNode>> = symbols
 			.iter()
 			.find(|s| s.type_hint.is_none())
@@ -41,11 +58,11 @@ impl From<&mut ParseNode> for ParametersNode {
 				s.0.type_hint = None;
 				Box::new(s)
 			});
-		Self {
+		Ok(ParametersNode {
 			symbols,
 			self_symbol,
 			mut_self
-		}
+		})
 	}
 }
 

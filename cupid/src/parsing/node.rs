@@ -20,8 +20,20 @@ impl ParseNode {
 	pub fn map_mut<R>(&mut self, function: &dyn Fn(&mut Self) -> R) -> Vec<R> {
 		self.children.iter_mut().map(function).collect()
 	}
+	pub fn map_mut_result<R>(&mut self, function: &dyn Fn(&mut Self) -> Result<R, Error>) -> Result<Vec<R>, Error> {
+		self.children.iter_mut().map(function).collect()
+	}
 	pub fn filter_map_mut<R>(&mut self, function: &dyn Fn(&mut Self) -> Option<R>) -> Vec<R> {
 		self.children.iter_mut().filter_map(function).collect()
+	}
+	pub fn filter_map_mut_result<R>(&mut self, function: &dyn Fn(&mut Self) -> Option<Result<R, Error>>) -> Result<Vec<R>, Error> {
+		// TODO can this be more similar to `map_mut_result`?
+		let result_items: Vec<Result<R, Error>> = self.children.iter_mut().filter_map(function).collect();
+		let mut items = vec![];
+		for item in result_items {
+			items.push(item?);
+		}
+		Ok(items)
 	}
 	pub fn has(&self, name: &str) -> bool {
 		self.children.iter().find(|c| c.name == name).is_some()

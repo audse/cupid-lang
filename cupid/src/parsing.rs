@@ -40,7 +40,7 @@ pub fn generate(grammar_paths: &[&str], destination_path: Str) {
 	let name = name(destination_path.to_owned().into());
 	let base = base.replace("BaseParser", &*name);
 	
-	let mut parser: GrammarParser = GrammarParser::new(name.into(), body);
+	let mut parser: GrammarParser = GrammarParser::new(name.into(), body, 0);
 	let grammar = parser.grammar();
 	let result = grammar.stringify();
 	_ = write(&*destination_path, base.replace(PLACEHOLDER, &result));

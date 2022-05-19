@@ -9,19 +9,19 @@ type ParseFun = dyn Fn(&mut TypesParser) -> Option<(ParseNode, bool)>;
 
 pub struct TypesParser {
     pub tokens: BiDirectionalIterator<Token>,
+	pub file: usize,
 }
 
 impl Parser for TypesParser {
     fn tokens(&mut self) -> &mut BiDirectionalIterator<Token> {
         &mut self.tokens
     }
+	fn file(&self) -> usize { self.file }
 }
 
 impl TypesParser {
-    pub fn new(source: String) -> Self {
-        Self {
-            tokens: Self::build(source),
-        }
+    pub fn new(source: String, file: usize) -> Self {
+        Self { tokens: Self::build(source, file), file }
     }
 
     fn _builtin_type(&mut self) -> Option<(ParseNode, bool)> {

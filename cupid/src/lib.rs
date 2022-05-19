@@ -4,6 +4,7 @@
 use colored::*;
 use wasm_bindgen::prelude::*;
 pub use serde::{Serialize, Deserialize};
+pub use lazy_static::lazy_static;
 
 // Stdlib
 pub use std::collections::HashMap;
@@ -77,7 +78,10 @@ pub fn run_and_collect_logs(string: &str) -> JsValue {
 	
 	let parse_tree = file_handler.parser._file();
 	let mut parse = parse_tree.unwrap().0;
-	let file = FileNode::from(&mut parse);
+	let file = match Result::<FileNode, Error>::from(&mut parse) {
+		Ok(ok) => ok,
+		Err(e) => panic!("{}", e.string(".."))
+	};
 	
 	let mut semantics: Vec<BoxAST> = vec![];
 	let mut values: Vec<(String, ValueNode)> = vec![];

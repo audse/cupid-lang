@@ -7,16 +7,16 @@ pub struct UseTraitBlockNode {
 	pub functions: ImplementationNode,
 }
 
-impl From<&mut ParseNode> for UseTraitBlockNode {
+impl From<&mut ParseNode> for Result<UseTraitBlockNode, Error> {
 	fn from(node: &mut ParseNode) -> Self {
-		let implementation = ImplementationNode::from(&mut node.to_owned());
+		let implementation = Result::<ImplementationNode, Error>::from(&mut node.to_owned())?;
 		let (trait_i, type_kind_i) = match (&implementation.type_generics, &implementation.trait_generics) {
 			(Some(_), Some(_)) => (1, 3),
 			(Some(_), None) => (1, 2),
 			(None, Some(_)) => (0, 2),
 			(None, None) => (0, 1)
 		};
-		let new = Self {
+		Ok(UseTraitBlockNode {
 			trait_symbol: TypeHintNode {
 				identifier: node.children[trait_i].tokens[0].source.to_owned(),
 				args: if let Some(generics) = implementation.trait_generics {
@@ -26,10 +26,9 @@ impl From<&mut ParseNode> for UseTraitBlockNode {
 				},
 				meta: Meta::with_tokens(node.tokens.to_owned())
 			},
-			type_symbol: TypeHintNode::from(&mut node.children[type_kind_i]),
-			functions: ImplementationNode::from(node),
-		};
-		new
+			type_symbol: Result::<TypeHintNode, Error>::from(&mut node.children[type_kind_i])?,
+			functions: Result::<ImplementationNode, Error>::from(node)?,
+		})
 	}
 }
 

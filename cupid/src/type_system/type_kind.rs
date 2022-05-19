@@ -89,6 +89,7 @@ impl TypeKind {
 			})),
 			Function(_) => Some(("fun", TFunction, vec![generic("r")])),
 			Values(_) => Option::None,
+			Pointer(_) => Option::None,
 			_ => Option::None,
 		} {
 			Some(TypeHintNode::new(name.into(), vec![flag, Inferred], args, tokens))
@@ -153,19 +154,24 @@ impl Type for TypeKind {
 	fn implement(&mut self, functions: HashMap<ValueNode, ValueNode>) {
 		self.get_implementation().implement(functions)
 	}
+	fn implement_generics(&mut self, generics: &mut Vec<GenericType>) {
+		self.get_implementation().implement_generics(generics)
+	}
 	fn implement_trait(&mut self, trait_symbol: TypeHintNode, implementation: Implementation) {
 		self.get_implementation().implement_trait(trait_symbol, implementation)
 	}
-	fn get_trait_function(&mut self, symbol: &SymbolNode, scope: &mut LexicalScope) -> Option<(Implementation, FunctionNode)> { 
+	fn get_trait_function(&mut self, symbol: &SymbolNode, scope: &mut LexicalScope) -> Option<(Implementation, Option<Implementation>, FunctionNode)> { 
 		self.get_implementation().get_trait_function(symbol, scope) 
 	}
+	
 }
 
 pub trait Type {
 	fn implement(&mut self, _functions: HashMap<ValueNode, ValueNode>) {}
+	fn implement_generics(&mut self, _generics: &mut Vec<GenericType>) {}
 	fn implement_trait(&mut self, _trait_symbol: TypeHintNode, _implement: Implementation) {}
 	fn get_function(&mut self, _symbol: &SymbolNode) -> Option<FunctionNode> { None }
-	fn get_trait_function(&mut self, _symbol: &SymbolNode, _scope: &mut LexicalScope) -> Option<(Implementation, FunctionNode)> { None }
+	fn get_trait_function(&mut self, _symbol: &SymbolNode, _scope: &mut LexicalScope) -> Option<(Implementation, Option<Implementation>, FunctionNode)> { None }
 	fn apply_args(&mut self, _args: Vec<TypeKind>) -> Result<(), &str> { Ok(()) }
 }
 

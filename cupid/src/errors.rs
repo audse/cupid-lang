@@ -9,6 +9,7 @@ pub struct Error {
     pub message: String,
     pub source: Cow<'static, str>,
     pub context: String,
+	pub file: usize,
 }
 
 impl std::error::Error for Error {}
@@ -19,6 +20,7 @@ impl Error {
         Error {
             line: token.line,
             index: token.index,
+			file: token.file,
             source: token.source.to_owned(),
             message: String::from(message),
             context: String::from(context),
@@ -65,7 +67,8 @@ pub trait ErrorHandler {
 			index: token.index,
 			message: message.into(),
 			context: self.get_context(),
-			source: token.source.to_owned()
+			source: token.source.to_owned(),
+			file: token.file,
 		}
 	}
 	fn error_raw_context<S>(&self, message: S, context: S) -> Error where S: Into<String> {
@@ -75,7 +78,8 @@ pub trait ErrorHandler {
 			index: token.index,
 			message: message.into(),
 			context: context.into(),
-			source: token.source.to_owned()
+			source: token.source.to_owned(),
+			file: token.file,
 		}
 	}
 }

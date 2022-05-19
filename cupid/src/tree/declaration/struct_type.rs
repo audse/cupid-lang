@@ -7,27 +7,31 @@ pub struct StructTypeDeclaration {
 	pub meta: Meta<()>,
 }
 
-impl From<&mut ParseNode> for StructTypeDeclaration {
+impl From<&mut ParseNode> for Result<StructTypeDeclaration, Error> {
 	fn from(node: &mut ParseNode) -> Self {
-		let generics = if let Some(generics) = Option::<GenericsNode>::from_parent(node) {
+		let generics = if let Some(generics) = Result::<Option<GenericsNode>, Error>::from_parent(node)? {
 			generics.0
 		} else {
 			vec![]
 		};
 		let i = if !generics.is_empty() { 1 } else { 0 };
 		let name = node.children[i].tokens[0].source.to_owned();
-		Self {
+		Ok(StructTypeDeclaration {
 			symbol: TypeHintNode::new(name, vec![TypeFlag::Struct], generics, node.children[0].tokens.to_owned()),
-			members: node.filter_map_mut(&|child| if &*child.name == "struct_member" {
-				Some((
-					TypeHintNode::from(&mut child.children[0]), 
-					SymbolNode::from(&mut child.children[1])
-				))
+			members: node.filter_map_mut_result(&|child| if &*child.name == "struct_member" {
+				let result = (
+					Result::<TypeHintNode, Error>::from(&mut child.children[0]), 
+					Result::<SymbolNode, Error>::from(&mut child.children[1])
+				);
+				match (result.0, result.1) {
+					(Ok(type_hint), Ok(symbol)) => Some(Ok((type_hint, symbol))),
+					(Err(e), _) | (_, Err(e)) => Some(Err(e))
+				}
 			} else {
 				None
-			}),
+			})?,
 			meta: Meta::with_tokens(node.tokens.to_owned())
-		}
+		})
 	}
 }
 

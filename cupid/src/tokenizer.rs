@@ -10,6 +10,7 @@ pub struct Tokenizer {
 	pub line: usize,
 	pub line_index: usize,
 	pub bracket_stack: Vec<char>,
+	pub file: usize
 }
 
 const OPEN: [char; 3] = ['[', '(', '{'];
@@ -19,7 +20,14 @@ const CLOSE: [char; 3] = [']', ')', '}'];
 pub struct Token {
 	pub source: Cow<'static, str>,
 	pub line: usize,
-	pub index: usize
+	pub index: usize,
+	pub file: usize,
+}
+
+impl Token {
+	pub fn source(&self) -> &str {
+		&self.source
+	}
 }
 
 impl std::fmt::Debug for Token {
@@ -29,7 +37,7 @@ impl std::fmt::Debug for Token {
 }
 
 impl Tokenizer {
-	pub fn new(string: Cow<'static, str>) -> Self {
+	pub fn new(string: Cow<'static, str>, file: usize) -> Self {
 		Self {
 			chars: string.chars().collect(),
 			source: string,
@@ -38,13 +46,14 @@ impl Tokenizer {
 			line: 1,
 			line_index: 0,
 			bracket_stack: vec![],
+			file,
 		}
 	}
 	pub fn add_token(&mut self, source: Cow<'static, str>) {
 		let index = if self.line_index > source.len() { 
 			self.line_index - source.len()
 		} else { 0 };
-		self.tokens.push(Token { source: source.into(), index, line: self.line });
+		self.tokens.push(Token { source: source.into(), index, line: self.line, file: self.file });
 	}
 	pub fn current(&self) -> char { *self.chars.get(self.index).unwrap_or(&'\0') }
 	pub fn is_done(&self) -> bool { self.index >= self.chars.len() }
@@ -88,7 +97,7 @@ impl Tokenizer {
 	fn identifier(&mut self, start_char: char) {
 		let mut source = start_char.to_string();
 		while let Some(c) = self.peek(1) {
-			if c.is_alphanumeric() || c == '_' {
+			if c.is_alphanumeric() || c == '_' || c == '!' {
 				source += &mut *self.advance().encode_utf8(&mut [0; 4]);
 			} else { break; }
 		}

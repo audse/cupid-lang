@@ -9,17 +9,19 @@ type ParseFun = dyn Fn(&mut CupidParser) -> Option<(ParseNode, bool)>;
 
 pub struct CupidParser {
 	pub tokens: BiDirectionalIterator<Token>,
+	pub file: usize,
 }
 
 impl Parser for CupidParser {
 	fn tokens(&mut self) -> &mut BiDirectionalIterator<Token> {
 		&mut self.tokens
 	}
+	fn file(&self) -> usize { self.file }
 }
 
 impl CupidParser {
-	pub fn new(source: String) -> Self {
-		Self { tokens: Self::build(source) }
+	pub fn new(source: String, file: usize) -> Self {
+		Self { tokens: Self::build(source, file), file }
 	}
     
 	
@@ -335,6 +337,10 @@ once!(&mut node, self._term(), false);
 			});
 
 			alt! ((self, true, node, pos) {
+				once!(&mut node, self._pointer(), false);
+			});
+
+			alt! ((self, true, node, pos) {
 				once!(&mut node, self._builtin_function_call(), false);
 			});
 
@@ -367,6 +373,10 @@ once!(&mut node, self._term(), false);
 			});
 
 			alt! ((self, true, node, pos) {
+				once!(&mut node, self._regex(), false);
+			});
+
+			alt! ((self, true, node, pos) {
 				once!(&mut node, self._string(), false);
 			});
 
@@ -384,6 +394,17 @@ once!(&mut node, self._term(), false);
 
 			alt! ((self, true, node, pos) {
 				once!(&mut node, self._self_identifier(), false);
+			});
+				None
+			}
+			
+			pub fn _pointer(&mut self) -> Option<(ParseNode, bool)> {
+				let (mut node, pos) = self.start_parse("pointer");
+				
+			alt! ((self, false, node, pos) {
+				once!(&mut node, self.expect(r"&"), false);
+optional!(&mut node, self.expect(r"mut"), false);
+once!(&mut node, self._self_identifier(), false);
 			});
 				None
 			}
@@ -663,6 +684,7 @@ once!(&mut node, self._range_term(), false);
 				
 			alt! ((self, true, node, pos) {
 				use_negative_lookahead!(self, self.tokens().index(), self.expect(r"-"));
+use_negative_lookahead!(self, self.tokens().index(), self.expect(r"not"));
 once!(&mut node, self._atom(), false);
 use_negative_lookahead!(self, self.tokens().index(), self.expect(r"."));
 use_negative_lookahead!(self, self.tokens().index(), self.expect(r"("));
@@ -853,6 +875,11 @@ once!(&mut node, self.expect(r")"), false);
 				once!(&mut node, self.expect(r"-"), false);
 once!(&mut node, self._atom(), false);
 			});
+
+			alt! ((self, false, node, pos) {
+				once!(&mut node, self.expect(r"not"), false);
+once!(&mut node, self._atom(), false);
+			});
 				None
 			}
 			
@@ -911,8 +938,14 @@ optional!(&mut node, self._term(), false);
 				let (mut node, pos) = self.start_parse("char");
 				
 			alt! ((self, false, node, pos) {
-				once!(&mut node, self.expect(r"\\"), false);
+				once!(&mut node, self.expect(r"\"), false);
+optional!(&mut node, self.expect(r"\"), false);
 once!(&mut node, self.expect_letter(), false);
+			});
+
+			alt! ((self, false, node, pos) {
+				once!(&mut node, self.expect(r"\"), false);
+once!(&mut node, self.expect(r"\"), false);
 			});
 				None
 			}
@@ -977,6 +1010,23 @@ once!(&mut node, self.expect_number(), false);
 
 			alt! ((self, true, node, pos) {
 				once!(&mut node, self.expect(r"is"), false);
+use_negative_lookahead!(self, self.tokens().index(), self.expect(r"not"));
+use_negative_lookahead!(self, self.tokens().index(), self.expect(r"type"));
+			});
+
+			alt! ((self, true, node, pos) {
+				once!(&mut node, self.expect(r"is"), false);
+once!(&mut node, self.expect(r"not"), false);
+			});
+
+			alt! ((self, true, node, pos) {
+				once!(&mut node, self.expect(r"is"), false);
+once!(&mut node, self.expect(r"type"), false);
+			});
+
+			alt! ((self, true, node, pos) {
+				once!(&mut node, self.expect(r"type"), false);
+once!(&mut node, self.expect(r"of"), false);
 			});
 
 			alt! ((self, true, node, pos) {
@@ -993,10 +1043,6 @@ once!(&mut node, self.expect_number(), false);
 
 			alt! ((self, true, node, pos) {
 				once!(&mut node, self.expect(r"as"), false);
-			});
-
-			alt! ((self, true, node, pos) {
-				once!(&mut node, self.expect(r"istype"), false);
 			});
 
 			alt! ((self, true, node, pos) {
@@ -1224,11 +1270,22 @@ once!(&mut node, self.expect(r"]"), false);
 				None
 			}
 			
+			pub fn _type_kw(&mut self) -> Option<(ParseNode, bool)> {
+				let (mut node, pos) = self.start_parse("type_kw");
+				
+			alt! ((self, true, node, pos) {
+				use_negative_lookahead!(self, self.tokens().index(), self.expect(r"is"));
+once!(&mut node, self.expect(r"type"), false);
+use_negative_lookahead!(self, self.tokens().index(), self.expect(r"of"));
+			});
+				None
+			}
+			
 			pub fn _builtin_type_definition(&mut self) -> Option<(ParseNode, bool)> {
 				let (mut node, pos) = self.start_parse("builtin_type_definition");
 				
 			alt! ((self, false, node, pos) {
-				once!(&mut node, self.expect(r"type"), false);
+				once!(&mut node, self._type_kw(), false);
 once!(&mut node, self.expect_word(), false);
 use_negative_lookahead!(self, self.tokens().index(), self.expect(r"="));
 			});
@@ -1291,7 +1348,7 @@ once!(&mut node, self._type_hint(), false);
 				let (mut node, pos) = self.start_parse("type_symbol");
 				
 			alt! ((self, true, node, pos) {
-				once!(&mut node, self.expect(r"type"), false);
+				once!(&mut node, self._type_kw(), false);
 optional!(&mut node, self._generics(), false);
 once!(&mut node, self._identifier(), false);
 			});
@@ -1621,6 +1678,27 @@ once!(&mut node, self._closing_bracket(), false);
 
 			alt! ((self, true, node, pos) {
 				once!(&mut node, self.expect_tag("<e 'missing closing bracket'>"), false);
+			});
+				None
+			}
+			
+			pub fn _regex(&mut self) -> Option<(ParseNode, bool)> {
+				let (mut node, pos) = self.start_parse("regex");
+				
+			alt! ((self, false, node, pos) {
+				once!(&mut node, self.expect(r"/"), false);
+once!(&mut node, self._regex_inner(), false);
+once!(&mut node, self.expect(r"/"), false);
+			});
+				None
+			}
+			
+			pub fn _regex_inner(&mut self) -> Option<(ParseNode, bool)> {
+				let (mut node, pos) = self.start_parse("regex_inner");
+				
+			alt! ((self, false, node, pos) {
+				use_negative_lookahead!(self, self.tokens().index(), self.expect(r"/"));
+once!(&mut node, self.expect_any(), false);
 			});
 				None
 			}

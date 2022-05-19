@@ -3,9 +3,9 @@ use crate::*;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BuiltinFunctionCallNode(pub FunctionCallNode);
 
-impl From<&mut ParseNode> for BuiltinFunctionCallNode {
+impl From<&mut ParseNode> for Result<BuiltinFunctionCallNode, Error> {
 	fn from(node: &mut ParseNode) -> Self {
-    	Self(FunctionCallNode::from(node))
+    	Ok(BuiltinFunctionCallNode(Result::<FunctionCallNode, Error>::from(node)?))
 	}
 }
 
@@ -18,6 +18,14 @@ impl AST for BuiltinFunctionCallNode {
 			None
 		};
 		self.do_function(arguments, symbol, scope)
+	}
+}
+
+fn get_string(from: &ValueNode) -> Result<String, Error> {
+	match &from.value {
+		Value::String(pattern) => Ok(pattern.to_string()),
+		Value::Char(pattern) => Ok(pattern.to_string()),
+		x => Err(from.error_raw(format!("expected a string or char, found {x}")))
 	}
 }
 
@@ -63,14 +71,11 @@ impl BuiltinFunctionCallNode {
 		let mut start_arg = arguments[0].to_owned();
 		let start_arg_copy = start_arg.to_owned();
 		let mut other_args: Vec<ValueNode> = arguments.into_iter().skip(1).collect();
-		match &mut start_arg.value {
+		match start_arg.value {
 			Value::String(string) => match func.as_str() {
 				"split" => {
-					if let Value::String(pattern) = &other_args[0].value {
-						Ok(string_split(start_arg_copy, string.to_owned(), Some(pattern), None))
-					} else {
-						Err(self.0.function.error_raw("expected a string to split with"))
-					}
+					let pattern = get_string(&other_args[0])?;
+					Ok(string_split(start_arg_copy, string.to_owned(), Some(&pattern.into()), None))
 				},
 				"split_at" => {
 					if let Value::Integer(index) = other_args[0].value {
@@ -80,14 +85,11 @@ impl BuiltinFunctionCallNode {
 					}
 				},
 				"split_n" => {
-					if let Value::String(pattern) = &other_args[0].value {
-						if let Value::Integer(index) = other_args[1].value {
-							Ok(string_split(start_arg_copy, string.to_owned(), Some(pattern), Some(index as usize)))
-						} else {
-							Err(self.0.function.error_raw("expected a index to split at"))
-						}
+					let pattern = get_string(&other_args[0])?;
+					if let Value::Integer(index) = other_args[1].value {
+						Ok(string_split(start_arg_copy, string.to_owned(), Some(&pattern.into()), Some(index as usize)))
 					} else {
-						Err(self.0.function.error_raw("expected a string to split with"))
+						Err(self.0.function.error_raw("expected a index to split at"))
 					}
 				},
 				"char" => {
@@ -104,24 +106,18 @@ impl BuiltinFunctionCallNode {
 					}
 				},
 				"replace" => {
-					if let (Value::String(pattern), Value::String(new)) = (&other_args[0].value, &other_args[1].value) {
-						let pattern = &(pattern.to_string());
-						let new = &(new.to_string());
-						start_arg.value = Value::String(string.replace(pattern, new).into());
-						Ok(start_arg)
-					} else {
-						Err(self.0.function.error_raw("expected pattern and replacement string"))
-					}
+					let pattern = get_string(&other_args[0])?;
+					let new = get_string(&other_args[1])?;
+					let value = string.replace(pattern.as_str(), new.as_str());
+					start_arg.value = Value::String(value.into());
+					Ok(start_arg)
 				},
 				"replace_n" => {
-					if let (
-						Value::String(pattern), 
-						Value::String(new), 
-						Value::Integer(n)
-					) = (&other_args[0].value, &other_args[1].value, &other_args[2].value) {
-						let pattern = &(pattern.to_string());
-						let new = &(new.to_string());
-						start_arg.value = Value::String(string.replacen(pattern, new, *n as usize).into());
+					let pattern = get_string(&other_args[0])?;
+					let new = get_string(&other_args[1])?;
+					if let Value::Integer(n) = &other_args[2].value {
+						let value = string.replacen(pattern.as_str(), new.as_str(), *n as usize);
+						start_arg.value = Value::String(value.into());
 						Ok(start_arg)
 					} else {
 						Err(self.0.function.error_raw("expected pattern, replacement string, and number of replacements"))
@@ -172,7 +168,7 @@ impl BuiltinFunctionCallNode {
 					start_arg.type_hint = TypeKind::infer_id(&start_arg);
 					Ok(start_arg)
 				}
-				_ => todo!()
+				x => todo!("{x} not implemented for array")
 			},
 			Value::Map(ref mut map) =>  match func.as_str() {
 				"get" => match start_arg.value.get_property(&other_args[0]) {
@@ -205,9 +201,9 @@ impl BuiltinFunctionCallNode {
 					start_arg.type_hint = TypeKind::infer_id(&start_arg);
 					Ok(start_arg)
 				},
-				_ => todo!()
+				x => todo!("{x} not implemented for map")
 			}
-			_ => todo!()
+			z => todo!("no builtin methods for {z}")
 		}
 	}
 }

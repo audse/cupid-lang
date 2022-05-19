@@ -7,24 +7,24 @@ pub struct SumTypeDeclaration {
 	pub meta: Meta<()>
 }
 
-impl From<&mut ParseNode> for SumTypeDeclaration {
+impl From<&mut ParseNode> for Result<SumTypeDeclaration, Error> {
 	fn from(node: &mut ParseNode) -> Self {
-		let generics = if let Some(generics) = Option::<GenericsNode>::from_parent(node) {
+		let generics = if let Some(generics) = Result::<Option<GenericsNode>, Error>::from_parent(node)? {
 			generics.0
 		} else {
 			vec![]
 		};
 		let i = if !generics.is_empty() { 1 } else { 0 };
 		let name = &node.children[i].tokens[0].source;
-    	Self {
+    	Ok(SumTypeDeclaration {
 			symbol: TypeHintNode::new(name.to_owned(), vec![TypeFlag::Sum], generics, node.children[0].tokens.to_owned()),
-			types: node.filter_map_mut(&|child| if &*child.name == "sum_member" {
-				Some(TypeHintNode::from(&mut child.children[0]))
+			types: node.filter_map_mut_result(&|child| if &*child.name == "sum_member" {
+				Some(Result::<TypeHintNode, Error>::from(&mut child.children[0]))
 			} else {
 				None
-			}),
+			})?,
 			meta: Meta::with_tokens(node.tokens.to_owned())
-		}
+		})
 	}
 }
 

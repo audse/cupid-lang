@@ -22,14 +22,19 @@ pub struct TypeHintNode {
 	pub meta: Meta<TypeFlag>,
 }
 
-impl From<&mut ParseNode> for TypeHintNode {
+impl From<&mut ParseNode> for Result<TypeHintNode, Error> {
 	fn from(node: &mut ParseNode) -> Self {
 		let tokens = node.collect_tokens();
-		Self {
-			identifier: node.children[0].tokens[0].source.to_owned(),
-			args: node.children.iter_mut().skip(1).map(Self::from).collect(),
-			meta: Meta::with_tokens(tokens)
+		let args: Vec<Self> = node.children.iter_mut().skip(1).map(Self::from).collect();
+		let mut arg_items = vec![];
+		for arg in args.into_iter() {
+			arg_items.push(arg?);
 		}
+		Ok(TypeHintNode {
+			identifier: node.children[0].tokens[0].source.to_owned(),
+			args: arg_items,
+			meta: Meta::with_tokens(tokens)
+		})
 	}
 }
 

@@ -13,6 +13,9 @@
 -~closing_brace: ~'}' | <e 'missing closing brace'>
 -~closing_bracket: ~']' | <e 'missing closing bracket'>
 
+- regex: '/' regex_inner '/'
+- regex_inner: !'/' ANY
+
 - identifier: !reserved_word WORD
 -~reserved_word:
 	'for'

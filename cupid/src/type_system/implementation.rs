@@ -27,13 +27,13 @@ impl Implementation {
 		}
 		None
 	}
-	pub fn get_trait_function(&self, symbol: &SymbolNode, scope: &mut LexicalScope) -> Option<(Implementation, FunctionNode)> {
+	pub fn get_trait_function(&self, symbol: &SymbolNode, scope: &mut LexicalScope) -> Option<(Self, Option<Implementation>, FunctionNode)> {
 		if let Some(function) = self.get_function(symbol) {
-			return Some((self.to_owned(), function.to_owned()))
+			return Some((self.to_owned(), None, function.to_owned()))
 		}
 		for implement in self.traits.iter() {
 			if let Some(function) = implement.1.get_function(symbol) {
-				return Some((implement.1.to_owned(), function.to_owned()));
+				return Some((self.to_owned(), Some(implement.1.to_owned()), function.to_owned()));
 			} else {
 				let prev_implement = scope.get_value(&SymbolNode::from(implement.0), &Self::from_scope_value);
 				if let Ok(Some(prev)) = prev_implement {
@@ -52,6 +52,9 @@ impl Implementation {
 		functions.into_iter().for_each(|(k, v)| {
 			self.functions.insert(k, v); 
 		});
+	}
+	pub fn implement_generics(&mut self, generics: &mut Vec<GenericType>) {
+		self.generics.append(generics)
 	}
 	pub fn implement_trait(&mut self, trait_symbol: TypeHintNode, implement: Implementation) {
 		self.traits.insert(trait_symbol, implement);

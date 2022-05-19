@@ -10,19 +10,19 @@ type ParseFun = dyn Fn(&mut BaseParser) -> Option<(ParseNode, bool)>;
 #[derive(PartialEq, Eq)]
 pub struct BaseParser {
     pub tokens: BiDirectionalIterator<Token>,
+	pub file: usize,
 }
 
 impl Parser for BaseParser {
     fn tokens(&mut self) -> &mut BiDirectionalIterator<Token> {
         &mut self.tokens
     }
+	fn file(&self) -> usize { self.file }
 }
 
 impl BaseParser {
-    pub fn new(source: String) -> Self {
-        Self {
-            tokens: Self::build(source),
-        }
+    pub fn new(source: String, file: usize) -> Self {
+        Self { tokens: Self::build(source, file), file }
     }
 
     pub fn _list(&mut self, inner: &ParseFun) -> Option<(ParseNode, bool)> {

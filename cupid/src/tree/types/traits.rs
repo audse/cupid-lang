@@ -6,19 +6,19 @@ pub struct TraitNode {
 	pub functions: ImplementationNode,
 }
 
-impl From<&mut ParseNode> for TraitNode {
+impl From<&mut ParseNode> for Result<TraitNode, Error> {
 	fn from(node: &mut ParseNode) -> Self {
-		let generics = if let Some(generics) = Option::<GenericsNode>::from_parent(node) {
+		let generics = if let Some(generics) = Result::<Option<GenericsNode>, Error>::from_parent(node)? {
 			generics.0
 		} else {
 			vec![]
 		};
 		let i = if !generics.is_empty() { 1 } else { 0 };
 		let name = node.children[i].tokens[0].source.to_owned();
-		Self {
+		Ok(TraitNode {
 			symbol: TypeHintNode::new(name, vec![TypeFlag::Trait], generics, node.children[0].tokens.to_owned()),
-			functions: ImplementationNode::from(node),
-		}
+			functions: Result::<ImplementationNode, Error>::from(node)?,
+		})
 	}
 }
 

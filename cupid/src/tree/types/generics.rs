@@ -3,30 +3,42 @@ use crate::*;
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct GenericsNode(pub Vec<TypeHintNode>);
 
-impl FromParent<&mut ParseNode> for Option<GenericsNode> {
+impl FromParent<&mut ParseNode> for Result<Option<GenericsNode>, Error> {
 	fn from_parent(node: &mut ParseNode) -> Self {
-		let generics_node = node.children.iter_mut().find(|n| &*n.name == "generics");
-		generics_node.map(GenericsNode::from)
+		let generics_node = node.get_mut("generics");
+		match generics_node.map(Result::<GenericsNode, Error>::from) {
+			Some(Ok(val)) => Ok(Some(val)),
+			Some(Err(e)) => Err(e),
+			None => Ok(None)
+		}
 	}
 }
 
-impl FromParent<&mut ParseNode> for Vec<GenericsNode> {
+impl FromParent<&mut ParseNode> for Result<Vec<GenericsNode>, Error> {
 	fn from_parent(node: &mut ParseNode) -> Self {
-		node.children
-			.iter_mut()
-			.filter(|n| &*n.name == "generics")
-			.map(GenericsNode::from)
-			.collect()
+		node.filter_map_mut_result(&|n| if &*n.name == "generics" {
+			Some(Result::<GenericsNode, Error>::from(n))
+		} else {
+			None
+		})
 	}
 }
 
-impl From<&mut ParseNode> for GenericsNode {
+impl From<&mut ParseNode> for Result<GenericsNode, Error> {
 	fn from(node: &mut ParseNode) -> Self {
-		Self(node.children.iter_mut().map(|g| TypeHintNode::generic_arg(
-			g.children[0].tokens[0].source.to_owned(),
-			g.children.get_mut(1).map(TypeHintNode::from),
-			g.children[0].tokens.to_owned()
-		)).collect())
+		let generics = node.map_mut_result(&|g| {
+			let arg = match g.children.get_mut(1).map(Result::<TypeHintNode, Error>::from) {
+				Some(Ok(value)) => Some(value),
+				Some(Err(err)) => return Err(err),
+				None => None
+			};
+			Ok(TypeHintNode::generic_arg(
+				g.children[0].tokens[0].source.to_owned(),
+				arg,
+				g.children[0].tokens.to_owned()
+			))
+		})?;
+		Ok(GenericsNode(generics))
 	}
 }
 

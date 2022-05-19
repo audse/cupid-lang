@@ -1,44 +1,51 @@
 use crate::*;
 
+fn box_node<'a, T: 'static + AST>(node: &'a mut ParseNode) -> Result<BoxAST, Error> 
+	where Result<T, Error>: From<&'a mut ParseNode> 
+{
+	let result = Result::<T, Error>::from(node)?;
+	Ok(BoxAST::new(result))
+}
 
-pub fn parse(node: &mut ParseNode) -> BoxAST {
+pub fn parse(node: &mut ParseNode) -> Result<BoxAST, Error> {
 	match &*node.name {
-		"file" => BoxAST::new(FileNode::from(node)),
+		"file" => box_node::<FileNode>(node),
 		"expression"
 		| "group" => parse(&mut node.children[0]),
 		"empty" 
 		| "comment"
-		| "package" => BoxAST::new(EmptyNode),
+		| "package" => Ok(BoxAST::new(EmptyNode)),
 		
 		// Type definitions
-		"builtin_type_definition" => BoxAST::new(BuiltinTypeNode::from(node)),
-		"alias_type_definition" => BoxAST::new(AliasTypeDeclaration::from(node)),
-		"struct_type_definition" => BoxAST::new(StructTypeDeclaration::from(node)),
-		"sum_type_definition" => BoxAST::new(SumTypeDeclaration::from(node)),
+		"builtin_type_definition" => box_node::<BuiltinTypeNode>(node),
+		"alias_type_definition" => box_node::<AliasTypeDeclaration>(node),
+		"struct_type_definition" => box_node::<StructTypeDeclaration>(node),
+		"sum_type_definition" => box_node::<SumTypeDeclaration>(node),
 		
 		// Type implementations
-		"trait_definition" => BoxAST::new(TraitNode::from(node)),
-		"implement_type" => BoxAST::new(UseBlockNode::from(node)),
-		"implement_trait" => BoxAST::new(UseTraitBlockNode::from(node)),
+		"trait_definition" => box_node::<TraitNode>(node),
+		"implement_type" => box_node::<UseBlockNode>(node),
+		"implement_trait" => box_node::<UseTraitBlockNode>(node),
 		
 		// Variable definitions
-		"typed_declaration" => BoxAST::new(DeclarationNode::from(node)),	
-		"assignment" => BoxAST::new(AssignmentNode::from(node)),
+		"typed_declaration" => box_node::<DeclarationNode>(node),
+		"assignment" => box_node::<AssignmentNode>(node),
 		
 		// Type hints
 		"array_type_hint"
 		| "function_type_hint"
 		| "map_type_hint"
 		| "primitive_type_hint"
-		| "struct_type_hint" => BoxAST::new(TypeHintNode::from(node)),
+		| "struct_type_hint" => box_node::<TypeHintNode>(node),
 		
 		// Terms
-		"block" => BoxAST::new(BlockNode::from(node)),
-		"for_loop" => BoxAST::new(ForInLoopNode::from(node)),
-		"while_loop" => BoxAST::new(WhileLoopNode::from(node)),
+		"block" => box_node::<BlockNode>(node),
+		"if_block" => box_node::<IfBlockNode>(node),
+		"for_loop" => box_node::<ForInLoopNode>(node),
+		"while_loop" => box_node::<WhileLoopNode>(node),
 		
 		"type_cast" =>  if node.children.len() > 1 {
-			BoxAST::new(TypeCastNode::parse_as_function(node))
+			Ok(BoxAST::new(TypeCastNode::parse_as_function(node)?))
 		} else {
 			 parse(&mut node.children[0])
 		},
@@ -47,45 +54,51 @@ pub fn parse(node: &mut ParseNode) -> BoxAST {
 		| "add"
 		| "multiply" 
 		| "exponent"=> if node.children.len() > 1 {
-			 BoxAST::new(OperationNode::parse_as_get_function(node))
+			 Ok(BoxAST::new(OperationNode::parse_as_get_function(node)?))
 		} else {
 			 parse(&mut node.children[0])
 		},
 		
 		"property" => if node.children.len() > 1 {
-			 BoxAST::new(OperationNode::parse_as_function(node))
+			Ok(BoxAST::new(OperationNode::parse_as_function(node)?))
 		} else {
 			 parse(&mut node.children[0])
 		},
 		
 		"function_call" => if node.children.len() > 1 {
-			BoxAST::new(FunctionCallNode::from(node))
+			box_node::<FunctionCallNode>(node)
 		} else {
 			 parse(&mut node.children[0])
 		},
 		
-		"unary_op" => parse(&mut node.children[0]), // TODO
+		"unary_op" => Ok(BoxAST::new(OperationNode::parse_as_get_function(node)?)),
 		
-		"log" => BoxAST::new(LogNode::from(node)),
+		"log" => box_node::<LogNode>(node),
 		
 		// Atoms
-		"builtin_function_call" => BoxAST::new(BuiltinFunctionCallNode::from(node)),
-		"function" => BoxAST::new(FunctionNode::from(node)),
-		"bracket_array" => BoxAST::new(ArrayNode::from(node)),
-		"map" => BoxAST::new(MapNode::from(node)),
+		"builtin_function_call" => box_node::<BuiltinFunctionCallNode>(node),
+		"function" => box_node::<FunctionNode>(node),
+		
+		"bracket_array" => box_node::<ArrayNode>(node),
+		
+		"map" => box_node::<MapNode>(node),
+		"range" => box_node::<RangeNode>(node),
 		
 		"identifier"
 		| "self"
 		| "array_kw"
 		| "map_kw"
-		| "fun_kw" => BoxAST::new(SymbolNode::from(node)),
+		| "fun_kw" => box_node::<SymbolNode>(node),
 		
 		"boolean"
 		| "none"
 		| "char"
 		| "string"
 		| "decimal"
-		| "number" => BoxAST::new(ValueNode::from(node)),
+		| "number"
+		| "pointer" => box_node::<ValueNode>(node),
+		
+		"error" => Err(Error::from_token(&node.tokens[0], "error", "error")),
 		
 		_ => panic!("unexpected node {node:?}")
 	}
@@ -97,12 +110,12 @@ pub struct FileNode {
 	pub meta: Meta<()>
 }
 
-impl From<&mut ParseNode> for FileNode {
+impl From<&mut ParseNode> for Result<FileNode, Error> {
 	fn from(node: &mut ParseNode) -> Self {
-    	Self {
-			expressions: node.children.iter_mut().map(parse).collect(),
+    	Ok(FileNode {
+			expressions: node.map_mut_result(&parse)?,
 			meta: Meta::with_tokens(node.tokens.to_owned())
-		}
+		})
 	}
 }
 

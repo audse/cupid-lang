@@ -7,13 +7,13 @@ pub struct FunctionCallNode {
     pub meta: Meta<FunctionFlag>,
 }
 
-impl From<&mut ParseNode> for FunctionCallNode {
+impl From<&mut ParseNode> for Result<FunctionCallNode, Error> {
     fn from(node: &mut ParseNode) -> Self {
-        Self {
-            function: SymbolNode::from(&mut node.children[0]),
-            args: ArgumentsNode::from(&mut node.children[1]),
+        Ok(FunctionCallNode {
+            function: Result::<SymbolNode, Error>::from(&mut node.children[0])?,
+            args: Result::<ArgumentsNode, Error>::from(&mut node.children[1])?,
             meta: Meta::new(node.tokens.to_owned(), None, vec![]),
-        }
+        })
     }
 }
 
@@ -69,7 +69,11 @@ impl FunctionCallNode {
 		match self.meta.flags[..] {
 			[Operation(Get), ..] => return self.resolve_get(&left_value, &self.args, scope),
 			_ => {
-				let right_value = self.args.0[0].resolve(scope)?;
+				let right_value = if !self.args.0.is_empty() {
+					Some(self.args.0[0].resolve(scope)?)
+				} else {
+					Option::None
+				};
 				OperationNode::resolve_as_default(&self, left_value, right_value)
 			}
 		}
@@ -78,12 +82,16 @@ impl FunctionCallNode {
     fn call_implemented_function(
         &self,
         first_arg: &ValueNode,
-        implementation: Implementation,
+        implementation: (Implementation, Option<Implementation>),
         mut function: FunctionNode,
         scope: &mut LexicalScope,
     ) -> Result<ValueNode, Error> {
         scope.add(Context::Implementation);
-        implementation.set_generic_symbols(&first_arg.meta, scope)?;
+		
+        implementation.0.set_generic_symbols(&first_arg.meta, scope)?;
+		if let Some(trait_implement) = implementation.1 {
+			trait_implement.set_generic_symbols(&first_arg.meta, scope)?;
+		}
 		
 		function.create_environment(Some(first_arg.to_owned()), &self.args, scope)?;
         let value = function.body.resolve(scope)?;

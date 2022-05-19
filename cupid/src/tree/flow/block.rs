@@ -5,11 +5,11 @@ pub struct BlockNode {
 	pub expressions: Vec<BoxAST>,
 }
 
-impl From<&mut ParseNode> for BlockNode {
+impl From<&mut ParseNode> for Result<BlockNode, Error> {
 	fn from(node: &mut ParseNode) -> Self {
-		Self {
-			expressions: node.children.iter_mut().map(parse).collect(),
-		}
+		Ok(BlockNode {
+			expressions: node.map_mut_result(&parse)?,
+		})
 	}
 }
 

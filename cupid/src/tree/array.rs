@@ -6,12 +6,12 @@ pub struct ArrayNode {
 	pub meta: Meta<Flag>,
 }
 
-impl From<&mut ParseNode> for ArrayNode {
+impl From<&mut ParseNode> for Result<ArrayNode, Error> {
 	fn from(node: &mut ParseNode) -> Self {
-		Self {
-			items: node.map_mut(&parse),
+		Ok(ArrayNode {
+			items: node.map_mut_result(&parse)?,
 			meta: Meta::with_tokens(node.tokens.to_owned())
-		}
+		})
 	}
 }
 

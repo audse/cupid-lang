@@ -22,6 +22,64 @@ use string {
 	fun [int]
 	length = self => length (self)
 	
-	# fun [string]
-	# trim = self => 
+	fun [string]
+	remove = self, int index => {
+		array [string] s_start = self.split_at(index)
+		array [string] s_end = s_start.1.split_at(index + 1)
+		s_start.0 + s_end.1
+	}
+	
+	fun [array [char]]
+	chars = self => {
+		array [char] mut char_list = []
+		int len = self.length()
+		for i in [0..]len => {
+			# TODO this doesn't work because `self` is `char_list`, 
+			# when it should be the `self` param
+			# chars.push(self.char_at(c))
+			char c = self.char(i)
+			char_list.push(c)
+		}
+		char_list
+	}
+	
+	fun [string]
+	trim_start = self => {
+		string mut copy = self
+		int mut i = 0
+		while (self.char(i) as string) is ' ' => {
+			copy = copy.replace_n(\\s, '', 1)
+			i = i + 1
+		}
+		copy
+	}
+	
+	fun [string]
+	trim_end = self => {
+		string mut copy = self
+		int mut i = self.length() - 1
+		while (self.char(i) as string) is ' ' => {
+			copy = copy.split_at(i).0
+			i = i - 1
+		}
+		copy
+	}
+	
+	fun [string]
+	trim = self => {
+		string mut copy = self.trim_start()
+		copy.trim_end()
+	}
+	
+	fun [string]
+	reverse = self => {
+		array [char] char_list = self.chars().reverse()
+		string mut reversed = ''
+		log (char_list)
+		for c in char_list => {
+			string other = c as string
+			reversed = reversed + other
+		}
+		reversed
+	}
 }

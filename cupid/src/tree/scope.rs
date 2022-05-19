@@ -219,11 +219,12 @@ impl Scope for SingleScope {
 				// Types can bypass immutability reasons in two cases
 				if let Value::Type(ref mut type_kind) = &mut v.value {
 					// Types can be implemented
-					if let SymbolValue::Implementation { trait_symbol, value } = body.to_owned() {
+					if let SymbolValue::Implementation { trait_symbol, mut value } = body.to_owned() {
 						if let Some(trait_symbol) = trait_symbol {
 							type_kind.implement_trait(trait_symbol, value);
 						} else {
 							type_kind.implement(value.functions);
+							type_kind.implement_generics(&mut value.generics);
 						}
 					// Generic types can be replaced
 					} else if let TypeKind::Generic(_) = type_kind {
@@ -258,11 +259,19 @@ impl Display for SingleScope {
 	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
 		let storage: Vec<String> = self.storage
 			.iter()
-			.map(|(k, v)| format!(
-				"{:12}: {}", 
-				k.to_string(), 
-				v.get_value(&SymbolNode(k.to_owned())).to_string()
-			))
+			.map(|(k, v)| {
+				let value = v.get_value(&SymbolNode(k.to_owned()));
+				format!(
+					"{:12}: {} {}", 
+					k.to_string(),
+					if let Some(type_hint) = &value.type_hint {
+						type_hint.to_string()
+					} else {
+						String::new()
+					},
+					value.to_string()
+				)
+			})
 			.collect();
 		
 		write!(f, "  {:?}: [{}  ]", self.context, crate::pretty!(storage))

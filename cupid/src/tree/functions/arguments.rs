@@ -3,9 +3,9 @@ use crate::*;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ArgumentsNode(pub Vec<BoxAST>);
 
-impl From<&mut ParseNode> for ArgumentsNode {
+impl From<&mut ParseNode> for Result<ArgumentsNode, Error> {
 	fn from(node: &mut ParseNode) -> Self {
-		Self(node.map_mut(&parse))
+		Ok(ArgumentsNode(node.map_mut_result(&parse)?))
 	}
 }
 

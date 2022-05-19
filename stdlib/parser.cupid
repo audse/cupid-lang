@@ -1,0 +1,24 @@
+type parser = [
+	string source,
+	int index,
+	int line,
+]
+
+use default [t: parser] with parser {
+	fun [parser] default = _ => [
+		source: '',
+		index: 0,
+		line: 0
+	]
+}
+
+use parser {
+	fun [parser] new = string source => [
+		source: source,
+		index: 0,
+		line: 0
+	]
+}
+
+parser mut cupid = parser.new('hello world')
+parser mut my_pointer = &cupid

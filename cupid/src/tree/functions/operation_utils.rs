@@ -1,9 +1,11 @@
 use crate::*;
 use OperationFlag::*;
 
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum FunctionFlag {
 	Operation(OperationFlag),
+	None
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -12,6 +14,7 @@ pub enum OperationFlag {
 	Subtract,
 	Multiply,
 	Divide,
+	Negate,
 	Modulus,
 	Power,
 	Equal,
@@ -45,24 +48,25 @@ impl From<FunctionFlag> for OperationFlag {
 	}
 }
 
-pub const OPERATIONS: &[(&str, &str, OperationFlag); 17] = &[
-	("+", "add", Add),
-	("-", "subtract", Subtract),
-	("*", "multiply", Multiply),
-	("/", "divide", Divide),
-	("%", "modulus", Modulus),
-	("^", "power", Power),
-	("is", "equal", Equal),
-	("not", "not_equal", NotEqual),
-	("<", "less", Less),
-	("<=", "less_equal", LessEqual),
-	(">", "greater", Greater),
-	(">=", "greater_equal", GreaterEqual),
-	("and", "logic_and", And),
-	("or", "logic_or", Or),
-	("as", "cast", As),
-	("istype", "is_type", IsType),
-	(".", "get", Get),
+pub const OPERATIONS: &[(&str, &str, OperationFlag); 18] = &[
+	("+", "add!", Add),
+	("-", "subtract!", Subtract),
+	("*", "multiply!", Multiply),
+	("/", "divide!", Divide),
+	("%", "modulus!", Modulus),
+	("^", "power!", Power),
+	("not", "negate!", Negate),
+	("is", "equal!", Equal),
+	("is not", "not_equal!", NotEqual),
+	("<", "less!", Less),
+	("<=", "less_equal!", LessEqual),
+	(">", "greater!", Greater),
+	(">=", "greater_equal!", GreaterEqual),
+	("and", "logic_and!", And),
+	("or", "logic_or!", Or),
+	("as", "cast!", As),
+	("is type", "is_type!", IsType),
+	(".", "get!", Get),
 ];
 
 pub fn get_operation(op_symbol: &str) -> (&'static str, OperationFlag) {
@@ -81,6 +85,7 @@ pub fn do_operation(op: OperationFlag, left: Value, right: Value) -> Result<Valu
 		Divide => left / right,
 		Modulus => left % right,
 		Power => left.pow(&right),
+		Negate => -left,
 		Equal => Ok(Boolean(left == right)),
 		NotEqual => Ok(Boolean(left != right)),
 		Less => left.compare(right, "<"),

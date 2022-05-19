@@ -1,33 +1,17 @@
 package stdlib::stdlib
 
-type parser = [
-	string source,
-	int index,
-	int line,
-]
 
-use default [t: parser] with parser {
-	fun [parser] default = _ => [
-		source: '',
-		index: 0,
-		line: 0
-	]
-}
+array [int] mut my_array = [10, 20, 30]
+array [int] my_pointer = &my_array
 
-use parser {
-	fun [parser] new = string source => [
-		source: source,
-		index: 0,
-		line: 0
-	]
-	
-	# fun [char] next = _ => {
-	# 	self.index += 1
-	# 	self.source.char(index)
-	# }
-}
+my_pointer.push(40)
 
-parser mut cupid = parser.new('hello world')
+# string my_string = 'hello world'
+# log (my_string.chars())
+# 
+# string to_trim = '   ...   '
+# log (to_trim.trim())
 
+log (my_array.reverse())
 
-log (cupid)
+log ('hello world'.reverse())

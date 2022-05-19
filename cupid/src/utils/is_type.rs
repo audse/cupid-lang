@@ -3,7 +3,7 @@ pub fn is_uppercase(string: &str) -> bool {
 }
 
 pub fn is_identifier(string: &str) -> bool {
-	string.chars().all(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '_'))
+	string.chars().all(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '_' | '!'))
 }
 
 pub fn is_string(string: &str) -> bool {

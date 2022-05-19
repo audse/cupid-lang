@@ -51,6 +51,7 @@
 
 -~atom:
 	empty
+	| pointer
 	| builtin_function_call
 	| range
 	| map
@@ -59,12 +60,14 @@
 	| unary_op
 	| boolean
 	| none
+	| regex
 	| string
 	| char
 	| decimal
 	| number
 	| self_identifier
 
+- pointer: '&' 'mut'? self_identifier
 - empty: ~'_'
 - group: ~'(' term? closing_paren
 - function: parameters  function_body
@@ -97,7 +100,7 @@
 -~range_term: group | unary_op | number | identifier
 
 # operations can be kinda slow, going through all that, so this is a shortcut
--~no_op: !'-' atom !'.' !'(' !operator !keyword_operator
+-~no_op: !'-' !'not' atom !'.' !'(' !operator !keyword_operator
 
 -~operation: binary_op
 
@@ -124,7 +127,7 @@
 - function_call: atom function_call_suffix?
 -~function_call_suffix: '(' arguments ')'
 
-- unary_op: '-' atom
+- unary_op: '-' atom | 'not' atom
 
 - break: 'break' term?
 - return: 'return' term?
@@ -132,7 +135,7 @@
 
 - boolean: 'true' | 'false'
 - none: 'none'
-- char: '\\' LETTER 
+- char: '\' '\'? LETTER | '\' '\'
 - string: STRING
 - decimal: NUMBER ~'.' NUMBER
 - number: NUMBER
@@ -143,12 +146,14 @@
 
 -~keyword_operator:
 	'in'
-	| 'is'
+	| 'is' !'not' !'type'
+	| 'is' 'not'
+	| 'is' 'type'
+	| 'type' 'of'
 	| 'and'
 	| 'not'
 	| 'or'
 	| 'as'
-	| 'istype'
 	| '>'
 	| '>' '='
 	| '<'

@@ -24,11 +24,6 @@ impl Hash for ValueNode {
 impl Display for ValueNode {
 	fn fmt(&self, f: &mut Formatter) -> DisplayResult {
 		write!(f, "{}", self.value)
-		// write!(f, "{} ({})", self.value, if let Some(type_hint) = &self.type_hint {
-		// 	type_hint.to_string()
-		// } else {
-		// 	String::new()
-		// })
 	}
 }
 
@@ -37,6 +32,7 @@ pub enum Flag {
 	Return,
 	Break,
 	Continue,
+	Pointer,
 }
 
 #[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -93,10 +89,10 @@ impl<F, T> From<&Meta<F>> for Meta<T> {
 	}
 }
 
-impl From<&mut ParseNode> for ValueNode {
+impl From<&mut ParseNode> for Result<ValueNode, Error> {
 	fn from(node: &mut ParseNode) -> Self {
-		let (value, tokens) = Self::parse_value(node);
-		let mut node = Self {
+		let (value, tokens) = ValueNode::parse_value(node)?;
+		let mut node = ValueNode {
 			type_hint: None,
 			value,
 			meta: Meta {
@@ -106,7 +102,7 @@ impl From<&mut ParseNode> for ValueNode {
 			},
 		};
 		node.type_hint = TypeKind::infer_id(&node);
-		node
+		Ok(node)
 	}
 }
 
@@ -139,16 +135,40 @@ impl From<(Value, Meta<Flag>)> for ValueNode {
 }
 
 impl ValueNode {
-	fn parse_value(node: &mut ParseNode) -> (Value, Vec<Token>) {
+	fn parse_value(node: &mut ParseNode) -> Result<(Value, Vec<Token>), Error> {
 		let tokens = node.tokens.to_owned();
-		(match &*node.name {
+		Ok((match &*node.name {
 			"boolean" => match &*tokens[0].source {
 				"true" => Value::Boolean(true),
 				"false" => Value::Boolean(false),
 				_ => panic!("booleans can only be 'true' or 'false'"),
 			},
 			"none" => Value::None,
-			"char" => Value::Char(tokens[1].source.chars().next().unwrap_or('\0')),
+			"char" => {
+				if tokens.len() == 1 {
+					Value::Char(tokens[1].source.chars().next().unwrap_or('\0'))
+				} else {
+					let chars = [
+						tokens[1].source.chars().next().unwrap_or_else(|| panic!("expected char")),
+						tokens[2].source.chars().next().unwrap_or_else(|| panic!("expected char")),
+					];
+					let c = match format!("{}{}", chars[0], chars[1]).as_str() {
+						r"\n" => '\n',
+						r"\t" => '\t',
+						r"\r" => '\r',
+						r"\s" => ' ',
+						c => return Err(Error::from_token(
+							&node.tokens[1], 
+							&format!("could not parse char from `{c}`"), 
+							""
+						))
+					};
+					Value::Char(c)
+				}
+			},
+			"pointer" => Value::Pointer(Box::new(
+				Result::<SymbolNode, Error>::from(&mut node.children[0])?
+			)),
 			"string"
 			| "identifier"
 			| "builtin_function"
@@ -170,7 +190,7 @@ impl ValueNode {
 			),
 			"number" => Value::Integer(tokens[0].source.parse::<i32>().unwrap()),
 			_ => panic!("could not parse value: {node:?}")
-		}, tokens)
+		}, tokens))
 	}
 	pub fn set_meta_identifier(&mut self, identifier: &Self) {
 		self.meta.identifier = Some(Box::new(identifier.to_owned()));
@@ -203,14 +223,14 @@ impl ValueNode {
 		}
 		Err(property.error_raw("could not find property"))
 	}
-	pub fn get_method(&self, method: &SymbolNode, scope: &mut LexicalScope) -> Result<(Option<Implementation>, FunctionNode), Error> {
+	pub fn get_method(&self, method: &SymbolNode, scope: &mut LexicalScope) -> Result<(Option<(Implementation, Option<Implementation>)>, FunctionNode), Error> {
 		if let Some(type_hint) = &self.type_hint {
 			// try to get implemented method or trait of variable
 			let type_hint: TypeHintNode = type_hint.resolve_to(scope)?;
 			let mut type_kind: TypeKind = type_hint.resolve_to(scope)?;
 			
-			if let Some((implementation, function)) = type_kind.get_trait_function(&method, scope) {
-				return Ok((Some(implementation), function));
+			if let Some((type_implement, trait_implement, function)) = type_kind.get_trait_function(&method, scope) {
+				return Ok((Some((type_implement, trait_implement)), function));
 			}
 		} else if let Ok(property) = self.get_property(&method.0) {
 			if let Value::Function(function) = property.value {
@@ -220,8 +240,8 @@ impl ValueNode {
 			let value = self.resolve(scope)?;
 			if let Value::Type(mut type_kind) = value.value {
 				// try to get associated method or trait of type kinds
-				if let Some((implementation, function)) = type_kind.get_trait_function(&method, scope) {
-					return Ok((Some(implementation), function));
+				if let Some((type_implement, trait_implement, function)) = type_kind.get_trait_function(&method, scope) {
+					return Ok((Some((type_implement, trait_implement)), function));
 				}
 			}
 		}

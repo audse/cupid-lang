@@ -13,24 +13,33 @@ pub struct MapNode {
 	pub meta: Meta<()>
 }
 
-impl From<&mut ParseNode> for MapNode {
+impl From<&mut ParseNode> for Result<MapNode, Error> {
 	fn from(node: &mut ParseNode) -> Self {
 		use MapKey::*;
-		Self {
-			items: node.filter_map_mut(&|child| if &*child.name == "map_entry" {
-				Some((
-					if child.children[0].name == "identifier" {
-						Symbol(SymbolNode::from(&mut child.children[0]))
-					} else {
-						AST(parse(&mut child.children[0]))
-					}, 
-					parse(&mut child.children[1])
-				))
+		let items = node.filter_map_mut_result(&|child| if &*child.name == "map_entry" {
+			let key = if child.children[0].name == "identifier" {
+				match Result::<SymbolNode, Error>::from(&mut child.children[0]) {
+					Ok(value) => Symbol(value),
+					Err(e) => return Some(Err(e))
+				}
 			} else {
-				None
-			}),
+				match parse(&mut child.children[0]) {
+					Ok(ast) => AST(ast),
+					Err(e) => return Some(Err(e))
+				}
+			};
+			let value = match parse(&mut child.children[1]) {
+				Ok(value) => value,
+				Err(e) => return Some(Err(e))
+			};
+			Some(Ok((key, value)))
+		} else {
+			None
+		})?;
+		Ok(MapNode {
+			items,
 			meta: Meta::with_tokens(node.tokens.to_owned())
-		}
+		})
 	}
 }
 

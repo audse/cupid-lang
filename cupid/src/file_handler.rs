@@ -7,6 +7,8 @@ pub struct FileHandler {
 	pub scope: LexicalScope,
 	pub errors: Vec<Error>,
 	pub warnings: Vec<Warning>,
+	pub current_file: usize,
+	pub files: Vec<String>,
 }
 
 impl FileHandler {
@@ -21,7 +23,9 @@ impl FileHandler {
 			parser,
 			scope,
 			errors,
-			warnings
+			warnings,
+			current_file: 1,
+			files: vec![path.to_string()],
 		}
 	}
 	
@@ -34,24 +38,35 @@ impl FileHandler {
 			parser,
 			scope,
 			errors,
-			warnings
+			warnings,
+			current_file: 1,
+			files: vec![],
 		}
 	}
 	
 	pub fn build(contents: &str) -> (CupidParser, LexicalScope, Vec<Error>, Vec<Warning>) {
-		let parser = CupidParser::new(contents.to_string());
+		let parser = CupidParser::new(contents.to_string(), 1);
 		let scope = LexicalScope::default();
 		(parser, scope, vec![], vec![])
 	}
 	
 	pub fn run_package(&mut self, package: PackageContents) -> Result<(), Error> {
 		self.report_loading_package(&package.path);
-		let mut parser = CupidParser::new(package.contents.to_owned());
+		
+		self.current_file += 1;
+		self.files.push(package.path.to_owned());
+		let mut parser = CupidParser::new(package.contents.to_owned(), self.current_file);
 		let parse_tree = parser._file();
 		if let Some((mut tree, _)) = parse_tree {
-			let semantics = parse(&mut tree);
+			let semantics = match parse(&mut tree) {
+				Ok(semantics) => semantics,
+				Err(e) => {
+					// println!("{tree}");
+					panic!("{}", self.make_error_string(&e))
+				}
+			};
 			if let Err(e) = semantics.resolve(&mut self.scope) {
-				panic!("{}", self.make_error_string(&package.contents, &package.path, &e));
+				panic!("{}", self.make_error_string(&e));
 			}
 			self.report_loading_package_success();
 		}
@@ -59,9 +74,9 @@ impl FileHandler {
 	}
 	
 	pub fn preload_contents<S>(&mut self, string: S) -> Result<(), Error> where S: Into<String> {
-		let mut parser = CupidParser::new(string.into());
+		let mut parser = CupidParser::new(string.into(), self.current_file);
 		let parse_tree = parser._file();
-		let semantics = parse(&mut parse_tree.unwrap().0);
+		let semantics = parse(&mut parse_tree.unwrap().0)?;
 		semantics.resolve(&mut self.scope)?;
 		Ok(())
 	}
@@ -78,13 +93,13 @@ impl FileHandler {
 			String::new()
 		});
 		
-		let semantics = parse(&mut parse_tree.unwrap().0);
+		let semantics = parse(&mut parse_tree.unwrap().0)?;
 		println!("Semantics: {:#?}", semantics);
 		
 		self.scope.add(Context::Block);
 		let result = match semantics.resolve(&mut self.scope) {
 			Err(e) => {
-				panic!("{}", self.make_error_string(&self.contents, &self.path, &e))
+				panic!("{}", self.make_error_string(&e))
 			},
 			Ok(val) => val,
 		};
@@ -93,13 +108,13 @@ impl FileHandler {
 		Ok(())
 	}
 	
-	pub fn parse(&mut self) -> BoxAST {
+	pub fn parse(&mut self) -> Result<BoxAST, Error> {
 		let parse_tree = self.parser._file();
 		parse(&mut parse_tree.unwrap().0)
 	}
 	
 	pub fn use_packages(&mut self, contents: String) -> Result<(), Error> {
-		let mut package_parser = PackageParser::new(contents.to_owned());
+		let mut package_parser = PackageParser::new(contents.to_owned(), self.current_file);
 		if let Some((mut tree, _)) = package_parser._packages() {
 			let package_semantics = parse_import(&mut tree);
 			let packages: Vec<PackageContents> = package_semantics.use_packages();
@@ -115,15 +130,18 @@ impl FileHandler {
 		self.report_build_started();
 		
 		self.use_packages(self.contents.to_owned())?;
-		
 		let parse_tree = self.parser._file();
-		let semantics = parse(&mut parse_tree.unwrap().0);
+		
+		let semantics = match parse(&mut parse_tree.unwrap().0) {
+			Ok(semantics) => semantics,
+			Err(e) => panic!("{}", self.make_error_string(&e))
+		};
 		
 		self.scope.add(Context::Block);
 		match semantics.resolve(&mut self.scope) {
 			Err(e) => {
-				// println!("{}", self.scope);
-				panic!("{}", self.make_error_string(&self.contents, &self.path, &e))
+				println!("{}", self.scope);
+				panic!("{}", self.make_error_string(&e))
 			},
 			Ok(val) => val,
 		};
@@ -131,27 +149,30 @@ impl FileHandler {
 		Ok(())
 	}
 	
-	pub fn get_line(&self, index: usize) -> &str {
-		Self::get_line_of(&self.contents, index)
+	pub fn get_line(&self, file: usize, index: usize) -> String {
+		let contents = std::fs::read_to_string(self.files[file].to_owned()).unwrap();
+		Self::get_line_of(contents, index)
 	}
 	
-	pub fn get_line_of(contents: &str, index: usize) -> &str {
+	pub fn get_line_of(contents: String, index: usize) -> String {
 		contents
 			.lines()
 			.enumerate()
 			.find(|(i, _l)| *i == index - 1)
 			.unwrap_or((0, "unable to find line"))
 			.1
+			.to_string()
 	}
 	
 	pub fn report_errors(&self) {
 		self.errors
 			.iter()
-			.for_each(|e| println!("{}", self.make_error_string(&self.contents, &self.path, e)));
+			.for_each(|e| println!("{}", self.make_error_string(e)));
 	}
 	
-	pub fn make_error_string(&self, contents: &str, path: &str, e: &Error) -> String {
-		let line = Self::get_line_of(contents, e.line).trim();
+	pub fn make_error_string(&self, e: &Error) -> String {
+		let path = &self.files[e.file - 1];
+		let line = &self.get_line(e.file - 1, e.line);
 		let underline_indent = vec![" "; e.index].join("");
 		let number_indent = vec![" "; e.line.to_string().len()].join("");
 		
@@ -162,7 +183,7 @@ impl FileHandler {
 		let line = format!(
 			"{line_number} | {line}",
 			line_number = e.line,
-			line = line
+			line = line.trim()
 		);
 		let underline = format!(
 			"{number_indent} | {underline_indent}{underline}",
@@ -180,7 +201,7 @@ impl FileHandler {
 		);
 		return format!(
 			"\n{error}\n\t{overline}\n\t{line}\n\t{underline}\n{context}\n\n",
-			error = e.string(path),
+			error = e.string(&path),
 			overline = overline,
 			line = line,
 			underline = underline,

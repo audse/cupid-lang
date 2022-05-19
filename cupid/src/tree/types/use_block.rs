@@ -6,7 +6,7 @@ pub struct UseBlockNode {
 	pub functions: ImplementationNode,
 }
 
-impl From<&mut ParseNode> for UseBlockNode {
+impl From<&mut ParseNode> for Result<UseBlockNode, Error> {
 	fn from(node: &mut ParseNode) -> Self {
 		let generics = node.get_mut("generics");	
 		let type_kind = if generics.is_some() {
@@ -14,11 +14,12 @@ impl From<&mut ParseNode> for UseBlockNode {
 		} else {
 			&mut node.children[0]
 		};
-		let type_kind = TypeHintNode::from(type_kind);
-		Self {
+		let type_kind = Result::<TypeHintNode, Error>::from(type_kind)?;
+		let implementation =  Result::<ImplementationNode, Error>::from(node)?;
+		Ok(UseBlockNode {
 			type_kind,
-			functions: ImplementationNode::from(node),
-		}
+			functions: implementation
+		})
 	}
 }
 

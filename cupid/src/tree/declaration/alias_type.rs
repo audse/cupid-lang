@@ -1,19 +1,19 @@
 use crate::*;
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AliasTypeDeclaration {
 	pub symbol: SymbolNode,
 	pub type_kind: TypeHintNode,
 	pub meta: Meta<()>,
 }
 
-impl From<&mut ParseNode> for AliasTypeDeclaration {
+impl From<&mut ParseNode> for Result<AliasTypeDeclaration, Error> {
 	fn from(node: &mut ParseNode) -> Self {
-		Self {
-			symbol: SymbolNode::from(&mut node.children[0]),
-			type_kind: TypeHintNode::from(&mut node.children[1]),
+		Ok(AliasTypeDeclaration {
+			symbol: Result::<SymbolNode, Error>::from(&mut node.children[0])?,
+			type_kind: Result::<TypeHintNode, Error>::from(&mut node.children[1])?,
 			meta: Meta::with_tokens(node.tokens.to_owned())
-		}
+		})
 	}
 }
 

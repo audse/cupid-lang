@@ -8,9 +8,9 @@ pub struct ImplementationNode {
 	pub meta: Meta<Flag>
 }
 
-impl From<&mut ParseNode> for ImplementationNode {
+impl From<&mut ParseNode> for Result<ImplementationNode, Error> {
 	fn from(node: &mut ParseNode) -> Self {
-		let mut generics = Vec::<GenericsNode>::from_parent(node);
+		let mut generics = Result::<Vec<GenericsNode>, Error>::from_parent(node)?;
 		generics.reverse();
 		let type_generics = if node.child_is(0, "generics") {
 			generics.pop()
@@ -18,19 +18,17 @@ impl From<&mut ParseNode> for ImplementationNode {
 			None
 		};
 		let trait_generics = generics.pop();
-		Self {
-			functions: node.children
-				.iter_mut()
-				.filter_map(|n| if &*n.name == "typed_declaration" {
-					Some(DeclarationNode::from(n))
+		Ok(ImplementationNode {
+			functions: node
+				.filter_map_mut_result(&|n| if &*n.name == "typed_declaration" {
+					Some(Result::<DeclarationNode, Error>::from(n))
 				} else {
 					None
-				}) 
-				.collect(),
+				})?,
 			type_generics,
 			trait_generics,
 			meta: Meta::with_tokens(node.tokens.to_owned())
-		}
+		})
 	}
 }
 

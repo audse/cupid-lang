@@ -9,10 +9,10 @@ pub struct DeclarationNode {
 	pub meta: Meta<()>,
 }
 
-impl From<&mut ParseNode> for DeclarationNode {
+impl From<&mut ParseNode> for Result<DeclarationNode, Error> {
 	fn from(node: &mut ParseNode) -> Self {
 		let value = if node.children.len() > 2 {
-			parse(&mut node.children[2])
+			parse(&mut node.children[2])?
 		} else {
 			BoxAST::new(ValueNode { 
 				value: Value::None, 
@@ -20,13 +20,13 @@ impl From<&mut ParseNode> for DeclarationNode {
 				meta: Meta::new(vec![], None, vec![]) 
 			})
 		};
-		Self {
-			type_hint: TypeHintNode::from(&mut node.children[0]),
-			symbol: SymbolNode::from(&mut node.children[1]),
+		Ok(DeclarationNode {
+			type_hint: Result::<TypeHintNode, Error>::from(&mut node.children[0])?,
+			symbol: Result::<SymbolNode, Error>::from(&mut node.children[1])?,
 			mutable: node.tokens.iter().any(|t| &*t.source == "mut"),
 			value,
 			meta: Meta::with_tokens(node.tokens.to_owned()),
-		}
+		})
 	}
 }
 
@@ -43,6 +43,16 @@ impl AST for DeclarationNode {
 		} else {
 			Some(self.type_hint.to_owned())
 		};
+		
+		value.type_hint = type_hint.to_owned();
+		
+		// TODO hacky fix
+		// manual fix for arrays that have been incorrectly parsed as maps
+		if let (Value::Map(map), Some(type_hint)) = (&value.value, &value.type_hint) {
+			if map.is_empty() && &*type_hint.identifier == "array" {
+				value.value = Value::Array(vec![]);
+			}
+		}
 		
 		// set symbol type as value's type
 		let mut symbol = self.symbol.to_owned();

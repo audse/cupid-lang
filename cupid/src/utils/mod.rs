@@ -7,6 +7,10 @@ pub use displays::*;
 mod is_type;
 pub use is_type::*;
 
+mod static_map;
+#[allow(unused_imports)]
+pub use static_map::*;
+
 pub fn pluralize<N, S>(number: N, word: S) -> String where N: Into<usize>, S: Into<String> {
 	let num: usize = number.into();
 	if num == 0 || num > 1 {

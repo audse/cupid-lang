@@ -8,18 +8,18 @@ pub struct ForInLoopNode {
 	pub meta: Meta<()>
 }
 
-impl From<&mut ParseNode> for ForInLoopNode {
+impl From<&mut ParseNode> for Result<ForInLoopNode, Error> {
 	fn from(node: &mut ParseNode) -> Self {
-		Self {
+		Ok(ForInLoopNode {
 			symbols: if let Some(params) = node.get_mut("for_loop_parameters") {
-				params.map_mut(&|s| SymbolNode::from(s))
+				params.map_mut_result(&|s| Result::<SymbolNode, Error>::from(s))?
 			} else {
 				vec![]
 			},
-			map: parse(&mut node.children[1]),
-			body: BlockNode::from(&mut node.children[2]),
+			map: parse(&mut node.children[1])?,
+			body: Result::<BlockNode, Error>::from(&mut node.children[2])?,
 			meta: Meta::with_tokens(node.tokens.to_owned()),
-		}
+		})
 	}
 }
 

@@ -6,7 +6,8 @@
 	| sum_type_definition
 	| alias_type_definition
 
-- builtin_type_definition: 'type' WORD !'='
+-~type_kw: !'is' 'type' !'of'
+- builtin_type_definition: type_kw WORD !'='
 
 - struct_type_definition: type_symbol ~equal bracket_list[struct_member]
 - struct_member: type_hint identifier
@@ -16,7 +17,7 @@
 
 - alias_type_definition: type_symbol ~equal type_hint
 
--~type_symbol: 'type' generics? identifier
+-~type_symbol: type_kw generics? identifier
 - generics: bracket_list[generic_argument]
 - generic_argument: identifier !':' | identifier ':' type_hint
 

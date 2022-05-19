@@ -5,18 +5,23 @@ use crate::*;
 #[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct SymbolNode(pub ValueNode);
 
-impl From<&mut ParseNode> for SymbolNode {
+impl From<&mut ParseNode> for Result<SymbolNode, Error> {
 	fn from(node: &mut ParseNode) -> Self {
-		let mut value_node = ValueNode::from(node);
+		let mut value_node = Result::<ValueNode, Error>::from(node)?;
 		// symbols do not have their own type
 		value_node.type_hint = None;
-    	Self(value_node)
+    	Ok(SymbolNode(value_node))
 	}
 }
 
 impl AST for SymbolNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
-		scope.get_symbol(self)
+		let value = scope.get_symbol(self)?;
+		if let Value::Pointer(pointer) = &value.value {
+			scope.get_symbol(&*pointer)
+		} else {
+			Ok(value)
+		}
 	}
 	fn as_symbol(&self) -> Option<&SymbolNode> { Some(&self) }
 }

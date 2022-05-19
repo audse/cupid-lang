@@ -18,6 +18,7 @@ pub enum Value {
 	Type(TypeKind),
 	Values(Vec<ValueNode>),
 	TypeHint(TypeHintNode),
+	Pointer(Box<SymbolNode>),
 }
 
 impl Add for Value {
@@ -38,6 +39,8 @@ impl Sub for Value {
 		match (self, rhs) {
 			(Value::Integer(x), Value::Integer(y)) => Ok(Value::Integer(x - y)),
 			(Value::Decimal(x, y), Value::Decimal(a, b)) => Ok(float_to_dec(dec_to_float(x, y) - dec_to_float(a, b))),
+			(Value::Integer(x), Value::None) => Ok(Value::Integer(-x)), // unary op
+			(Value::Decimal(x, y), Value::None) => Ok(float_to_dec(-dec_to_float(x, y))), // unary op
 			(x, y) => Err(format!("cannot subtract {y} from {x}"))
 		}
 	}
@@ -71,6 +74,7 @@ impl Neg for Value {
 		match self {
 			Value::Integer(x) => Ok(Value::Integer(-x)),
 			Value::Decimal(x, y) => Ok(float_to_dec(-dec_to_float(x, y))),
+			Value::Boolean(x) => Ok(Value::Boolean(!x)),
 			x => Err(format!("cannot negate {x}"))
 		}
 	}
@@ -377,6 +381,7 @@ impl Display for Value {
 				write!(f, "fun ({})", params.join(", "))
 			},
 			Self::TypeHint(id) => write!(f, "{id}"),
+			Self::Pointer(pointer) => write!(f, "&{pointer}"),
 			v => write!(f, "{:?}", v)
 		}
 	}

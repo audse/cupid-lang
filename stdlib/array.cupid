@@ -14,6 +14,17 @@ use [e] array [e] {
 	
 	fun [int]
 	length = self => length (self)
+	
+	fun [array [e]]
+	reverse = self => {
+		array [e] mut temp = []
+		int len = self.length()
+		for i in len[..0] => {
+			e item = self.i
+			temp.push(item)
+		}
+		temp
+	}
 		
 	fun [array [e]]
 	map_items = self, fun [array [e]] function => {

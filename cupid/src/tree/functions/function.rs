@@ -8,15 +8,15 @@ pub struct FunctionNode {
 	pub scope: SingleScope,
 }
 
-impl From<&mut ParseNode> for FunctionNode {
+impl From<&mut ParseNode> for Result<FunctionNode, Error> {
 	fn from(node: &mut ParseNode) -> Self {
 		let tokens: Vec<Token> = node.collect_tokens();
-		Self {
-			params: ParametersNode::from(&mut node.children[0]),
-			body: BlockNode::from(&mut node.children[1]),
+		Ok(FunctionNode {
+			params: Result::<ParametersNode, Error>::from(&mut node.children[0])?,
+			body: Result::<BlockNode, Error>::from(&mut node.children[1])?,
 			meta: Meta::with_tokens(tokens),
 			scope: SingleScope::new(Context::Closure),
-		}
+		})
 	}
 }
 

@@ -3,17 +3,19 @@ use crate::*;
 pub struct GrammarParser {
 	pub name: Str,
 	pub tokens: BiDirectionalIterator<Token>,
+	pub file: usize,
 }
 
 impl Parser for GrammarParser {
 	fn tokens(&mut self) -> &mut BiDirectionalIterator<Token> {
 		&mut self.tokens
 	}
+	fn file(&self) -> usize { self.file }
 }
 
 impl GrammarParser {
-	pub fn new(name: Str, source: Cow<'static, str>) -> Self {
-		Self { name, tokens: Self::build(source.into()) }
+	pub fn new(name: Str, source: Cow<'static, str>, file: usize) -> Self {
+		Self { name, tokens: Self::build(source.into(), file), file }
 	}
 	
 	pub fn grammar(&mut self) -> Grammar {

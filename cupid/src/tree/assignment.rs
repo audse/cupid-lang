@@ -7,13 +7,13 @@ pub struct AssignmentNode {
 	pub meta: Meta<()>
 }
 
-impl From<&mut ParseNode> for AssignmentNode {
+impl From<&mut ParseNode> for Result<AssignmentNode, Error> {
 	fn from(node: &mut ParseNode) -> Self {
-    	Self {
-			symbol: SymbolNode::from(&mut node.children[0]),
-			value: parse(&mut node.children[1]),
+    	Ok(AssignmentNode {
+			symbol: Result::<SymbolNode, Error>::from(&mut node.children[0])?,
+			value: parse(&mut node.children[1])?,
 			meta: Meta::with_tokens(node.tokens.to_owned())
-		}
+		})
 	}
 }
 

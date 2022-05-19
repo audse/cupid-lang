@@ -6,12 +6,12 @@ pub struct LogNode {
 	pub args: ArgumentsNode,
 }
 
-impl From<&mut ParseNode> for LogNode {
+impl From<&mut ParseNode> for Result<LogNode, Error> {
 	fn from(node: &mut ParseNode) -> Self {
-    	Self {
+    	Ok(LogNode {
 			identifier: node.tokens[0].source.to_owned(),
-			args: ArgumentsNode::from(&mut node.children[0])
-		}
+			args: Result::<ArgumentsNode, Error>::from(&mut node.children[0])?
+		})
 	}
 }
 

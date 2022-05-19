@@ -3,9 +3,10 @@ use crate::*;
 
 pub trait Parser {
 	fn tokens(&mut self) -> &mut BiDirectionalIterator<Token>;
+	fn file(&self) -> usize;
 	
-	fn build(source: String) -> BiDirectionalIterator<Token> {
-		let mut tokenizer = Tokenizer::new(source.into());
+	fn build(source: String, file: usize) -> BiDirectionalIterator<Token> {
+		let mut tokenizer = Tokenizer::new(source.into(), file);
 		tokenizer.scan();
 		BiDirectionalIterator::new(tokenizer.tokens)
 	}
@@ -89,6 +90,7 @@ pub trait Parser {
 	#[inline]
 	fn expect_tag(&mut self, arg: &'static str) -> Option<(ParseNode, bool)> {
 		if !self.tokens().at_end() {
+			let file = self.file();
 			let current_token = self.tokens().peek_back(1).unwrap();
 			return Some((
 				ParseNode {
@@ -98,6 +100,7 @@ pub trait Parser {
 							source: Cow::Borrowed(arg),
 							index: current_token.index + 1,
 							line: current_token.line,
+							file
 						},
 						current_token.to_owned(),
 					],

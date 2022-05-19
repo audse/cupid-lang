@@ -10,7 +10,7 @@ fn generic(name: &'static str, tokens: &Vec<Token>) -> TypeHintNode {
 	TypeHintNode::generic(name.into(), tokens.to_owned())
 }
 
-impl From<&mut ParseNode> for BuiltinTypeNode {
+impl From<&mut ParseNode> for Result<BuiltinTypeNode, Error> {
 	fn from(node: &mut ParseNode) -> Self {
 		let tokens = node.tokens.to_owned();
 		let name = tokens[1].source.to_owned();
@@ -36,12 +36,12 @@ impl From<&mut ParseNode> for BuiltinTypeNode {
 				TypeHintNode::new(name, vec![TypeFlag::Function], vec![generic("r", &tokens)], tokens),
 				TypeKind::new_function()
 			),
-			_ => panic!("unexpected builtin type")
+			_ => return Err(Error::from_token(&tokens[0], "unexpected builtin type", "defining builtin type"))
 		};
-		Self {
+		Ok(BuiltinTypeNode {
 			type_hint,
 			type_kind,
-		}
+		})
 	}
 }
 
