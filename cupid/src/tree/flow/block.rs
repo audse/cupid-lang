@@ -5,8 +5,8 @@ pub struct BlockNode {
 	pub expressions: Vec<BoxAST>,
 }
 
-impl From<&mut ParseNode> for Result<BlockNode, Error> {
-	fn from(node: &mut ParseNode) -> Self {
+impl FromParse for Result<BlockNode, Error> {
+	fn from_parse(node: &mut ParseNode) -> Self {
 		Ok(BlockNode {
 			expressions: node.map_mut_result(&parse)?,
 		})
@@ -23,5 +23,12 @@ impl AST for BlockNode {
 			values.push(value);
 		}
 		Ok(values.pop().unwrap())
+	}
+}
+
+impl Display for BlockNode {
+	fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+		let expressions: Vec<String> = self.expressions.iter().map(|e| e.to_string()).collect();
+		write!(f, "{{ {} }}", expressions.join("\n"))
 	}
 }

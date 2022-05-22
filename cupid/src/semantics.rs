@@ -1,9 +1,9 @@
 use crate::*;
 
 fn box_node<'a, T: 'static + AST>(node: &'a mut ParseNode) -> Result<BoxAST, Error> 
-	where Result<T, Error>: From<&'a mut ParseNode> 
+	where Result<T, Error>: FromParse
 {
-	let result = Result::<T, Error>::from(node)?;
+	let result = Result::<T, Error>::from_parse(node)?;
 	Ok(BoxAST::new(result))
 }
 
@@ -45,12 +45,13 @@ pub fn parse(node: &mut ParseNode) -> Result<BoxAST, Error> {
 		"while_loop" => box_node::<WhileLoopNode>(node),
 		
 		"type_cast" =>  if node.children.len() > 1 {
-			Ok(BoxAST::new(TypeCastNode::parse_as_function(node)?))
+			Ok(BoxAST::new(TypeCastNode::parse_as_get_function(node)?))
 		} else {
 			 parse(&mut node.children[0])
 		},
 		
-		"compare_op" 
+		"logic_op"
+		| "compare_op" 
 		| "add"
 		| "multiply" 
 		| "exponent"=> if node.children.len() > 1 {
@@ -110,8 +111,8 @@ pub struct FileNode {
 	pub meta: Meta<()>
 }
 
-impl From<&mut ParseNode> for Result<FileNode, Error> {
-	fn from(node: &mut ParseNode) -> Self {
+impl FromParse for Result<FileNode, Error> {
+	fn from_parse(node: &mut ParseNode) -> Self {
     	Ok(FileNode {
 			expressions: node.map_mut_result(&parse)?,
 			meta: Meta::with_tokens(node.tokens.to_owned())
@@ -122,8 +123,10 @@ impl From<&mut ParseNode> for Result<FileNode, Error> {
 impl AST for FileNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		let values = self.resolve_to(scope)?;
+		
 		let meta: Meta<Flag> = Meta {
-			tokens: self.meta.tokens.to_owned(),
+			tokens: vec![],
+			token_store: Some(scope.push_tokens(self.meta.tokens.to_owned())),
 			identifier: None,
 			flags: vec![]
 		};
@@ -142,6 +145,11 @@ impl ResolveTo<Vec<ValueNode>> for FileNode {
 	}
 }
 
+impl Display for FileNode {
+	fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+		write!(f, "{self:?}")
+	}
+}
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct EmptyNode;
@@ -149,5 +157,11 @@ impl AST for EmptyNode {
 	fn resolve(&self, _scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		Ok(ValueNode::new_none())
 		// Ok(())
+	}
+}
+
+impl Display for EmptyNode {
+	fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+		write!(f, "{self:?}")
 	}
 }

@@ -7,10 +7,10 @@ pub struct AssignmentNode {
 	pub meta: Meta<()>
 }
 
-impl From<&mut ParseNode> for Result<AssignmentNode, Error> {
-	fn from(node: &mut ParseNode) -> Self {
+impl FromParse for Result<AssignmentNode, Error> {
+	fn from_parse(node: &mut ParseNode) -> Self {
     	Ok(AssignmentNode {
-			symbol: Result::<SymbolNode, Error>::from(&mut node.children[0])?,
+			symbol: Result::<SymbolNode, Error>::from_parse(&mut node.children[0])?,
 			value: parse(&mut node.children[1])?,
 			meta: Meta::with_tokens(node.tokens.to_owned())
 		})
@@ -25,5 +25,11 @@ impl AST for AssignmentNode {
 		value.set_meta_identifier(&self.symbol.0);
 		
 		scope.set_symbol(&self.symbol, SymbolValue::Assignment { value })
+	}
+}
+
+impl Display for AssignmentNode {
+	fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+		write!(f, "{} = {}", self.symbol, self.value)
 	}
 }

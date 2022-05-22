@@ -5,13 +5,13 @@ pub enum ImportNode {
 	PackageList(Vec<Package>),
 	Package(Package),
 	NameSpace(NameSpace),
-	Items(Vec<ImportItem>)
+	Items(Vec<ImportItem>),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Package {
 	pub name_space: Option<NameSpace>,
-	pub items: Vec<ImportItem>
+	pub items: Vec<ImportItem>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -23,15 +23,15 @@ pub struct NameSpace {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ImportItem {
 	pub identifier: Cow<'static, str>,
-	pub tokens: Vec<Token>
+	pub tokens: Vec<Token>,
 }
 
 impl ImportNode {
-	pub fn use_packages(&self) -> Vec<PackageContents> {
+	pub fn use_packages(&self, load_path: &str) -> Vec<PackageContents> {
 		let mut package_list: Vec<PackageContents> = vec![];
 		if let Self::PackageList(packages) = self {
 			for package in packages {
-				package_list.push(get_contents(&package));
+				package_list.push(get_contents(&package, load_path));
 			}
 		} else {
 			panic!("expected package list")
@@ -40,7 +40,7 @@ impl ImportNode {
 	}
 }
 
-fn get_contents(package: &Package) -> PackageContents {
+fn get_contents(package: &Package, directory: &str) -> PackageContents {
 	let folder = if let Some(name_space) = &package.name_space {
 		name_space.name.to_string() + "/"
 	} else {
@@ -51,7 +51,7 @@ fn get_contents(package: &Package) -> PackageContents {
 	} else {
 		panic!("no file name")
 	};
-	let path = "./../".to_string() + folder.as_str() + &*file_name + ".cupid";
+	let path = directory.to_string() + "/" + folder.as_str() + &*file_name + ".cupid";
 	PackageContents {
 		contents: read(&path),
 		path,

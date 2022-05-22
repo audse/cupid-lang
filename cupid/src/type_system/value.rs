@@ -350,7 +350,7 @@ impl Display for Value {
 			},
 			Self::Map(map) => {
 				let entries: Vec<String> = map
-					.iter()
+					.into_iter()
 					.map(|(key, (_, value))| format!("{key}: {value}"))
 					.collect();
 				_ = write!(f, "[{}]", entries.join(", "));

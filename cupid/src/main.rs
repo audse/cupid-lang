@@ -28,7 +28,7 @@ fn main() {
 }
 
 fn run_path(path: &str, debug: bool)-> Result<(), Error> {
-	let mut file_handler = FileHandler::new(format!("src/tests/{}", path).as_str());
+	let mut file_handler = FileHandler::new(format!("./../apps/{}", path).as_str());
 	if debug {
 		file_handler.run_debug()
 	} else {

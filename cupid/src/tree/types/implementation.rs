@@ -8,8 +8,8 @@ pub struct ImplementationNode {
 	pub meta: Meta<Flag>
 }
 
-impl From<&mut ParseNode> for Result<ImplementationNode, Error> {
-	fn from(node: &mut ParseNode) -> Self {
+impl FromParse for Result<ImplementationNode, Error> {
+	fn from_parse(node: &mut ParseNode) -> Self {
 		let mut generics = Result::<Vec<GenericsNode>, Error>::from_parent(node)?;
 		generics.reverse();
 		let type_generics = if node.child_is(0, "generics") {
@@ -21,7 +21,7 @@ impl From<&mut ParseNode> for Result<ImplementationNode, Error> {
 		Ok(ImplementationNode {
 			functions: node
 				.filter_map_mut_result(&|n| if &*n.name == "typed_declaration" {
-					Some(Result::<DeclarationNode, Error>::from(n))
+					Some(Result::<DeclarationNode, Error>::from_parse(n))
 				} else {
 					None
 				})?,
@@ -35,11 +35,25 @@ impl From<&mut ParseNode> for Result<ImplementationNode, Error> {
 impl AST for ImplementationNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		let implementation: Implementation = self.resolve_to(scope)?;
-		Ok(ValueNode {
+		let mut value = ValueNode {
 			type_hint: None,
 			value: Value::Implementation(implementation),
 			meta: self.meta.to_owned(),
-		})
+		};
+		value.meta.set_token_store(scope);
+		Ok(value)
+	}
+}
+
+impl Display for ImplementationNode {
+	fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+		let functions: Vec<String> = self.functions.iter().map(|f| f.to_string()).collect();
+		write!(f, 
+			"[[{}][{}] {}]", 
+			unwrap_or_string(&self.type_generics), 
+			unwrap_or_string(&self.trait_generics),
+			functions.join(", ")
+		)
 	}
 }
 

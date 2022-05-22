@@ -13,12 +13,12 @@ pub struct MapNode {
 	pub meta: Meta<()>
 }
 
-impl From<&mut ParseNode> for Result<MapNode, Error> {
-	fn from(node: &mut ParseNode) -> Self {
+impl FromParse for Result<MapNode, Error> {
+	fn from_parse(node: &mut ParseNode) -> Self {
 		use MapKey::*;
 		let items = node.filter_map_mut_result(&|child| if &*child.name == "map_entry" {
 			let key = if child.children[0].name == "identifier" {
-				match Result::<SymbolNode, Error>::from(&mut child.children[0]) {
+				match Result::<SymbolNode, Error>::from_parse(&mut child.children[0]) {
 					Ok(value) => Symbol(value),
 					Err(e) => return Some(Err(e))
 				}
@@ -58,5 +58,18 @@ impl AST for MapNode {
 			Value::Map(items), 
 			&Meta::<Flag>::from(&self.meta)
 		)))
+	}
+}
+
+impl Display for MapNode {
+	fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+		let map: Vec<String> = self.items.iter().map(|(k, v)| {
+			let k = match k {
+				MapKey::AST(ast) => ast.to_string(),
+				MapKey::Symbol(symbol) => symbol.to_string(),
+			};
+			format!("{k}: {v}")
+		}).collect();
+		write!(f, "[{}]", map.join(", "))
 	}
 }

@@ -1,0 +1,93 @@
+type type! = [
+	string name,
+	array [string] params,
+	map [string, type!] members,
+	map [trait!] traits,
+]
+
+type [r] trait! = [
+	array [trait!] bounds,
+	map [string, fun [r]] methods,
+]
+
+use type! {
+	
+	fun [type!]
+	define = string name, array [string] params, map [string, type!] members => {
+		type! new_type = [
+			name: name,
+			params: params,
+			members: members,
+			traits: [],
+		]
+		new_type
+	}
+	
+	fun [type!] 
+	alias = string name, array [string] params, type! value => type!.define(name, params, [value: value])
+	
+	fun [type!]
+	generic = string name, array [string] params, type! value => type!.define(name, params, [value: value])
+	
+	fun [type!] 
+	primitive = string name => type!.define(name, [], [])
+	
+	fun [type!] 
+	struct = string name, array [string] params, map [string, type!] members => type!.define(name, params, members)
+	
+	# TODO
+	# fun [type!]
+	# sum! = string name, array [type!] members => {
+	# 	define(name, 
+	# }
+	
+	fun [type!]
+	get_member_type = self, string name => self.members.name
+	
+	fun [type!]
+	apply = self, map [string, type!] args => {
+		# Creates a new type by applying named arguments to an existing type definition
+		type! mut new_type = self
+		array [string] mut params = self.params
+		map [string, type!] mut members = []
+		
+		for key, value in self.members {
+			string val_name = value.name
+			if args.has_key(val_name) {
+				type! arg = args.get(val_name)
+				members.set(key, arg)
+			} else {
+				type! mut val = value
+				members.set(key, val.apply(args))
+			}
+			if self.params.contains(val_name) {
+				params.remove_item(val_name)
+			}
+		}
+		# TODO HERE apply args to functions
+		type! new_type = [
+			name: self.name,
+			members: members,
+			params: params,
+			traits: [],
+		]
+		new_type
+	}
+	
+	fun [type!]
+	apply_anonymous = self, array [type!] args => {
+		# Creates a new type by applying arguments in order of their params
+		# e.g. args (int, string) => map [k: int, v: string]
+		map [string, type!] mut mapped_args = []
+		for i, param in self.params => {
+			set (mapped_args, param, args.i)
+		}
+		self.apply(mapped_args)
+	}
+	
+	fun [type!] set_member = mut self, string name, type! value => {
+		map [string, type!] mut members = self.members
+		set(members, name, value)
+		set(self, 'members', members)
+	}
+}

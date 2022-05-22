@@ -69,25 +69,32 @@ impl TypeKind {
 			Decimal(_, _) => Some(("dec", Primitive, vec![])),
 			None => Some(("nothing", Primitive, vec![])),
 			String(_) => Some(("string", Primitive, vec![])),
-			Array(a) => Some(("array", TArray, if !a.is_empty() {
-				if let Some(t) = Self::infer_id(&a[0]) {
-					vec![t]
+			Array(a) => {
+				let el_generic = generic_from("e", &value.meta);
+				Some(("array", TArray, if !a.is_empty() {
+					if let Some(t) = Self::infer_id(&a[0]) {
+						vec![t]
+					} else {
+						vec![el_generic]
+					}
 				} else {
-					vec![generic("e")]
-				}
-			} else {
-				vec![generic("e")]
-			})),
-			Map(m) => Some(("map", TMap, if let Some((k, (_, v))) = &m.iter().next() {
-				if let (Some(k), Some(v)) = (Self::infer_id(&k), Self::infer_id(&v)) {
-					vec![k, v]
+					vec![el_generic]
+				}))
+			},
+			Map(m) => {
+				let key_generic = generic_from("k", &value.meta);
+				let val_generic = generic_from("v", &value.meta);
+				Some(("map", TMap, if let Some((k, (_, v))) = &m.iter().next() {
+					if let (Some(k), Some(v)) = (Self::infer_id(&k), Self::infer_id(&v)) {
+						vec![k, v]
+					} else {
+						vec![key_generic, val_generic]
+					}
 				} else {
-					vec![generic("k"), generic("v")]
-				}
-			} else {
-				vec![generic("k"), generic("v")]
-			})),
-			Function(_) => Some(("fun", TFunction, vec![generic("r")])),
+					vec![key_generic, val_generic]
+				}))
+		}	,
+			Function(_) => Some(("fun", TFunction, vec![generic_from("r", &value.meta)])),
 			Values(_) => Option::None,
 			Pointer(_) => Option::None,
 			_ => Option::None,
@@ -187,4 +194,14 @@ impl Display for TypeKind {
 
 fn generic(name: &'static str) -> TypeHintNode {
 	TypeHintNode::generic(name.into(), vec![])
+}
+
+fn generic_from(name: &'static str, meta: &Meta<Flag>) -> TypeHintNode {
+	let mut meta = Meta::<TypeFlag>::from(meta);
+	meta.flags.push(TypeFlag::Generic);
+	TypeHintNode {
+		identifier: name.into(),
+		args: vec![],
+		meta: Meta::<TypeFlag>::from(meta)
+	}
 }

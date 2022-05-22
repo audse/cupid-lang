@@ -7,11 +7,11 @@ pub struct AliasTypeDeclaration {
 	pub meta: Meta<()>,
 }
 
-impl From<&mut ParseNode> for Result<AliasTypeDeclaration, Error> {
-	fn from(node: &mut ParseNode) -> Self {
+impl FromParse for Result<AliasTypeDeclaration, Error> {
+	fn from_parse(node: &mut ParseNode) -> Self {
 		Ok(AliasTypeDeclaration {
-			symbol: Result::<SymbolNode, Error>::from(&mut node.children[0])?,
-			type_kind: Result::<TypeHintNode, Error>::from(&mut node.children[1])?,
+			symbol: Result::<SymbolNode, Error>::from_parse(&mut node.children[0])?,
+			type_kind: Result::<TypeHintNode, Error>::from_parse(&mut node.children[1])?,
 			meta: Meta::with_tokens(node.tokens.to_owned())
 		})
 	}
@@ -26,5 +26,11 @@ impl AST for AliasTypeDeclaration {
 			value: type_value,
 		};
 		scope.set_symbol(&self.symbol, declare)
+	}
+}
+
+impl Display for AliasTypeDeclaration {
+	fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+		write!(f, "{self:?}")
 	}
 }

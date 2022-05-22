@@ -8,3 +8,6 @@ playground/node_modules/
 .nova/
 .codeedit/
 .idea/
+**/target/
+**/Cargo.lock
+**/pkg/

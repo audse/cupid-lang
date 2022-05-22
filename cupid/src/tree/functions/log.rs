@@ -6,11 +6,11 @@ pub struct LogNode {
 	pub args: ArgumentsNode,
 }
 
-impl From<&mut ParseNode> for Result<LogNode, Error> {
-	fn from(node: &mut ParseNode) -> Self {
+impl FromParse for Result<LogNode, Error> {
+	fn from_parse(node: &mut ParseNode) -> Self {
     	Ok(LogNode {
 			identifier: node.tokens[0].source.to_owned(),
-			args: Result::<ArgumentsNode, Error>::from(&mut node.children[0])?
+			args: Result::<ArgumentsNode, Error>::from_parse(&mut node.children[0])?
 		})
 	}
 }
@@ -36,5 +36,11 @@ impl AST for LogNode {
 		};
 		print!("{log_string}");
 		Ok(ValueNode::new_none()) // TODO change to values
+	}
+}
+
+impl Display for LogNode {
+	fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+		write!(f, "log({})", self.args)
 	}
 }

@@ -9,8 +9,8 @@ pub struct DeclarationNode {
 	pub meta: Meta<()>,
 }
 
-impl From<&mut ParseNode> for Result<DeclarationNode, Error> {
-	fn from(node: &mut ParseNode) -> Self {
+impl FromParse for Result<DeclarationNode, Error> {
+	fn from_parse(node: &mut ParseNode) -> Self {
 		let value = if node.children.len() > 2 {
 			parse(&mut node.children[2])?
 		} else {
@@ -21,8 +21,8 @@ impl From<&mut ParseNode> for Result<DeclarationNode, Error> {
 			})
 		};
 		Ok(DeclarationNode {
-			type_hint: Result::<TypeHintNode, Error>::from(&mut node.children[0])?,
-			symbol: Result::<SymbolNode, Error>::from(&mut node.children[1])?,
+			type_hint: Result::<TypeHintNode, Error>::from_parse(&mut node.children[0])?,
+			symbol: Result::<SymbolNode, Error>::from_parse(&mut node.children[1])?,
 			mutable: node.tokens.iter().any(|t| &*t.source == "mut"),
 			value,
 			meta: Meta::with_tokens(node.tokens.to_owned()),
@@ -63,5 +63,11 @@ impl AST for DeclarationNode {
 			mutable: self.mutable, 
 			value
 		})
+	}
+}
+
+impl Display for DeclarationNode {
+	fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+		write!(f, "{self:?}")
 	}
 }

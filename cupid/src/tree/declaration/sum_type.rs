@@ -7,8 +7,8 @@ pub struct SumTypeDeclaration {
 	pub meta: Meta<()>
 }
 
-impl From<&mut ParseNode> for Result<SumTypeDeclaration, Error> {
-	fn from(node: &mut ParseNode) -> Self {
+impl FromParse for Result<SumTypeDeclaration, Error> {
+	fn from_parse(node: &mut ParseNode) -> Self {
 		let generics = if let Some(generics) = Result::<Option<GenericsNode>, Error>::from_parent(node)? {
 			generics.0
 		} else {
@@ -19,7 +19,7 @@ impl From<&mut ParseNode> for Result<SumTypeDeclaration, Error> {
     	Ok(SumTypeDeclaration {
 			symbol: TypeHintNode::new(name.to_owned(), vec![TypeFlag::Sum], generics, node.children[0].tokens.to_owned()),
 			types: node.filter_map_mut_result(&|child| if &*child.name == "sum_member" {
-				Some(Result::<TypeHintNode, Error>::from(&mut child.children[0]))
+				Some(Result::<TypeHintNode, Error>::from_parse(&mut child.children[0]))
 			} else {
 				None
 			})?,
@@ -45,5 +45,11 @@ impl AST for SumTypeDeclaration {
 			value: ValueNode::from((Value::Type(type_value), &symbol.0.meta)),
 		};
 		scope.set_symbol(&symbol, declare)
+	}
+}
+
+impl Display for SumTypeDeclaration {
+	fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+		write!(f, "{self:?}")
 	}
 }

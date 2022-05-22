@@ -1,17 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <completions>
     <provider>
-        <selector>mylang</selector>
+		<syntax>cupid</syntax>
+        <selector>*</selector>
         <expression>\b[a-zA-Z0-9-_]*</expression>
-        <set>mylang.entities</set>
+		
+		<symbols type="function">
+			<behavior>
+				<arguments prefix="(" suffix=")" separator=", " />
+			</behavior>
+		</symbols>
+		
+		<symbols type="keyword,variable,type" />
+		
+		<!-- Entities -->
+		<!-- <set>cupid.keywords</set>
+		<set> -->
     </provider>
-    
-    <!-- Entities -->
-    <set name="mylang.entities">
-        <completion string="&quot;" />
-        <completion string="&amp;" />
-        <completion string="&apos;" />
-        <completion string="&lt;" />
-        <completion string="&gt;" />
-    </set>
 </completions>

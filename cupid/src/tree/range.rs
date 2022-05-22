@@ -8,8 +8,8 @@ pub struct RangeNode {
 	pub meta: Meta<()>
 }
 
-impl From<&mut ParseNode> for Result<RangeNode, Error> {
-	fn from(node: &mut ParseNode) -> Self {
+impl FromParse for Result<RangeNode, Error> {
+	fn from_parse(node: &mut ParseNode) -> Self {
 		let range = &mut node.children[0];
 		let inclusive = match &*range.name {
 			"range_inclusive_inclusive" => (true, true),
@@ -33,6 +33,11 @@ impl AST for RangeNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
 		let start = self.start.resolve(scope)?;
 		let end = self.end.resolve(scope)?;
+		
+		let mut meta = Meta::<Flag>::from(&self.meta);
+		meta.set_token_store(scope);
+		let mut start_meta = Meta::<Flag>::from(&start.meta);
+		start_meta.set_token_store(scope);
 		
 		match (&start.value, &end.value) {
 			(Value::Integer(s), Value::Integer(e)) => {
@@ -58,21 +63,19 @@ impl AST for RangeNode {
 					(false, true, false) => (e..=s - 1).rev().collect(),
 					// _ => panic!()
 				};
-				// (0..=5)
-				
-				// let r: Vec<i32> = if s < e { 
-				// 	(s..e).collect() 
-				// } else { 
-				// 	(e..s).rev().collect() 
-				// };
-				let a: Vec<ValueNode> = r.into_iter().map(|i| ValueNode::from((
-					Value::Integer(i), 
-					Meta::<Flag>::from(&self.meta))
-				)).collect();
-				let value = ValueNode::from((Value::Array(a), Meta::<Flag>::from(&start.meta)));
+				let a: Vec<ValueNode> = r.into_iter().map(
+					|i| ValueNode::from((Value::Integer(i), meta.to_owned()))
+				).collect();
+				let value = ValueNode::from((Value::Array(a), start_meta));
 				Ok(value)
 			},
-			(x, y) => Err(start.error_raw(format!("start and end of an array must by integers, not {x} and {y}")))
+			(x, y) => Err(start.error(format!("start and end of an array must by integers, not {x} and {y}"), scope))
 		}
+	}
+}
+
+impl Display for RangeNode {
+	fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+		write!(f, "{self:?}")
 	}
 }

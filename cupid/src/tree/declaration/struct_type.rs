@@ -7,8 +7,8 @@ pub struct StructTypeDeclaration {
 	pub meta: Meta<()>,
 }
 
-impl From<&mut ParseNode> for Result<StructTypeDeclaration, Error> {
-	fn from(node: &mut ParseNode) -> Self {
+impl FromParse for Result<StructTypeDeclaration, Error> {
+	fn from_parse(node: &mut ParseNode) -> Self {
 		let generics = if let Some(generics) = Result::<Option<GenericsNode>, Error>::from_parent(node)? {
 			generics.0
 		} else {
@@ -20,8 +20,8 @@ impl From<&mut ParseNode> for Result<StructTypeDeclaration, Error> {
 			symbol: TypeHintNode::new(name, vec![TypeFlag::Struct], generics, node.children[0].tokens.to_owned()),
 			members: node.filter_map_mut_result(&|child| if &*child.name == "struct_member" {
 				let result = (
-					Result::<TypeHintNode, Error>::from(&mut child.children[0]), 
-					Result::<SymbolNode, Error>::from(&mut child.children[1])
+					Result::<TypeHintNode, Error>::from_parse(&mut child.children[0]), 
+					Result::<SymbolNode, Error>::from_parse(&mut child.children[1])
 				);
 				match (result.0, result.1) {
 					(Ok(type_hint), Ok(symbol)) => Some(Ok((type_hint, symbol))),
@@ -55,5 +55,11 @@ impl AST for StructTypeDeclaration {
 			value: ValueNode::from((Value::Type(type_value), &symbol.0.meta)),
 		};
 		scope.set_symbol(&symbol, declare)
+	}
+}
+
+impl Display for StructTypeDeclaration {
+	fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+		write!(f, "{self:?}")
 	}
 }

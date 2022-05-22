@@ -19,6 +19,12 @@ serde-wasm-bindgen = "0.4.2"
 serde_traitobject = "0.2.7"
 lazy_static = "1.4.0"
 
+cupid_util = { version = "0.1.0", path = '../cupid-util' }
+cupid_lex = { version = "0.1.0", path = '../cupid-lex' }
+cupid_parse = { version = "0.1.0", path = '../cupid-parse' }
+cupid_cst = { version = "0.1.0", path = '../cupid-cst' }
+cupid_types = { version = "0.1.0", path = '../cupid-types' }
+
 [dev-dependencies]
 criterion = "0.3"
 

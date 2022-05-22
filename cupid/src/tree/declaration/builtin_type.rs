@@ -10,8 +10,8 @@ fn generic(name: &'static str, tokens: &Vec<Token>) -> TypeHintNode {
 	TypeHintNode::generic(name.into(), tokens.to_owned())
 }
 
-impl From<&mut ParseNode> for Result<BuiltinTypeNode, Error> {
-	fn from(node: &mut ParseNode) -> Self {
+impl FromParse for Result<BuiltinTypeNode, Error> {
+	fn from_parse(node: &mut ParseNode) -> Self {
 		let tokens = node.tokens.to_owned();
 		let name = tokens[1].source.to_owned();
 		let (type_hint, type_kind) = match &*name {
@@ -58,5 +58,11 @@ impl AST for BuiltinTypeNode {
 			mutable: false,
 		};
 		scope.set_symbol(&symbol, value)
+	}
+}
+
+impl Display for BuiltinTypeNode {
+	fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+		write!(f, "{self:?}")
 	}
 }

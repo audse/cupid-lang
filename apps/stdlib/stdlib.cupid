@@ -1,0 +1,27 @@
+package typedef
+package typecast
+package integer
+package decimal
+package string
+package array
+package map
+package function
+package ops
+package compare
+package types::types
+
+trait [t] default = [
+	fun [t] default = _ => _
+]
+
+use default [t: string] with string {
+	fun [t] default = _ => ''
+}
+
+use [e] default [t: array [e]] with array [e] {
+	fun [t] default = _ => []
+}
+
+use [k, v] default [t: map [k, v]] with map [k, v] {
+	fun [t] default = _ => []
+}

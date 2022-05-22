@@ -7,8 +7,8 @@ pub struct OperationNode {
 	pub operators: Vec<Token>,
 }
 
-impl From<&mut ParseNode> for Result<OperationNode, Error> {
-	fn from(node: &mut ParseNode) -> Self {
+impl FromParse for Result<OperationNode, Error> {
+	fn from_parse(node: &mut ParseNode) -> Self {
 		Ok(OperationNode {
 			left: parse(&mut node.children[0])?,
 			right: if node.children.len() > 1 {
@@ -59,12 +59,13 @@ impl OperationNode {
 		})
 	}
 	pub fn parse_as_function(node: &mut ParseNode) -> Result<FunctionCallNode, Error> {
-		Result::<FunctionCallNode, Error>::from(Result::<Self, Error>::from(node)?)
+		Result::<FunctionCallNode, Error>::from(Result::<Self, Error>::from_parse(node)?)
 	}
 	pub fn resolve_as_default(
 		function: &FunctionCallNode,
 		mut left_value: ValueNode,
 		right_value: Option<ValueNode>,
+		scope: &mut LexicalScope
 	) -> Result<ValueNode, Error> {	
 		let left = left_value.value.to_owned();
 		let right = if let Some(right_value) = right_value {
@@ -83,12 +84,13 @@ impl OperationNode {
 				left_value.value = value;
 				Ok(left_value.to_owned())
 			}
-			Err(string) => Err(left_value.error_raw_context(
+			Err(string) => Err(left_value.error_context(
 				string,
 				format!(
 					"attempting to perform operation {:?} on {left_value} and {right}",
 					function.meta.flags
 				),
+				scope
 			)),
 		}
 	}
@@ -98,20 +100,48 @@ impl OperationNode {
 pub struct TypeCastNode {
 	pub left: BoxAST,
 	pub right: TypeHintNode,
+	pub operator: Token,
+}
+
+impl FromParse for Result<TypeCastNode, Error> {
+	fn from_parse(node: &mut ParseNode) -> Self {
+		Ok(TypeCastNode {
+			left: parse(&mut node.children[0])?,
+			right: Result::<TypeHintNode, Error>::from_parse(&mut node.children[1])?,
+			operator: node.tokens[0].to_owned()
+		})
+	}
+}
+
+impl From<TypeCastNode> for Result<FunctionCallNode, Error> {
+	fn from(op: TypeCastNode) -> Self {
+		let (function_name, flag) = get_operation(&op.operator.source);
+		Ok(FunctionCallNode {
+			function: SymbolNode::from_value_and_tokens(
+				Value::String(function_name.into()), 
+				vec![op.operator.to_owned()]
+			),
+			args: ArgumentsNode(vec![]),
+			meta: Meta::new(vec![op.operator], None, vec![flag.into()])
+		})
+	}
 }
 
 impl TypeCastNode {
 	pub fn parse_as_function(node: &mut ParseNode) -> Result<FunctionCallNode, Error> {
-		let (function_name, flag) = get_operation(".");	
+		Result::<FunctionCallNode, Error>::from(Result::<Self, Error>::from_parse(node)?)
+	}
+	pub fn parse_as_get_function(node: &mut ParseNode) -> Result<FunctionCallNode, Error> {
+		let (function_name, flag) = get_operation(".");
 		let left = parse(&mut node.children[0])?;
-		let right = Result::<TypeHintNode, Error>::from(&mut node.children[1])?;
+		let right = BoxAST::new(Self::parse_as_function(node)?);
 		
 		Ok(FunctionCallNode {
 			function: SymbolNode::from_value_and_tokens(
-				Value::String(function_name.into()),
+				Value::String(function_name.into()), 
 				node.tokens.to_owned()
 			),
-			args: ArgumentsNode(vec![left, BoxAST::new(right)]),
+			args: ArgumentsNode(vec![left, right]),
 			meta: Meta::new(node.tokens.to_owned(), None, vec![flag.into()])
 		})
 	}

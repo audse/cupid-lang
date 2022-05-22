@@ -1,0 +1,43 @@
+trait [f, t] cast! = [
+	fun [t] cast! = self => _
+]
+
+use cast! [f: int, t: bool] with int
+use cast! [f: int, t: dec] with int
+use cast! [f: int, t: string] with int
+use cast! [f: dec, t: bool] with dec
+use cast! [f: dec, t: int] with dec
+use cast! [f: dec, t: string] with dec
+use cast! [f: char, t: string] with char
+
+# TODO second cast overrides first cast
+use [e] cast! 
+[
+	f: array [e], 
+	t: map [int, e]
+]
+with array [e] {
+	fun [t] cast! = self => {
+		t mut value = []
+		# TODO why must this be the case and not `for i, item in self`
+		f items = self
+		for i, item in items => {
+			set (value, i, item)
+		}
+		value
+	}
+}
+
+use [e] cast! 
+[
+	f: array [e], 
+	t: map [string, e]
+]
+with array [e] {
+	fun [t] cast! = self => {
+		t mut value = []
+		f items = self
+		for i, item in items => set (value, (i as string), item)
+		value
+	}
+}

@@ -6,16 +6,16 @@ pub struct UseBlockNode {
 	pub functions: ImplementationNode,
 }
 
-impl From<&mut ParseNode> for Result<UseBlockNode, Error> {
-	fn from(node: &mut ParseNode) -> Self {
+impl FromParse for Result<UseBlockNode, Error> {
+	fn from_parse(node: &mut ParseNode) -> Self {
 		let generics = node.get_mut("generics");	
 		let type_kind = if generics.is_some() {
 			&mut node.children[1]
 		} else {
 			&mut node.children[0]
 		};
-		let type_kind = Result::<TypeHintNode, Error>::from(type_kind)?;
-		let implementation =  Result::<ImplementationNode, Error>::from(node)?;
+		let type_kind = Result::<TypeHintNode, Error>::from_parse(type_kind)?;
+		let implementation =  Result::<ImplementationNode, Error>::from_parse(node)?;
 		Ok(UseBlockNode {
 			type_kind,
 			functions: implementation
@@ -32,5 +32,11 @@ impl AST for UseBlockNode {
 			value: implementation,
 		};
 		scope.set_symbol(&type_symbol, symbol_value)
+	}
+}
+
+impl Display for UseBlockNode {
+	fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+		write!(f, "use {} {}", self.type_kind, self.functions)
 	}
 }

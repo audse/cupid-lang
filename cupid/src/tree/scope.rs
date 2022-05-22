@@ -57,16 +57,19 @@ impl SymbolValue {
 	}
 }
 
+pub type ScopeError = (ValueNode, String, String);
+
 pub trait Scope {
-	fn get_symbol(&self, symbol: &SymbolNode) -> Result<ValueNode, Error>;
-	fn get_value<T>(&self, symbol: &SymbolNode, function: &dyn Fn(&SymbolValue) -> Result<T, Error>) -> Result<T, Error>;
-	fn set_symbol(&mut self, symbol: &SymbolNode, body: SymbolValue) -> Result<ValueNode, Error>;
-	fn modify_symbol(&mut self, symbol: &SymbolNode, function: &dyn Fn(&mut SymbolValue)) -> Result<ValueNode, Error>;
+	fn get_symbol(&mut self, symbol: &SymbolNode) -> Result<ValueNode, ScopeError>;
+	fn get_value<T>(&mut self, symbol: &SymbolNode, function: &dyn Fn(&SymbolValue) -> Result<T, ScopeError>) -> Result<T, ScopeError>;
+	fn set_symbol(&mut self, symbol: &SymbolNode, body: SymbolValue) -> Result<ValueNode, ScopeError>;
+	fn modify_symbol(&mut self, symbol: &SymbolNode, function: &dyn Fn(&mut SymbolValue)) -> Result<ValueNode, ScopeError>;
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct LexicalScope {
-	pub scopes: Vec<SingleScope>
+	pub scopes: Vec<SingleScope>,
+	pub tokens: Vec<Vec<Token>>
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -79,7 +82,8 @@ impl Default for LexicalScope {
 	fn default() -> Self {
 		let global_scope = SingleScope::new(Context::Global);
 		Self {
-			scopes: vec![global_scope]
+			scopes: vec![global_scope],
+			tokens: vec![]
 		}
 	}
 }
@@ -95,7 +99,8 @@ impl LexicalScope {
 			})
 			.collect();
 		Self {
-			scopes: global_scopes
+			scopes: global_scopes,
+			tokens: vec![],
 		}
 	}
 	pub fn add(&mut self, context: Context) {
@@ -113,55 +118,69 @@ impl LexicalScope {
 	pub fn drop_closure(&mut self) -> SingleScope {
 		self.scopes.pop().unwrap_or_else(|| SingleScope::new(Context::Closure))
 	}
-	fn get_scope_of(&mut self, symbol: &SymbolNode) -> Option<&mut SingleScope> {
+	fn get_scope_of(&mut self, symbol: &SymbolNode, break_on_closure: bool) -> Option<&mut SingleScope> {
 		for scope in self.scopes.iter_mut().rev() {
 			if let Ok(_) = scope.get_symbol(symbol) {
 				return Some(scope);
 			}
+			if break_on_closure && scope.context == Context::Closure { break; }
 		}
 		None
 	}
-}
-
-impl Scope for LexicalScope {
-	fn get_symbol(&self, symbol: &SymbolNode) -> Result<ValueNode, Error> {
-		for scope in self.scopes.iter().rev() {
+	pub fn push_tokens(&mut self, tokens: Vec<Token>) -> usize {
+		self.tokens.push(tokens);
+		self.tokens.len() - 1
+	}
+	pub fn get_symbol(&mut self, symbol: &SymbolNode) -> Result<ValueNode, Error> {
+		for scope in self.scopes.iter_mut().rev() {
 			if let Ok(value) = scope.get_symbol(symbol) {
 				return Ok(value)
 			}
+			if scope.context == Context::Closure { break; }
 		}
-		Err(error_undefined(symbol, self))
+		if let Ok(value) = self.scopes.first_mut().unwrap().get_symbol(symbol)  {
+			return Ok(value)
+		}
+		Err(into_error(error_undefined(symbol, self), self))
 	}
-	fn get_value<T>(&self, symbol: &SymbolNode, function: &dyn Fn(&SymbolValue) -> Result<T, Error>) -> Result<T, Error> {
-		for scope in self.scopes.iter().rev() {
+	pub fn get_value<T>(&mut self, symbol: &SymbolNode, function: &dyn Fn(&SymbolValue) -> Result<T, ScopeError>) -> Result<T, Error> {
+		for scope in self.scopes.iter_mut().rev() {
 			if let Ok(value) = scope.get_value(symbol, function) {
 				return Ok(value)
 			}
 		}
-		Err(error_undefined(symbol, self))
+		Err(into_error(error_undefined(symbol, self), self))
 	}
-	fn set_symbol(&mut self, symbol: &SymbolNode, body: SymbolValue) -> Result<ValueNode, Error> {
+	pub fn set_symbol(&mut self, symbol: &SymbolNode, body: SymbolValue) -> Result<ValueNode, Error> {
 		// see if symbol already exists
-		if let Some(scope) = self.get_scope_of(symbol) {
+		let result = if let Some(scope) = self.get_scope_of(symbol, true) {
 			// if symbol does exist, alter it
 			scope.set_symbol(symbol, body)
 		} else if let Some(scope) = self.last() {
 			// otherwise, create it in latest scope
 			scope.set_symbol(symbol, body)
 		} else {
-			Err(error_cannot_set(symbol, Some(&body)))
-		}
+			return Err(into_error(error_cannot_set(symbol, Some(&body)), self))
+		};
+		self.to_result(result)
 	}
-	fn modify_symbol(&mut self, symbol: &SymbolNode, function: &dyn Fn(&mut SymbolValue)) -> Result<ValueNode, Error> {
+	pub fn modify_symbol(&mut self, symbol: &SymbolNode, function: &dyn Fn(&mut SymbolValue)) -> Result<ValueNode, Error> {
 		// see if symbol already exists
-		if let Some(scope) = self.get_scope_of(symbol) {
+		let result = if let Some(scope) = self.get_scope_of(symbol, true) {
 			// if symbol does exist, alter it
 			scope.modify_symbol(symbol, function)
 		} else if let Some(scope) = self.last() {
 			// otherwise, create it in latest scope
 			scope.modify_symbol(symbol, function)
 		} else {
-			Err(error_cannot_set(symbol, None))
+			return Err(into_error(error_cannot_set(symbol, None), self))
+		};
+		self.to_result(result)
+	}
+	pub fn to_result(&mut self, result: Result<ValueNode, ScopeError>) -> Result<ValueNode, Error> {
+		match result {
+			Ok(value) => Ok(value),
+			Err(err) => Err(into_error(err, self))
 		}
 	}
 }
@@ -186,8 +205,14 @@ impl SingleScope {
 	}
 }
 
+fn into_error(err: ScopeError, scope: &mut LexicalScope) -> Error {
+	let (value, message, context) = err;
+	value.error_context(message, context, scope)
+}
+
+
 impl Scope for SingleScope {
-	fn get_symbol(&self, symbol: &SymbolNode) -> Result<ValueNode, Error> {
+	fn get_symbol(&mut self, symbol: &SymbolNode) -> Result<ValueNode, ScopeError> {
     	if let Some(result) = self.storage.get(&symbol.0) {
 			Ok(result.get_value(&symbol))
 		} else {
@@ -201,17 +226,17 @@ impl Scope for SingleScope {
 			}
 		}
 	}	
-	fn get_value<T>(&self, symbol: &SymbolNode, function: &dyn Fn(&SymbolValue) -> Result<T, Error>) -> Result<T, Error> {
+	fn get_value<T>(&mut self, symbol: &SymbolNode, function: &dyn Fn(&SymbolValue) -> Result<T, ScopeError>) -> Result<T, ScopeError> {
 		if let Some(result) = self.storage.get(&symbol.0) {
 			function(result)
 		} else {
 			Err(error_undefined(symbol, self))
 		}
 	}
-	fn set_symbol(&mut self, symbol: &SymbolNode, body: SymbolValue) -> Result<ValueNode, Error> {
+	fn set_symbol(&mut self, symbol: &SymbolNode, body: SymbolValue) -> Result<ValueNode, ScopeError> {
 		use SymbolValue::*;
 		
-		let mut result: Result<(), Error> = Ok(());
+		let mut result: Result<(), ScopeError> = Ok(());
 		let entry = self.storage.entry(symbol.0.to_owned()).and_modify(|e| match e {
 			Declaration { mutable: m, value: ref mut v, .. } => if *m {
 				*v = body.get_value(&symbol);
@@ -234,8 +259,8 @@ impl Scope for SingleScope {
 					result = Err(error_immutable(
 						symbol, 
 						&e.get_value(symbol), 
-						&body.get_value(symbol))
-					);
+						&body.get_value(symbol)
+					));
 				}
 			},
 			Assignment { value } => *value = body.get_value(&symbol),
@@ -247,7 +272,7 @@ impl Scope for SingleScope {
 			Err(e) => Err(e),
 		}
 	}
-	fn modify_symbol(&mut self, symbol: &SymbolNode, function: &dyn Fn(&mut SymbolValue)) -> Result<ValueNode, Error> {
+	fn modify_symbol(&mut self, symbol: &SymbolNode, function: &dyn Fn(&mut SymbolValue)) -> Result<ValueNode, ScopeError> {
 		match self.storage.entry(symbol.0.to_owned()).and_modify(function) {
 			Entry::Occupied(value) => Ok(value.get().get_value(symbol)),
 			_ => Err(error_undefined(symbol, self))
@@ -290,8 +315,9 @@ pub fn create_generic_symbol(generic: &GenericType, meta: &Meta<Flag>, scope: &m
 	scope.set_symbol(&symbol, declare)
 }
 
-fn error_immutable(symbol: &SymbolNode, original_value: &ValueNode, assign_value: &ValueNode) -> Error {
-	symbol.0.error_raw_context(
+fn error_immutable(symbol: &SymbolNode, original_value: &ValueNode, assign_value: &ValueNode) -> ScopeError {
+	(
+		symbol.0.to_owned(),
 		format!("immutable: `{symbol}` is immutable and cannot be reassigned"),
 		format!(
 			"original value: {original_value} (type {}) \nattempted value: {assign_value} (type {})",
@@ -301,18 +327,19 @@ fn error_immutable(symbol: &SymbolNode, original_value: &ValueNode, assign_value
 	)
 }
 
-fn error_undefined(symbol: &SymbolNode, scope: &(impl Scope + std::fmt::Display)) -> Error {
-	symbol.error_raw_context(
+fn error_undefined(symbol: &SymbolNode, scope: &impl std::fmt::Display) -> ScopeError {
+	(
+		symbol.0.to_owned(),
 		format!("undefined: `{symbol}` could not be found in the current scope"), 
 		format!("current scope: {scope}")
 	)
 }
 
-fn error_cannot_set(symbol: &SymbolNode, assign_value: Option<&SymbolValue>) -> Error {
+fn error_cannot_set(symbol: &SymbolNode, assign_value: Option<&SymbolValue>) -> ScopeError {
 	if let Some(assign_value) = assign_value {
 		let assign_value = assign_value.get_value(symbol);
-		symbol.error_raw(format!("cannot assign value `{assign_value}` to `{symbol}`"))
+		(symbol.0.to_owned(), format!("cannot assign value `{assign_value}` to `{symbol}`"), String::new())
 	} else {
-		symbol.error_raw(format!("cannot assign to `{symbol}`"))
+		(symbol.0.to_owned(), format!("cannot assign to `{symbol}`"), String::new())
 	}
 }

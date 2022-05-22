@@ -7,6 +7,21 @@ pub struct Parameter {
 	pub default: OptionAST,
 }
 
+impl Display for Parameter {
+	fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+    	write!(f,
+			"{}{}{}",
+			unwrap_or_string(&self.type_hint),
+			self.symbol,
+			if let OptionAST::Some(default) = &self.default {
+				format!("= {default}")
+			} else {
+				String::new()
+			}
+		)
+	}
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ParametersNode {
 	pub symbols: Vec<Parameter>,
@@ -14,8 +29,8 @@ pub struct ParametersNode {
 	pub mut_self: bool,
 }
 
-impl From<&mut ParseNode> for Result<ParametersNode, Error> {
-	fn from(node: &mut ParseNode) -> Self {
+impl FromParse for Result<ParametersNode, Error> {
+	fn from_parse(node: &mut ParseNode) -> Self {
 		let mut_self = node.tokens
 			.iter_mut()
 			.any(|t| &*t.source == "mut");
@@ -24,11 +39,11 @@ impl From<&mut ParseNode> for Result<ParametersNode, Error> {
 		let symbols = node.filter_map_mut_result(&|n: &mut ParseNode| {
 			let (type_hint, symbol, default) = match &*n.name {
 				"annotated_parameter" => (
-					match Result::<TypeHintNode, Error>::from(&mut n.children[0]) {
+					match Result::<TypeHintNode, Error>::from_parse(&mut n.children[0]) {
 						Ok(type_hint) => Some(type_hint),
 						Err(e) => return Some(Err(e)),
 					}, 
-					match Result::<SymbolNode, Error>::from(&mut n.children[1]) {
+					match Result::<SymbolNode, Error>::from_parse(&mut n.children[1]) {
 						Ok(symbol) => symbol,
 						Err(e) => return Some(Err(e)),
 					}, 
@@ -36,7 +51,7 @@ impl From<&mut ParseNode> for Result<ParametersNode, Error> {
 				),
 				"self" => (
 					None,
-					match Result::<SymbolNode, Error>::from(n) {
+					match Result::<SymbolNode, Error>::from_parse(n) {
 						Ok(symbol) => symbol,
 						Err(e) => return Some(Err(e)),
 					}, 
@@ -54,9 +69,7 @@ impl From<&mut ParseNode> for Result<ParametersNode, Error> {
 			.iter()
 			.find(|s| s.type_hint.is_none())
 			.map(|s| {
-				let mut s = s.symbol.to_owned();
-				s.0.type_hint = None;
-				Box::new(s)
+				Box::new(s.symbol.to_owned())
 			});
 		Ok(ParametersNode {
 			symbols,
@@ -67,15 +80,27 @@ impl From<&mut ParseNode> for Result<ParametersNode, Error> {
 }
 
 impl AST for ParametersNode {
-	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
-		for Parameter { type_hint, symbol, .. } in self.symbols.iter() {
-			let symbol_value = SymbolValue::Declaration { 
-				type_hint: type_hint.to_owned(),
-				mutable: false, 
-				value: ValueNode::new_none() 
-			};
-			scope.set_symbol(symbol, symbol_value)?;
-		}
-		Ok(ValueNode::new_none())
+	fn resolve(&self, _scope: &mut LexicalScope) -> Result<ValueNode, Error> {
+		unreachable!()
+		// for Parameter { type_hint, symbol, .. } in self.symbols.iter() {
+		// 	let symbol_value = SymbolValue::Declaration { 
+		// 		type_hint: type_hint.to_owned(),
+		// 		mutable: false, 
+		// 		value: ValueNode::new_none() 
+		// 	};
+		// 	scope.set_symbol(symbol, symbol_value)?;
+		// }
+		// Ok(ValueNode::new_none())
+	}
+}
+
+impl Display for ParametersNode {
+	fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+		let params: Vec<String> = self.symbols.iter().map(|p| p.to_string()).collect();
+		write!(f, "{}{}", if let Some(s) = &self.self_symbol {
+			format!("{s}, ")
+		} else {
+			String::new()
+		}, params.join(", "))
 	}
 }

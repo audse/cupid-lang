@@ -6,8 +6,8 @@ pub struct ArrayNode {
 	pub meta: Meta<Flag>,
 }
 
-impl From<&mut ParseNode> for Result<ArrayNode, Error> {
-	fn from(node: &mut ParseNode) -> Self {
+impl FromParse for Result<ArrayNode, Error> {
+	fn from_parse(node: &mut ParseNode) -> Self {
 		Ok(ArrayNode {
 			items: node.map_mut_result(&parse)?,
 			meta: Meta::with_tokens(node.tokens.to_owned())
@@ -22,6 +22,16 @@ impl AST for ArrayNode {
 			let item = array_item.resolve(scope)?;
 			items.push(item);
 		}
-		Ok(ValueNode::from((Value::Array(items), &self.meta)))
+		let mut meta = self.meta.to_owned();
+		meta.set_token_store(scope);
+		
+		Ok(ValueNode::from((Value::Array(items), meta)))
+	}
+}
+
+impl Display for ArrayNode {
+	fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+		let items: Vec<String> = self.items.iter().map(|i| i.to_string()).collect();
+		write!(f, "[{}]", items.join(", "))
 	}
 }

@@ -5,18 +5,17 @@ use crate::*;
 #[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct SymbolNode(pub ValueNode);
 
-impl From<&mut ParseNode> for Result<SymbolNode, Error> {
-	fn from(node: &mut ParseNode) -> Self {
-		let mut value_node = Result::<ValueNode, Error>::from(node)?;
-		// symbols do not have their own type
-		value_node.type_hint = None;
+impl FromParse for Result<SymbolNode, Error> {
+	fn from_parse(node: &mut ParseNode) -> Self {
+		let value_node = Result::<ValueNode, Error>::from_parse(node)?;
     	Ok(SymbolNode(value_node))
 	}
 }
 
 impl AST for SymbolNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
-		let value = scope.get_symbol(self)?;
+		let mut value = scope.get_symbol(self)?;
+		value.meta.set_token_store(scope);
 		if let Value::Pointer(pointer) = &value.value {
 			scope.get_symbol(&*pointer)
 		} else {
@@ -27,8 +26,8 @@ impl AST for SymbolNode {
 }
 
 impl ErrorHandler for SymbolNode {
-	fn get_token(&self) -> &crate::Token {
-    	self.0.get_token()
+	fn get_token<'a>(&'a self, scope: &'a mut LexicalScope) -> &'a crate::Token {
+    	self.0.get_token(scope)
 	}
 	fn get_context(&self) -> String {
     	format!("accessing identifier {}", self.0.value)
@@ -40,7 +39,7 @@ impl SymbolNode {
 		if let Value::String(s) = &self.0.value {
 			s
 		} else {
-			panic!()
+			panic!("{self:?}")
 		}
 	}
 	pub fn from_value_and_tokens(value: Value, tokens: Vec<Token>) -> Self {

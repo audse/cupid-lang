@@ -1,6 +1,10 @@
 use std::ops::Deref;
 use crate::*;
 
+pub trait FromParse {
+	fn from_parse(node: &mut ParseNode) -> Self;
+}
+
 pub trait CloneAST {
 	fn clone_ast(&self) -> Box<dyn AST>;
 }
@@ -11,7 +15,7 @@ impl <T> CloneAST for T where T: AST + Clone + 'static {
 	}
 }
 
-pub trait AST: std::fmt::Debug + CloneAST + serde_traitobject::Serialize + serde_traitobject::Deserialize {
+pub trait AST: std::fmt::Debug + CloneAST + serde_traitobject::Serialize + serde_traitobject::Deserialize + Display {
 	
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error>;
 	
@@ -70,6 +74,12 @@ impl From<Box<dyn AST>> for BoxAST {
 impl std::fmt::Debug for BoxAST {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		write!(f, "Box({:#?})", self.inner)
+	}
+}
+
+impl Display for BoxAST {
+	fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+    	write!(f, "{}", self.inner)
 	}
 }
 

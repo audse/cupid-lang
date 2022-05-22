@@ -1,0 +1,51 @@
+
+trait type_of = [
+	fun [type!] type_of = self => _
+]
+
+use type_of with int {
+	fun [type!] type_of = self => int_type
+}
+
+use type_of with dec {
+	fun [type!] type_of = self => dec_type
+}
+
+use type_of with bool {
+	fun [type!] type_of = self => bool_type
+}
+
+use type_of with char {
+	fun [type!] type_of = self => char_type
+}
+
+use type_of with string {
+	fun [type!] type_of = self => string_type
+}
+
+use [e] type_of with array [e] {
+	fun [type!] type_of = self => {
+		type! mut new_type = array_type
+		# TODO check all items' types
+		if self.length() > 0 {
+			type! first_type = self.0.type_of()
+			new_type.set_params([])
+			new_type.set_member('element_type', first_type)
+		}
+		new_type
+	}
+}
+
+use [k, v] type_of with map [k, v] {
+	fun [type!] type_of = self => {
+		type! mut new_type = map_type
+		for key, value in self => {
+			type! key_type = key.type_of()
+			type! val_type = value.type_of()
+			new_type.set_params([])
+			new_type.set_member('key_type', key_type)
+			new_type.set_member('value_type', val_type)
+		}
+		new_type
+	}
+}

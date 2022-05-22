@@ -1,9 +1,0 @@
-type char
-type bool
-type array
-type map
-type fun
-type nothing
-type string
-type int
-type dec

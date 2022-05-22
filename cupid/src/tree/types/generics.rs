@@ -6,7 +6,7 @@ pub struct GenericsNode(pub Vec<TypeHintNode>);
 impl FromParent<&mut ParseNode> for Result<Option<GenericsNode>, Error> {
 	fn from_parent(node: &mut ParseNode) -> Self {
 		let generics_node = node.get_mut("generics");
-		match generics_node.map(Result::<GenericsNode, Error>::from) {
+		match generics_node.map(Result::<GenericsNode, Error>::from_parse) {
 			Some(Ok(val)) => Ok(Some(val)),
 			Some(Err(e)) => Err(e),
 			None => Ok(None)
@@ -17,17 +17,17 @@ impl FromParent<&mut ParseNode> for Result<Option<GenericsNode>, Error> {
 impl FromParent<&mut ParseNode> for Result<Vec<GenericsNode>, Error> {
 	fn from_parent(node: &mut ParseNode) -> Self {
 		node.filter_map_mut_result(&|n| if &*n.name == "generics" {
-			Some(Result::<GenericsNode, Error>::from(n))
+			Some(Result::<GenericsNode, Error>::from_parse(n))
 		} else {
 			None
 		})
 	}
 }
 
-impl From<&mut ParseNode> for Result<GenericsNode, Error> {
-	fn from(node: &mut ParseNode) -> Self {
+impl FromParse for Result<GenericsNode, Error> {
+	fn from_parse(node: &mut ParseNode) -> Self {
 		let generics = node.map_mut_result(&|g| {
-			let arg = match g.children.get_mut(1).map(Result::<TypeHintNode, Error>::from) {
+			let arg = match g.children.get_mut(1).map(Result::<TypeHintNode, Error>::from_parse) {
 				Some(Ok(value)) => Some(value),
 				Some(Err(err)) => return Err(err),
 				None => None
@@ -62,5 +62,13 @@ impl ResolveTo<Vec<GenericType>> for GenericsNode {
 			});
 		}
 		Ok(generic_types)
+	}
+}
+
+
+impl Display for GenericsNode {
+	fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+		let generics: Vec<String> = self.0.iter().map(|g| g.to_string()).collect();
+		write!(f, "[{}]", generics.join(", "))
 	}
 }

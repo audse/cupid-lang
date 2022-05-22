@@ -8,11 +8,11 @@ pub struct IfBlockNode {
 	pub else_block: Option<Box<Self>>
 }
 
-impl From<&mut ParseNode> for Result<IfBlockNode, Error> {
-	fn from(node: &mut ParseNode) -> Self {
+impl FromParse for Result<IfBlockNode, Error> {
+	fn from_parse(node: &mut ParseNode) -> Self {
 		let else_block: Option<Result<IfBlockNode, Error>> = node
 			.get_mut("else_block")
-			.map(|c| Self::from(c));
+			.map(|c| Self::from_parse(c));
 		let else_block = match else_block {
 			Some(Err(err)) => return Err(err),
 			Some(Ok(block)) => Some(Box::new(block)),
@@ -28,7 +28,7 @@ impl From<&mut ParseNode> for Result<IfBlockNode, Error> {
 			body,
 			else_if_blocks: node.filter_map_mut_result(&|child| {
 				if &*child.name == "else_if_block" {
-					Some(Self::from(child))
+					Some(Self::from_parse(child))
 				} else {
 					None
 				}
@@ -70,10 +70,16 @@ impl ResolveTo<Option<ValueNode>> for IfBlockNode {
 					Ok(None)
 				}
 			} else {
-				Err(condition.error_raw("type mismatch: expected a boolean condition, not {condition}"))
+				Err(condition.error(format!("type mismatch: expected a boolean condition, not {condition}"), scope))
 			}
 		} else {
 			Ok(Some(self.body.resolve(scope)?))
 		}
+	}
+}
+
+impl Display for IfBlockNode {
+	fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+		write!(f, "{self:?}")
 	}
 }

@@ -3,9 +3,9 @@ use crate::*;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BuiltinFunctionCallNode(pub FunctionCallNode);
 
-impl From<&mut ParseNode> for Result<BuiltinFunctionCallNode, Error> {
-	fn from(node: &mut ParseNode) -> Self {
-    	Ok(BuiltinFunctionCallNode(Result::<FunctionCallNode, Error>::from(node)?))
+impl FromParse for Result<BuiltinFunctionCallNode, Error> {
+	fn from_parse(node: &mut ParseNode) -> Self {
+    	Ok(BuiltinFunctionCallNode(Result::<FunctionCallNode, Error>::from_parse(node)?))
 	}
 }
 
@@ -21,11 +21,11 @@ impl AST for BuiltinFunctionCallNode {
 	}
 }
 
-fn get_string(from: &ValueNode) -> Result<String, Error> {
+fn get_string(from: &ValueNode, scope: &mut LexicalScope) -> Result<String, Error> {
 	match &from.value {
 		Value::String(pattern) => Ok(pattern.to_string()),
 		Value::Char(pattern) => Ok(pattern.to_string()),
-		x => Err(from.error_raw(format!("expected a string or char, found {x}")))
+		x => Err(from.error(format!("expected a string or char, found {x}"), scope))
 	}
 }
 
@@ -74,22 +74,22 @@ impl BuiltinFunctionCallNode {
 		match start_arg.value {
 			Value::String(string) => match func.as_str() {
 				"split" => {
-					let pattern = get_string(&other_args[0])?;
+					let pattern = get_string(&other_args[0], scope)?;
 					Ok(string_split(start_arg_copy, string.to_owned(), Some(&pattern.into()), None))
 				},
 				"split_at" => {
 					if let Value::Integer(index) = other_args[0].value {
 						Ok(string_split(start_arg_copy, string.to_owned(), None, Some(index as usize)))
 					} else {
-						Err(self.0.function.error_raw("expected a index to split at"))
+						Err(self.0.function.error("expected a index to split at", scope))
 					}
 				},
 				"split_n" => {
-					let pattern = get_string(&other_args[0])?;
+					let pattern = get_string(&other_args[0], scope)?;
 					if let Value::Integer(index) = other_args[1].value {
 						Ok(string_split(start_arg_copy, string.to_owned(), Some(&pattern.into()), Some(index as usize)))
 					} else {
-						Err(self.0.function.error_raw("expected a index to split at"))
+						Err(self.0.function.error("expected a index to split at", scope))
 					}
 				},
 				"char" => {
@@ -99,28 +99,28 @@ impl BuiltinFunctionCallNode {
 							start_arg.type_hint = TypeKind::infer_id(&start_arg);
 							Ok(start_arg)
 						} else {
-							Err(self.0.function.error_raw("no char at index"))
+							Err(self.0.function.error("no char at index", scope))
 						}
 					} else {
-						Err(self.0.function.error_raw("expected char index"))
+						Err(self.0.function.error("expected char index", scope))
 					}
 				},
 				"replace" => {
-					let pattern = get_string(&other_args[0])?;
-					let new = get_string(&other_args[1])?;
+					let pattern = get_string(&other_args[0], scope)?;
+					let new = get_string(&other_args[1], scope)?;
 					let value = string.replace(pattern.as_str(), new.as_str());
 					start_arg.value = Value::String(value.into());
 					Ok(start_arg)
 				},
 				"replace_n" => {
-					let pattern = get_string(&other_args[0])?;
-					let new = get_string(&other_args[1])?;
+					let pattern = get_string(&other_args[0], scope)?;
+					let new = get_string(&other_args[1], scope)?;
 					if let Value::Integer(n) = &other_args[2].value {
 						let value = string.replacen(pattern.as_str(), new.as_str(), *n as usize);
 						start_arg.value = Value::String(value.into());
 						Ok(start_arg)
 					} else {
-						Err(self.0.function.error_raw("expected pattern, replacement string, and number of replacements"))
+						Err(self.0.function.error("expected pattern, replacement string, and number of replacements", scope))
 					}
 				},
 				"length" => {
@@ -142,7 +142,7 @@ impl BuiltinFunctionCallNode {
 						mutate(symbol, &start_arg)?;
 						Ok(last_item)
 					} else {
-						Err(self.0.function.error_raw("No elements in array to pop"))
+						Err(self.0.function.error("No elements in array to pop", scope))
 					}
 				},
 				"remove" => {
@@ -151,7 +151,7 @@ impl BuiltinFunctionCallNode {
 						mutate(symbol, &start_arg)?;
 						Ok(item)
 					} else {
-						Err(self.0.function.error_raw("expected array index"))
+						Err(self.0.function.error("expected array index", scope))
 					}
 				},
 				"insert" => {
@@ -160,7 +160,7 @@ impl BuiltinFunctionCallNode {
 						mutate(symbol, &start_arg)?;
 						Ok(start_arg)
 					} else {
-						Err(self.0.function.error_raw("expected array index as first argument"))
+						Err(self.0.function.error("expected array index as first argument", scope))
 					}
 				},
 				"length" => {
@@ -173,7 +173,7 @@ impl BuiltinFunctionCallNode {
 			Value::Map(ref mut map) =>  match func.as_str() {
 				"get" => match start_arg.value.get_property(&other_args[0]) {
 					Ok(val) => Ok(val),
-					Err(e) => Err(start_arg.error_raw(e))
+					Err(e) => Err(start_arg.error(e, scope))
 				},
 				"set" => {
 					match map.get_mut(&other_args[0]) {
@@ -193,7 +193,7 @@ impl BuiltinFunctionCallNode {
 						mutate(symbol, &start_arg)?;
 						Ok(val)
 					} else {
-						Err(self.0.function.error_raw("map does not contain that property"))
+						Err(self.0.function.error("map does not contain that property", scope))
 					}
 				},
 				"length" => {
@@ -205,5 +205,11 @@ impl BuiltinFunctionCallNode {
 			}
 			z => todo!("no builtin methods for {z}")
 		}
+	}
+}
+
+impl Display for BuiltinFunctionCallNode {
+	fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+		write!(f, "{self:?}")
 	}
 }

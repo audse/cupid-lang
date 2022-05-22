@@ -9,8 +9,9 @@
 -   [x] Rework grammar
 -   [ ] Add const/let for type inference
 -   [ ] Do I want references/pointers?
-    -   [ ] Pass by value/copy automatically
+    -   [x] Pass by value/copy automatically
     -   [ ] Explicit references can be made with `&`
+-   [ ] Store variables on the stack
 
 ## Type system
 
@@ -69,6 +70,8 @@
 
 -   [x] Require `self` on functions that use self
 -   [x] Require `mut self`
+-   [ ] Automatic trait implementation
+-   [ ] Change trait syntax to use `:` instead of `=`
 
 ### Type checker
 
@@ -99,17 +102,17 @@ someone istype person # should be false
 -   [ ] Compare data structures
 -   [x] Logical and
 -   [x] Logical or
--   [ ] Negation
+-   [x] Negation
 -   [x] Operator overloading
 -   [x] Type of
 -   [x] Use trait implementations instead of simple value checking
--   [ ] Unary op
+-   [x] Unary op
 
 ## Functions
 
 -   [x] Anonymous functions
 -   [x] Block functions
--   [ ] Function chaining
+-   [x] Function chaining
 -   [ ] Closed scope
 -   [ ] Return statement
 -   [ ] Keyword args
@@ -121,13 +124,13 @@ someone istype person # should be false
 -   [ ] Call immediately
 -   [x] Closures need some help...capture scope inside function body
 -   [ ] Mutable params? E.g. passing a mutable struct to a function, the original struct should be mutated, right?
--   [ ] Universal call syntax (I kind of already have this)
+-   [x] Universal call syntax (I kind of already have this)
 
 ## Blocks
 
--   [ ] If blocks
--   [ ] Else blocks
--   [ ] Else if blocks
+-   [x] If blocks
+-   [x] Else blocks
+-   [x] Else if blocks
 
 ## Loops
 
@@ -153,11 +156,11 @@ someone istype person # should be false
 -   [x] Property access
 -   [x] Property assignment
 -   [x] Lightweight array that isn't a map
--   [ ] Add/remove properties
--   [ ] Property chaining (needs to be left recursive)
--   [ ] Self keyword
+-   [x] Add/remove properties
+-   [x] Property chaining (needs to be left recursive)
+-   [x] Self keyword
     -   [x] Reference inner properties
-    -   [ ] Mutate inner properties
+    -   [x] Mutate inner properties
 -   [ ] Number/string types
     -   [ ] Irrational numbers
     -   [ ] UTF-8, 16, etc
@@ -182,21 +185,54 @@ someone istype person # should be false
 -   [ ] Escape keywords like Rusts `r#type` (only better ...)
 -   [ ] Method overloading
 
+### Syntactic sugar
+
+-   [ ] Simplify traits with one function like:
+
+```
+# from:
+trait [t] add! = [
+	fun [t] add! = self, t other => self + other
+]
+# to:
+trait [t] add! = self, t other => self + other
+```
+
+-   [ ] Apply `with` type as first generic argument if not otherwise specified
+
+```
+# from:
+use [t: int] add! with int
+# to:
+use add! with int
+# doesn't apply in the case of:
+use [t: dec] add! with int
+```
+
+-   [ ] Make generic brackets optional for types with only one parameter
+
+```
+# from:
+fun [array [map [string, int]]]
+# to:
+fun array map [string, int]
+```
+
 ## Bugfixes
 
 -   [ ] Something is wrong with groups in grammar files
--   [ ] An empty map `[]` could be a dict or a list or anything- type inference?
+-   [x] An empty map `[]` could be a dict or a list or anything- type inference?
 -   [ ] If you use a primitive type where generics should go, it acts as a generic. Should be an error
--   [ ] Should be able to log property functions without calling them (e.g. `log (myint.sq)`)
+-   [x] Should be able to log property functions without calling them (e.g. `log (myint.sq)`)
 -   [x] Is `log`/`log_line` working?
     -   [x] Doesn't work in function bodies
 
 ## Builtin library
 
 -   [ ] String functions/properties
-    -   [ ] Length
+    -   [x] Length
     -   [ ] Contains
-    -   [ ] Replace/replace all
+    -   [x] Replace/replace all
 -   [ ] Map functions
 
 ## Standard library

@@ -22,10 +22,10 @@ pub struct TypeHintNode {
 	pub meta: Meta<TypeFlag>,
 }
 
-impl From<&mut ParseNode> for Result<TypeHintNode, Error> {
-	fn from(node: &mut ParseNode) -> Self {
+impl FromParse for Result<TypeHintNode, Error> {
+	fn from_parse(node: &mut ParseNode) -> Self {
 		let tokens = node.collect_tokens();
-		let args: Vec<Self> = node.children.iter_mut().skip(1).map(Self::from).collect();
+		let args: Vec<Self> = node.children.iter_mut().skip(1).map(Self::from_parse).collect();
 		let mut arg_items = vec![];
 		for arg in args.into_iter() {
 			arg_items.push(arg?);
@@ -53,6 +53,7 @@ impl TypeHintNode {
 			args,
 			meta: Meta {
 				tokens,
+				token_store: None,
 				flags,
 				identifier: None
 			}
@@ -64,6 +65,7 @@ impl TypeHintNode {
 			args: vec![],
 			meta: Meta {
 				tokens,
+				token_store: None,
 				flags: vec![TypeFlag::Generic],
 				identifier: None
 			}
@@ -75,6 +77,7 @@ impl TypeHintNode {
 			args: if let Some(arg) = arg { vec![arg] } else { vec![] },
 			meta: Meta {
 				tokens,
+				token_store: None,
 				flags: vec![TypeFlag::Generic],
 				identifier: None
 			}
@@ -87,14 +90,19 @@ impl TypeHintNode {
 
 impl ResolveTo<(SymbolNode, TypeKind)> for TypeHintNode {
 	fn resolve_to(&self, scope: &mut LexicalScope) -> Result<(SymbolNode, TypeKind), Error> {
-		let symbol = SymbolNode::from(self);
+		let mut symbol = SymbolNode::from(self);
+		symbol.0.meta.set_token_store(scope);
+		if self.is_generic() {
+			return Ok((symbol, TypeKind::Generic(GenericType::new(&self.identifier, None))))
+		}
 		scope.get_value(
 			&symbol,
 			&|symbol_value| {
-				if let Value::Type(type_kind) = symbol_value.get_value(&symbol).value {
+				let value = symbol_value.get_value(&symbol);
+				if let Value::Type(type_kind) = value.value {
 					Ok((symbol.to_owned(), type_kind))
 				} else {
-					Err(symbol.error_raw("expected type"))
+					Err((symbol.0.to_owned(), format!("expected type, found {value}"), String::new()))
 				}
 			}
 		)
@@ -174,9 +182,11 @@ impl Display for TypeHintNode {
 }
 
 impl ErrorHandler for TypeHintNode {
-	fn get_token(&self) -> &Token {
+	fn get_token<'a>(&'a self, scope: &'a mut LexicalScope) -> &'a Token {
     	if !self.meta.tokens.is_empty() {
 			&self.meta.tokens[0]
+		} else if let Some(token_store) = &self.meta.token_store {
+			&scope.tokens[*token_store][0]
 		} else {
 			panic!("an error occured for type {self}, but there is no positional info")
 		}

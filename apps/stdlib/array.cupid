@@ -1,0 +1,62 @@
+use [e] array [e] {
+	
+	fun [array [e]]
+	push = mut self, e element => push (self, element)
+	
+	fun [e]
+	pop = mut self => pop (self)
+	
+	fun [e]
+	remove = mut self, int index => remove (self, index)
+	
+	fun [e]
+	remove_item = mut self, e item => {
+		# TODO this removes last instance of an item
+		int index = self.index(item)
+		remove (self, index)
+	}
+	
+	fun [e]
+	insert = mut self, int index, e value => insert (self, index, value)
+	
+	fun [int]
+	length = self => length (self)
+	
+	fun [array [e]]
+	reverse = self => {
+		array [e] mut temp = []
+		int len = self.length()
+		for i in len[..0] => {
+			e item = self.i
+			temp.push(item)
+		}
+		temp
+	}
+		
+	fun [array [e]]
+	map_items = self, fun [array [e]] function => {
+		array [e] mut copy = self
+		for i, element in copy => {
+			copy.set(i, element)
+		}
+		copy
+	}
+	
+	fun [bool]
+	contains = self, e item => {
+		bool mut yes = false
+		for element in self => {
+			if item is element => yes = true
+		}
+		yes
+	}
+	
+	fun [int]
+	index = self, e item => {
+		int mut index = 0
+		for i, element in self => {
+			if item is element => index = i
+		}
+		index
+	}
+}

@@ -45,7 +45,7 @@ impl Implementation {
 		}
 		None
 	}
-	pub fn from_scope_value(symbol_value: &SymbolValue) -> Result<Option<Implementation>, Error> {
+	pub fn from_scope_value(symbol_value: &SymbolValue) -> Result<Option<Implementation>, ScopeError> {
 		Ok(Option::<Implementation>::from(symbol_value))
 	}
 	pub fn implement(&mut self, functions: HashMap<ValueNode, ValueNode>) {
@@ -64,6 +64,28 @@ impl Implementation {
 			create_generic_symbol(generic, meta, scope)?;
 		}
 		Ok(())
+	}
+	pub fn infer_arguments(&mut self, object: &ValueNode) {
+		match &object.value {
+			Value::Array(a) => {
+				if a.is_empty() { return; }
+				self.generics.first_mut().map(|g| {
+					g.type_value = TypeKind::infer_id(&a[0])
+				});
+			},
+			Value::Map(m) => {
+				if m.is_empty() { return; }
+				let (key, (_, val)) = m.iter().next().unwrap();
+				for (i, g) in self.generics.iter_mut().enumerate() {
+					if i == 0 {
+						g.type_value = TypeKind::infer_id(&key)
+					} else if i == 1 {
+						g.type_value = TypeKind::infer_id(&val)
+					}
+				}
+			},
+			_ => ()
+		}
 	}
 }
 

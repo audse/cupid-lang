@@ -272,6 +272,11 @@ dependencies = [
  "clap 3.1.9",
  "colored",
  "criterion",
+ "cupid_cst",
+ "cupid_lex",
+ "cupid_parse",
+ "cupid_types",
+ "cupid_util",
  "lazy_static",
  "serde",
  "serde-wasm-bindgen",
@@ -279,6 +284,41 @@ dependencies = [
  "serde_traitobject",
  "wasm-bindgen",
 ]
+
+[[package]]
+name = "cupid_cst"
+version = "0.1.0"
+dependencies = [
+ "cupid_lex",
+]
+
+[[package]]
+name = "cupid_lex"
+version = "0.1.0"
+dependencies = [
+ "colored",
+ "serde",
+]
+
+[[package]]
+name = "cupid_parse"
+version = "0.1.0"
+dependencies = [
+ "cupid_lex",
+ "cupid_util",
+ "serde",
+]
+
+[[package]]
+name = "cupid_types"
+version = "0.1.0"
+dependencies = [
+ "lazy_static",
+]
+
+[[package]]
+name = "cupid_util"
+version = "0.1.0"
 
 [[package]]
 name = "either"

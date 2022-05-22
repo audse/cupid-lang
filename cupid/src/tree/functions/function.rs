@@ -8,12 +8,12 @@ pub struct FunctionNode {
 	pub scope: SingleScope,
 }
 
-impl From<&mut ParseNode> for Result<FunctionNode, Error> {
-	fn from(node: &mut ParseNode) -> Self {
+impl FromParse for Result<FunctionNode, Error> {
+	fn from_parse(node: &mut ParseNode) -> Self {
 		let tokens: Vec<Token> = node.collect_tokens();
 		Ok(FunctionNode {
-			params: Result::<ParametersNode, Error>::from(&mut node.children[0])?,
-			body: Result::<BlockNode, Error>::from(&mut node.children[1])?,
+			params: Result::<ParametersNode, Error>::from_parse(&mut node.children[0])?,
+			body: Result::<BlockNode, Error>::from_parse(&mut node.children[1])?,
 			meta: Meta::with_tokens(tokens),
 			scope: SingleScope::new(Context::Closure),
 		})
@@ -22,7 +22,10 @@ impl From<&mut ParseNode> for Result<FunctionNode, Error> {
 
 impl AST for FunctionNode {
 	fn resolve(&self, scope: &mut LexicalScope) -> Result<ValueNode, Error> {
-		let meta = Meta::<Flag>::from(&self.meta);
+		
+		let mut meta = Meta::<Flag>::from(&self.meta);
+		meta.set_token_store(scope);
+		
 		let mut function = self.to_owned();
 		
 		// save surrounding closure as scope
@@ -43,7 +46,7 @@ impl FunctionNode {
 	
 	pub fn create_environment(&mut self, self_value: Option<ValueNode>, args: &ArgumentsNode, scope: &mut LexicalScope) -> Result<(), Error> {
 		if let (Some(self_symbol), Some(self_value)) = (&self.params.self_symbol, self_value) {
-			self.scope.set_symbol(&self_symbol, self_value.into_declaration(self.params.mut_self))?;
+			scope.to_result(self.scope.set_symbol(&self_symbol, self_value.into_declaration(self.params.mut_self)))?;
 		}
 		scope.add_closure(self.scope.to_owned());
 		self.set_params(args, scope)?;
@@ -67,7 +70,7 @@ impl FunctionNode {
 			_ => (),
 		})
 	}
-	pub fn match_params_to_args(&self, args: &ArgumentsNode) -> Result<Vec<(Parameter, BoxAST)>, Error> {
+	pub fn match_params_to_args(&self, args: &ArgumentsNode, scope: &mut LexicalScope) -> Result<Vec<(Parameter, BoxAST)>, Error> {
 		let params: &Vec<Parameter> = &self.params.symbols;
 		if params.len() == args.0.len() {
 			Ok(params
@@ -76,11 +79,15 @@ impl FunctionNode {
 				.map(|(i, p)| ((*p).to_owned(), args.0[i].to_owned()))
 				.collect())
 		} else {
-			Err(self.error_raw(format!("wrong number of args: expected {}, found {}", self.params.symbols.len(), args.0.len())))
+			Err(self.error_context(
+				format!("wrong number of args: expected {}, found {}", self.params.symbols.len(), args.0.len()),
+				format!("attempting to call function {self} with args ({args})"),
+				scope
+			))
 		}
 	}
 	pub fn set_params(&self, args:  &ArgumentsNode, scope: &mut LexicalScope) -> Result<(), Error> {
-		for (param, arg) in self.match_params_to_args(args)? {
+		for (param, arg) in self.match_params_to_args(args, scope)? {
 			if let Some(type_hint) = &param.type_hint {
 				let type_hint: TypeHintNode = type_hint.resolve_to(scope)?;
 				
@@ -96,7 +103,7 @@ impl FunctionNode {
 		}
 		Ok(())
 	}
-	pub fn get_self_symbol(&self) -> Option<ValueNode> {
+	pub fn get_self_symbol(&mut self) -> Option<ValueNode> {
 		if let Some(symbol) = &self.params.self_symbol {
 			return match self.scope.get_symbol(&symbol) {
 				Ok(val) => {
@@ -113,9 +120,11 @@ impl FunctionNode {
 }
 
 impl ErrorHandler for FunctionNode {
-	fn get_token(&self) -> &Token {
+	fn get_token<'a>(&'a self, scope: &'a mut LexicalScope) -> &'a Token {
 		if self.meta.tokens.len() > 0 {
     		&self.meta.tokens[0]
+		} else if let Some(token_store) = &self.meta.token_store {
+			&scope.tokens[*token_store][0]
 		} else {
 			panic!("error occurred for {self:?} but there is no positional information")
 		}

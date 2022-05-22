@@ -6,8 +6,8 @@ pub struct TraitNode {
 	pub functions: ImplementationNode,
 }
 
-impl From<&mut ParseNode> for Result<TraitNode, Error> {
-	fn from(node: &mut ParseNode) -> Self {
+impl FromParse for Result<TraitNode, Error> {
+	fn from_parse(node: &mut ParseNode) -> Self {
 		let generics = if let Some(generics) = Result::<Option<GenericsNode>, Error>::from_parent(node)? {
 			generics.0
 		} else {
@@ -17,7 +17,7 @@ impl From<&mut ParseNode> for Result<TraitNode, Error> {
 		let name = node.children[i].tokens[0].source.to_owned();
 		Ok(TraitNode {
 			symbol: TypeHintNode::new(name, vec![TypeFlag::Trait], generics, node.children[0].tokens.to_owned()),
-			functions: Result::<ImplementationNode, Error>::from(node)?,
+			functions: Result::<ImplementationNode, Error>::from_parse(node)?,
 		})
 	}
 }
@@ -55,5 +55,11 @@ impl AST for TraitNode {
 		};
 		
 		scope.set_symbol(&symbol, symbol_value)
+	}
+}
+
+impl Display for TraitNode {
+	fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
+		write!(f, "trait {} {}", self.symbol, self.functions)
 	}
 }

@@ -1,0 +1,35 @@
+type! none_type = type!.primitive ('nothing')
+type! int_type = type!.primitive ('int')
+type! dec_type = type!.primitive ('dec')
+type! bool_type = type!.primitive ('bool')
+type! char_type = type!.primitive ('char')
+type! string_type = type!.primitive ('string')
+
+type! array_generic = type!.generic ('e', [], none_type)
+type! array_type = type!.struct ('array', ['e'], [element_type: array_generic])
+
+# type! function_generic = type!.generic('r', [] none_type)
+# type! function_type = type!.struct ('fun', ['r'], [return_type: function_generic, param_types: []])
+
+type! map_key_generic = type!.generic ('k', [], none_type)
+type! map_value_generic = type!.generic ('v', [], none_type)
+
+type! map_type = type!.struct (
+	'map', 
+	['k', 'v'], 
+	[
+		key_type: map_key_generic, 
+		value_type: map_value_generic
+	]
+)
+
+type! yes_generic = type!.generic('y', [], none_type)
+type! no_generic = type!.generic('n', [], none_type)
+type! maybe_type = type!.struct (
+	'maybe',
+	['y', 'n'],
+	[
+		yes_type: yes_generic,
+		no_type: no_generic
+	]
+)
