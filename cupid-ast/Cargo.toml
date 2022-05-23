@@ -1,9 +1,9 @@
 [package]
-name = "cupid-ast"
+name = "cupid_ast"
 version = "0.1.0"
 edition = "2021"
 
 
-
 [dependencies]
-cupid_types = { version = "0.1.0", path = '../cupid-types' }
+cupid_lex = { version = "0.1.0", path = '../cupid-lex' }
+lazy_static = "1.4.0"

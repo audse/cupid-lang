@@ -1,6 +1,6 @@
 use crate::*;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Hash)]
 pub struct GenericParam(pub Option<Str>, pub Option<Type>);
 
 impl PartialEq for GenericParam {

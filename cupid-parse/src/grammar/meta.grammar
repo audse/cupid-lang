@@ -1,0 +1,3 @@
+- define_symbol: 'symbol' WORD symbol*
+- symbol: !'symbol' ANY
+- define_primitive: 'primitive' WORD
