@@ -20,7 +20,7 @@ impl FromParse for Result<ImplementationNode, Error> {
 		let trait_generics = generics.pop();
 		Ok(ImplementationNode {
 			functions: node
-				.filter_map_mut_result(&|n| if &*n.name == "typed_declaration" {
+				.filter_map(|n: &mut ParseNode| if &*n.name == "typed_declaration" {
 					Some(Result::<DeclarationNode, Error>::from_parse(n))
 				} else {
 					None

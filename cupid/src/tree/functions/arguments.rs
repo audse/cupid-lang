@@ -5,7 +5,7 @@ pub struct ArgumentsNode(pub Vec<BoxAST>);
 
 impl FromParse for Result<ArgumentsNode, Error> {
 	fn from_parse(node: &mut ParseNode) -> Self {
-		Ok(ArgumentsNode(node.map_mut_result(&parse)?))
+		Ok(ArgumentsNode(node.map(&parse)?))
 	}
 }
 

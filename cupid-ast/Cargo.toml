@@ -6,4 +6,5 @@ edition = "2021"
 
 [dependencies]
 cupid_lex = { version = "0.1.0", path = '../cupid-lex' }
+cupid_parse = { version = "0.1.0", path = '../cupid-parse' }
 lazy_static = "1.4.0"

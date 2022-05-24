@@ -12,7 +12,7 @@ impl FromParse for Result<ForInLoopNode, Error> {
 	fn from_parse(node: &mut ParseNode) -> Self {
 		Ok(ForInLoopNode {
 			symbols: if let Some(params) = node.get_mut("for_loop_parameters") {
-				params.map_mut_result(&|s| Result::<SymbolNode, Error>::from_parse(s))?
+				params.map(|s| Result::<SymbolNode, Error>::from_parse(s))?
 			} else {
 				vec![]
 			},

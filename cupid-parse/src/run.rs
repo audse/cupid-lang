@@ -14,7 +14,7 @@ const PLACEHOLDER: &str = "/*RULES*/";
 pub fn read(grammar_paths: &[&str]) -> (Cow<'static, str>, Cow<'static, str>) {
 	let grammars: Vec<String> = grammar_paths
 		.iter()
-		.map(|path| read_to_string(path).unwrap())
+		.map(|path| read_to_string(path).unwrap_or_else(|path| panic!("couldn't find {path}")))
 		.collect();
 	println!("{grammar_paths:#?}");
 	(

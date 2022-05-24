@@ -22,7 +22,6 @@ lazy_static = "1.4.0"
 cupid_util = { version = "0.1.0", path = '../cupid-util' }
 cupid_lex = { version = "0.1.0", path = '../cupid-lex' }
 cupid_parse = { version = "0.1.0", path = '../cupid-parse' }
-cupid_cst = { version = "0.1.0", path = '../cupid-cst' }
 cupid_ast = { version = "0.1.0", path = '../cupid-ast' }
 
 [dev-dependencies]

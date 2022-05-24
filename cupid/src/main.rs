@@ -1,5 +1,6 @@
 use clap::Parser;
 use cupid::*;
+use cupid_ast::*;
 
 #[derive(Parser)]
 struct Cli {
@@ -13,10 +14,31 @@ struct Cli {
     
     #[clap(short, long)]
     generate: Option<i32>,
+	
+	#[clap(short, long)]
+	repl: bool,
 }
 
 fn main() {
     let args = Cli::parse();
+	
+	if args.repl {
+		loop {
+			let mut line = String::new();
+			std::io::stdin().read_line(&mut line).unwrap();
+			
+			if &line == "exit" {
+				break;
+			}
+			
+			let mut parser = CupidParser::new(line, 1);
+			let (mut parse_tree, _) = parser._expression().unwrap();
+			let mut env = Env::default();
+			let ast = to_ast(&mut parse_tree, &mut env);
+			println!("{ast:?}");
+		}
+	}
+	
     if let Some(which) = args.generate {
         run_generator(which);
 	} else {

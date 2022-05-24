@@ -12,7 +12,10 @@ pub use construct::*;
 mod inference;
 pub use inference::*;
 
+mod typed_expression;
+pub use typed_expression::*;
+
+#[allow(unused)]
 pub type ErrCode = usize;
 
 pub const ERR_CANNOT_INFER: usize = 1;
-// pub const ERR_

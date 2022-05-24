@@ -10,24 +10,21 @@ lazy_static! {
 	pub static ref NOTHING: Type = Type::primitive("nothing");
 	
 	pub static ref ARRAY: Type = Type {
-		name: Some(Cow::Borrowed("array")),
-		generics: vec![GenericParam::new("e")],
+		name: Ident::new("array", vec![GenericParam::new("e")]),
 		fields: FieldSet::unnamed(vec![Type::primitive("e").into_ident()]),
 		traits: vec![EQUAL.into_ident(), NOT_EQUAL.into_ident()],
 		methods: vec![],
 	};
 	
 	pub static ref TUPLE: Type = Type {
-		name: Some(Cow::Borrowed("tuple")),
-		generics: vec![],
+		name: Ident::new("array", vec![]),
 		fields: FieldSet::Empty,
 		traits: vec![EQUAL.into_ident(), NOT_EQUAL.into_ident()],
 		methods: vec![],
 	};
 	
 	pub static ref MAYBE: Type = Type {
-		name: Some(Cow::Borrowed("maybe")),
-		generics: vec![GenericParam::new("y"), GenericParam::new("n")],
+		name: Ident::new("maybe", vec![GenericParam::new("y"), GenericParam::new("n")]),
 		fields: FieldSet::sum_unnamed(vec![
 			Type::primitive("y").into_ident(), 
 			Type::primitive("n").into_ident()
@@ -37,8 +34,7 @@ lazy_static! {
 	};
 	
 	pub static ref FUNCTION: Type = Type {
-		name: Some(Cow::Borrowed("fun")),
-		generics: vec![GenericParam::new("r")],
+		name: Ident::new("fun", vec![GenericParam::new("r")]),
 		fields: FieldSet::unnamed(vec![Type::primitive("r").into_ident()]),
 		traits: vec![],
 		methods: vec![],
@@ -47,8 +43,10 @@ lazy_static! {
 
 pub fn array_type(arg: Ident) -> Type {
 	let mut array = (*ARRAY).to_owned();
-	array.fields = FieldSet::Unnamed(vec![arg]);
-	array.generics = vec![];
+	array.fields = FieldSet::Unnamed(vec![arg.to_owned()]);
+	if let Some(g) = array.name.attributes.generics.get_mut(0) {
+		g.1 = Some(arg)
+	}
 	array
 }
 

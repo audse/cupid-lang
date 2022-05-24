@@ -1,9 +1,0 @@
-[package]
-name = "cupid_cst"
-version = "0.1.0"
-edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-cupid_lex = { version = "0.1.0", path = '../cupid-lex' }

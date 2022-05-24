@@ -1,7 +1,7 @@
 use crate::*;
 
-pub fn infer_type(value: &Value) -> Result<Type, ErrCode> {
-	use Value::*;
+pub fn infer_type(value: &Val) -> Result<Type, ErrCode> {
+	use Val::*;
 	match &value {
 		Array(array) => infer_array(array),
 		Boolean(_) => Ok((*BOOLEAN).to_owned()),
@@ -14,7 +14,7 @@ pub fn infer_type(value: &Value) -> Result<Type, ErrCode> {
 	}
 }
 
-fn infer_array(array: &Vec<Value>) -> Result<Type, ErrCode> {
+fn infer_array(array: &[Val]) -> Result<Type, ErrCode> {
 	Ok(if let Some(first_element) = array.first() {
 		array_type(infer_type(first_element)?.into_ident())
 	} else {
@@ -22,7 +22,7 @@ fn infer_array(array: &Vec<Value>) -> Result<Type, ErrCode> {
 	})
 }
 
-fn infer_tuple(tuple: &Vec<Value>) -> Result<Type, ErrCode> {
+fn infer_tuple(tuple: &[Val]) -> Result<Type, ErrCode> {
 	let types: Result<Vec<Ident>, ErrCode> = tuple
 		.iter()
 		.map(|t| Ok(infer_type(t)?.into_ident()))

@@ -18,7 +18,7 @@ impl FromParse for Result<StructTypeDeclaration, Error> {
 		let name = node.children[i].tokens[0].source.to_owned();
 		Ok(StructTypeDeclaration {
 			symbol: TypeHintNode::new(name, vec![TypeFlag::Struct], generics, node.children[0].tokens.to_owned()),
-			members: node.filter_map_mut_result(&|child| if &*child.name == "struct_member" {
+			members: node.filter_map(&|child: &mut ParseNode| if &*child.name == "struct_member" {
 				let result = (
 					Result::<TypeHintNode, Error>::from_parse(&mut child.children[0]), 
 					Result::<SymbolNode, Error>::from_parse(&mut child.children[1])

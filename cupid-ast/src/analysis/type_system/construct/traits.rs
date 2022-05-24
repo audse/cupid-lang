@@ -2,8 +2,7 @@ use crate::*;
 
 #[derive(Debug, Clone, Default)]
 pub struct Trait {
-	pub name: Str,
-	pub generics: Vec<GenericParam>,
+	pub name: Ident,
 	pub methods: Vec<Type>,
 	pub bounds: Vec<Ident>,
 }
@@ -16,12 +15,11 @@ impl Trait {
 		//   fun [t] add = t self, t other => _
 		// ]
 		let generic = GenericParam::new("t");
+		let name = Ident::new(name, vec![generic]);
 		Trait {
-			name: Cow::Borrowed(name),
-			generics: vec![generic.to_owned()],
+			name: name.to_owned(),
 			methods: vec![Type {
-				name: None,
-				generics: vec![generic.to_owned()],
+				name,
 				fields: FieldSet::Unnamed(vec![
 					Type::primitive("t").into_ident(), // left
 					Type::primitive("t").into_ident(), // right
@@ -34,6 +32,6 @@ impl Trait {
 		}
 	}	
 	pub fn into_ident(&self) -> Ident {
-		Ident { name: self.name.to_owned(), generics: self.generics.to_owned() }
+		self.name.to_owned()
 	}
 }

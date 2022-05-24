@@ -114,7 +114,7 @@ pub struct FileNode {
 impl FromParse for Result<FileNode, Error> {
 	fn from_parse(node: &mut ParseNode) -> Self {
     	Ok(FileNode {
-			expressions: node.map_mut_result(&parse)?,
+			expressions: node.map(&parse)?,
 			meta: Meta::with_tokens(node.tokens.to_owned())
 		})
 	}

@@ -18,7 +18,7 @@ impl FromParse for Result<SumTypeDeclaration, Error> {
 		let name = &node.children[i].tokens[0].source;
     	Ok(SumTypeDeclaration {
 			symbol: TypeHintNode::new(name.to_owned(), vec![TypeFlag::Sum], generics, node.children[0].tokens.to_owned()),
-			types: node.filter_map_mut_result(&|child| if &*child.name == "sum_member" {
+			types: node.filter_map(&|child: &mut ParseNode| if &*child.name == "sum_member" {
 				Some(Result::<TypeHintNode, Error>::from_parse(&mut child.children[0]))
 			} else {
 				None

@@ -2,7 +2,7 @@ use crate::*;
 
 pub fn parse_import(node: &mut ParseNode) -> ImportNode {
 	match &*node.name {
-		"packages" => ImportNode::PackageList(node.filter_map_mut(&|n| {
+		"packages" => ImportNode::PackageList(node.filter_map_noresult(&|n| {
 			if let ImportNode::Package(package) = parse_import(n) {
 				Some(package)
 			} else {
@@ -41,7 +41,7 @@ pub fn parse_import(node: &mut ParseNode) -> ImportNode {
 				ImportNode::NameSpace(name_node)
 			}
 		},
-		"item_group" => ImportNode::Items(node.filter_map_mut(&|child| {
+		"item_group" => ImportNode::Items(node.filter_map_noresult(&|child| {
 			if let ImportNode::Items(items) = parse_import(child) {
 				Some(items[0].to_owned())
 			} else {

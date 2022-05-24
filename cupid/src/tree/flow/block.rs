@@ -8,7 +8,7 @@ pub struct BlockNode {
 impl FromParse for Result<BlockNode, Error> {
 	fn from_parse(node: &mut ParseNode) -> Self {
 		Ok(BlockNode {
-			expressions: node.map_mut_result(&parse)?,
+			expressions: node.map(&parse)?,
 		})
 	}
 }

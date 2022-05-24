@@ -36,7 +36,7 @@ impl FromParse for Result<ParametersNode, Error> {
 			.any(|t| &*t.source == "mut");
 		
 		// TODO make separate impl?
-		let symbols = node.filter_map_mut_result(&|n: &mut ParseNode| {
+		let symbols = node.filter_map(|n: &mut ParseNode| {
 			let (type_hint, symbol, default) = match &*n.name {
 				"annotated_parameter" => (
 					match Result::<TypeHintNode, Error>::from_parse(&mut n.children[0]) {

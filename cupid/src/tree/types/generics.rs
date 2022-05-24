@@ -16,7 +16,7 @@ impl FromParent<&mut ParseNode> for Result<Option<GenericsNode>, Error> {
 
 impl FromParent<&mut ParseNode> for Result<Vec<GenericsNode>, Error> {
 	fn from_parent(node: &mut ParseNode) -> Self {
-		node.filter_map_mut_result(&|n| if &*n.name == "generics" {
+		node.filter_map(|n| if &*n.name == "generics" {
 			Some(Result::<GenericsNode, Error>::from_parse(n))
 		} else {
 			None
@@ -26,7 +26,7 @@ impl FromParent<&mut ParseNode> for Result<Vec<GenericsNode>, Error> {
 
 impl FromParse for Result<GenericsNode, Error> {
 	fn from_parse(node: &mut ParseNode) -> Self {
-		let generics = node.map_mut_result(&|g| {
+		let generics = node.map(|g| {
 			let arg = match g.children.get_mut(1).map(Result::<TypeHintNode, Error>::from_parse) {
 				Some(Ok(value)) => Some(value),
 				Some(Err(err)) => return Err(err),

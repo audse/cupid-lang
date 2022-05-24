@@ -9,7 +9,7 @@ pub struct ArrayNode {
 impl FromParse for Result<ArrayNode, Error> {
 	fn from_parse(node: &mut ParseNode) -> Self {
 		Ok(ArrayNode {
-			items: node.map_mut_result(&parse)?,
+			items: node.map(&parse)?,
 			meta: Meta::with_tokens(node.tokens.to_owned())
 		})
 	}

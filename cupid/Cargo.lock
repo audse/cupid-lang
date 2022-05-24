@@ -273,7 +273,6 @@ dependencies = [
  "colored",
  "criterion",
  "cupid_ast",
- "cupid_cst",
  "cupid_lex",
  "cupid_parse",
  "cupid_util",
@@ -290,14 +289,8 @@ name = "cupid_ast"
 version = "0.1.0"
 dependencies = [
  "cupid_lex",
+ "cupid_parse",
  "lazy_static",
-]
-
-[[package]]
-name = "cupid_cst"
-version = "0.1.0"
-dependencies = [
- "cupid_lex",
 ]
 
 [[package]]

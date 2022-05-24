@@ -16,7 +16,7 @@ pub struct MapNode {
 impl FromParse for Result<MapNode, Error> {
 	fn from_parse(node: &mut ParseNode) -> Self {
 		use MapKey::*;
-		let items = node.filter_map_mut_result(&|child| if &*child.name == "map_entry" {
+		let items = node.filter_map(|child| if &*child.name == "map_entry" {
 			let key = if child.children[0].name == "identifier" {
 				match Result::<SymbolNode, Error>::from_parse(&mut child.children[0]) {
 					Ok(value) => Symbol(value),

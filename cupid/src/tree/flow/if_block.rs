@@ -26,7 +26,7 @@ impl FromParse for Result<IfBlockNode, Error> {
 		Ok(IfBlockNode {
 			condition,
 			body,
-			else_if_blocks: node.filter_map_mut_result(&|child| {
+			else_if_blocks: node.filter_map(&|child: &mut ParseNode| {
 				if &*child.name == "else_if_block" {
 					Some(Self::from_parse(child))
 				} else {
