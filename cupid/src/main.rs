@@ -19,23 +19,30 @@ struct Cli {
 	repl: bool,
 }
 
-fn main() {
+fn main() -> Result<(), String> {
     let args = Cli::parse();
 	
+	let mut parser = CupidParser::new(String::new(), 1);
+	let mut env = Env::default();
+	
+	macro_rules! add_globals {
+		($env:ident, $($global:ident),*) => {
+			$(
+				$env.add_global(&*$global);
+			)*
+		}
+	}
+	
+	// core types
+	add_globals!(env, BOOLEAN, DECIMAL, INTEGER, CHARACTER, STRING, FUNCTION, ARRAY, TUPLE, MAYBE, NOTHING);
+	
+	// core traits
+	add_globals!(env, ADD, SUBTRACT, MULTIPLY, DIVIDE, EQUAL, NOT_EQUAL, GET);
+	
 	if args.repl {
-		loop {
-			let mut line = String::new();
-			std::io::stdin().read_line(&mut line).unwrap();
-			
-			if &line == "exit" {
-				break;
-			}
-			
-			let mut parser = CupidParser::new(line, 1);
-			let (mut parse_tree, _) = parser._expression().unwrap();
-			let mut env = Env::default();
-			let ast = to_ast(&mut parse_tree, &mut env);
-			println!("{ast:?}");
+		match run_repl(&mut parser, &mut env) {
+			Ok(()) => (),
+			Err((src, code)) => panic!("{}", err_from_code(src, code, &mut env))
 		}
 	}
 	
@@ -47,6 +54,22 @@ fn main() {
 			_ => ()
 		}
     }
+	Ok(())
+}
+
+fn run_repl(parser: &mut CupidParser, env: &mut Env) -> Result<(), (Source, ErrCode)> {
+	loop {
+		let mut line = String::new();
+		std::io::stdin().read_line(&mut line).unwrap();
+		parser.update(line.to_owned(), 1);
+		
+		let (mut parse_tree, _) = parser._expression().unwrap();
+		let mut ast = create_ast(&mut parse_tree, env).map_err(|e| (0, e))?;
+		
+		ast.analyze_names(env)?;
+		ast.analyze_types(env)?;
+		ast.check_types(env)?;
+	}
 }
 
 fn run_path(path: &str, debug: bool)-> Result<(), Error> {

@@ -12,6 +12,7 @@ pub enum Val {
 	String(Cow<'static, str>),
 	Tuple(Vec<Val>),
 	Type(crate::Type),
+	Trait(crate::Trait),
 }
 
 impl Default for Val {
@@ -19,8 +20,8 @@ impl Default for Val {
 }
 
 impl TypeOf for Val {
-	fn type_of(&self, _scope: &mut Env) -> Result<Type, ErrCode> {
-    	infer_type(self)
+	fn type_of(&self, _scope: &mut Env) -> Result<Type, (Source, ErrCode)> {
+    	infer_type(self).map_err(|code| (0, code))
 	}
 }
 
@@ -28,17 +29,19 @@ impl TypeOf for Val {
 pub struct Value(pub Typed<Val>, pub Attributes);
 
 impl Analyze for Value {
-	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), ErrCode> {
+	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
     	match &mut self.0.inner_mut() {
 			Val::Function(function) => function.analyze_names(scope),
 			Val::Type(type_val) => type_val.analyze_names(scope),
+			Val::Trait(trait_val) => trait_val.analyze_names(scope),
 			_ => Ok(())
 		}
 	}
-	fn analyze_types(&mut self, scope: &mut Env) -> Result<(), ErrCode> {
+	fn analyze_types(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
 		match &mut self.0.inner_mut() {
 			Val::Function(function) => function.analyze_types(scope)?,
 			Val::Type(type_val) => type_val.analyze_types(scope)?,
+			Val::Trait(trait_val) => trait_val.analyze_types(scope)?,
 			_ => ()
 		};
 		self.0.to_typed(self.0.type_of(scope)?);
@@ -51,7 +54,7 @@ impl UseAttributes for Value {
 }
 
 impl TypeOf for Value {
-	fn type_of(&self, _scope: &mut Env) -> Result<Type, ErrCode> {
+	fn type_of(&self, _scope: &mut Env) -> Result<Type, (Source, ErrCode)> {
     	Ok(self.0.get_type().to_owned())
 	}
 }

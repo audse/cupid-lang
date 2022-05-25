@@ -1,14 +1,17 @@
 use crate::*;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct Attributes {
 	pub closure: usize,
 	pub source: Option<usize>,
-	pub generics: Vec<GenericParam>
+	pub generics: GenericParams,
 }
 
 pub trait UseAttributes {
 	fn attributes(&mut self) -> &mut Attributes;
+	fn source(&mut self) -> usize {
+		self.attributes().source.unwrap_or(0)
+	}
 }
 
 impl Attributes {
@@ -16,7 +19,7 @@ impl Attributes {
 		Self {
 			closure: 0,
 			source: Some(source),
-			generics: vec![]
+			generics: GenericParams::default(),
 		}
 	}
 }

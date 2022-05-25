@@ -2,23 +2,23 @@ use std::fs::{write, read_to_string};
 use crate::*;
 
 // Grammars
-const BUILTIN: &str = "src/grammar/builtin.grammar";
-const CUPID: &str = "src/grammar/cupid.grammar";
-const PACKAGES: &str = "src/grammar/packages.grammar";
-const TYPES: &str = "src/grammar/types.grammar";
-const UTILS: &str = "src/grammar/utils.grammar";
+const BUILTIN: &str = "../cupid-parse/src/grammar/builtin.grammar";
+const CUPID: &str = "../cupid-parse/src/grammar/cupid.grammar";
+const PACKAGES: &str = "../cupid-parse/src/grammar/packages.grammar";
+const TYPES: &str = "../cupid-parse/src/grammar/types.grammar";
+const UTILS: &str = "../cupid-parse/src/grammar/utils.grammar";
 
-const PARSER_BASE: &str = "src/parsers/base.rs";
+const PARSER_BASE: &str = "../cupid-parse/src/parsers/base.rs";
 const PLACEHOLDER: &str = "/*RULES*/";
 
 pub fn read(grammar_paths: &[&str]) -> (Cow<'static, str>, Cow<'static, str>) {
+	println!("{grammar_paths:#?}");
 	let grammars: Vec<String> = grammar_paths
 		.iter()
 		.map(|path| read_to_string(path).unwrap_or_else(|path| panic!("couldn't find {path}")))
 		.collect();
-	println!("{grammar_paths:#?}");
 	(
-		read_to_string(PARSER_BASE).unwrap().into(),
+		read_to_string(PARSER_BASE).unwrap_or_else(|path| panic!("couldn't find {path}")).into(),
 		(grammars.join("\n")).into()
 	)
 }
@@ -44,9 +44,9 @@ fn name(path: Str) -> Str {
 pub fn use_generator(which: i32) {
 	println!("Running generator...");
 	match which {
-		1 => generate(&[CUPID, BUILTIN, PACKAGES, TYPES, UTILS], "src/parsers/cupid.rs".into()),
-		2 => generate(&[PACKAGES, UTILS], "src/parsers/packages.rs".into()),
-		3 => generate(&[TYPES, UTILS], "src/parsers/types.rs".into()),
+		1 => generate(&[CUPID, BUILTIN, PACKAGES, TYPES, UTILS], "../cupid-parse/src/parsers/cupid.rs".into()),
+		2 => generate(&[PACKAGES, UTILS], "../cupid-parse/src/parsers/packages.rs".into()),
+		3 => generate(&[TYPES, UTILS], "../cupid-parse/src/parsers/types.rs".into()),
 		_ => panic!("must specify a parser to generate")
 	}
 }

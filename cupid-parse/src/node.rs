@@ -64,6 +64,9 @@ impl ParseNode {
 	pub fn child_is(&mut self, index: usize, name: &str) -> bool {
 		&*(self.children[index].name) == name
 	}
+	pub fn get_children(&mut self, name: &str) -> Vec<&mut Self> {
+		self.get(name).children.iter_mut().collect()
+	}
 	pub fn collect_tokens(&mut self) -> Vec<Token> {
 		self.children.iter_mut().flat_map(|c| {
 			let mut tokens = c.tokens.to_owned();

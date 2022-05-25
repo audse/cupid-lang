@@ -7,13 +7,13 @@ pub struct Block {
 }
 
 impl Analyze for Block {
-	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), ErrCode> {
+	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
     	for exp in self.body.iter_mut() {
 			exp.analyze_names(scope)?;
 		}
 		Ok(())
 	}
-	fn analyze_types(&mut self, scope: &mut Env) -> Result<(), ErrCode> {
+	fn analyze_types(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
     	for exp in self.body.iter_mut() {
 			exp.analyze_types(scope)?;
 		}
@@ -26,7 +26,7 @@ impl UseAttributes for Block {
 }
 
 impl TypeOf for Block {
-	fn type_of(&self, scope: &mut Env) -> Result<Type, ErrCode> {
+	fn type_of(&self, scope: &mut Env) -> Result<Type, (Source, ErrCode)> {
     	if let Some(exp) = (*self.body).last() {
 			exp.type_of(scope)
 		} else {

@@ -11,6 +11,9 @@ pub use bidirectional_iterator::*;
 mod displays;
 pub use displays::*;
 
+mod fmt;
+pub use fmt::*;
+
 mod static_map;
 
 mod strings;

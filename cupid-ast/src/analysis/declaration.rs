@@ -10,7 +10,7 @@ pub struct Declaration {
 }
 
 impl Analyze for Declaration {
-	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), ErrCode> {
+	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
 		scope.no_symbol(&self.name)?;
 		
 		let value = SymbolValue {
@@ -22,7 +22,7 @@ impl Analyze for Declaration {
 		scope.set_symbol(&self.name, value);
 		self.value.analyze_names(scope)
 	}
-	fn analyze_types(&mut self, scope: &mut Env) -> Result<(), ErrCode> {
+	fn analyze_types(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
 		self.value.analyze_types(scope)?;
 		
 		self.type_hint.to_typed(self.type_hint.type_of(scope)?);
@@ -30,10 +30,10 @@ impl Analyze for Declaration {
 		
 		Ok(())
 	}
-	fn check_types(&mut self, scope: &mut Env) -> Result<(), ErrCode> {
+	fn check_types(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
 		self.value.check_types(scope)?;
 		if self.type_hint.get_type() != self.value.get_type() {
-			panic!("type mismatch: cannot declare")
+			return Err((self.attributes.source.unwrap(), ERR_TYPE_MISMATCH));
 		}
 		Ok(())
 	}

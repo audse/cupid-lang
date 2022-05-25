@@ -23,6 +23,10 @@ impl CupidParser {
 	pub fn new(source: String, file: usize) -> Self {
 		Self { tokens: Self::build(source, file), file }
 	}
+	pub fn update(&mut self, source: String, file: usize) {
+		self.tokens = Self::build(source, file);
+		self.file = file;
+	}
     
 	
 			pub fn _file(&mut self) -> Option<(ParseNode, bool)> {
@@ -1429,90 +1433,9 @@ once!(&mut node, self._term(), false);
 			pub fn _type_hint(&mut self) -> Option<(ParseNode, bool)> {
 				let (mut node, pos) = self.start_parse("type_hint");
 				
-			alt! ((self, true, node, pos) {
-				once!(&mut node, self._array_type_hint(), false);
-			});
-
-			alt! ((self, true, node, pos) {
-				once!(&mut node, self._function_type_hint(), false);
-			});
-
-			alt! ((self, true, node, pos) {
-				once!(&mut node, self._map_type_hint(), false);
-			});
-
-			alt! ((self, true, node, pos) {
-				once!(&mut node, self._struct_type_hint(), false);
-			});
-
-			alt! ((self, true, node, pos) {
-				once!(&mut node, self._primitive_type_hint(), false);
-			});
-				None
-			}
-			
-			pub fn _array_type_hint(&mut self) -> Option<(ParseNode, bool)> {
-				let (mut node, pos) = self.start_parse("array_type_hint");
-				
-			alt! ((self, false, node, pos) {
-				once!(&mut node, self._array_kw(), false);
-once!(&mut node, self._bracket(&Self::_type_hint), false);
-			});
-				None
-			}
-			
-			pub fn _map_type_hint(&mut self) -> Option<(ParseNode, bool)> {
-				let (mut node, pos) = self.start_parse("map_type_hint");
-				
-			alt! ((self, false, node, pos) {
-				once!(&mut node, self._map_kw(), false);
-once!(&mut node, self._bracket_list(&Self::_type_hint), false);
-			});
-				None
-			}
-			
-			pub fn _function_type_hint(&mut self) -> Option<(ParseNode, bool)> {
-				let (mut node, pos) = self.start_parse("function_type_hint");
-				
-			alt! ((self, false, node, pos) {
-				once!(&mut node, self._fun_kw(), false);
-once!(&mut node, self._bracket(&Self::_type_hint), false);
-			});
-				None
-			}
-			
-			pub fn _primitive_type_hint(&mut self) -> Option<(ParseNode, bool)> {
-				let (mut node, pos) = self.start_parse("primitive_type_hint");
-				
 			alt! ((self, false, node, pos) {
 				once!(&mut node, self._identifier(), false);
-			});
-				None
-			}
-			
-			pub fn _array_kw(&mut self) -> Option<(ParseNode, bool)> {
-				let (mut node, pos) = self.start_parse("array_kw");
-				
-			alt! ((self, false, node, pos) {
-				once!(&mut node, self.expect(r"array"), false);
-			});
-				None
-			}
-			
-			pub fn _map_kw(&mut self) -> Option<(ParseNode, bool)> {
-				let (mut node, pos) = self.start_parse("map_kw");
-				
-			alt! ((self, false, node, pos) {
-				once!(&mut node, self.expect(r"map"), false);
-			});
-				None
-			}
-			
-			pub fn _fun_kw(&mut self) -> Option<(ParseNode, bool)> {
-				let (mut node, pos) = self.start_parse("fun_kw");
-				
-			alt! ((self, false, node, pos) {
-				once!(&mut node, self.expect(r"fun"), false);
+optional!(&mut node, self._bracket_list(&Self::_type_hint), false);
 			});
 				None
 			}
@@ -1823,18 +1746,6 @@ once!(&mut node, self.expect_word(), false);
 
 			alt! ((self, true, node, pos) {
 				once!(&mut node, self.expect(r"self"), false);
-			});
-
-			alt! ((self, true, node, pos) {
-				once!(&mut node, self.expect(r"array"), false);
-			});
-
-			alt! ((self, true, node, pos) {
-				once!(&mut node, self.expect(r"fun"), false);
-			});
-
-			alt! ((self, true, node, pos) {
-				once!(&mut node, self.expect(r"map"), false);
 			});
 
 			alt! ((self, true, node, pos) {

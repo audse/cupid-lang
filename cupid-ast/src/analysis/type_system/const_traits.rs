@@ -10,4 +10,5 @@ lazy_static! {
 	pub static ref DIVIDE: Trait = Trait::new_bin_op("divide!");
 	pub static ref EQUAL: Trait = Trait::new_bin_op("equal!");
 	pub static ref NOT_EQUAL: Trait = Trait::new_bin_op("not_equal!");
+	pub static ref GET: Trait = Trait::new_bin_op("get!");
 }

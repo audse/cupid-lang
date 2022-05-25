@@ -8,22 +8,22 @@ pub struct Function {
 }
 
 impl Analyze for Function {
-	fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), ErrCode> {
+	fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
 		self.attributes.closure = scope.add_closure();
 		Ok(())
 	}
-	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), ErrCode> {
+	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
 		scope.use_closure(self.attributes.closure);
 		
 		for param in self.params.iter_mut() {
-			param.analyze_names(scope)?;
+			param_is_not_type(&mut param.name, scope)?;
 		}
 		self.body.analyze_names(scope)?;
 		
 		scope.reset_closure();
 		Ok(())
 	}
-	fn analyze_types(&mut self, scope: &mut Env) -> Result<(), ErrCode> {
+	fn analyze_types(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
 		scope.use_closure(self.attributes.closure);
 		
 		for param in self.params.iter_mut() {
@@ -42,7 +42,7 @@ impl UseAttributes for Function {
 }
 
 impl TypeOf for Function {
-	fn type_of(&self, scope: &mut Env) -> Result<Type, ErrCode> {
+	fn type_of(&self, scope: &mut Env) -> Result<Type, (Source, ErrCode)> {
 		let return_type = self.body.get_type().to_ident();
     	let params: Vec<Ident> = self.params
 			.iter()
@@ -54,5 +54,13 @@ impl TypeOf for Function {
 			return_type, 
 			scope
 		))
+	}
+}
+
+fn param_is_not_type(param: &mut Ident, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
+	if let Ok(_) = scope.get_type(param) {
+		Err((param.source(), ERR_ALREADY_DEFINED))
+	} else {
+		Ok(())
 	}
 }

@@ -23,6 +23,10 @@ impl TypesParser {
     pub fn new(source: String, file: usize) -> Self {
         Self { tokens: Self::build(source, file), file }
     }
+	pub fn update(&mut self, source: String, file: usize) {
+		self.tokens = Self::build(source, file);
+		self.file = file;
+	}
 
     fn _builtin_type(&mut self) -> Option<(ParseNode, bool)> {
         let (mut node, pos) = self.start_parse("builtin_type");

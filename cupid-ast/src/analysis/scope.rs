@@ -1,7 +1,8 @@
 use crate::{
 	Ident,
 	Type,
-	ErrCode
+	ErrCode,
+	Source,
 };
 
 mod closure;
@@ -18,8 +19,8 @@ pub use symbol_value::*;
 
 
 pub trait ScopeSearch {
-	fn get_symbol(&mut self, symbol: &Ident) -> Result<SymbolValue, ErrCode>;
-	fn get_type(&mut self, symbol: &Ident) -> Result<Type, ErrCode>;
+	fn get_symbol(&mut self, symbol: &Ident) -> Result<SymbolValue, (Source, ErrCode)>;
+	fn get_type(&mut self, symbol: &Ident) -> Result<Type, (Source, ErrCode)>;
 	fn set_symbol(&mut self, symbol: &Ident, value: SymbolValue);
 	fn modify_symbol(&mut self, symbol: &Ident, function: &dyn Fn(&mut SymbolValue));
 }

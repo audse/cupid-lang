@@ -1,8 +1,9 @@
 use crate::*;
 
-pub fn function_signature(generics: Vec<GenericParam>, mut params: Vec<Ident>, return_type: Ident, scope: &mut Env) -> Type {
+pub fn function_signature(mut generics: GenericParams, mut params: Vec<Ident>, return_type: Ident, scope: &mut Env) -> Type {
 	let fun_type_ident = &FUNCTION.to_owned().into_ident();
 	let mut fun_type = scope.get_type(fun_type_ident).unwrap();
+	generics.0.insert(0, GenericParam(None, Some(return_type.to_owned())));
 	fun_type.name.attributes.generics = generics;
 	params.push(return_type);
 	fun_type.fields = FieldSet::Unnamed(params);

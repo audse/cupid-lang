@@ -24,6 +24,10 @@ impl BaseParser {
     pub fn new(source: String, file: usize) -> Self {
         Self { tokens: Self::build(source, file), file }
     }
+	pub fn update(&mut self, source: String, file: usize) {
+		self.tokens = Self::build(source, file);
+		self.file = file;
+	}
 
     pub fn _list(&mut self, inner: &ParseFun) -> Option<(ParseNode, bool)> {
         let (mut node, pos) = self.start_parse("list");

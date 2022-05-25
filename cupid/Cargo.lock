@@ -290,6 +290,7 @@ version = "0.1.0"
 dependencies = [
  "cupid_lex",
  "cupid_parse",
+ "cupid_util",
  "lazy_static",
 ]
 

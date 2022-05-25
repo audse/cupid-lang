@@ -23,23 +23,7 @@
 
 - typed_declaration: type_hint 'mut'? identifier ~equal term
 
-- type_hint: identifier bracket_list[type_hint]
-
-#-~type_hint:
-	#array_type_hint
-	#| function_type_hint
-	#| map_type_hint
-	#| struct_type_hint
-	#| primitive_type_hint
-
-- array_type_hint: array_kw bracket[type_hint]
-- map_type_hint: map_kw bracket_list[type_hint]
-- function_type_hint: fun_kw bracket[type_hint]
-- primitive_type_hint: identifier
-
-- array_kw: 'array'
-- map_kw: 'map'
-- fun_kw: 'fun'
+- type_hint: identifier bracket_list[type_hint]?
 
 - struct_type_hint: identifier bracket_list[struct_member_type_hint]
 - struct_member_type_hint: type_hint identifier

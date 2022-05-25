@@ -1,7 +1,7 @@
 use crate::*;
 
 pub trait TypeOf {
-	fn type_of(&self, _scope: &mut Env) -> Result<Type, ErrCode> { 
+	fn type_of(&self, _scope: &mut Env) -> Result<Type, (Source, ErrCode)> { 
 		Ok(NOTHING.to_owned())
 	}
 }
@@ -66,14 +66,11 @@ impl Typed<Ident> {
 }
 
 impl TypeOf for Typed<Ident> {
-	fn type_of(&self, scope: &mut Env) -> Result<Type, ErrCode> {
-		let type_hint = scope.get_symbol(&*self)?;
-		if let Some(value) = &type_hint.value {
-			if let Val::Type(type_hint) = &*value.0 {
-				return Ok(type_hint.to_owned());
-			}
+	fn type_of(&self, scope: &mut Env) -> Result<Type, (Source, ErrCode)> {
+		match self {
+			Self::Typed(_, t) => Ok(t.to_owned()),
+			Self::Untyped(v) => v.type_of(scope)
 		}
-		scope.get_type(&type_hint.type_hint)
 	}
 }
 
@@ -92,6 +89,15 @@ impl<T: Default> std::ops::DerefMut for Typed<T> {
 		match self {
 			Self::Untyped(t) => t,
 			Self::Typed(t, _) => t
+		}
+	}
+}
+
+impl <T: Default + std::fmt::Display> std::fmt::Display for Typed<T> {
+	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+		match self {
+			Self::Typed(v, t) => write!(f, "typed [{v}: {t}]"),
+			Self::Untyped(v) => write!(f, "untyped [{v}]"),
 		}
 	}
 }

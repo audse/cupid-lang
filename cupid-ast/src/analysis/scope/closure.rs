@@ -30,21 +30,21 @@ impl Closure {
 	}
 }
 impl ScopeSearch for Closure {
-	fn get_symbol(&mut self, symbol: &Ident) -> Result<SymbolValue, ErrCode> {
+	fn get_symbol(&mut self, symbol: &Ident) -> Result<SymbolValue, (Source, ErrCode)> {
 		for scope in self.scopes.iter_mut() {
 			if let Ok(value) = scope.get_symbol(symbol) {
 				return Ok(value);
 			}
 		}
-		Err(404)
+		Err((symbol.src(), 404))
 	}
-	fn get_type(&mut self, symbol: &Ident) -> Result<Type, ErrCode> {
+	fn get_type(&mut self, symbol: &Ident) -> Result<Type, (Source, ErrCode)> {
 		for scope in self.scopes.iter_mut() {
 			if let Ok(value) = scope.get_type(symbol) {
 				return Ok(value);
 			}
 		}
-		Err(404)
+		Err((symbol.src(), 404))
 	}
 	fn set_symbol(&mut self, symbol: &Ident, value: SymbolValue) {
 		self.scopes.last_mut().unwrap().set_symbol(symbol, value);

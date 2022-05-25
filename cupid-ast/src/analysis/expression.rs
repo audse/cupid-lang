@@ -6,6 +6,7 @@ pub enum Exp {
 	FunctionCall(FunctionCall),
 	Block(Block),
 	Function(Function),
+	Ident(Ident),
 	Value(Value),
 	Empty
 }
@@ -16,51 +17,57 @@ impl Default for Exp {
 	}
 }
 
-impl TypeOf for Exp {
-	fn type_of(&self, scope: &mut Env) -> Result<Type, ErrCode> {		
-    	match self {
-			Self::Declaration(declaration) => declaration.type_of(scope),
-			Self::FunctionCall(function_call) => function_call.type_of(scope),
-			Self::Block(block) => block.type_of(scope),
-			Self::Function(function) => function.type_of(scope),
-			Self::Value(value) => value.type_of(scope),
-			_ => panic!()
+macro_rules! for_each_exp {
+	($s:ident, $method:tt, $scope:ident) => {
+		match $s {
+			Self::Declaration(declaration) => declaration.$method($scope),
+			Self::FunctionCall(function_call) => function_call.$method($scope),
+			Self::Block(block) => block.$method($scope),
+			Self::Function(function) => function.$method($scope),
+			Self::Ident(ident) => ident.$method($scope),
+			Self::Value(value) => value.$method($scope),
+			_ => panic!("unexpected expression: {:?}", $s)
+		}
+	};
+	($s:ident, $method:tt) => {
+		match $s {
+			Self::Declaration(declaration) => declaration.$method(),
+			Self::FunctionCall(function_call) => function_call.$method(),
+			Self::Block(block) => block.$method(),
+			Self::Function(function) => function.$method(),
+			Self::Ident(ident) => ident.$method(),
+			Self::Value(value) => value.$method(),
+			_ => panic!("unexpected expression: {:?}", $s)
 		}
 	}
 }
 
-impl Analyze for Exp {
-	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), ErrCode> {
-    	match self {
-			Self::Declaration(declaration) => declaration.analyze_names(scope),
-			Self::FunctionCall(function_call) => function_call.analyze_names(scope),
-			Self::Block(block) => block.analyze_names(scope),
-			Self::Function(function) => function.analyze_names(scope),
-			Self::Value(value) => value.analyze_names(scope),
-			_ => panic!()
+impl TypeOf for Exp {
+	fn type_of(&self, scope: &mut Env) -> Result<Type, (Source, ErrCode)> {
+		if let Self::Empty = self {
+			return Ok(NOTHING.to_owned())
 		}
+		for_each_exp!(self, type_of, scope)
 	}
-	fn analyze_types(&mut self, scope: &mut Env) -> Result<(), ErrCode> {
-    	match self {
-			Self::Declaration(declaration) => declaration.analyze_types(scope),
-			Self::FunctionCall(function_call) => function_call.analyze_types(scope),
-			Self::Block(block) => block.analyze_types(scope),
-			Self::Function(function) => function.analyze_types(scope),
-			Self::Value(value) => value.analyze_types(scope),
-			_ => panic!()
-		}
+}
+
+impl Analyze for Exp {
+	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
+		if let Self::Empty = self { return Ok(()) }
+		for_each_exp!(self, analyze_names, scope)
+	}
+	fn analyze_types(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
+		if let Self::Empty = self { return Ok(()) }
+		for_each_exp!(self, analyze_types, scope)
+	}
+	fn check_types(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
+		if let Self::Empty = self { return Ok(()) }
+		for_each_exp!(self, check_types, scope)
 	}
 }
 
 impl UseAttributes for Exp {
 	fn attributes(&mut self) -> &mut Attributes {
-    	match self {
-			Self::Declaration(declaration) => declaration.attributes(),
-			Self::FunctionCall(function_call) => function_call.attributes(),
-			Self::Block(block) => block.attributes(),
-			Self::Function(function) => function.attributes(),
-			Self::Value(value) => value.attributes(),
-			_ => panic!()
-		}
+		for_each_exp!(self, attributes)
 	}
 }

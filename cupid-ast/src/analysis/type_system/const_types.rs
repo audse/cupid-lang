@@ -4,7 +4,6 @@ lazy_static! {
 	pub static ref BOOLEAN: Type = Type::primitive("bool");
 	pub static ref INTEGER: Type = Type::primitive("int");
 	pub static ref DECIMAL: Type = Type::primitive("dec");
-	pub static ref FLOAT: Type = Type::primitive("float");
 	pub static ref CHARACTER: Type = Type::primitive("char");
 	pub static ref STRING: Type = Type::primitive("string");
 	pub static ref NOTHING: Type = Type::primitive("nothing");
@@ -14,6 +13,7 @@ lazy_static! {
 		fields: FieldSet::unnamed(vec![Type::primitive("e").into_ident()]),
 		traits: vec![EQUAL.into_ident(), NOT_EQUAL.into_ident()],
 		methods: vec![],
+		base_type: BaseType::Array,
 	};
 	
 	pub static ref TUPLE: Type = Type {
@@ -21,6 +21,7 @@ lazy_static! {
 		fields: FieldSet::Empty,
 		traits: vec![EQUAL.into_ident(), NOT_EQUAL.into_ident()],
 		methods: vec![],
+		base_type: BaseType::Array,
 	};
 	
 	pub static ref MAYBE: Type = Type {
@@ -31,6 +32,7 @@ lazy_static! {
 		]),
 		traits: vec![EQUAL.into_ident(), NOT_EQUAL.into_ident()],
 		methods: vec![],
+		base_type: BaseType::Sum,
 	};
 	
 	pub static ref FUNCTION: Type = Type {
@@ -38,13 +40,14 @@ lazy_static! {
 		fields: FieldSet::unnamed(vec![Type::primitive("r").into_ident()]),
 		traits: vec![],
 		methods: vec![],
+		base_type: BaseType::Function,
 	};
 }
 
 pub fn array_type(arg: Ident) -> Type {
 	let mut array = (*ARRAY).to_owned();
 	array.fields = FieldSet::Unnamed(vec![arg.to_owned()]);
-	if let Some(g) = array.name.attributes.generics.get_mut(0) {
+	if let Some(g) = array.name.attributes.generics.0.get_mut(0) {
 		g.1 = Some(arg)
 	}
 	array

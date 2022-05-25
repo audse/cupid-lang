@@ -21,3 +21,14 @@ impl FieldSet {
 		Self::Sum(Box::new(Self::Unnamed(types)))
 	}
 }
+
+impl std::fmt::Display for FieldSet {
+	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+		match self {
+			Self::Unnamed(fields) => write!(f, "{}", fmt_list!(fields, ", ")),
+			Self::Named(fields) => write!(f, "{}", fmt_list!(fields, |(a, b)| format!("{a} {b}"), ", ")),
+			Self::Sum(fields) => write!(f, "{fields}"),
+			_ => Ok(())
+		}
+	}
+}

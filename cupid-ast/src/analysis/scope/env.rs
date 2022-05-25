@@ -54,21 +54,21 @@ impl Env {
 	pub fn pop(&mut self) -> Option<Scope> {
 		self.closures.last_mut().unwrap().pop()
 	}
-	pub fn has_symbol(&mut self, symbol: &Ident) -> Result<(), ErrCode> {
+	pub fn has_symbol(&mut self, symbol: &Ident) -> Result<(), (Source, ErrCode)> {
 		if matches!(self.get_symbol(symbol), Ok(_)) {
 			Ok(())
 		} else {
-			Err(404)
+			Err((symbol.src(), 404))
 		}
 	}
-	pub fn no_symbol(&mut self, symbol: &Ident) -> Result<(), ErrCode> {
+	pub fn no_symbol(&mut self, symbol: &Ident) -> Result<(), (Source, ErrCode)> {
 		if matches!(self.get_symbol(symbol), Ok(_)) {
-			Err(500)
+			Err((symbol.src(), 405))
 		} else {
 			Ok(())
 		}
 	}
-	pub fn get_symbol_from(&mut self, symbol: &Ident, closure_index: usize) -> Result<SymbolValue, ErrCode> {
+	pub fn get_symbol_from(&mut self, symbol: &Ident, closure_index: usize) -> Result<SymbolValue, (Source, ErrCode)> {
 		let closure = &mut self.closures[closure_index];
 		let parent = closure.parent();
 		if let Ok(value) = closure.get_symbol(symbol) {
@@ -77,19 +77,57 @@ impl Env {
 		if let Some(parent_index) = parent {
 			self.get_symbol_from(symbol, parent_index)
 		} else {
-			Err(404)
+			Err((symbol.src(), 404))
 		}
+	}
+	pub fn add_global<T: ToOwned<Owned = T> + UseAttributes + ToIdent + Into<Val>>(&mut self, global: &T) {
+		let mut global = global.to_owned();
+		let ident = global.to_ident();
+		let attr = global.attributes().to_owned();
+		let value = SymbolValue {
+			value: Some(Value(Typed::Untyped(global.into()), attr)),
+			type_hint: ident.to_owned(),
+			mutable: false,
+		};
+		self.global.set_symbol(&ident, value);
+	}
+	pub fn debug_find_by_source(&mut self, source: usize) -> Option<(&Ident, &SymbolValue)> {
+		for closure in self.closures.iter_mut() {
+			for scope in closure.scopes.iter_mut() {
+				for (symbol, val) in scope.symbols.iter() {
+					if symbol.attributes.source == Some(source) {
+						return Some((symbol, val));
+					}
+					if let Some(value) = &val.value {
+						if value.1.source == Some(source) {
+							return Some((symbol, val))
+						}
+					}
+				}
+			}
+		}
+		for (symbol, val) in self.global.symbols.iter() {
+			if symbol.attributes.source == Some(source) {
+				return Some((symbol, val));
+			}
+			if let Some(value) = &val.value {
+				if value.1.source == Some(source) {
+					return Some((symbol, val))
+				}
+			}
+		}
+		None
 	}
 }
 
 impl ScopeSearch for Env {
-	fn get_symbol(&mut self, symbol: &Ident) -> Result<SymbolValue, ErrCode> {
+	fn get_symbol(&mut self, symbol: &Ident) -> Result<SymbolValue, (Source, ErrCode)> {
 		if let Ok(value) = self.get_symbol_from(symbol, self.current_closure) {
 			return Ok(value);
 		}
 		self.global.get_symbol(symbol)
 	}
-	fn get_type(&mut self, symbol: &Ident) -> Result<Type, ErrCode> {
+	fn get_type(&mut self, symbol: &Ident) -> Result<Type, (Source, ErrCode)> {
 		if let Some(closure) = self.closures.get_mut(self.current_closure) {
 			if let Ok(value) = closure.get_type(symbol) {
 				return Ok(value)
