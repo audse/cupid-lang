@@ -879,7 +879,15 @@ optional!(&mut node, self._property_suffix(), false);
 				
 			alt! ((self, true, node, pos) {
 				once!(&mut node, self.expect(r"."), false);
+use_negative_lookahead!(self, self.tokens().index(), self.expect(r"("));
 once!(&mut node, self._property(), false);
+			});
+
+			alt! ((self, true, node, pos) {
+				once!(&mut node, self.expect(r"."), false);
+once!(&mut node, self.expect(r"("), false);
+once!(&mut node, self._term(), false);
+once!(&mut node, self.expect(r")"), false);
 			});
 				None
 			}

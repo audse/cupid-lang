@@ -1,6 +1,6 @@
 use crate::*;
 
-fn box_node<'a, T: 'static + AST>(node: &'a mut ParseNode) -> Result<BoxAST, Error> 
+fn box_node<T: 'static + AST>(node: &'_ mut ParseNode) -> Result<BoxAST, Error> 
 	where Result<T, Error>: FromParse
 {
 	let result = Result::<T, Error>::from_parse(node)?;

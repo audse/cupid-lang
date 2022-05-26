@@ -1,60 +1,78 @@
 use crate::*;
 
 lazy_static! {
-	pub static ref BOOLEAN: Type = Type::primitive("bool");
-	pub static ref INTEGER: Type = Type::primitive("int");
-	pub static ref DECIMAL: Type = Type::primitive("dec");
-	pub static ref CHARACTER: Type = Type::primitive("char");
-	pub static ref STRING: Type = Type::primitive("string");
-	pub static ref NOTHING: Type = Type::primitive("nothing");
+	pub static ref BOOLEAN: Type = primitive("bool");
+	pub static ref INTEGER: Type = primitive("int");
+	pub static ref DECIMAL: Type = primitive("dec");
+	pub static ref CHARACTER: Type = primitive("char");
+	pub static ref STRING: Type = primitive("string");
+	pub static ref NOTHING: Type = primitive("nothing");
 	
-	pub static ref ARRAY: Type = Type {
-		name: Ident::new("array", vec![GenericParam::new("e")]),
-		fields: FieldSet::unnamed(vec![Type::primitive("e").into_ident()]),
-		traits: vec![EQUAL.into_ident(), NOT_EQUAL.into_ident()],
-		methods: vec![],
-		base_type: BaseType::Array,
-	};
+	pub static ref ARRAY: Type = TypeBuilder::new()
+		.name_str("array")
+		.generics(generics!["e"])
+		.fields(fields!["e"])
+		.traits(traits!(EQUAL, NOT_EQUAL))
+		.base_type(BaseType::Array)
+		.build();
 	
-	pub static ref TUPLE: Type = Type {
-		name: Ident::new("array", vec![]),
-		fields: FieldSet::Empty,
-		traits: vec![EQUAL.into_ident(), NOT_EQUAL.into_ident()],
-		methods: vec![],
-		base_type: BaseType::Array,
-	};
+	pub static ref TUPLE: Type = TypeBuilder::new()
+		.name_str("tuple")
+		.traits(traits!(EQUAL, NOT_EQUAL))
+		.base_type(BaseType::Array)
+		.build();
 	
-	pub static ref MAYBE: Type = Type {
-		name: Ident::new("maybe", vec![GenericParam::new("y"), GenericParam::new("n")]),
-		fields: FieldSet::sum_unnamed(vec![
-			Type::primitive("y").into_ident(), 
-			Type::primitive("n").into_ident()
-		]),
-		traits: vec![EQUAL.into_ident(), NOT_EQUAL.into_ident()],
-		methods: vec![],
-		base_type: BaseType::Sum,
-	};
+	pub static ref MAYBE: Type = TypeBuilder::new()
+		.name_str("maybe")
+		.generics(generics!["t"])
+		.fields(fields!["yes": "t", "n": "nothing"])
+		.traits(traits!(EQUAL, NOT_EQUAL))
+		.base_type(BaseType::Sum)
+		.build();
 	
-	pub static ref FUNCTION: Type = Type {
-		name: Ident::new("fun", vec![GenericParam::new("r")]),
-		fields: FieldSet::unnamed(vec![Type::primitive("r").into_ident()]),
-		traits: vec![],
-		methods: vec![],
-		base_type: BaseType::Function,
-	};
+	pub static ref FUNCTION: Type = TypeBuilder::new()
+		.name_str("fun")
+		.generics(generics!["r"])
+		.fields(fields!["r"])
+		.base_type(BaseType::Function)
+		.build();
+}
+
+pub fn primitive(name: &'static str) -> Type {
+	TypeBuilder::primitive(name)
 }
 
 pub fn array_type(arg: Ident) -> Type {
-	let mut array = (*ARRAY).to_owned();
-	array.fields = FieldSet::Unnamed(vec![arg.to_owned()]);
-	if let Some(g) = array.name.attributes.generics.0.get_mut(0) {
-		g.1 = Some(arg)
-	}
-	array
+	TypeBuilder::from(&*ARRAY)
+		.unnamed_fields(vec![arg.to_owned()])
+		.generic_arg(0, arg)
+		.build()
 }
 
 pub fn tuple_type(args: Vec<Ident>) -> Type {
-	let mut tuple = (*TUPLE).to_owned();
-	tuple.fields = FieldSet::Unnamed(args);
-	tuple
+	TypeBuilder::from(&*TUPLE)
+		.unnamed_fields(args)
+		.build()
+}
+
+#[macro_export]
+macro_rules! generics {
+	($($g:tt),*) => { GenericParams::from(vec![$($g),*]) }
+}
+
+#[macro_export]
+macro_rules! fields {
+	($($f:tt),*) => { 
+		FieldSet::Unnamed(vec![ $( primitive($f).into_ident() ),* ])
+	};
+	($($name:tt: $f:tt),*) => {
+		FieldSet::Named(vec![ $( 
+			(Cow::Borrowed($f), primitive($f).into_ident()) 
+		),* ])
+	};
+}
+
+#[macro_export]
+macro_rules! traits {
+	($($t:ident),*) => { vec![$($t.into_ident()),*] }
 }

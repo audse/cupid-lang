@@ -25,19 +25,19 @@ pub fn read(grammar_paths: &[&str]) -> (Cow<'static, str>, Cow<'static, str>) {
 
 pub fn generate(grammar_paths: &[&str], destination_path: Str) {
 	let (base, body) = read(grammar_paths);
-	let name = name(destination_path.to_owned().into());
+	let name = name(destination_path.to_owned());
 	let base = base.replace("BaseParser", &*name);
 	
-	let mut parser: GrammarParser = GrammarParser::new(name.into(), body, 0);
+	let mut parser: GrammarParser = GrammarParser::new(name, body, 0);
 	let grammar = parser.grammar();
 	let result = grammar.stringify();
 	_ = write(&*destination_path, base.replace(PLACEHOLDER, &result));
 }
 
 fn name(path: Str) -> Str {
-	let name = path.split("/").last().unwrap_or("");
+	let name = path.split('/').last().unwrap_or("");
 	let chars = name.split_at(1);
-	let name = chars.1.split_once(".").unwrap();
+	let name = chars.1.split_once('.').unwrap();
 	format!("{}{}Parser", chars.0.to_uppercase(), name.0).into()
 }
 

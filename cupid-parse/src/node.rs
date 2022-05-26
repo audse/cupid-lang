@@ -47,10 +47,10 @@ impl ParseNode {
 			.collect()
 	}
 	pub fn has(&self, name: &str) -> bool {
-		self.children.iter().find(|c| c.name == name).is_some()
+		self.children.iter().any(|c| c.name == name)
 	}
 	pub fn has_token(&self, name: &str) -> bool {
-		self.tokens.iter().find(|c| c.source == name).is_some()
+		self.tokens.iter().any(|c| c.source == name)
 	}
 	pub fn get(&mut self, name: &str) -> &mut Self {
 		self.children.iter_mut().find(|c| c.name == name).unwrap()
@@ -60,6 +60,12 @@ impl ParseNode {
 	}
 	pub fn get_all(&mut self, name: &str) -> Vec<&mut Self> {
 		self.children.iter_mut().filter(|c| c.name == name).collect()
+	}
+	pub fn child(&mut self, index: usize) -> &mut Self {
+		&mut self.children[index]
+	}
+	pub fn some_child(&mut self, index: usize) -> Option<&mut Self> {
+		self.children.get_mut(index)
 	}
 	pub fn child_is(&mut self, index: usize, name: &str) -> bool {
 		&*(self.children[index].name) == name
@@ -78,7 +84,7 @@ impl ParseNode {
 
 impl std::fmt::Debug for ParseNode {
 	fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
-		match (self.children.len() > 0, self.tokens.len() > 0) {
+		match (!self.children.is_empty(), !self.tokens.is_empty()) {
 			(true, true) => {
 				f.debug_struct(&format!("\"{}\"", self.name))
 					.field("tokens", &format!("{}", DisplayVec::new(&self.tokens, false)))
@@ -103,7 +109,7 @@ impl std::fmt::Debug for ParseNode {
 	}
 }
 
-impl Display for ParseNode {
+impl std::fmt::Display for ParseNode {
 	fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
 		write!(f, "{:#?}", self)
 	}

@@ -3,7 +3,7 @@ use crate::*;
 pub struct DisplayVec<T>(pub Vec<T>, pub bool) where T: Display;
 
 impl<T: Display + Clone> DisplayVec<T> {
-	pub fn new(items: &Vec<T>, indent: bool) -> Self {
+	pub fn new(items: &[T], indent: bool) -> Self {
 		Self(items.to_vec(), indent)
 	}
 }
@@ -16,7 +16,7 @@ impl<T: Display> Display for DisplayVec<T> {
 				.entries(t)
 				.finish()
 		} else {
-			write!(f, "[{}]", t.collect::<Vec<String>>().join(", ").replace("\n", ""))
+			write!(f, "[{}]", t.collect::<Vec<String>>().join(", ").replace('\n', ""))
 		}
 	}
 }
@@ -24,7 +24,7 @@ impl<T: Display> Display for DisplayVec<T> {
 pub struct DisplayMap<K, V>(pub Vec<(K, V)>, pub bool) where K: Display, V: Display;
 
 impl<K: Display + Clone, V: Display + Clone> DisplayMap<K, V> {
-	pub fn new(items: &Vec<(K, V)>, indent: bool) -> Self {
+	pub fn new(items: &[(K, V)], indent: bool) -> Self {
 		Self(items.to_vec(), indent)
 	}
 }
@@ -37,7 +37,7 @@ impl<K: Display + Clone, V: Display + Clone> Display for DisplayMap<K, V> {
 				.entries(t)
 				.finish()
 		} else {
-			write!(f, "[{}]", t.collect::<Vec<String>>().join(", ").replace("\n", ""))
+			write!(f, "[{}]", t.collect::<Vec<String>>().join(", ").replace('\n', ""))
 		}
 	}
 }

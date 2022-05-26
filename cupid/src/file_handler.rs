@@ -42,7 +42,7 @@ impl FileHandler {
 		}
 	}
 	
-	pub fn path(&self) -> &str { &self.files.last().unwrap() }
+	pub fn path(&self) -> &str { self.files.last().unwrap() }
 	
 	pub fn build(contents: &str) -> (CupidParser, LexicalScope, Vec<Error>, Vec<Warning>) {
 		let parser = CupidParser::new(contents.to_string(), 1);
@@ -117,7 +117,7 @@ impl FileHandler {
 	}
 	
 	pub fn parse_imports(&mut self, from_contents: String) -> Option<ImportNode> {
-		let mut package_parser = PackageParser::new(from_contents.to_owned(), self.files.len());
+		let mut package_parser = PackageParser::new(from_contents, self.files.len());
 		if let Some((mut tree, _)) = package_parser._packages() {
 			Some(parse_import(&mut tree))
 		} else {
@@ -142,7 +142,7 @@ impl FileHandler {
 		
 		self.files.push(package.path.to_owned());
 		
-		let mut parser = CupidParser::new(package.contents.to_owned(), self.files.len());
+		let mut parser = CupidParser::new(package.contents, self.files.len());
 		let parse_tree = parser._file();
 		if let Some((mut tree, _)) = parse_tree {
 			let semantics = match parse(&mut tree) {
@@ -210,7 +210,7 @@ impl FileHandler {
 		);
 		return format!(
 			"\n{error}\n\t{overline}\n\t{line}\n\t{underline}\n{context}\n\n",
-			error = e.string(&path),
+			error = e.string(path),
 			overline = overline,
 			line = line,
 			underline = underline,
@@ -227,7 +227,7 @@ impl FileHandler {
 		print!("{} {}", "Loading".bold().italic(), format!("{path}...").italic());
 	}
 	pub fn report_loading_package_success(&self) {
-		print!("{}\n", "success!".bold().italic().green());
+		println!("{}", "success!".bold().italic().green());
 	}
 	
 	pub fn report_build_complete(&self, now: Instant) {

@@ -1,10 +1,12 @@
 use crate::*;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct FunctionCall {
-	pub function: Typed<(Ident, Option<Function>)>,
-	pub args: Vec<Typed<Exp>>,
-	pub attributes: Attributes,
+build_struct! {
+	#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
+	pub FunctionCallBuilder => pub FunctionCall {
+		pub function: Typed<(Ident, Option<Function>)>,
+		pub args: Vec<Typed<Exp>>,
+		pub attributes: Attributes,
+	}
 }
 
 impl Analyze for FunctionCall {

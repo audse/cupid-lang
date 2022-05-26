@@ -1,22 +1,27 @@
 use std::hash::{Hash, Hasher};
 use crate::*;
 
-#[derive(Debug, Clone, Default)]
-pub struct Ident {
-	pub name: Str,
-	pub attributes: Attributes
+build_struct! {
+	#[derive(Debug, Clone, Default)]
+	pub IdentBuilder => pub Ident {
+		pub name: Str,
+		pub attributes: Attributes
+	}
 }
 
 impl Ident {
-	pub fn new(name: &'static str, generics: Vec<GenericParam>) -> Self {
+	pub fn new(name: &'static str, generics: GenericParams) -> Self {
 		Self {
 			name: Cow::Borrowed(name),
 			attributes: Attributes {
-				generics: GenericParams(generics),
+				generics,
 				source: None,
 				closure: 0,
 			}
 		}
+	}
+	pub fn new_name(name: &'static str) -> Self {
+		Self::new(name, GenericParams(vec![]))
 	}
 	pub fn src(&self) -> usize {
 		self.attributes.source.unwrap_or(0)
@@ -54,7 +59,7 @@ impl TypeOf for Ident {
 		// if an ident for a type, e.g. `int`
 		let mut symbol_value = scope.get_symbol(&*self)?;
 		if let Some(value) = &mut symbol_value.value {
-			if let Val::Type(type_hint) = &mut *value.0 {
+			if let Val::Type(type_hint) = &mut *value.val {
 				type_hint.name.attributes.generics.apply(self.attributes.generics.to_owned());
 				return Ok(type_hint.to_owned());
 			}
@@ -66,12 +71,4 @@ impl TypeOf for Ident {
 
 pub trait ToIdent {
 	fn to_ident(&self) -> Ident;
-}
-
-impl std::fmt::Display for Ident {
-	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-		let g = fmt_list!(self.attributes.generics.0);
-		let g = fmt_if_nonempty!(g, format!(" [{}]", g.join(", ")));
-		write!(f, "{}{g}", self.name)
-	}
 }

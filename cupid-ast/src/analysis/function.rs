@@ -1,10 +1,12 @@
 use crate::*;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Function {
-	pub body: Typed<Block>,
-	pub params: Vec<Declaration>,
-	pub attributes: Attributes,
+build_struct! {
+	#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
+	pub FunctionBuilder => pub Function {
+		pub body: Typed<Block>,
+		pub params: Vec<Declaration>,
+		pub attributes: Attributes,
+	}
 }
 
 impl Analyze for Function {
@@ -58,7 +60,7 @@ impl TypeOf for Function {
 }
 
 fn param_is_not_type(param: &mut Ident, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
-	if let Ok(_) = scope.get_type(param) {
+	if scope.get_type(param).is_ok() {
 		Err((param.source(), ERR_ALREADY_DEFINED))
 	} else {
 		Ok(())

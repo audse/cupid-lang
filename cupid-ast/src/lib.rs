@@ -5,6 +5,7 @@ use std::hash::{
 	Hasher,
 };
 pub use lazy_static::lazy_static;
+pub use derive_more::*;
 
 pub use cupid_lex::{
 	Error,

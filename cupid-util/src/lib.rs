@@ -1,4 +1,4 @@
-pub use std::{
+use std::{
 	vec::Vec,
 	fmt::Display,
 	fmt::Result as DisplayResult,
@@ -7,6 +7,9 @@ pub use std::{
 
 mod bidirectional_iterator;
 pub use bidirectional_iterator::*;
+
+mod builder;
+pub use builder::*;
 
 mod displays;
 pub use displays::*;

@@ -50,7 +50,7 @@ impl BoxAST {
 		// there are a few situations where we don't want to resolve symbols,
 		// but we do want to resolve anything else
 		// e.g. `person.name` (name is undefined) vs `people.0`
-		if let Some(_) = self.as_symbol() {
+		if self.as_symbol().is_some() {
 			Ok(self.to_owned())
 		} else {
 			Ok(Self::new(self.resolve(scope)?))

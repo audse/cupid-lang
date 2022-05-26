@@ -49,17 +49,17 @@ impl GrammarParser {
 		let mut pass_through = false;
 		let mut inverse = false;
 		let pos = self.tokens.index();
-		if let Some(_) = self.expect("-") {
+		if self.expect("-").is_some() {
 			
 			// pass_through modifier
-			if let Some(_) = self.expect("~") {
+			if self.expect("~").is_some() {
 				pass_through = true;
 			}
-			if let Some(_) = self.expect("!") {
+			if self.expect("!").is_some() {
 				inverse = true;
 			}
 			if let Some((name, _)) = self.expect_word() {
-				if let Some(_) = self.expect(":") {
+				if self.expect(":").is_some() {
 					let alts = self.rule_body();
 					return Some(Rule { 
 						name: name.source(), 
@@ -87,7 +87,7 @@ impl GrammarParser {
 	fn rule_body(&mut self) -> Vec<Vec<StaticGroup>> {
 		let mut alts = vec![self.alternative()];
 		let mut alt_pos = self.tokens.index();
-		while let Some(_) = self.expect("|") {
+		while self.expect("|").is_some() {
 			alts.push(self.alternative());
 			alt_pos = self.tokens.index();
 		}
@@ -96,9 +96,9 @@ impl GrammarParser {
 	}
 	
 	fn function_rule(&mut self) -> (Vec<Str>, Vec<Vec<StaticGroup>>) {
-		if let Some(_) = self.expect("[") {
+		if self.expect("[").is_some() {
 			let params = self.params();
-			if let Some(_) = self.expect(":") {
+			if self.expect(":").is_some() {
 				return (params, self.rule_body());
 			}
 		}
@@ -110,7 +110,7 @@ impl GrammarParser {
 		while let Some((arg, _)) = self.expect_word() {
 			args.push(arg.tokens[0].source.to_owned());
 			self.expect(",");
-			if let Some(_) = self.expect("]") {
+			if self.expect("]").is_some() {
 				break;
 			}
 		}
@@ -120,7 +120,7 @@ impl GrammarParser {
 	fn group(&mut self) -> Vec<StaticItem> {
 		let mut items = vec![];
 		loop {
-			if let Some(_) = self.expect(")") {
+			if self.expect(")").is_some() {
 				break;
 			}
 			if let Some(item) = self.item() {
@@ -136,11 +136,11 @@ impl GrammarParser {
 		let mut items: Vec<StaticGroup> = vec![];
 		loop {
 			let mut group = Group {
-				items: vec![].into(),
+				items: vec![],
 				prefix_modifier: self.prefix_modifier(),
 				suffix_modifier: None
 			};
-			if let Some(_) = self.expect("(") {
+			if self.expect("(").is_some() {
 				group.items = self.group();
 				group.suffix_modifier = self.suffix_modifier();
 				items.push(Cow::Owned(group));
@@ -168,7 +168,7 @@ impl GrammarParser {
 	}
 	
 	fn item(&mut self) -> Option<StaticItem> {
-		if let Some(_) = self.expect("EOF") {
+		if self.expect("EOF").is_some() {
 			return None;
 		}
 		let prefix = self.prefix_modifier();
@@ -189,11 +189,11 @@ impl GrammarParser {
 	
 	fn args(&mut self) -> Vec<StaticItem> {
 		let mut args = vec![];
-		if let Some(_) = self.expect("[") {
+		if self.expect("[").is_some() {
 			while let Some(arg) = self.item() {
 				args.push(arg);
 				self.expect(",");
-				if let Some(_) = self.expect("]") {
+				if self.expect("]").is_some() {
 					break;
 				}
 			}

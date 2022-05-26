@@ -45,6 +45,10 @@ impl Env {
 		}
 		self.closures.len() - 1
 	}
+	pub fn add_isolated_closure(&mut self) -> usize {
+		self.closures.push(Closure::new());
+		self.closures.len() - 1
+	}
 	pub fn pop_closure(&mut self) -> Option<Closure> {
 		self.closures.pop()
 	}
@@ -83,9 +87,9 @@ impl Env {
 	pub fn add_global<T: ToOwned<Owned = T> + UseAttributes + ToIdent + Into<Val>>(&mut self, global: &T) {
 		let mut global = global.to_owned();
 		let ident = global.to_ident();
-		let attr = global.attributes().to_owned();
+		let attributes = global.attributes().to_owned();
 		let value = SymbolValue {
-			value: Some(Value(Typed::Untyped(global.into()), attr)),
+			value: Some(Value { val: Typed::Untyped(global.into()), attributes }),
 			type_hint: ident.to_owned(),
 			mutable: false,
 		};
@@ -99,7 +103,7 @@ impl Env {
 						return Some((symbol, val));
 					}
 					if let Some(value) = &val.value {
-						if value.1.source == Some(source) {
+						if value.attributes.source == Some(source) {
 							return Some((symbol, val))
 						}
 					}
@@ -111,7 +115,7 @@ impl Env {
 				return Some((symbol, val));
 			}
 			if let Some(value) = &val.value {
-				if value.1.source == Some(source) {
+				if value.attributes.source == Some(source) {
 					return Some((symbol, val))
 				}
 			}

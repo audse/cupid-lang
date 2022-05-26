@@ -6,6 +6,7 @@ pub enum Exp {
 	FunctionCall(FunctionCall),
 	Block(Block),
 	Function(Function),
+	Property(Box<Property>),
 	Ident(Ident),
 	Value(Value),
 	Empty
@@ -18,28 +19,18 @@ impl Default for Exp {
 }
 
 macro_rules! for_each_exp {
-	($s:ident, $method:tt, $scope:ident) => {
+	($s:ident, $method:tt $(, $scope:ident)?) => {
 		match $s {
-			Self::Declaration(declaration) => declaration.$method($scope),
-			Self::FunctionCall(function_call) => function_call.$method($scope),
-			Self::Block(block) => block.$method($scope),
-			Self::Function(function) => function.$method($scope),
-			Self::Ident(ident) => ident.$method($scope),
-			Self::Value(value) => value.$method($scope),
+			Self::Declaration(declaration) => declaration.$method($($scope)?),
+			Self::FunctionCall(function_call) => function_call.$method($($scope)?),
+			Self::Block(block) => block.$method($($scope)?),
+			Self::Function(function) => function.$method($($scope)?),
+			Self::Property(property) => property.$method($($scope)?),
+			Self::Ident(ident) => ident.$method($($scope)?),
+			Self::Value(value) => value.$method($($scope)?),
 			_ => panic!("unexpected expression: {:?}", $s)
 		}
 	};
-	($s:ident, $method:tt) => {
-		match $s {
-			Self::Declaration(declaration) => declaration.$method(),
-			Self::FunctionCall(function_call) => function_call.$method(),
-			Self::Block(block) => block.$method(),
-			Self::Function(function) => function.$method(),
-			Self::Ident(ident) => ident.$method(),
-			Self::Value(value) => value.$method(),
-			_ => panic!("unexpected expression: {:?}", $s)
-		}
-	}
 }
 
 impl TypeOf for Exp {

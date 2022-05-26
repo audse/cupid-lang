@@ -1,6 +1,9 @@
 mod fields;
 pub use fields::*;
 
+mod methods;
+pub use methods::*;
+
 mod params;
 pub use params::*;
 

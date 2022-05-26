@@ -37,7 +37,7 @@ fn main() -> Result<(), String> {
 	add_globals!(env, BOOLEAN, DECIMAL, INTEGER, CHARACTER, STRING, FUNCTION, ARRAY, TUPLE, MAYBE, NOTHING);
 	
 	// core traits
-	add_globals!(env, ADD, SUBTRACT, MULTIPLY, DIVIDE, EQUAL, NOT_EQUAL, GET);
+	add_globals!(env, ADD, SUBTRACT, EQUAL, NOT_EQUAL, GET);
 	
 	if args.repl {
 		match run_repl(&mut parser, &mut env) {
@@ -48,12 +48,9 @@ fn main() -> Result<(), String> {
 	
     if let Some(which) = args.generate {
         run_generator(which);
-	} else {
-        match run_path(&args.path, args.debug) {
-			Err(e) => eprintln!("{e}"),
-			_ => ()
-		}
-    }
+	} else if let Err(e) = run_path(&args.path, args.debug) {
+		eprintln!("{e}");
+	}
 	Ok(())
 }
 

@@ -32,7 +32,7 @@ impl Tokenizer {
 			self.line_index - source.len()
 		} else { 0 };
 		self.tokens.push(Token { 
-			source: source.into(), 
+			source, 
 			index, 
 			line: self.line, 
 			file: self.file,

@@ -1,12 +1,14 @@
 use crate::*;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Declaration {
-	pub type_hint: Typed<Ident>,
-	pub name: Ident,
-	pub value: Typed<Box<Exp>>,
-	pub mutable: bool,
-	pub attributes: Attributes,
+build_struct! {
+	#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
+	pub DeclarationBuilder => pub Declaration {
+		pub type_hint: Typed<Ident>,
+		pub name: Ident,
+		pub value: Typed<Box<Exp>>,
+		pub mutable: bool,
+		pub attributes: Attributes,
+	}
 }
 
 impl Analyze for Declaration {

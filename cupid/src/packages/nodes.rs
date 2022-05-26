@@ -31,7 +31,7 @@ impl ImportNode {
 		let mut package_list: Vec<PackageContents> = vec![];
 		if let Self::PackageList(packages) = self {
 			for package in packages {
-				package_list.push(get_contents(&package, load_path));
+				package_list.push(get_contents(package, load_path));
 			}
 		} else {
 			panic!("expected package list")

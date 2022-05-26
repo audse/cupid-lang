@@ -50,14 +50,6 @@ impl Hash for GenericParam {
 	fn hash<H: Hasher>(&self, _state: &mut H) {}
 }
 
-impl std::fmt::Display for GenericParam {
-	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-		let name = fmt_option!(&self.0);
-		let arg = fmt_option!(&self.1, |x| format!(": {x}"));
-    	write!(f, "<{name}{arg}>")
-	}
-}
-
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct GenericParams(pub Vec<GenericParam>);
 
@@ -83,5 +75,11 @@ impl GenericParams {
 		for (i, arg) in args.into_iter().enumerate() {
 			self.0[i].apply_unnamed(arg);
 		}
+	}
+}
+
+impl From<Vec<&'static str>> for GenericParams {
+	fn from(names: Vec<&'static str>) -> Self {
+    	Self(names.into_iter().map(GenericParam::new).collect::<Vec<GenericParam>>())
 	}
 }

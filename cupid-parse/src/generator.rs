@@ -49,7 +49,7 @@ impl Rule {
 			",
 			name = self.name,
 			body = body.join("\n")
-		).into()
+		)
 	}
 	fn params(&self) -> String {
 		let params: Vec<String> = self.params
@@ -78,7 +78,7 @@ impl Rule {
 			}});",
 			pass_through = self.pass_through,
 			alt_body = group_strings.join("\n")
-		).into()
+		)
 	}
 }
 
@@ -94,7 +94,7 @@ pub struct Group {
 pub type StaticGroup = Cow<'static, Group>;
 
 impl Group {
-	pub fn stringify(&self, params: &Vec<Str>) -> String {
+	pub fn stringify(&self, params: &[Str]) -> String {
 		let mut string = String::new();
 		let items = self.items(params).join("\n");
 		
@@ -125,7 +125,7 @@ impl Group {
 	fn concealed(&self) -> bool {
 		&*(self.prefix()) == "~"
 	}
-	fn items(&self, params: &Vec<Str>) -> Vec<String> {
+	fn items(&self, params: &[Str]) -> Vec<String> {
 		let prefix = self.prefix();
 		self.items
 			.iter()
@@ -154,7 +154,7 @@ pub struct Item {
 pub type StaticItem = Cow<'static, Item>;
 
 impl Item {
-	pub fn stringify(&self, group_prefix: &str, params: &Vec<Str>) -> String {
+	pub fn stringify(&self, group_prefix: &str, params: &[Str]) -> String {
 		let body = self.body(group_prefix, params);
 		body.join("\n")
 	}
@@ -167,8 +167,8 @@ impl Item {
 	fn suffix(&self) -> &str {
 		self.suffix_modifier.as_deref().unwrap_or("")
 	}
-	fn is_param(&self, params: &Vec<Str>) -> bool {
-		params.iter().any(|param| &**param == &*self.source())
+	fn is_param(&self, params: &[Str]) -> bool {
+		params.iter().any(|param| **param == *self.source())
 	}
 	fn method(&self) -> Str {
 		let source = self.source();
@@ -180,7 +180,7 @@ impl Item {
 			_ => format!("expect(r{})", escape(source)),
 		}.into()
 	}
-	fn method_call(&self, params: &Vec<Str>) -> String {
+	fn method_call(&self, params: &[Str]) -> String {
 		let args = self.args(params);
 		if self.is_param(params) {
 			format!("{}{args}", self.source())
@@ -189,7 +189,7 @@ impl Item {
 			format!("self.{method}{args}")
 		}
 	}
-	fn args(&self, params: &Vec<Str>) -> String {
+	fn args(&self, params: &[Str]) -> String {
 		if !["constant", "name"].contains(&&*self.kind) {
 			return String::new();
 		}
@@ -227,7 +227,7 @@ impl Item {
 	fn concealed(&self, group_prefix: &str) -> bool {
 		&*(self.prefix()) == "~" || group_prefix == "~"
 	}
-	fn body(&self, group_prefix: &str, params: &Vec<Str>) -> Vec<String> {
+	fn body(&self, group_prefix: &str, params: &[Str]) -> Vec<String> {
 		let method = self.method_call(params);
 		let concealed = self.concealed(group_prefix);
 		let macros = self.macros(group_prefix);

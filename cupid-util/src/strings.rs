@@ -28,7 +28,7 @@ pub fn unwrap_or_string<T>(option: &Option<T>) -> String where T: ToString {
 }
 
 pub fn dir_from_path<T: ToString>(path: T) -> String {
-	path.to_string().rsplit_once("/").unwrap_or_default().0.to_string()
+	path.to_string().rsplit_once('/').unwrap_or_default().0.to_string()
 }
 
 pub fn is_uppercase(string: &str) -> bool {
