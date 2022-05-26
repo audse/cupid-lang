@@ -12,31 +12,13 @@ pub use std::hash::{Hash, Hasher};
 pub use std::fmt::{Display, Formatter, Result as DisplayResult};
 pub use std::collections::hash_map::Entry;
 
-// pub use cupid_types::*;
 pub use cupid_lex::*;
 pub use cupid_parse::*;
 pub use cupid_util::*;
-
-mod error_handler;
-pub use error_handler::*;
+pub use cupid_ast::*;
 
 mod file_handler;
 pub use file_handler::FileHandler;
-
-mod packages;
-pub use packages::*;
-
-mod semantics;
-pub use semantics::*;
-
-mod tree;
-pub use tree::*;
-
-mod tests;
-pub use tests::*;
-
-mod type_system;
-pub use type_system::*;
 
 #[wasm_bindgen(raw_module = "/../playground/src/stdlib.js")]
 extern {
@@ -44,26 +26,26 @@ extern {
 }
 
 
-#[derive(Serialize, Deserialize)]
-pub struct ScopeEntry {
-	pub context: Context,
-	pub storage: Vec<StorageEntry>,
-}
+// #[derive(Serialize, Deserialize)]
+// pub struct ScopeEntry {
+// 	pub context: Context,
+// 	pub storage: Vec<StorageEntry>,
+// }
 
-#[derive(Serialize, Deserialize)]
-pub struct StorageEntry {
-	pub symbol: ValueNode,
-	pub value: SymbolValue
-}
+// #[derive(Serialize, Deserialize)]
+// pub struct StorageEntry {
+// 	pub symbol: ValueNode,
+// 	pub value: SymbolValue
+// }
 
-#[derive(Serialize, Deserialize)]
-pub struct Cupid {
-	pub values: Vec<(String, ValueNode)>,
-	pub semantics: Vec<BoxAST>,
-	pub parse: ParseNode,
-	pub errors: Vec<Error>,
-	pub scope: Vec<ScopeEntry>
-}
+// #[derive(Serialize, Deserialize)]
+// pub struct Cupid {
+// 	pub values: Vec<(String, ValueNode)>,
+// 	pub semantics: Vec<BoxAST>,
+// 	pub parse: ParseNode,
+// 	pub errors: Vec<Error>,
+// 	pub scope: Vec<ScopeEntry>
+// }
 
 // #[wasm_bindgen]
 // pub fn run_and_collect_logs(string: &str) -> JsValue {

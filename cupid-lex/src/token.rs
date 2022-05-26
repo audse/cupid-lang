@@ -1,6 +1,6 @@
 use crate::*;
 
-#[derive(PartialEq, Eq, Hash, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Hash, Clone, Serialize, Deserialize, Default)]
 pub struct Token {
 	pub source: Cow<'static, str>,
 	pub line: usize,

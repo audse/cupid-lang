@@ -1,10 +1,10 @@
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
-pub struct BiDirectionalIterator<T> where T: Clone + PartialEq {
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Default)]
+pub struct BiDirectionalIterator<T> where T: Clone + PartialEq + Default {
 	index: usize,
 	items: Vec<T>,
 }
 
-impl<T> BiDirectionalIterator<T> where T: Clone + PartialEq {
+impl<T> BiDirectionalIterator<T> where T: Clone + PartialEq + Default {
 	pub fn new(items: Vec<T>) -> Self {
 		Self { 
 			index: 0,
@@ -13,7 +13,7 @@ impl<T> BiDirectionalIterator<T> where T: Clone + PartialEq {
 	}
 }
 
-impl<T> Iterator for BiDirectionalIterator<T> where T: Clone + PartialEq {
+impl<T> Iterator for BiDirectionalIterator<T> where T: Clone + PartialEq + Default {
 	type Item = T;
 	fn next(&mut self) -> Option<T> {
 		if !self.at_end() {
@@ -26,7 +26,7 @@ impl<T> Iterator for BiDirectionalIterator<T> where T: Clone + PartialEq {
 	}
 }
 
-impl<T> BiDirectionalIterator<T> where T: Clone + PartialEq {
+impl<T> BiDirectionalIterator<T> where T: Clone + PartialEq + Default {
 	pub fn at_end(&self) -> bool {
 		self.index >= self.items.len() - 1
 	}

@@ -1,5 +1,6 @@
 use crate::*;
 
+#[derive(Debug, Clone, Default)]
 pub struct GrammarParser {
 	pub name: Str,
 	pub tokens: BiDirectionalIterator<Token>,

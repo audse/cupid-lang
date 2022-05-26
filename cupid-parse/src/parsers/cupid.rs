@@ -7,6 +7,7 @@ use crate::*;
 
 type ParseFun = dyn Fn(&mut CupidParser) -> Option<(ParseNode, bool)>;
 
+#[derive(Debug, Clone, Default)]
 pub struct CupidParser {
 	pub tokens: BiDirectionalIterator<Token>,
 	pub file: usize,

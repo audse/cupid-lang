@@ -48,8 +48,6 @@ fn main() -> Result<(), String> {
 	
     if let Some(which) = args.generate {
         run_generator(which);
-	} else if let Err(e) = run_path(&args.path, args.debug) {
-		eprintln!("{e}");
 	}
 	Ok(())
 }
@@ -69,14 +67,14 @@ fn run_repl(parser: &mut CupidParser, env: &mut Env) -> Result<(), (Source, ErrC
 	}
 }
 
-fn run_path(path: &str, debug: bool)-> Result<(), Error> {
-	let mut file_handler = FileHandler::new(format!("./../apps/{}", path).as_str());
-	if debug {
-		file_handler.run_debug()
-	} else {
-		file_handler.run()
-	}
-}
+// fn run_path(path: &str, debug: bool)-> Result<(), Error> {
+// 	let mut file_handler = FileHandler::new(format!("./../apps/{}", path).as_str());
+// 	if debug {
+// 		file_handler.run_debug()
+// 	} else {
+// 		file_handler.run()
+// 	}
+// }
 
 fn run_generator(which: i32) {
     use_generator(which);

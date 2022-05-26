@@ -26,7 +26,3 @@ cupid_ast = { version = "0.1.0", path = '../cupid-ast' }
 
 [dev-dependencies]
 criterion = "0.3"
-
-[[bench]]
-name = "benchmarks"
-harness = false

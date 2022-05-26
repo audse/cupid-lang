@@ -7,6 +7,7 @@ use crate::*;
 
 type ParseFun = dyn Fn(&mut TypesParser) -> Option<(ParseNode, bool)>;
 
+#[derive(Debug, Clone, Default)]
 pub struct TypesParser {
     pub tokens: BiDirectionalIterator<Token>,
 	pub file: usize,
