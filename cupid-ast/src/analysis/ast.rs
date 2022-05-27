@@ -3,7 +3,7 @@ use crate::*;
 pub type Source = usize;
 
 #[allow(unused_variables)]
-pub trait Analyze: UseAttributes {
+pub trait Analyze: UseAttributes + std::fmt::Display {
 	fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> { 
 		self.attributes().closure = scope.current_closure;
 		Ok(()) 
@@ -16,4 +16,3 @@ pub trait Analyze: UseAttributes {
 pub trait Interpret {
 	fn interpret<T>(&mut self, scope: &mut Env) -> Result<T, Error>;
 }
-

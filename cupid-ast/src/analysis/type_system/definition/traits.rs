@@ -1,10 +1,14 @@
 use crate::*;
 
 build_struct! {
-	#[derive(Debug, Clone, Default)]
+	#[derive(Debug, Clone, Default, Tabled)]
 	pub TraitBuilder => pub Trait {
 		pub name: Ident,
+		
+		#[tabled(display_with = "fmt_vec")]
 		pub methods: Vec<Method>,
+
+		#[tabled(display_with = "fmt_vec")]
 		pub bounds: Vec<Ident>,
 	}
 }

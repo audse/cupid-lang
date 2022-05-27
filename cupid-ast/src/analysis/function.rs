@@ -1,10 +1,14 @@
 use crate::*;
 
 build_struct! {
-	#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
+	#[derive(Debug, Clone, PartialEq, Eq, Hash, Default, Tabled)]
 	pub FunctionBuilder => pub Function {
 		pub body: Typed<Block>,
+		
+		#[tabled(display_with = "fmt_vec")]
 		pub params: Vec<Declaration>,
+
+        #[tabled(skip)]
 		pub attributes: Attributes,
 	}
 }
@@ -17,9 +21,9 @@ impl Analyze for Function {
 	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
 		scope.use_closure(self.attributes.closure);
 		
-		for param in self.params.iter_mut() {
-			param_is_not_type(&mut param.name, scope)?;
-		}
+		// for param in self.params.iter_mut() {
+		// 	param_is_not_type(&mut param.name, scope)?;
+		// }
 		self.body.analyze_names(scope)?;
 		
 		scope.reset_closure();
@@ -61,7 +65,7 @@ impl TypeOf for Function {
 
 fn param_is_not_type(param: &mut Ident, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
 	if scope.get_type(param).is_ok() {
-		Err((param.source(), ERR_ALREADY_DEFINED))
+		Err((param.source(), ERR_UNEXPECTED_TYPE))
 	} else {
 		Ok(())
 	}

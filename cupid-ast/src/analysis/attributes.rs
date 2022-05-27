@@ -1,8 +1,9 @@
 use crate::*;
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Tabled)]
 pub struct Attributes {
 	pub closure: usize,
+	#[tabled(display_with = "fmt_src")]
 	pub source: Option<usize>,
 	pub generics: GenericParams,
 }
@@ -23,3 +24,5 @@ impl Attributes {
 		}
 	}
 }
+
+fmt_option_fn!(fmt_src: usize);

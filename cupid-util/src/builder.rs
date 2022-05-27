@@ -5,15 +5,24 @@ macro_rules! build_struct {
 	( 
 		$(#[$derive:meta])?
 		$bv:vis $builder_name:ident => $v:vis $struct_name:ident {
-		$( $fv:vis $field:ident: $t:ty ),* $(,)?
+		$( 
+			$(#[$fderive:meta])?
+			$fv:vis $field:ident: $t:ty 
+		),* $(,)?
 	}) => {
 		$(#[$derive])?
 		$v struct $struct_name {
-			$( $fv $field: $t ),*
+			$( 
+				$(#[$fderive])?
+				$fv $field: $t 
+			),*
 		}
 		$(#[$derive])?
 		$bv struct $builder_name {
-			$( $fv $field: $t ),*
+			$( 
+				$(#[$fderive])?
+				$fv $field: $t 
+			),*
 		}
 
 		impl $struct_name {

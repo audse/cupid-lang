@@ -1,6 +1,5 @@
 use clap::Parser;
 use cupid::*;
-use cupid_ast::*;
 
 #[derive(Parser)]
 struct Cli {
@@ -22,37 +21,25 @@ struct Cli {
 fn main() -> Result<(), String> {
     let args = Cli::parse();
 	
-	let mut parser = CupidParser::new(String::new(), 1);
-	let mut env = Env::default();
-	
-	macro_rules! add_globals {
-		($env:ident, $($global:ident),*) => {
-			$(
-				$env.add_global(&*$global);
-			)*
-		}
-	}
-	
-	// core types
-	add_globals!(env, BOOLEAN, DECIMAL, INTEGER, CHARACTER, STRING, FUNCTION, ARRAY, TUPLE, MAYBE, NOTHING);
-	
-	// core traits
-	add_globals!(env, ADD, SUBTRACT, EQUAL, NOT_EQUAL, GET);
-	
 	if args.repl {
+		let mut parser = CupidParser::new(String::new(), 1);
+		let mut env = Env::default();
 		match run_repl(&mut parser, &mut env) {
 			Ok(()) => (),
 			Err((src, code)) => panic!("{}", err_from_code(src, code, &mut env))
 		}
-	}
-	
-    if let Some(which) = args.generate {
+	} else if let Some(which) = args.generate {
         run_generator(which);
+	} else {
+		run_path(&format!("./../apps/{}", args.path), args.debug)
 	}
+
 	Ok(())
 }
 
 fn run_repl(parser: &mut CupidParser, env: &mut Env) -> Result<(), (Source, ErrCode)> {
+	// add_globals!(env, BOOLEAN, DECIMAL, INTEGER, CHARACTER, STRING, FUNCTION, ARRAY, TUPLE, MAYBE, NOTHING);
+	// add_globals!(env, ADD, SUBTRACT, EQUAL, NOT_EQUAL, GET);
 	loop {
 		let mut line = String::new();
 		std::io::stdin().read_line(&mut line).unwrap();
@@ -67,14 +54,14 @@ fn run_repl(parser: &mut CupidParser, env: &mut Env) -> Result<(), (Source, ErrC
 	}
 }
 
-// fn run_path(path: &str, debug: bool)-> Result<(), Error> {
-// 	let mut file_handler = FileHandler::new(format!("./../apps/{}", path).as_str());
-// 	if debug {
-// 		file_handler.run_debug()
-// 	} else {
-// 		file_handler.run()
-// 	}
-// }
+fn run_path(path: &str, debug: bool) {
+	let mut file_handler = FileHandler::build()
+		.add_globals()
+		.read(path)
+		.debug(debug)
+		.build();
+	file_handler.run();
+}
 
 fn run_generator(which: i32) {
     use_generator(which);

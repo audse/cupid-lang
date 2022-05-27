@@ -6,7 +6,7 @@ pub trait TypeOf {
 	}
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Tabled)]
 pub enum Typed<T: Default> {
 	Untyped(T),
 	Typed(T, Type),
@@ -96,7 +96,7 @@ impl<T: Default> std::ops::DerefMut for Typed<T> {
 impl <T: Default + std::fmt::Display> std::fmt::Display for Typed<T> {
 	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
 		match self {
-			Self::Typed(v, t) => write!(f, "typed [{v}: {t}]"),
+			Self::Typed(v, t) => write!(f, "typed [{v}]\n{t}"),
 			Self::Untyped(v) => write!(f, "untyped [{v}]"),
 		}
 	}

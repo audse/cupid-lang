@@ -1,12 +1,23 @@
 use crate::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Tabled)]
 pub struct Env {
 	pub global: Scope,
+
+	#[tabled(display_with="fmt_vec")]
 	pub closures: Vec<Closure>,
+
+	#[tabled(skip)]
 	pub current_closure: usize,
+
+	#[tabled(skip)]
 	pub prev_closure: Option<usize>,
+
+	#[tabled(skip)]
 	pub source_data: Vec<ParseNode>,
+
+	#[tabled(display_with="fmt_vec")]
+	pub traceback: Vec<String>,
 }
 
 impl Default for Env {
@@ -19,7 +30,8 @@ impl Default for Env {
 			}],
 			current_closure: 0,
 			prev_closure: None,
-			source_data: vec![]
+			source_data: vec![],
+			traceback: vec![],
 		}
 	}
 }
@@ -34,8 +46,10 @@ impl Env {
 		self.current_closure = closure;
 	}
 	pub fn reset_closure(&mut self) {
-		self.current_closure = self.prev_closure.unwrap();
-		self.prev_closure = None;
+		if let Some(prev_closure) = self.prev_closure {
+			self.current_closure = prev_closure;
+			self.prev_closure = None;
+		}
 	}
 	pub fn add_closure(&mut self) -> usize {
 		if let Some(closure_index) = self.prev_closure {
@@ -46,6 +60,8 @@ impl Env {
 		self.closures.len() - 1
 	}
 	pub fn add_isolated_closure(&mut self) -> usize {
+		self.traceback.push(format!("Add isolated closure {}", self.closures.len()));
+
 		self.closures.push(Closure::new());
 		self.closures.len() - 1
 	}
@@ -53,26 +69,29 @@ impl Env {
 		self.closures.pop()
 	}
 	pub fn add(&mut self, context: Context) {
+		self.traceback.push(format!("Add closure {}", self.closures.len()));
 		self.closures.last_mut().unwrap().add(context);
 	}
 	pub fn pop(&mut self) -> Option<Scope> {
 		self.closures.last_mut().unwrap().pop()
 	}
 	pub fn has_symbol(&mut self, symbol: &Ident) -> Result<(), (Source, ErrCode)> {
-		if matches!(self.get_symbol(symbol), Ok(_)) {
+		if self.get_symbol(symbol).is_ok() {
 			Ok(())
 		} else {
 			Err((symbol.src(), 404))
 		}
 	}
 	pub fn no_symbol(&mut self, symbol: &Ident) -> Result<(), (Source, ErrCode)> {
-		if matches!(self.get_symbol(symbol), Ok(_)) {
-			Err((symbol.src(), 405))
+		self.traceback.push(format!("Making sure {} doesn't exist", symbol));
+		if self.get_symbol(symbol).is_ok() {
+			Err((symbol.src(), ERR_ALREADY_DEFINED))
 		} else {
 			Ok(())
 		}
 	}
 	pub fn get_symbol_from(&mut self, symbol: &Ident, closure_index: usize) -> Result<SymbolValue, (Source, ErrCode)> {
+		self.traceback.push(format!("Getting symbol {} from closure {}", symbol, closure_index));
 		let closure = &mut self.closures[closure_index];
 		let parent = closure.parent();
 		if let Ok(value) = closure.get_symbol(symbol) {
@@ -84,7 +103,8 @@ impl Env {
 			Err((symbol.src(), 404))
 		}
 	}
-	pub fn add_global<T: ToOwned<Owned = T> + UseAttributes + ToIdent + Into<Val>>(&mut self, global: &T) {
+	pub fn add_global<T: ToOwned<Owned = T> + UseAttributes + ToIdent + Into<Val> + std::fmt::Display>(&mut self, global: &T) {
+		self.traceback.push(format!("Adding global\n{global}"));
 		let mut global = global.to_owned();
 		let ident = global.to_ident();
 		let attributes = global.attributes().to_owned();
@@ -149,4 +169,39 @@ impl ScopeSearch for Env {
 			closure.modify_symbol(symbol, function);
 		}
 	}
+}
+
+pub fn add_globals(scope: &mut Env, mut types: Vec<Type>, mut traits: Vec<Trait>) -> Result<(), (Source, ErrCode)> {
+	for type_global in &types {
+		scope.add_global(type_global);
+	}
+	for trait_global in &traits {
+		scope.add_global(trait_global);
+	}
+	for type_global in types.iter_mut() {
+		type_global.analyze_names(scope)?;
+	}
+	for trait_global in traits.iter_mut() {
+		trait_global.analyze_names(scope)?;
+	}
+	for type_global in types.iter_mut() {
+		type_global.analyze_types(scope)?;
+	}
+	for trait_global in traits.iter_mut() {
+		trait_global.analyze_types(scope)?;
+	}
+	for type_global in types.iter_mut() {
+		type_global.check_types(scope)?;
+	}
+	for trait_global in traits.iter_mut() {
+		trait_global.check_types(scope)?;
+	}
+	Ok(())
+}
+
+#[macro_export]
+macro_rules! global_vec {
+	($($global:ident),*) => {
+		vec![$($global.to_owned()),*]
+	};
 }

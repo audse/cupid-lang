@@ -10,7 +10,7 @@ impl TypeBuilder {
 		self
 	}
 	pub fn generic_arg(mut self, index: usize, generic: Ident) -> Self {
-		self.name.attributes.generics.0[index].1 = Some(generic);
+		self.name.attributes.generics.0[index].value = Some(generic);
 		self
 	}
 	pub fn generics(mut self, generics: GenericParams) -> Self {
@@ -37,11 +37,15 @@ impl TypeBuilder {
 	}
 	pub fn bin_op(self, generic: &'static str) -> Self {
 		self.generics(GenericParams::from(vec![generic, generic, generic]))
-			.unnamed_fields(vec![
-				Ident::new_name(generic),
-				Ident::new_name(generic),
-				Ident::new_name(generic),
+			.named_fields(vec![
+				("left".into(), Ident::new_name(generic)),
+				("right".into(), Ident::new_name(generic)),
+				("return".into(), Ident::new_name(generic)),
 			])
 			.base_type(BaseType::Function)
+	}
+	pub fn base_primitive(mut self, name: &'static str) -> Self {
+		self.base_type = BaseType::Primitive(name.into());
+		self
 	}
 }

@@ -2,9 +2,11 @@ use std::hash::{Hash, Hasher};
 use crate::*;
 
 build_struct! {
-	#[derive(Debug, Clone, Default)]
+	#[derive(Debug, Clone, Default, Tabled)]
 	pub IdentBuilder => pub Ident {
 		pub name: Str,
+
+        #[tabled(skip)]
 		pub attributes: Attributes
 	}
 }
@@ -49,7 +51,8 @@ impl UseAttributes for Ident {
 
 impl Analyze for Ident {
 	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
-    	scope.get_symbol(self)?;
+    	let mut symbol = scope.get_symbol(self)?;
+		self.attributes.closure = symbol.attributes().closure;
 		Ok(())
 	}
 }

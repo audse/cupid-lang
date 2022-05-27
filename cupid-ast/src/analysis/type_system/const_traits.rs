@@ -17,6 +17,8 @@ lazy_static! {
 	pub static ref EQUAL: Trait = new_bin_op(OP_EQUAL);
 	pub static ref NOT_EQUAL: Trait = new_bin_op(OP_NOT_EQUAL);
 	pub static ref GET: Trait = new_bin_op(OP_GET);
+
+    pub static ref SQ: Method = new_no_params("sq");
 }
 
 pub fn new_bin_op(name: &'static str) -> Trait {
@@ -32,23 +34,34 @@ pub fn new_bin_op(name: &'static str) -> Trait {
 		.build()
 }
 
+fn new_no_params(name: &'static str) -> Method {
+    let signature = TypeBuilder::new()
+        .name_str(name)
+        .fields(fields!["return": "int"])
+        .base_type(BaseType::Function)
+        .build();
+    MethodBuilder::new()
+        .value(Some(builtin_method_value(signature.to_owned())))
+        .signature(signature)
+        .build()
+}
+
 fn builtin(name: &'static str) -> Method {
     let signature = TypeBuilder::new()
         .name_str(name)
         .bin_op("t")
         .build();
     MethodBuilder::new()
-        .value(Some(builtin_method_value(&signature)))
+        .value(Some(builtin_method_value(signature.to_owned())))
         .signature(signature)
         .build()
 }
 
-fn builtin_method_value(signature: &Type) -> Function {
+fn builtin_method_value(signature: Type) -> Function {
     let params = signature.fields
-		.to_owned()
-        .unwrap_unnamed()
-        .iter()
-        .map(|param| builtin_param(param.to_owned()))
+        .unwrap_named()
+        .into_iter()
+        .map(|(name, param)| builtin_param(name, param))
         .collect::<Vec<Declaration>>();
     FunctionBuilder::new()
         .body(Untyped(Block::default()))
@@ -56,13 +69,13 @@ fn builtin_method_value(signature: &Type) -> Function {
         .build()
 }
 
-fn builtin_param(type_hint: Ident) -> Declaration {
+fn builtin_param(name: Str, type_hint: Ident) -> Declaration {
     let (value, value_type) = (
         Exp::Value(ValueBuilder::new().builtin().build()), 
         NOTHING.to_owned()
     );
     DeclarationBuilder::new()
-        .name(type_hint.to_owned())
+        .name(Ident { name, ..Default::default() })
         .type_hint(Untyped(type_hint))
         .value(IsTyped(Box::new(value), value_type))
         .build()

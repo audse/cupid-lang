@@ -1,18 +1,15 @@
 use crate::*;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Display, Unwrap)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Unwrap, Tabled)]
 pub enum Val {
-	#[display(fmt = "{:?}", "fmt_list!(_0)")]
 	Array(Vec<Val>),
 	Boolean(bool),
 	Char(char),
-	#[display(fmt = "{_0}.{_1}")]
 	Decimal(i32, u32),
 	Function(crate::Function),
 	Integer(i32),
 	None,
 	String(Cow<'static, str>),
-	#[display(fmt = "{:?}", "fmt_list!(_0)")]
 	Tuple(Vec<Val>),
 	Type(crate::Type),
 	Trait(crate::Trait),
@@ -30,9 +27,11 @@ impl TypeOf for Val {
 }
 
 build_struct! {
-	#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
+	#[derive(Debug, Clone, PartialEq, Eq, Hash, Default, Tabled)]
 	pub ValueBuilder => pub Value {
 		pub val: Typed<Val>, 
+
+        #[tabled(skip)]
 		pub attributes: Attributes
 	}
 }

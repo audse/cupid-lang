@@ -44,7 +44,7 @@ pub(super) fn to_type_hint(node: &mut ParseNode, scope: &mut Env) -> Result<Iden
 	
 	for child in node.get_all("type_hint").iter_mut() {
 		let argument = to_type_hint(child, scope)?;
-		generics.push(GenericParam(None, Some(argument)));
+		generics.push(GenericParam { name: None, value: Some(argument) });
 	}
 	ident.attributes.generics = GenericParams(generics);
 	Ok(ident)
@@ -55,6 +55,6 @@ pub(super) fn to_generics(node: &mut ParseNode, scope: &mut Env) -> Result<Vec<G
 	node.map_named("generic_argument", |generic| {
 		let ident = Ident::create_ast(generic.child(0), scope)?;
 		let arg = generic.option_map("identifier", |arg| to_type_hint(arg, scope))?;
-		Ok(GenericParam(Some(ident.name), arg))
+		Ok(GenericParam { name: Some(ident.name), value: arg })
 	})
 }

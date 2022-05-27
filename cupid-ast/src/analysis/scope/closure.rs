@@ -1,8 +1,10 @@
 use crate::*;
 
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, Tabled)]
 pub struct Closure {
+	#[tabled(skip)]
 	pub parent: Option<usize>,
+	#[tabled(display_with="fmt_vec")]
 	pub scopes: Vec<Scope>
 }
 

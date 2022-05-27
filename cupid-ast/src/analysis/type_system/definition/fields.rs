@@ -1,6 +1,6 @@
 use crate::*;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Unwrap)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Unwrap, Tabled)]
 pub enum FieldSet {
 	Unnamed(Vec<Ident>),
 	Named(Vec<TypedIdent>),

@@ -1,12 +1,16 @@
 use crate::*;
 
 build_struct! {
-	#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
+	#[derive(Debug, Clone, PartialEq, Eq, Hash, Default, Tabled)]
 	pub DeclarationBuilder => pub Declaration {
 		pub type_hint: Typed<Ident>,
 		pub name: Ident,
 		pub value: Typed<Box<Exp>>,
+		
+        #[tabled(skip)]
 		pub mutable: bool,
+
+        #[tabled(skip)]
 		pub attributes: Attributes,
 	}
 }
@@ -34,7 +38,9 @@ impl Analyze for Declaration {
 	}
 	fn check_types(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
 		self.value.check_types(scope)?;
-		if self.type_hint.get_type() != self.value.get_type() {
+		let (expected, found) = (self.type_hint.get_type(), self.value.get_type());
+		if expected != found {
+			scope.traceback.push(format!("Expected type {expected}, found type {found}"));
 			return Err((self.attributes.source.unwrap(), ERR_TYPE_MISMATCH));
 		}
 		Ok(())

@@ -2,7 +2,13 @@ use crate::*;
 
 lazy_static! {
 	pub static ref BOOLEAN: Type = primitive("bool");
-	pub static ref INTEGER: Type = primitive("int");
+	pub static ref INTEGER: Type = Type::build()
+		.name_str("int")
+		.methods(vec![SQ.to_owned()])
+		.traits(traits!(ADD, SUBTRACT, EQUAL, NOT_EQUAL))
+		.base_primitive("int")
+		.build();
+	
 	pub static ref DECIMAL: Type = primitive("dec");
 	pub static ref CHARACTER: Type = primitive("char");
 	pub static ref STRING: Type = primitive("string");

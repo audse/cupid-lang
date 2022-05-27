@@ -1,9 +1,4 @@
-use crate::{
-	Ident,
-	Type,
-	ErrCode,
-	Source,
-};
+use crate::*;
 
 mod closure;
 pub use closure::*;
@@ -25,12 +20,13 @@ pub trait ScopeSearch {
 	fn modify_symbol(&mut self, symbol: &Ident, function: &dyn Fn(&mut SymbolValue));
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Display, Tabled)]
 pub enum Context {
 	Global,
 	Closure,
 	Block,
 	Loop,
+	VTable,
 }
 
 impl Default for Context {

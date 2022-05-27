@@ -27,3 +27,23 @@ pub fn err_from_code(src: Source, code: ErrCode, scope: &mut Env) -> String {
 		_ => format!("{code}")
 	}) + &format!("\nsource: {source_node}")
 }
+
+#[macro_export]
+macro_rules! log {
+	($($(debug pretty=$pretty:tt)? $e:expr),*) => {
+		$(
+			loop {
+				$(
+					if $pretty {
+						print!("{:#?}", $e);
+					} else {
+						print!("{:?}", $e);
+					}
+					break;
+				)?
+				print!("{}", $e);
+				break;
+			}
+		)*
+	};
+}

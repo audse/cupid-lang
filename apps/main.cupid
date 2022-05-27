@@ -1,1 +1,2 @@
-package stdlib::stdlib
+int x = 10
+int.sq()

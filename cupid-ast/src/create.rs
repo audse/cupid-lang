@@ -10,6 +10,13 @@ pub trait CreateAST: Sized {
 	fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode>;
 }
 
+pub fn create_file_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Vec<Exp>, ErrCode> {
+	node.children
+		.iter_mut()
+		.map(|c| create_ast(c, scope))
+		.collect::<Result<Vec<Exp>, ErrCode>>()
+}
+
 pub fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Exp, ErrCode> {
 	match &*node.name {
 		"block" => create_ast!(Block, node, scope),
@@ -114,6 +121,7 @@ impl CreateAST for PropertyTerm {
 					.build())
 			),
 			"group" => PropertyTerm::Term(Box::new(create_ast(node, scope)?)),
+			"property" => Self::create_ast(node.child(0), scope)?,
 			_ => unreachable!()
 		})
 	}
