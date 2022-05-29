@@ -32,11 +32,11 @@ impl Display for Attributes {
 	}
 }
 
-impl AsTable for GenericParam {}
-impl Display for GenericParam {
+impl AsTable for Generic {}
+impl Display for Generic {
 	fn fmt(&self, f: &mut Formatter) -> Result {
-		let name = fmt_option!(&self.name);
-		let arg = fmt_option!(&self.value, |x| format!(": {x}"));
+		let name = fmt_option!(&self.ident);
+		let arg = fmt_option!(&self.arg, |x| format!(": {x}"));
 		write!(f, "<{name}{arg}>")
 	}
 }
@@ -152,8 +152,8 @@ impl Display for Method {
 	}
 }
 
-impl AsTable for GenericParams {}
-impl Display for GenericParams {
+impl AsTable for GenericList {}
+impl Display for GenericList {
 	fn fmt(&self, f: &mut Formatter) -> Result {
 		write!(f, "{}", fmt_list!(self.0, ", "))
 	}

@@ -110,33 +110,6 @@ impl Env {
 		self.set_symbol(symbol, value);
 		Ok(())
 	}
-	// pub fn debug_find_by_source(&mut self, source: usize) -> Option<(&Ident, &SymbolValue)> {
-	// 	for closure in self.closures.iter_mut() {
-	// 		for scope in closure.1.scopes.iter_mut() {
-	// 			for (symbol, val) in scope.symbols.iter() {
-	// 				if symbol.attributes.source == Some(source) {
-	// 					return Some((symbol, val));
-	// 				}
-	// 				if let Some(value) = &val.value {
-	// 					if value.attributes.source == Some(source) {
-	// 						return Some((symbol, val))
-	// 					}
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-	// 	for (symbol, val) in self.global.symbols.iter() {
-	// 		if symbol.attributes.source == Some(source) {
-	// 			return Some((symbol, val));
-	// 		}
-	// 		if let Some(value) = &val.value {
-	// 			if value.attributes.source == Some(source) {
-	// 				return Some((symbol, val))
-	// 			}
-	// 		}
-	// 	}
-	// 	None
-	// }
 }
 
 impl ScopeSearch for Env {

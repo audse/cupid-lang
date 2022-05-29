@@ -5,20 +5,20 @@ impl TypeBuilder {
 		self.name.name = name.into();
 		self
 	}
-	pub fn add_generic(mut self, index: usize, generic: GenericParam) -> Self {
+	pub fn add_generic(mut self, index: usize, generic: Generic) -> Self {
 		self.name.attributes.generics.0.insert(index, generic);
 		self
 	}
 	pub fn generic_arg(mut self, index: usize, generic: Ident) -> Self {
-		self.name.attributes.generics.0[index].value = Some(generic);
+		self.name.attributes.generics.0[index].arg = Some(generic);
 		self
 	}
-	pub fn generics(mut self, generics: GenericParams) -> Self {
+	pub fn generics(mut self, generics: GenericList) -> Self {
 		self.name.attributes.generics = generics;
 		self
 	}
 	pub fn generics_str(mut self, generics: Vec<&'static str>) -> Self {
-		self.name.attributes.generics = GenericParams::from(generics);
+		self.name.attributes.generics = GenericList::from(generics);
 		self
 	}
 	pub fn named_fields(mut self, fields: Vec<TypedIdent>) -> Self {
@@ -36,7 +36,7 @@ impl TypeBuilder {
 			.build()
 	}
 	pub fn bin_op(self, generic: &'static str) -> Self {
-		self.generics(GenericParams::from(vec![generic, generic, generic]))
+		self.generics(GenericList::from(vec![generic, generic, generic]))
 			.unnamed_fields(vec![
 				Ident::new_name(generic),
 				Ident::new_name(generic),
@@ -46,6 +46,34 @@ impl TypeBuilder {
 	}
 	pub fn base_primitive(mut self, name: &'static str) -> Self {
 		self.base_type = BaseType::Primitive(name.into());
+		self
+	}
+}
+
+
+impl GenericBuilder {
+	pub fn new_str(mut self, name: &'static str) -> Self {
+		self.ident = Some(Cow::Borrowed(name));
+		self
+	}
+}
+
+
+impl ValueBuilder {
+	pub fn typed_val(mut self, val: Val, val_type: Type) -> Self {
+		self.val = IsTyped(val, val_type);
+		self
+	}
+	pub fn untyped_val<V: Into<Val>>(mut self, val: V) -> Self {
+		self.val = Untyped(val.into());
+		self
+	}
+	pub fn none(mut self) -> Self {
+		self.val = IsTyped(Val::None, NOTHING.to_owned());
+		self
+	}
+	pub fn builtin(mut self) -> Self {
+		self.val = IsTyped(Val::BuiltinPlaceholder, NOTHING.to_owned());
 		self
 	}
 }

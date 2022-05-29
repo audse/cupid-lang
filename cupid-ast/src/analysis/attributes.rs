@@ -6,7 +6,7 @@ build_struct! {
 		pub closure: usize,
 		#[tabled(display_with = "fmt_option")]
 		pub source: Option<usize>,
-		pub generics: GenericParams,
+		pub generics: GenericList,
 	}
 }
 
@@ -22,7 +22,7 @@ impl Attributes {
 		Self {
 			closure: 0,
 			source: Some(source),
-			generics: GenericParams::default(),
+			generics: GenericList::default(),
 		}
 	}
 }

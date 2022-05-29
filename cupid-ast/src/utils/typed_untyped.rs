@@ -1,16 +1,11 @@
 use crate::*;
 
-pub trait TypeOf {
-	fn type_of(&self, _scope: &mut Env) -> Result<Type, (Source, ErrCode)> { 
-		Ok(NOTHING.to_owned())
-	}
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Tabled)]
 pub enum Typed<T: Default> {
 	Untyped(T),
 	Typed(T, Type),
 }
+
 impl<T: Default> Default for Typed<T> {
 	fn default() -> Self {
 		Self::Untyped(T::default())

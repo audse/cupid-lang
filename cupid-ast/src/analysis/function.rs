@@ -1,17 +1,5 @@
 use crate::*;
 
-build_struct! {
-	#[derive(Debug, Clone, PartialEq, Eq, Hash, Default, Tabled)]
-	pub FunctionBuilder => pub Function {
-		pub body: Typed<Block>,
-		
-		#[tabled(display_with = "fmt_vec")]
-		pub params: Vec<Declaration>,
-
-		pub attributes: Attributes,
-	}
-}
-
 impl Analyze for Function {
 	fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
 		self.attributes.closure = scope.add_closure(None, Context::Function);

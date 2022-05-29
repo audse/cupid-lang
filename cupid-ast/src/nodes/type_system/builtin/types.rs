@@ -62,31 +62,3 @@ pub fn tuple_type(args: Vec<Ident>) -> Type {
 		.unnamed_fields(args)
 		.build()
 }
-
-#[macro_export]
-macro_rules! generics {
-	($($g:tt),*) => { GenericParams::from(vec![$($g),*]) };
-	($($g:tt: $v:tt),*) => { GenericParams(vec![
-		$(GenericParam {
-			name: Some($g.into()),
-			value: Some(Ident::new_name($v))
-		}),*
-	])}
-}
-
-#[macro_export]
-macro_rules! fields {
-	($($f:tt),*) => { 
-		FieldSet::Unnamed(vec![ $( primitive($f).into_ident() ),* ])
-	};
-	($($name:tt: $f:tt),*) => {
-		FieldSet::Named(vec![ $( 
-			(Cow::Borrowed($f), primitive($f).into_ident()) 
-		),* ])
-	};
-}
-
-#[macro_export]
-macro_rules! traits {
-	($($t:ident),*) => { vec![$($t.into_ident()),*] }
-}

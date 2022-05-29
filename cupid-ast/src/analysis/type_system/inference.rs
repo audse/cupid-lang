@@ -37,7 +37,7 @@ fn infer_function(function: &Function) -> Result<Type, ErrCode> {
 	let mut function_type = (*FUNCTION).to_owned();
 	if let Typed::Typed(_, t) = &function.body {
 		if let FieldSet::Unnamed(fields) = &mut function_type.fields {
-			function_type.name.attributes.generics.0.push(GenericParam { name: None, value: Some(t.to_ident()) });
+			function_type.name.attributes.generics.0.push(Generic { ident: None, arg: Some(t.to_ident()) });
 			fields.pop();
 			fields.push(t.to_ident());
 		}
