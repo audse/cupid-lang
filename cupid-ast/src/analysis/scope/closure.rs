@@ -2,23 +2,23 @@ use crate::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Tabled)]
 pub struct Closure {
-	#[tabled(skip)]
+	#[tabled(display_with="fmt_option")]
 	pub parent: Option<usize>,
 	#[tabled(display_with="fmt_vec")]
 	pub scopes: Vec<Scope>
 }
 
 impl Closure {
-	pub fn new() -> Self {
-		Self { 
+	pub fn new(context: Context) -> Self {
+		Self {
 			parent: None,
-			scopes: vec![Scope::new(Context::Closure)] 
+			scopes: vec![Scope::new(context)]
 		}
 	}
-	pub fn new_child(parent: usize) -> Self {
+	pub fn new_child(parent: usize, context: Context) -> Self {
 		Self {
 			parent: Some(parent),
-			scopes: vec![Scope::new(Context::Closure)]
+			scopes: vec![Scope::new(context)]
 		}
 	}
 	pub fn add(&mut self, context: Context) {
@@ -51,7 +51,7 @@ impl ScopeSearch for Closure {
 	fn set_symbol(&mut self, symbol: &Ident, value: SymbolValue) {
 		self.scopes.last_mut().unwrap().set_symbol(symbol, value);
 	}
-	fn modify_symbol(&mut self, symbol: &Ident, function: &dyn Fn(&mut SymbolValue)) {
+	fn modify_symbol(&mut self, symbol: &Ident, function: impl FnMut(&mut SymbolValue) -> Result<(), (Source, ErrCode)>) -> Result<(), (Source, ErrCode)> {
 		let mut container: Option<&mut Scope> = None;
 		for scope in self.scopes.iter_mut() {
 			if scope.get_symbol(symbol).is_ok() {
@@ -59,7 +59,7 @@ impl ScopeSearch for Closure {
 			}
 		}
 		if let Some(container) = container {
-			container.modify_symbol(symbol, function);
+			container.modify_symbol(symbol, function)
 		} else {
 			panic!("symbol not found to modify")
 		}

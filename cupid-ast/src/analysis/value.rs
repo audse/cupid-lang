@@ -6,7 +6,7 @@ pub enum Val {
 	Boolean(bool),
 	Char(char),
 	Decimal(i32, u32),
-	Function(crate::Function),
+	Function(Box<Typed<crate::Function>>),
 	Integer(i32),
 	None,
 	String(Cow<'static, str>),
@@ -37,6 +37,14 @@ build_struct! {
 }
 
 impl Analyze for Value {
+	fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
+		match self.val.inner_mut() {
+			Val::Function(function) => function.analyze_scope(scope),
+			Val::Type(type_val) => type_val.analyze_scope(scope),
+			Val::Trait(trait_val) => trait_val.analyze_scope(scope),
+			_ => Ok(())
+		}
+	}
 	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
     	match self.val.inner_mut() {
 			Val::Function(function) => function.analyze_names(scope),
@@ -69,11 +77,11 @@ impl TypeOf for Value {
 
 impl ValueBuilder {
 	pub fn typed_val(mut self, val: Val, val_type: Type) -> Self {
-		self.val = Typed::Typed(val, val_type);
+		self.val = IsTyped(val, val_type);
 		self
 	}
-	pub fn untyped_val(mut self, val: Val) -> Self {
-		self.val = Typed::Untyped(val);
+	pub fn untyped_val<V: Into<Val>>(mut self, val: V) -> Self {
+		self.val = Untyped(val.into());
 		self
 	}
 	pub fn none(mut self) -> Self {

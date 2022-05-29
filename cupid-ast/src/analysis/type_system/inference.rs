@@ -12,7 +12,7 @@ pub fn infer_type(value: &Val) -> Result<Type, ErrCode> {
 		Tuple(tuple) => infer_tuple(tuple),
 		Function(function) => infer_function(function),
 		None => Ok((*NOTHING).to_owned()),
-		BuiltinPlaceholder => Ok((*FUNCTION).to_owned()),
+		BuiltinPlaceholder => Ok((*NOTHING).to_owned()),
 		_ => Err(ERR_CANNOT_INFER)
 	}
 }

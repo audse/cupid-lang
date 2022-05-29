@@ -1,11 +1,13 @@
 use crate::*;
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Tabled)]
-pub struct Attributes {
-	pub closure: usize,
-	#[tabled(display_with = "fmt_src")]
-	pub source: Option<usize>,
-	pub generics: GenericParams,
+build_struct! {
+	#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Tabled)]
+	pub AttributesBuilder => pub Attributes {
+		pub closure: usize,
+		#[tabled(display_with = "fmt_option")]
+		pub source: Option<usize>,
+		pub generics: GenericParams,
+	}
 }
 
 pub trait UseAttributes {
@@ -24,5 +26,3 @@ impl Attributes {
 		}
 	}
 }
-
-fmt_option_fn!(fmt_src: usize);

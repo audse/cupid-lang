@@ -51,11 +51,26 @@ impl GenericParam {
 			self.value = arg.value.to_owned();
 		}
 	}
+	pub fn set_symbol(&self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
+		if let Some(name) = &self.name {
+			let type_value = invert(self.value.to_owned().map(|t| t.type_of(scope)))?
+				.map(|t| Value { 
+					val: Untyped(Val::Type(t)), 
+					..Default::default() 
+				});
+			let value = SymbolValue::build()
+				.value(type_value)
+				.build();
+			scope.set_symbol(&Ident { name: name.to_owned(), ..Default::default() }, value);
+		}
+		Ok(())
+	}
 }
 
 impl Hash for GenericParam {
 	fn hash<H: Hasher>(&self, _state: &mut H) {}
 }
+
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Tabled)]
 pub struct GenericParams(
@@ -85,6 +100,12 @@ impl GenericParams {
 		for (i, arg) in args.into_iter().enumerate() {
 			self.0[i].apply_unnamed(arg);
 		}
+	}
+	pub fn set_symbols(&self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
+		for symbol in &self.0 {
+			symbol.set_symbol(scope)?;
+		}
+		Ok(())
 	}
 }
 

@@ -5,8 +5,6 @@ build_struct! {
 	#[derive(Debug, Clone, Default, Tabled)]
 	pub IdentBuilder => pub Ident {
 		pub name: Str,
-
-        #[tabled(skip)]
 		pub attributes: Attributes
 	}
 }
@@ -27,6 +25,9 @@ impl Ident {
 	}
 	pub fn src(&self) -> usize {
 		self.attributes.source.unwrap_or(0)
+	}
+	pub fn set_generic_symbols(&self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
+		self.attributes.generics.set_symbols(scope)
 	}
 }
 
@@ -51,8 +52,8 @@ impl UseAttributes for Ident {
 
 impl Analyze for Ident {
 	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
-    	let mut symbol = scope.get_symbol(self)?;
-		self.attributes.closure = symbol.attributes().closure;
+		scope.get_symbol(self)?;
+		self.set_generic_symbols(scope)?;
 		Ok(())
 	}
 }

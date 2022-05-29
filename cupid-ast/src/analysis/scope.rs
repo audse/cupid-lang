@@ -17,7 +17,7 @@ pub trait ScopeSearch {
 	fn get_symbol(&mut self, symbol: &Ident) -> Result<SymbolValue, (Source, ErrCode)>;
 	fn get_type(&mut self, symbol: &Ident) -> Result<Type, (Source, ErrCode)>;
 	fn set_symbol(&mut self, symbol: &Ident, value: SymbolValue);
-	fn modify_symbol(&mut self, symbol: &Ident, function: &dyn Fn(&mut SymbolValue));
+	fn modify_symbol(&mut self, symbol: &Ident, function: impl FnMut(&mut SymbolValue) -> Result<(), (Source, ErrCode)>) -> Result<(), (Source, ErrCode)>;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Display, Tabled)]
@@ -26,7 +26,10 @@ pub enum Context {
 	Closure,
 	Block,
 	Loop,
-	VTable,
+	Type,
+	Trait,
+	Method,
+	Function,
 }
 
 impl Default for Context {

@@ -37,6 +37,13 @@ impl<T: Default> Typed<T> {
 			panic!("no type found")
 		}
 	}
+	pub fn get_type_mut(&mut self) -> &mut Type {
+		if let Self::Typed(_, t) = self {
+			t
+		} else {
+			panic!("no type found")
+		}
+	}
 	pub fn into_typed(self, type_val: Type) -> Self {
 		if let Self::Untyped(t) = self {
 			Self::Typed(t, type_val)

@@ -37,10 +37,10 @@ impl TypeBuilder {
 	}
 	pub fn bin_op(self, generic: &'static str) -> Self {
 		self.generics(GenericParams::from(vec![generic, generic, generic]))
-			.named_fields(vec![
-				("left".into(), Ident::new_name(generic)),
-				("right".into(), Ident::new_name(generic)),
-				("return".into(), Ident::new_name(generic)),
+			.unnamed_fields(vec![
+				Ident::new_name(generic),
+				Ident::new_name(generic),
+				Ident::new_name(generic),
 			])
 			.base_type(BaseType::Function)
 	}

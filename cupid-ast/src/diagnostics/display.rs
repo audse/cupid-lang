@@ -50,5 +50,15 @@ impl<K: Display + ToOwned<Owned = K>, V: Display + ToOwned<Owned = V>> Display f
 
 pub fn fmt_map<K: Clone + Display + ToOwned<Owned = K>, V: Clone + Display + ToOwned<Owned = V>>(map: &HashMap<K, V>) -> String {
 	let map = map.iter().map(|(k, v)| TablePair(k.to_owned(), v.to_owned())).collect::<Vec<TablePair<K, V>>>();
-	TableVec(map).0.table().with(Style::modern()).to_string()
+	TableVec(map).0.table()
+		.with(
+			Modify::new(object::Cell(0, 0))
+				.with(Format::new(|_| "key".to_string()))
+		)
+		.with(
+			Modify::new(object::Cell(0, 1))
+				.with(Format::new(|_| "value".to_string()))
+		)
+		.with(Style::modern())
+		.to_string()
 }

@@ -11,24 +11,49 @@ build_struct! {
 	}
 }
 
+impl SymbolValueBuilder {
+	pub fn from_type<T: ToOwned<Owned = T> + UseAttributes + ToIdent + Into<Val> + Into<Value>>(mut self, type_val: T) -> Self {
+		self.type_hint = type_val.to_ident();
+		self.value = Some(type_val.into());
+		self
+	}
+}
+
 impl SymbolValue {
 	pub fn as_type(&self) -> Result<Type, (Source, ErrCode)> {
-		if let Some(value) = &self.value {
-			if let Val::Type(type_hint) = &*value.val {
-				return Ok(type_hint.to_owned());
-			}
-			Err((self.value.as_ref().unwrap().attributes.source.unwrap(), 417))
-		} else {
-			Err((0, 404))
+		let value = self.value.as_ref().unwrap();
+		if let Val::Type(type_hint) = &*value.val {
+			return Ok(type_hint.to_owned());
 		}
+		Err((value.attributes.source.unwrap(), 417))
 	}
-	pub fn as_function(&self) -> Result<Function, (Source, ErrCode)> {
-		if let Some(value) = &self.value {
-			if let Val::Function(function) = &*value.val {
-				return Ok(function.to_owned());
-			}
+	pub fn as_function(&self) -> Result<Typed<Function>, (Source, ErrCode)> {
+		let value = self.value.as_ref().unwrap();
+		if let Val::Function(function) = &*value.val {
+			return Ok(*function.to_owned());
 		}
-		Err((self.value.as_ref().unwrap().attributes.source.unwrap(), 418))
+		Err((value.attributes.source.unwrap(), 418))
+	}
+	pub fn as_trait(&self) -> Result<Trait, (Source, ErrCode)> {
+		let value = self.value.as_ref().unwrap();
+		if let Val::Trait(trait_val) = &*value.val {
+			return Ok(trait_val.to_owned());
+		}
+		Err((value.attributes.source.unwrap(), 418))
+	}
+	pub fn as_trait_mut(&mut self) -> Result<&mut Trait, (Source, ErrCode)> {
+		let value = self.value.as_mut().unwrap();
+		if let Val::Trait(trait_val) = &mut *value.val {
+			return Ok(trait_val);
+		}
+		Err((value.attributes.source.unwrap(), 418))
+	}
+	pub fn as_function_mut(&mut self) -> Result<&mut Typed<Function>, (Source, ErrCode)> {
+		let value = self.value.as_mut().unwrap();
+		if let Val::Function(function_val) = &mut *value.val {
+			return Ok(function_val);
+		}
+		Err((value.attributes.source.unwrap(), 418))
 	}
 }
 

@@ -16,6 +16,11 @@ build_struct! {
 }
 
 impl Analyze for Declaration {
+	fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
+		self.type_hint.analyze_scope(scope)?;
+		self.value.analyze_scope(scope)?;
+		Ok(())
+	}
 	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
 		scope.no_symbol(&self.name)?;
 		
@@ -40,7 +45,7 @@ impl Analyze for Declaration {
 		self.value.check_types(scope)?;
 		let (expected, found) = (self.type_hint.get_type(), self.value.get_type());
 		if expected != found {
-			scope.traceback.push(format!("Expected type {expected}, found type {found}"));
+			scope.traceback.push(format!("Expected type\n{expected}, found type\n{found}"));
 			return Err((self.attributes.source.unwrap(), ERR_TYPE_MISMATCH));
 		}
 		Ok(())

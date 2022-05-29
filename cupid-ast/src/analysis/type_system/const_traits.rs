@@ -18,7 +18,29 @@ lazy_static! {
 	pub static ref NOT_EQUAL: Trait = new_bin_op(OP_NOT_EQUAL);
 	pub static ref GET: Trait = new_bin_op(OP_GET);
 
-    pub static ref SQ: Method = new_no_params("sq");
+	pub static ref SQ: Method = new_unary_op_method("sq");
+}
+
+pub fn use_type_as_generic_args<T>(trait_val: &mut T, mut type_ident: Ident)
+		where T: UseAttributes + Methods + ToOwned<Owned = T> {
+	// Apply using type as the first generic argument
+	trait_val.attributes().generics.apply_named(vec![(
+		type_ident.name.to_owned(), type_ident.to_owned())
+	]);
+	// Apply other types as they match generic arguments
+	trait_val.attributes().generics.apply(
+		type_ident.attributes().generics.to_owned()
+	);
+	// Apply the same generics to each method
+	for method in trait_val.methods_mut().iter_mut() {
+		method.name.attributes().generics.apply_named(vec![(
+			type_ident.name.to_owned(), type_ident.to_owned())
+		]);
+		method.name.attributes().generics.apply(
+			type_ident.attributes().generics.to_owned()
+		);
+		use_type_as_generic_args(&mut method.signature, type_ident.to_owned());
+	}
 }
 
 pub fn new_bin_op(name: &'static str) -> Trait {
@@ -27,56 +49,116 @@ pub fn new_bin_op(name: &'static str) -> Trait {
 	// trait [t] add! = [
 	//   fun [t] add = t self, t other => _
 	// ]
-	let method = builtin(name);
+
+	let ident = Ident::build()
+		.name(name.into())
+		.attributes(
+			Attributes::build()
+				.generics(generics!["t"])
+				.build()
+		)
+		.build();
+
+	let method_signature = Type::build()
+		.name(Ident::new("fun", generics!("r": "t")))
+		.fields(fields!["t", "t", "t"])
+		.base_type(BaseType::Function)
+		.build();
+
+	let function_body = Exp::Value(Value { 
+		val: Untyped(Val::BuiltinPlaceholder), 
+		..Default::default() 
+	});
+
+	let param_type_hint = Untyped(Ident::new_name("t"));
+	let param_left = Declaration::build()
+		.name(Ident::new_name("left"))
+		.type_hint(param_type_hint.clone())
+		.build();
+	let param_right = Declaration::build()
+		.name(Ident::new_name("right"))
+		.type_hint(param_type_hint)
+		.build();
+
+	let method_body = Function::build()
+		.body(IsTyped(
+			Block::build()
+				.body(vec![function_body])
+				.build(),
+			method_signature.to_owned()
+		))
+		.params(vec![param_left, param_right])
+		.build();
+
+	let method = Method::build()
+		.name(ident.to_owned())
+		.signature(method_signature)
+		.value(Some(method_body))
+		.build();
+
 	TraitBuilder::new()
-		.name(method.signature.name.to_owned())
+		.name(ident)
 		.methods(vec![method])
 		.build()
 }
 
-fn new_no_params(name: &'static str) -> Method {
-    let signature = TypeBuilder::new()
-        .name_str(name)
-        .fields(fields!["return": "int"])
-        .base_type(BaseType::Function)
-        .build();
-    MethodBuilder::new()
-        .value(Some(builtin_method_value(signature.to_owned())))
-        .signature(signature)
-        .build()
+pub fn new_unary_op(name: &'static str) -> Trait {
+	// Creates a trait with a single operation method
+	// E.g.
+	// trait [t] negate! = [
+	//   fun [t] negate = t self => _
+	// ]
+	let method = new_unary_op_method(name);
+
+	TraitBuilder::new()
+		.name(method.name.to_owned())
+		.methods(vec![method])
+		.build()
 }
 
-fn builtin(name: &'static str) -> Method {
-    let signature = TypeBuilder::new()
-        .name_str(name)
-        .bin_op("t")
-        .build();
-    MethodBuilder::new()
-        .value(Some(builtin_method_value(signature.to_owned())))
-        .signature(signature)
-        .build()
-}
 
-fn builtin_method_value(signature: Type) -> Function {
-    let params = signature.fields
-        .unwrap_named()
-        .into_iter()
-        .map(|(name, param)| builtin_param(name, param))
-        .collect::<Vec<Declaration>>();
-    FunctionBuilder::new()
-        .body(Untyped(Block::default()))
-        .params(params)
-        .build()
-}
+pub fn new_unary_op_method(name: &'static str) -> Method {
+	// E.g.
+	//   fun [t] negate = t self => _
 
-fn builtin_param(name: Str, type_hint: Ident) -> Declaration {
-    let (value, value_type) = (
-        Exp::Value(ValueBuilder::new().builtin().build()), 
-        NOTHING.to_owned()
-    );
-    DeclarationBuilder::new()
-        .name(Ident { name, ..Default::default() })
-        .type_hint(Untyped(type_hint))
-        .value(IsTyped(Box::new(value), value_type))
-        .build()
+	let ident = Ident::build()
+		.name(name.into())
+		.attributes(
+			Attributes::build()
+				.generics(generics!["t"])
+				.build()
+		)
+		.build();
+
+	let method_signature = Type::build()
+		.name(Ident::new("fun", generics!("r": "t")))
+		.fields(fields!["t", "t"])
+		.base_type(BaseType::Function)
+		.build();
+
+	let function_body = Exp::Value(Value { 
+		val: Untyped(Val::BuiltinPlaceholder), 
+		..Default::default() 
+	});
+	
+	let param_left = Declaration::build()
+		.name(Ident::new_name("left"))
+		.type_hint(Untyped(Ident::new_name("t")))
+		.build();
+
+	let method_body = Function::build()
+		.body(IsTyped(
+			Block::build()
+				.body(vec![function_body])
+				.build(),
+			method_signature.to_owned()
+		))
+		.params(vec![param_left])
+		.build();
+	
+	Method::build()
+		.name(ident)
+		.signature(method_signature)
+		.value(Some(method_body))
+		.build()
 }

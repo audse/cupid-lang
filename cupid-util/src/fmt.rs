@@ -37,3 +37,57 @@ macro_rules! fmt_option_fn {
 		)*
 	}
 }
+
+#[macro_export]
+macro_rules! log {
+	
+	( $( $(@debug=$debug:tt)? $(@pretty=$pretty:tt)? $e:expr ),* ) => {{
+		$(
+
+			print!("{}", quick_fmt_str!($(@debug=$debug)? $(@pretty=$pretty)? $e));
+		)*
+	}};
+}
+
+#[macro_export]
+macro_rules! quick_fmt {
+	
+	( $( $(@debug=$debug:tt)? $(@pretty=$pretty:tt)? $e:expr ),* ) => {{
+		let mut string = String::new();
+		$(
+
+			string += &quick_fmt_str!($(@debug=$debug)? $(@pretty=$pretty)? $e);
+		)*
+		string
+	}};
+}
+
+#[macro_export]
+macro_rules! quick_fmt_str {
+	( @debug=$debug:tt @pretty=$pretty:tt $e:expr ) => {
+		if $pretty {
+			format!("{:#?}", $e)
+		} else if $debug {
+			format!("{:?}", $e)
+		} else {
+			format!("{}", $e)
+		}
+	};
+	( @debug=$debug:tt $e:expr ) => {
+		if $debug {
+			format!("{:?}", $e)
+		} else {
+			format!("{}", $e)
+		}
+	};
+	( @pretty=$pretty:tt $e:expr ) => {
+		if $pretty {
+			format!("{:#?}", $e)
+		} else {
+			format!("{:?}", $e)
+		}
+	};
+	( $e:expr ) => {
+		format!("{}", $e)
+	};
+}

@@ -19,6 +19,11 @@ pub enum PropertyTerm {
 }
 
 impl Analyze for Property {
+	fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
+		self.object.analyze_scope(scope)?;
+		self.property.analyze_scope(scope)?;
+		Ok(())
+	}
 	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {		
     	self.object.analyze_names(scope)?;
 
@@ -26,10 +31,8 @@ impl Analyze for Property {
 			let symbol = scope.get_symbol(ident)?;
 			if let Some(value) = symbol.value {
 				self.attributes.closure = value.attributes.closure;
-				println!("{:?}", value);
 			}
 		}
-		println!("{:?}", self.object);
 
 		scope.use_closure(self.object.attributes().closure);
 		self.property.analyze_names(scope)?;

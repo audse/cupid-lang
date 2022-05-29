@@ -1,6 +1,8 @@
 use crate::*;
 
 lazy_static! {
+	pub static ref TYPE: Type = primitive("type");
+	pub static ref TRAIT: Type = primitive("trait");
 	pub static ref BOOLEAN: Type = primitive("bool");
 	pub static ref INTEGER: Type = Type::build()
 		.name_str("int")
@@ -63,7 +65,13 @@ pub fn tuple_type(args: Vec<Ident>) -> Type {
 
 #[macro_export]
 macro_rules! generics {
-	($($g:tt),*) => { GenericParams::from(vec![$($g),*]) }
+	($($g:tt),*) => { GenericParams::from(vec![$($g),*]) };
+	($($g:tt: $v:tt),*) => { GenericParams(vec![
+		$(GenericParam {
+			name: Some($g.into()),
+			value: Some(Ident::new_name($v))
+		}),*
+	])}
 }
 
 #[macro_export]

@@ -35,7 +35,8 @@ impl ScopeSearch for Scope {
 	fn set_symbol(&mut self, symbol: &Ident, value: SymbolValue) {
 		self.symbols.insert(symbol.to_owned(), value);
 	}
-	fn modify_symbol(&mut self, symbol: &Ident, function: &dyn Fn(&mut SymbolValue)) {
-		self.symbols.entry(symbol.to_owned()).and_modify(function);
+	fn modify_symbol(&mut self, symbol: &Ident, mut function: impl FnMut(&mut SymbolValue) -> Result<(), (Source, ErrCode)>) -> Result<(), (Source, ErrCode)> {
+		self.symbols.entry(symbol.to_owned()).and_modify(|v| function(v).ok().unwrap());
+		Ok(())
 	}
 }

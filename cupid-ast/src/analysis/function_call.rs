@@ -20,9 +20,16 @@ fn fmt_function(function: &Typed<(Ident, Option<Function>)>) -> String {
 }
 
 impl Analyze for FunctionCall {
+	fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
+		self.function.0.analyze_scope(scope)?;
+		for arg in self.args.iter_mut() {
+			arg.analyze_scope(scope)?;
+		}
+		Ok(())
+	}
 	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
-		self.function.1 = Some(scope.get_symbol(&self.function.0)?.as_function()?);
-		self.function.1.as_mut().unwrap().analyze_names(scope)?;
+		self.function.1 = Some((*scope.get_symbol(&self.function.0)?.as_function()?).to_owned());
+		self.function.1.map_mut(|f| f.analyze_names(scope)).invert()?;
 		
     	for arg in self.args.iter_mut() {
 			arg.analyze_names(scope)?;

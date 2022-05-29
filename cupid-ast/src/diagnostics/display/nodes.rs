@@ -53,11 +53,12 @@ impl AsTable for Function {}
 impl Display for Function {
 	fn fmt(&self, f: &mut Formatter) -> Result {
 		let params = fmt_list!(
-			self.params, 
+			self.params.split_last().unwrap().1, 
 			|p| format!("{} {}", &*p.type_hint, p.name.name), 
 			", "
 		);
-		write!(f, "({params} => {{ .. }})")
+		let return_type = self.params.last().unwrap();
+		write!(f, "([{return_type}] {params} => {{ .. }})")
 	}
 }
 
@@ -111,7 +112,11 @@ impl AsTable for Exp {
 
 impl Display for Exp {
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-		write!(f, "{}", for_each_exp!(self, to_string))
+		if let Exp::Empty = self {
+			write!(f, "empty")
+		} else {
+			write!(f, "{}", for_each_exp!(self, to_string))
+		}
 	}
 }
 
@@ -143,7 +148,7 @@ impl Display for PropertyTerm {
 impl AsTable for Method {}
 impl Display for Method {
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-		write!(f, "{} {}", self.signature, fmt_option!(&self.value))
+		write!(f, "{} {}", self.signature.as_named_table(&self.name.to_string()), fmt_option!(&self.value))
 	}
 }
 
