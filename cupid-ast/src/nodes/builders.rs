@@ -5,12 +5,12 @@ impl TypeBuilder {
 		self.name.name = name.into();
 		self
 	}
-	pub fn add_generic(mut self, index: usize, generic: Generic) -> Self {
+	pub fn add_generic(mut self, index: usize, generic: Typed<Ident>) -> Self {
 		self.name.attributes.generics.0.insert(index, generic);
 		self
 	}
-	pub fn generic_arg(mut self, index: usize, generic: Ident) -> Self {
-		self.name.attributes.generics.0[index].arg = Some(generic);
+	pub fn generic_arg(mut self, index: usize, generic: Typed<Ident>) -> Self {
+		self.name.attributes.generics.0[index] = generic;
 		self
 	}
 	pub fn generics(mut self, generics: GenericList) -> Self {
@@ -21,11 +21,11 @@ impl TypeBuilder {
 		self.name.attributes.generics = GenericList::from(generics);
 		self
 	}
-	pub fn named_fields(mut self, fields: Vec<TypedIdent>) -> Self {
+	pub fn named_fields(mut self, fields: Vec<(Str, Typed<Ident>)>) -> Self {
 		self.fields = FieldSet::Named(fields);
 		self
 	}
-	pub fn unnamed_fields(mut self, fields: Vec<Ident>) -> Self {
+	pub fn unnamed_fields(mut self, fields: Vec<Typed<Ident>>) -> Self {
 		self.fields = FieldSet::Unnamed(fields);
 		self
 	}
@@ -38,22 +38,14 @@ impl TypeBuilder {
 	pub fn bin_op(self, generic: &'static str) -> Self {
 		self.generics(GenericList::from(vec![generic, generic, generic]))
 			.unnamed_fields(vec![
-				Ident::new_name(generic),
-				Ident::new_name(generic),
-				Ident::new_name(generic),
+				Untyped(Ident::new_name(generic)),
+				Untyped(Ident::new_name(generic)),
+				Untyped(Ident::new_name(generic)),
 			])
 			.base_type(BaseType::Function)
 	}
 	pub fn base_primitive(mut self, name: &'static str) -> Self {
 		self.base_type = BaseType::Primitive(name.into());
-		self
-	}
-}
-
-
-impl GenericBuilder {
-	pub fn new_str(mut self, name: &'static str) -> Self {
-		self.ident = Some(Cow::Borrowed(name));
 		self
 	}
 }

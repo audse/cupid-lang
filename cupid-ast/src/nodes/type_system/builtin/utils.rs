@@ -5,10 +5,7 @@ macro_rules! generics {
 	// and an optional &str value
 	($($g:tt),*) => { GenericList::from(vec![$($g),*]) };
 	($($g:tt: $v:tt),*) => { GenericList(vec![
-		$(Generic {
-			ident: Some($g.into()),
-			arg: Some(Ident::new_name($v))
-		}),*
+		$(Untyped(Ident::new_name($v))),*
 	])}
 }
 
@@ -18,11 +15,11 @@ macro_rules! fields {
 	// e.g. fields!["a", ..] => FieldSet::Unnamed(Str(a), ..)
 	// fields!["a": "b", ..] => FieldSet::Named((Str(a), TypeIdent(b)), ..)
 	($($f:tt),*) => { 
-		FieldSet::Unnamed(vec![ $( primitive($f).into_ident() ),* ])
+		FieldSet::Unnamed(vec![ $( Untyped(primitive($f).into_ident()) ),* ])
 	};
 	($($name:tt: $f:tt),*) => {
 		FieldSet::Named(vec![ $( 
-			(Cow::Borrowed($f), primitive($f).into_ident()) 
+			(Cow::Borrowed($f), Untyped(primitive($f).into_ident())) 
 		),* ])
 	};
 }

@@ -25,6 +25,12 @@ impl<T: Default> Typed<T> {
 			Self::Typed(t, _) => t
 		}
 	}
+	pub fn into_inner(self) -> T {
+		match self {
+			Self::Untyped(t) => t,
+			Self::Typed(t, _) => t
+		}
+	}
 	pub fn get_type(&self) -> &Type {
 		if let Self::Typed(_, t) = self {
 			t
@@ -68,7 +74,7 @@ impl Typed<Ident> {
 }
 
 impl TypeOf for Typed<Ident> {
-	fn type_of(&self, scope: &mut Env) -> Result<Type, (Source, ErrCode)> {
+	fn type_of(&self, scope: &mut Env) -> Result<Type, ASTErr> {
 		match self {
 			Self::Typed(_, t) => Ok(t.to_owned()),
 			Self::Untyped(v) => v.type_of(scope)

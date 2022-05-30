@@ -25,9 +25,6 @@ pub use ident::*;
 mod property;
 pub use property::*;
 
-mod scope;
-pub use scope::*;
-
 mod type_system;
 pub use type_system::*;
 

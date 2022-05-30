@@ -19,16 +19,16 @@ pub fn infer_type(value: &Val) -> Result<Type, ErrCode> {
 
 fn infer_array(array: &[Val]) -> Result<Type, ErrCode> {
 	Ok(if let Some(first_element) = array.first() {
-		array_type(infer_type(first_element)?.into_ident())
+		array_type(infer_type(first_element)?)
 	} else {
 		(*ARRAY).to_owned()
 	})
 }
 
 fn infer_tuple(tuple: &[Val]) -> Result<Type, ErrCode> {
-	let types: Result<Vec<Ident>, ErrCode> = tuple
+	let types: Result<Vec<Typed<Ident>>, ErrCode> = tuple
 		.iter()
-		.map(|t| Ok(infer_type(t)?.into_ident()))
+		.map(|t| Ok(IsTyped(Ident::default(), infer_type(t)?)))
 		.collect();
 	Ok(tuple_type(types?))
 }
@@ -36,11 +36,12 @@ fn infer_tuple(tuple: &[Val]) -> Result<Type, ErrCode> {
 fn infer_function(function: &Function) -> Result<Type, ErrCode> {
 	let mut function_type = (*FUNCTION).to_owned();
 	if let Typed::Typed(_, t) = &function.body {
-		if let FieldSet::Unnamed(fields) = &mut function_type.fields {
-			function_type.name.attributes.generics.0.push(Generic { ident: None, arg: Some(t.to_ident()) });
-			fields.pop();
-			fields.push(t.to_ident());
-		}
+		function_type.unify(t).map_err(|(_, e)| e)?;
+		// if let FieldSet::Unnamed(fields) = &mut function_type.fields {
+		// 	function_type.attributes_mut().generics.push(IsTyped(Ident::default(), t.to_owned()));
+		// 	fields.pop();
+		// 	fields.push(IsTyped(t.to_ident(), t.to_owned()));
+		// }
 	}
 	Ok(function_type)
 }

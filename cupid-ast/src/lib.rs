@@ -24,11 +24,15 @@ pub use create::*;
 mod diagnostics;
 pub use diagnostics::*;
 
+pub type Source = usize;
 pub type ErrCode = usize;
 pub type ASTErr = (Source, ErrCode);
 
 mod nodes;
 pub use nodes::*;
+
+mod scope;
+pub use scope::*;
 
 mod utils;
 pub use utils::*;

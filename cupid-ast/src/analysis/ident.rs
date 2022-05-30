@@ -1,21 +1,36 @@
 use crate::*;
 
 impl Analyze for Ident {
-	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
+	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
 		scope.get_symbol(self)?;
-		self.set_generic_symbols(scope)?;
-		Ok(())
+		// self.set_generic_symbols(scope)?;
+
+		for generic in self.attributes.generics.iter_mut() {
+			if let Ok(type_val) = scope.get_type(generic) {
+				generic.to_typed(type_val);
+			}
+		}
+		scope.modify_symbol(self, |val| {
+			val.attributes_mut().generics = self.attributes.generics.to_owned();
+			Ok(())
+		})?;
+
+		todo!("
+			replace `Untyped(ident)` generics with `IsTyped(ident, _) generics, 
+			if the `ident` can be found in scope
+		");
+		// Ok(())
 	}
 }
 
 impl TypeOf for Ident {
-	fn type_of(&self, scope: &mut Env) -> Result<Type, (Source, ErrCode)> {
+	fn type_of(&self, scope: &mut Env) -> Result<Type, ASTErr> {
 		// if an ident for a type, e.g. `int`
-		let mut symbol_value = scope.get_symbol(&*self)?;
-		if let Some(value) = &mut symbol_value.value {
-			if let Val::Type(type_hint) = &mut *value.val {
-				type_hint.name.attributes.generics.apply(self.attributes.generics.to_owned());
-				return Ok(type_hint.to_owned());
+		let symbol_value = scope.get_symbol(&*self)?;
+		if let Some(value) = symbol_value.value {
+			if let Val::Type(mut type_hint) = value.val.into_inner() {
+				type_hint.unify_with(&self.attributes().generics)?;
+				return Ok(type_hint);
 			}
 		}
 		// get the type associated with the ident's value
@@ -24,5 +39,10 @@ impl TypeOf for Ident {
 }
 
 impl UseAttributes for Ident {
-	fn attributes(&mut self) -> &mut Attributes { &mut self.attributes }
+    fn attributes(&self) -> &Attributes {
+        &self.attributes
+    }
+    fn attributes_mut(&mut self) -> &mut Attributes {
+        &mut self.attributes
+    }
 }

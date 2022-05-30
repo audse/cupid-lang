@@ -79,7 +79,7 @@ impl From<Type> for Val {
 }
 
 impl From<Type> for Value {
-	fn from(mut t: Type) -> Self {
+	fn from(t: Type) -> Self {
 		Value::build()
 			.attributes(t.attributes().to_owned())
 			.val(IsTyped(t.into(), TYPE.to_owned()))

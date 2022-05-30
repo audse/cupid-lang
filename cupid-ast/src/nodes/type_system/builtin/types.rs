@@ -50,15 +50,15 @@ pub fn primitive(name: &'static str) -> Type {
 	TypeBuilder::primitive(name)
 }
 
-pub fn array_type(arg: Ident) -> Type {
-	TypeBuilder::from(&*ARRAY)
-		.unnamed_fields(vec![arg.to_owned()])
-		.generic_arg(0, arg)
-		.build()
+pub fn array_type(arg: Type) -> Type {
+	let mut new_type = ARRAY.to_owned();
+	let element_type = IsTyped(arg.to_ident(), arg);
+	new_type.unify_with(&[element_type]).unwrap();
+	new_type
 }
 
-pub fn tuple_type(args: Vec<Ident>) -> Type {
-	TypeBuilder::from(&*TUPLE)
-		.unnamed_fields(args)
-		.build()
+pub fn tuple_type(args: Vec<Typed<Ident>>) -> Type {
+	let mut new_type = TUPLE.to_owned();
+	new_type.unify_with(&args).unwrap();
+	new_type
 }

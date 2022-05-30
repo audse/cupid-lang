@@ -11,7 +11,8 @@ build_struct! {
 }
 
 pub trait UseAttributes {
-	fn attributes(&mut self) -> &mut Attributes;
+	fn attributes(&self) -> &Attributes;
+	fn attributes_mut(&mut self) -> &mut Attributes;
 	fn source(&mut self) -> usize {
 		self.attributes().source.unwrap_or(0)
 	}

@@ -1,7 +1,7 @@
 use crate::*;
 
 impl Analyze for Method {
-	fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
+	fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
 		scope.use_closure(self.attributes().closure);
 		
 		self.name.analyze_scope(scope)?;
@@ -10,7 +10,7 @@ impl Analyze for Method {
 		scope.reset_closure();
 		Ok(())
 	}
-	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
+	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
 		scope.use_closure(self.attributes().closure);
 
 		scope.set_symbol(&self.name, SymbolValue { 
@@ -29,7 +29,7 @@ impl Analyze for Method {
 		scope.reset_closure();
 		Ok(())
 	}
-	fn analyze_types(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
+	fn analyze_types(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
 		scope.use_closure(self.attributes().closure);
 
 		self.signature.analyze_types(scope)?;
@@ -41,7 +41,7 @@ impl Analyze for Method {
 		scope.reset_closure();
     	Ok(())
 	}
-	fn check_types(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
+	fn check_types(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
 		scope.use_closure(self.attributes().closure);
 
 		if let Some(val) = &mut self.value {
@@ -61,5 +61,10 @@ impl Analyze for Method {
 }
 
 impl UseAttributes for Method {
-	fn attributes(&mut self) -> &mut Attributes { self.name.attributes() }
+	fn attributes(&self) -> &Attributes { 
+		self.name.attributes() 
+	}
+	fn attributes_mut(&mut self) -> &mut Attributes { 
+		self.name.attributes_mut() 
+	}
 }

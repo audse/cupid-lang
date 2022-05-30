@@ -32,15 +32,6 @@ impl Display for Attributes {
 	}
 }
 
-impl AsTable for Generic {}
-impl Display for Generic {
-	fn fmt(&self, f: &mut Formatter) -> Result {
-		let name = fmt_option!(&self.ident);
-		let arg = fmt_option!(&self.arg, |x| format!(": {x}"));
-		write!(f, "<{name}{arg}>")
-	}
-}
-
 impl AsTable for Trait {}
 impl Display for Trait {
 	fn fmt(&self, f: &mut Formatter) -> Result {

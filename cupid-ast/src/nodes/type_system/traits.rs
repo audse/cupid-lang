@@ -40,7 +40,7 @@ impl Hash for Trait {
 }
 
 impl From<Trait> for Value {
-	fn from(mut t: Trait) -> Self {
+	fn from(t: Trait) -> Self {
 		Value::build()
 			.attributes(t.attributes().to_owned())
 			.val(IsTyped(t.into(), TRAIT.to_owned()))

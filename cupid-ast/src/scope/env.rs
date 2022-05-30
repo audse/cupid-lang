@@ -69,7 +69,7 @@ impl Env {
 		self.closures.push((ident, Closure::new(context)));
 		self.closures.len() - 1
 	}
-	pub fn has_symbol(&mut self, symbol: &Ident) -> Result<(), (Source, ErrCode)> {
+	pub fn has_symbol(&mut self, symbol: &Ident) -> Result<(), ASTErr> {
 		if self.get_symbol(symbol).is_ok() {
 			Ok(())
 		} else {
@@ -77,14 +77,14 @@ impl Env {
 			Err((symbol.src(), ERR_NOT_FOUND))
 		}
 	}
-	pub fn no_symbol(&mut self, symbol: &Ident) -> Result<(), (Source, ErrCode)> {
+	pub fn no_symbol(&mut self, symbol: &Ident) -> Result<(), ASTErr> {
 		if self.get_symbol(symbol).is_ok() {
 			Err((symbol.src(), ERR_ALREADY_DEFINED))
 		} else {
 			Ok(())
 		}
 	}
-	pub fn get_symbol_from(&mut self, symbol: &Ident, closure_index: usize) -> Result<SymbolValue, (Source, ErrCode)> {
+	pub fn get_symbol_from(&mut self, symbol: &Ident, closure_index: usize) -> Result<SymbolValue, ASTErr> {
 		let closure = &mut self.closures[closure_index];
 		let parent = closure.1.parent();
 		if let Ok(value) = closure.1.get_symbol(symbol) {
@@ -97,70 +97,10 @@ impl Env {
 			Err((symbol.src(), ERR_NOT_FOUND))
 		}
 	}
-	pub fn add_global<T: ToOwned<Owned = T> + UseAttributes + ToIdent + Into<Val> + Into<Value> + std::fmt::Display>(&mut self, global: &T) {
-		let ident = global.to_ident();
-		let value = SymbolValue::build()
-			.from_type(global.to_owned())
-			.build();
-		self.global.set_symbol(&ident, value);
-	}
-	pub fn update_closure(&mut self, symbol: &Ident, closure: usize) -> Result<(), (Source, ErrCode)> {
+	pub fn update_closure(&mut self, symbol: &Ident, closure: usize) -> Result<(), ASTErr> {
 		let mut value = self.get_symbol(symbol)?;
 		value.value.map_mut(|a| a.attributes.closure = closure);
 		self.set_symbol(symbol, value);
 		Ok(())
 	}
-}
-
-impl ScopeSearch for Env {
-	fn get_symbol(&mut self, symbol: &Ident) -> Result<SymbolValue, (Source, ErrCode)> {
-		if let Ok(value) = self.get_symbol_from(symbol, self.current_closure) {
-			return Ok(value);
-		}
-		self.global.get_symbol(symbol)
-	}
-	fn get_type(&mut self, symbol: &Ident) -> Result<Type, (Source, ErrCode)> {
-		if let Some(closure) = self.closures.get_mut(self.current_closure) {
-			if let Ok(value) = closure.1.get_type(symbol) {
-				return Ok(value)
-			}
-		}
-		self.global.get_type(symbol)
-	}
-	fn set_symbol(&mut self, symbol: &Ident, value: SymbolValue) {
-		if let Some(closure) = self.closures.get_mut(self.current_closure) {
-			closure.1.set_symbol(symbol, value);
-		}
-	}
-	fn modify_symbol(&mut self, symbol: &Ident, function: impl FnMut(&mut SymbolValue) -> Result<(), (Source, ErrCode)>) -> Result<(), (Source, ErrCode)> {
-		if let Some(closure) = self.closures.get_mut(self.current_closure) {
-			closure.1.modify_symbol(symbol, function)
-		} else {
-			Ok(())
-		}
-	}
-}
-
-type AnalyzeResult = Result<Vec<()>, (Source, ErrCode)>;
-
-pub fn add_globals(scope: &mut Env, mut types: Vec<Type>, mut traits: Vec<Trait>) -> Result<(), (Source, ErrCode)> {
-	types.iter().for_each(|t| scope.add_global(t));
-	traits.iter().for_each(|t| scope.add_global(t));
-
-	types.iter_mut().map(|t| t.analyze_scope(scope)).collect::<AnalyzeResult>()?;
-	traits.iter_mut().map(|t| t.analyze_scope(scope)).collect::<AnalyzeResult>()?;
-
-	types.iter_mut().map(|t| t.analyze_names(scope)).collect::<AnalyzeResult>()?;
-	traits.iter_mut().map(|t| t.analyze_names(scope)).collect::<AnalyzeResult>()?;
-
-	types.iter_mut().map(|t| t.analyze_scope(scope)).collect::<AnalyzeResult>()?;
-	traits.iter_mut().map(|t| t.analyze_scope(scope)).collect::<AnalyzeResult>()?;
-	Ok(())
-}
-
-#[macro_export]
-macro_rules! global_vec {
-	($($global:ident),*) => {
-		vec![$($global.to_owned()),*]
-	};
 }

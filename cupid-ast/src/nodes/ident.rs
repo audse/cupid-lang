@@ -26,9 +26,6 @@ impl Ident {
 	pub fn src(&self) -> usize {
 		self.attributes.source.unwrap_or(0)
 	}
-	pub fn set_generic_symbols(&self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
-		self.attributes.generics.set_symbols(scope)
-	}
 }
 
 impl PartialEq for Ident {

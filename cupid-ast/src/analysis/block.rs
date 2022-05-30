@@ -1,25 +1,25 @@
 use crate::*;
 
 impl Analyze for Block {
-    fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
+    fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
         for exp in self.body.iter_mut() {
             exp.analyze_scope(scope)?;
         }
         Ok(())
     }
-    fn analyze_names(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
+    fn analyze_names(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
         for exp in self.body.iter_mut() {
             exp.analyze_names(scope)?;
         }
         Ok(())
     }
-    fn analyze_types(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
+    fn analyze_types(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
         for exp in self.body.iter_mut() {
             exp.analyze_types(scope)?;
         }
         Ok(())
     }
-    fn check_types(&mut self, scope: &mut Env) -> Result<(), (Source, ErrCode)> {
+    fn check_types(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
         for exp in self.body.iter_mut() {
             exp.check_types(scope)?;
         }
@@ -28,13 +28,16 @@ impl Analyze for Block {
 }
 
 impl UseAttributes for Block {
-    fn attributes(&mut self) -> &mut Attributes {
+    fn attributes(&self) -> &Attributes {
+        &self.attributes
+    }
+    fn attributes_mut(&mut self) -> &mut Attributes {
         &mut self.attributes
     }
 }
 
 impl TypeOf for Block {
-    fn type_of(&self, scope: &mut Env) -> Result<Type, (Source, ErrCode)> {
+    fn type_of(&self, scope: &mut Env) -> Result<Type, ASTErr> {
         if let Some(exp) = (*self.body).last() {
             exp.type_of(scope)
         } else {
