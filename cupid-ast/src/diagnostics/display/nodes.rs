@@ -35,21 +35,31 @@ impl Display for Attributes {
 impl AsTable for Trait {}
 impl Display for Trait {
 	fn fmt(&self, f: &mut Formatter) -> Result {
-		write!(f, "{}", self.as_table())
+		let mut table = self.as_table();
+		if self.bounds.is_empty() {
+			table = table.with(Disable::Column(2..3));
+		}
+		if self.methods.is_empty() {
+			table = table.with(Disable::Column(1..2));
+		}
+		write!(f, "{table}")
 	}
 }
-
 
 impl AsTable for Function {}
 impl Display for Function {
 	fn fmt(&self, f: &mut Formatter) -> Result {
-		let params = fmt_list!(
-			self.params.split_last().unwrap().1, 
-			|p| format!("{} {}", &*p.type_hint, p.name.name), 
-			", "
-		);
-		let return_type = self.params.last().unwrap();
-		write!(f, "([{return_type}] {params} => {{ .. }})")
+		let (return_type, params) = self.params.split_last().unwrap();
+
+		let func = tabled::builder::Builder::new()
+			.set_columns(0..2)
+			.add_record(["params", &params.table().with(Style::modern()).to_string()])
+			.add_record(["=>", &return_type.type_hint.to_string()])
+			.build()
+			.with(Disable::Row(0..1))
+			.with(Style::modern())
+			.with_bold_header("Function");
+		write!(f, "\n{func}")
 	}
 }
 
@@ -66,18 +76,39 @@ impl Display for Ident {
 impl AsTable for FieldSet {}
 impl Display for FieldSet {
 	fn fmt(&self, f: &mut Formatter) -> Result {
-		match self {
-			Self::Unnamed(fields) => write!(f, "{}", fmt_list!(fields, ", ")),
-			Self::Named(fields) => write!(f, "{}", fmt_list!(fields, |(a, b)| format!("{a} {b}"), ", ")),
-			_ => Ok(())
-		}
+		let fields = fmt_list!(self.0, |(a, b)| format!("{} {b}", fmt_option!(a, |x| format!("{x}:"))));
+		write!(f, "{}", fmt_vec(&fields))
 	}
 }
 
 impl AsTable for Type {}
 impl Display for Type {
 	fn fmt(&self, f: &mut Formatter) -> Result {
-		write!(f, "{}", self.as_table().with(Rotate::Left).with(Style::modern()))
+		let mut table = self.as_table()
+			.with(Rotate::Left)
+    		.with(
+				Modify::new(object::Columns::single(0))
+					.with(Format::new( |s| s.bold().to_string()) )
+					.with(Alignment::right())
+			);
+			
+		if self.fields.is_empty() {
+			table = table.with(Disable::Row(3..4));
+		}
+		if self.traits.is_empty() {
+			table = table.with(Disable::Row(2..3));
+		}
+		if self.methods.is_empty() {
+			table = table.with(Disable::Row(1..2));
+		}
+		write!(f, "{}", 
+			table.with(Style::modern())
+				.with_bold_header("Type")
+				.with(
+					Modify::new(object::Rows::last())
+						.with(Format::new( |s| s.bold().to_string()) )
+				)
+		)
 	}
 }
 
@@ -91,7 +122,7 @@ impl Display for Block {
 impl AsTable for Declaration {}
 impl Display for Declaration {
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-		write!(f, "declaration: {} {} = {}", self.type_hint, self.name, self.value)
+		write!(f, "{}", self.as_table())
 	}
 }
 
@@ -139,7 +170,7 @@ impl Display for PropertyTerm {
 impl AsTable for Method {}
 impl Display for Method {
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-		write!(f, "{} {}", self.signature.as_named_table(&self.name.to_string()), fmt_option!(&self.value))
+		write!(f, "{} \n{} {}", self.name, self.signature, fmt_option!(&self.value))
 	}
 }
 

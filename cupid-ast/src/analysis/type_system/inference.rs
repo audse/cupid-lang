@@ -37,11 +37,6 @@ fn infer_function(function: &Function) -> Result<Type, ErrCode> {
 	let mut function_type = (*FUNCTION).to_owned();
 	if let Typed::Typed(_, t) = &function.body {
 		function_type.unify(t).map_err(|(_, e)| e)?;
-		// if let FieldSet::Unnamed(fields) = &mut function_type.fields {
-		// 	function_type.attributes_mut().generics.push(IsTyped(Ident::default(), t.to_owned()));
-		// 	fields.pop();
-		// 	fields.push(IsTyped(t.to_ident(), t.to_owned()));
-		// }
 	}
 	Ok(function_type)
 }

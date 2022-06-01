@@ -7,6 +7,7 @@ build_struct! {
 	#[derive(Debug, Clone, Default, Tabled)]
 	pub TypeBuilder => pub Type {
 		pub name: Ident,
+		
 		pub fields: FieldSet,
 
 		#[tabled(display_with = "fmt_vec")]

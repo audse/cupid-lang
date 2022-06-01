@@ -3,7 +3,7 @@ use crate::*;
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Unwrap, Tabled)]
 pub enum Exp {
 	Declaration(Declaration),
-	FunctionCall(FunctionCall),
+	FunctionCall(Box<FunctionCall>),
 	Block(Block),
 	Function(Function),
 	Property(Box<Property>),

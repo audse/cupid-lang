@@ -29,8 +29,8 @@ macro_rules! create_binary_op_or_ast {
 	}
 }
 
-pub(super) fn untyped_box<T: Default>(node: T) -> Typed<Box<T>> {
-	Typed::Untyped(Box::new(node))
+pub(super) fn untyped_box<T: Default>(node: T) -> Box<Typed<T>> {
+	Box::new(Typed::Untyped(node))
 }
 
 pub(super) fn attributes(node: &mut ParseNode, scope: &mut Env) -> Attributes {

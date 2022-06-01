@@ -9,6 +9,16 @@ impl Analyze for FunctionCall {
 		Ok(())
 	}
 	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+
+		// Add temporary type variables for argument types
+		let mut generics = self.args
+			.iter()
+			.enumerate()
+			.map(|(i, _)| Untyped(Ident::new_name(format!("{i}!"))) )
+			.collect::<Vec<Typed<Ident>>>();
+		generics.push(Untyped(Ident::new_name("t")));
+		self.function.0.attributes.generics = GenericList(generics);
+
 		self.function.1 = Some((*scope.get_symbol(&self.function.0)?.as_function()?).to_owned());
 		self.function.1.map_mut(|f| f.analyze_names(scope)).invert()?;
 		
@@ -29,7 +39,7 @@ impl Analyze for FunctionCall {
 		
     	for (i, exp) in self.args.iter_mut().enumerate() {
 			let mut param = &mut function.params[i];
-			param.value = exp.to_owned().into_map(&Box::new);
+			param.value = Box::new(exp.to_owned());
 			param.check_types(scope)?;
 		}
 		Ok(())

@@ -29,10 +29,10 @@ impl FileHandlerBuilder {
 			global_vec![BOOLEAN, DECIMAL, INTEGER, CHARACTER, STRING, FUNCTION, ARRAY, TUPLE, MAYBE, NOTHING], 
 			global_vec![ADD, SUBTRACT, EQUAL, NOT_EQUAL, GET]
 		) {
-			// if self.debug {
-				println!("{}", self.scope);
-				println!("{}", fmt_list!(self.scope.traceback.split_at(self.scope.traceback.len() - 10).1, "\n"));
-			// }
+			if self.debug {
+				eprintln!("{}", self.scope);
+				eprintln!("{}", fmt_list!(self.scope.traceback.split_at(self.scope.traceback.len() - 10).1, "\n"));
+			}
 			panic!("{}", code)
 		}
 		self
@@ -46,7 +46,7 @@ impl FileHandler {
 		self.parser.update(std::mem::take(&mut self.contents), 0);
 		if let Err((src, code)) = self.parse_analyze() {
 			if self.debug {
-				println!("{}", fmt_list!(self.scope.traceback, "\n"));
+				eprintln!("{}", fmt_list!(self.scope.traceback, "\n"));
 			}
 			panic!("{}", err_from_code(src, code, &mut self.scope))
 		}
@@ -58,7 +58,6 @@ impl FileHandler {
 		let mut ast = create_file_ast(&mut parse_tree, &mut self.scope).map_err(|e| (0, e))?;
 
 		if self.debug {
-
 			println!("\nParsing...\n");
 			for node in ast.iter_mut() {
 				println!("{}", node.as_table())

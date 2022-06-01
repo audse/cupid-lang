@@ -5,7 +5,7 @@ build_struct! {
 	pub DeclarationBuilder => pub Declaration {
 		pub type_hint: Typed<Ident>,
 		pub name: Ident,
-		pub value: Typed<Box<Exp>>,
+		pub value: Box<Typed<Exp>>,
 		
         #[tabled(skip)]
 		pub mutable: bool,

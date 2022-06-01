@@ -3,19 +3,21 @@ use crate::*;
 impl Analyze for Type {
 	fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
 		let closure = scope.add_isolated_closure(Some(self.name.to_owned()), Context::Type);
-		scope.update_closure(&self.name, closure)?;
-		scope.use_closure(closure);
 		self.attributes_mut().closure = closure;
+		scope.use_closure(closure);
 
 		self.name.analyze_scope(scope)?;
-		for trait_val in self.traits.iter_mut() {
-			scope.update_closure(trait_val, closure)?;
-			trait_val.attributes_mut().closure = closure;
+
+		for trait_symbol in self.traits.iter_mut() {
+			trait_symbol.attributes_mut().closure = closure;
+			trait_symbol.analyze_scope(scope)?;
 		}
+
 		for method in self.methods.iter_mut() {
 			method.attributes_mut().closure = closure;
 			method.analyze_scope(scope)?;
 		}
+
 		scope.reset_closure();
 		Ok(())
 	}

@@ -22,7 +22,11 @@ pub fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Exp, ErrCode>
 		"block" => create_ast!(Block, node, scope),
 		"boolean" | "none" | "char" | "string" | "decimal" | "number" => create_ast!(Value, node, scope),
 		"expression" | "comment" => create_ast(node.child(0), scope),
-		"function_call" => create_binary_op_or_ast!(FunctionCall, node, scope),
+		"function_call" =>  if node.children.len() > 1 {
+			Ok(Exp::FunctionCall(Box::new(FunctionCall::create_ast(node, scope)?)))
+		} else {
+			create_ast(node.child(0), scope)
+		},
 		"function" => create_ast!(Function, node, scope),
 		"identifier" => create_ast!(Ident, node, scope),
 		"property" => if node.children.len() > 1 {

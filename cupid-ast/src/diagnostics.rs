@@ -13,8 +13,8 @@ mod error_context;
 pub use error_context::*;
 
 pub fn err_from_code(src: Source, code: ErrCode, scope: &mut Env) -> String {
-	// println!("{scope:#?}");
-	// let source_ast_node = scope.debug_find_by_source(src);
+	// println!("{scope}");
+	println!("{} \n{}", scope.fmt_current(), scope.closures[scope.current_closure].1.as_table());
 	let source_node = &scope.source_data[src];
 	(match code {
 		ERR_CANNOT_INFER => format!("{code}: Cannot infer type"),

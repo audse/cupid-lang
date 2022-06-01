@@ -41,7 +41,7 @@ impl Default for Env {
 }
 
 impl Env {
-	fn fmt_current(&self) -> String {
+	pub fn fmt_current(&self) -> String {
 		fmt_option!(&self.closures[self.current_closure].0, |x| format!("({x})"))
 	}
 	pub fn add_source(&mut self, source: &mut ParseNode) -> usize {
@@ -98,6 +98,10 @@ impl Env {
 		}
 	}
 	pub fn update_closure(&mut self, symbol: &Ident, closure: usize) -> Result<(), ASTErr> {
+		// self.modify_symbol(symbol, |val| {
+		// 	val.attributes_mut().closure = closure;
+		// 	Ok(())
+		// })
 		let mut value = self.get_symbol(symbol)?;
 		value.value.map_mut(|a| a.attributes.closure = closure);
 		self.set_symbol(symbol, value);

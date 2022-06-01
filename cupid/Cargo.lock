@@ -320,6 +320,7 @@ dependencies = [
 name = "cupid_ast"
 version = "0.1.0"
 dependencies = [
+ "colored",
  "cupid_lex",
  "cupid_parse",
  "cupid_util",

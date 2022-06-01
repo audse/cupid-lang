@@ -9,12 +9,14 @@ pub trait UseScope {
 
 impl UseScope for Env {
 	fn get_symbol(&mut self, symbol: &Ident) -> Result<SymbolValue, ASTErr> {
+		self.traceback.push(format!("Getting symbol: {symbol}"));
 		if let Ok(value) = self.get_symbol_from(symbol, self.current_closure) {
 			return Ok(value);
 		}
 		self.global.get_symbol(symbol)
 	}
 	fn get_type(&mut self, symbol: &Ident) -> Result<Type, ASTErr> {
+		self.traceback.push(format!("Getting type symbol: {symbol}"));
 		if let Some(closure) = self.closures.get_mut(self.current_closure) {
 			if let Ok(value) = closure.1.get_type(symbol) {
 				return Ok(value)
@@ -23,15 +25,19 @@ impl UseScope for Env {
 		self.global.get_type(symbol)
 	}
 	fn set_symbol(&mut self, symbol: &Ident, value: SymbolValue) {
+		self.traceback.push(format!("Setting symbol: {symbol} to value: {value}"));
 		if let Some(closure) = self.closures.get_mut(self.current_closure) {
 			closure.1.set_symbol(symbol, value);
+		} else {
+			self.global.set_symbol(symbol, value);
 		}
 	}
 	fn modify_symbol(&mut self, symbol: &Ident, function: impl FnMut(&mut SymbolValue) -> Result<(), ASTErr>) -> Result<(), ASTErr> {
+		self.traceback.push(format!("Modifying symbol: {symbol}"));
 		if let Some(closure) = self.closures.get_mut(self.current_closure) {
 			closure.1.modify_symbol(symbol, function)
 		} else {
-			Ok(())
+			self.global.modify_symbol(symbol, function)
 		}
 	}
 }
@@ -43,7 +49,7 @@ impl UseScope for Closure {
 				return Ok(value);
 			}
 		}
-		Err((symbol.src(), 404))
+		Err((symbol.src(), ERR_NOT_FOUND))
 	}
 	fn get_type(&mut self, symbol: &Ident) -> Result<Type, ASTErr> {
 		for scope in self.scopes.iter_mut() {
@@ -51,7 +57,7 @@ impl UseScope for Closure {
 				return Ok(value);
 			}
 		}
-		Err((symbol.src(), 404))
+		Err((symbol.src(), ERR_NOT_FOUND))
 	}
 	fn set_symbol(&mut self, symbol: &Ident, value: SymbolValue) {
 		self.scopes.last_mut().unwrap().set_symbol(symbol, value);
@@ -66,7 +72,7 @@ impl UseScope for Closure {
 		if let Some(container) = container {
 			container.modify_symbol(symbol, function)
 		} else {
-			panic!("symbol not found to modify")
+			Err((symbol.src(), ERR_NOT_FOUND))
 		}
 	}
 }
@@ -76,7 +82,7 @@ impl UseScope for Scope {
 		if let Some(value) = self.symbols.get(symbol) {
 			Ok(value.to_owned())
 		} else {
-			Err((symbol.src(), 404))
+			Err((symbol.src(), ERR_NOT_FOUND))
 		}
 	}
 	fn get_type(&mut self, symbol: &Ident) -> Result<Type, ASTErr> {
@@ -85,7 +91,7 @@ impl UseScope for Scope {
 				return Ok(value);
 			}
 		}
-		Err((symbol.src(), 404))
+		Err((symbol.src(), ERR_NOT_FOUND))
 	}
 	fn set_symbol(&mut self, symbol: &Ident, value: SymbolValue) {
 		self.symbols.insert(symbol.to_owned(), value);

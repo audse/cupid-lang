@@ -4,6 +4,7 @@ lazy_static! {
 	pub static ref TYPE: Type = primitive("type");
 	pub static ref TRAIT: Type = primitive("trait");
 	pub static ref BOOLEAN: Type = primitive("bool");
+
 	pub static ref INTEGER: Type = Type::build()
 		.name_str("int")
 		.methods(vec![SQ.to_owned()])

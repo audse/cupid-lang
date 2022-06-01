@@ -11,6 +11,9 @@ pub trait Unify {
 	fn unify_with(&mut self, other: &[Typed<Ident>]) -> UnifyResult {
 		Ok(())
 	}
+	fn can_unify(&self, other: &Self) -> bool {
+		false
+	}
 }
 
 fn unify<T: Unify + ?Sized>(param: &mut T, arg: Option<&T>) -> UnifyResult {
@@ -23,10 +26,17 @@ fn unify<T: Unify + ?Sized>(param: &mut T, arg: Option<&T>) -> UnifyResult {
 
 impl Unify for Ident {
 	fn unify(&mut self, other: &Self) -> UnifyResult {
+		if self.name != other.name {
+			return Err((self.src(), ERR_CANNOT_UNIFY))
+		}
 		self.attributes.generics.unify(&*other.attributes.generics)
 	}
 	fn unify_with(&mut self, other: &[Typed<Ident>] ) -> UnifyResult {
 		self.attributes.generics.unify(&other.to_vec())
+	}
+	fn can_unify(&self, other: &Self) -> bool {
+		self.name == other.name 
+			&& self.attributes.generics.can_unify(&other.attributes.generics)
 	}
 }
 
@@ -40,7 +50,7 @@ impl Unify for Typed<Ident> {
 			(Untyped(_), Untyped(_)) => (),
 			(IsTyped(..), IsTyped(..)) => {
 				if self != other {
-					panic!("mismatch")
+					return Err((self.src(), ERR_CANNOT_UNIFY))
 				}
 			}
 		};
@@ -54,6 +64,14 @@ impl Unify for Typed<Ident> {
 		}
 		Ok(())
 	}
+	fn can_unify(&self, other: &Self) -> bool {
+		match (&self, other) {
+			(Untyped(_), IsTyped(..)) => true,
+			(IsTyped(..), Untyped(..)) => true,
+			(Untyped(_), Untyped(_)) => true,
+			(IsTyped(..), IsTyped(..)) => self == other
+		}
+	}
 }
 
 impl Unify for Vec<Typed<Ident>> {
@@ -65,6 +83,17 @@ impl Unify for Vec<Typed<Ident>> {
 			}
 		}
 		Ok(())
+	}
+	fn can_unify(&self, other: &Self) -> bool {
+		let mut other = other.iter();
+		for ident in self.iter() {
+			if let (Untyped(_), Some(next)) = (ident, other.next()) {
+				if !ident.can_unify(next) {
+					return false;
+				}
+			}
+		}
+		true
 	}
 }
 
@@ -105,18 +134,27 @@ impl Unify for Method {
 		self.name.unify_with(other)?;
 		self.signature.unify_with(other)
 	}
+	fn can_unify(&self, other: &Self) -> bool {
+		self.name.can_unify(&other.name) 
+			&& self.signature.can_unify(&other.signature)
+	}
 }
 
 impl Unify for FieldSet {
 	fn unify_with(&mut self, other: &[Typed<Ident>]) -> UnifyResult {
-		for (_, field_type) in self.iter_mut_named() {
-			field_type.unify_with(other)?;
-		}
-		for field_type in self.iter_mut_unnamed() {
+		for (_, field_type) in (*self).iter_mut() {
 			field_type.unify_with(other)?;
 		}
 		Ok(())
 	}
+	// fn can_unify(&self, other: &Self) -> bool {
+	// 	let other = other.iter();
+	// 	for (_, field_type) in self.iter() {
+	// 		if let Some(next) = field_type.next() {
+	// 			field_type.can_unify(other)
+	// 		}
+	// 	}
+	// }
 }
 
 impl Unify for Trait {

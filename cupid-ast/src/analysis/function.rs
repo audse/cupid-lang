@@ -46,30 +46,16 @@ impl UseAttributes for Function {
 
 impl TypeOf for Function {
 	fn type_of(&self, _scope: &mut Env) -> Result<Type, ASTErr> {
-		let return_type = self.body.get_type().to_owned();
+		let return_type = self.body.get_node_type()?;
     	let mut params: Vec<Typed<Ident>> = self.params
 			.iter()
 			.map(|p| (p.type_hint).to_owned())
 			.collect();
-		params.push(IsTyped(Ident::default(), return_type));
+		params.push(IsTyped(Ident::default(), return_type.to_owned()));
 			
 		let mut signature = FUNCTION.to_owned();
 		signature.unify_with(&params)?;
 
 		Ok(signature)
-		// Ok(function_signature(
-		// 	self.attributes.generics.to_owned(), 
-		// 	params, 
-		// 	return_type, 
-		// 	scope
-		// ))
 	}
 }
-
-// fn param_is_not_type(param: &mut Ident, scope: &mut Env) -> Result<(), ASTErr> {
-// 	if scope.get_type(param).is_ok() {
-// 		Err((param.source(), ERR_UNEXPECTED_TYPE))
-// 	} else {
-// 		Ok(())
-// 	}
-// }

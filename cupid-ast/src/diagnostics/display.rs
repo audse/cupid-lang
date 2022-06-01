@@ -5,6 +5,7 @@ use std::fmt::{
 	Formatter
 };
 
+
 mod nodes;
 pub use nodes::*;
 mod scope;
@@ -14,21 +15,64 @@ pub trait AsTable: Tabled where Self: Clone + ToOwned<Owned = Self> + Sized {
 		vec![self.to_owned()]
 			.table()
 			.with(Style::modern())
+			.with(Modify::new(object::Segment::all()).with(Alignment::left()))
 	}
 	fn as_named_table(&self, name: &str) -> Table {
 		vec![self.to_owned()]
 			.table()
 			.with(Style::modern())
-			.with(Header(name))
+			.with_header(name)
 	}
 }
+
+pub trait TableStyle {
+	fn with_header(self, header: &str) -> Table;
+	fn with_bold_header(self, header: &str) -> Table;
+	fn with_footer(self, footer: &str) -> Table;
+}
+
+impl TableStyle for Table {
+	fn with_header(self, header: &str) -> Self {
+		self.with(Header(header))
+			.with(Highlight::new(
+				object::Rows::first(), 
+				Style::modern().frame().bottom_left_corner('├').bottom_right_corner('┤')
+			))
+			.with(Modify::new(object::Rows::first()).with(Alignment::center()))
+	}
+	fn with_bold_header(self, header: &str) -> Self {
+		self.with_header(header)
+			.with(Modify::new(
+				object::Rows::first()).with(Format::new(|s| s.bold().to_string())
+			))
+	}
+	fn with_footer(self, footer: &str) -> Table {
+		self.with(Footer(footer))
+			.with(Highlight::new(
+				object::Rows::last(), 
+				Style::modern().frame().top_left_corner('├').top_right_corner('┤')
+			))
+			.with(Modify::new(object::Rows::last()).with(Alignment::center()))
+	}
+}
+
 
 pub fn fmt_option<T: Display>(opt: &Option<T>) -> String {
 	fmt_option!(opt)
 }
 
 pub fn fmt_vec<T: Display>(vec: &[T]) -> String {
-	fmt_list!(vec, ", ")
+	fmt_list!(vec)
+		.table()
+		.with(Disable::Row(0..1))
+		.with(Style::ascii()
+			.left_off()
+			.top_off()
+			.right_off()
+			.bottom_off()
+		)
+		.with(Modify::new(object::Columns::first()).with(Alignment::left()))
+		.to_string()
 }
 
 

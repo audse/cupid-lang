@@ -7,6 +7,7 @@ use std::hash::{
 pub use lazy_static::lazy_static;
 pub use derive_more::*;
 pub use tabled::*;
+pub use colored::Colorize;
 
 pub use cupid_lex::{
 	Error,

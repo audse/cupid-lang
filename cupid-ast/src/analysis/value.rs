@@ -40,6 +40,6 @@ impl UseAttributes for Value {
 
 impl TypeOf for Value {
 	fn type_of(&self, _scope: &mut Env) -> Result<Type, ASTErr> {
-    	Ok(self.val.get_type().to_owned())
+    	self.val.get_type().map(|t| t.to_owned()).map_err(|e| (self.source(), e))
 	}
 }

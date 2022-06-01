@@ -21,28 +21,6 @@ lazy_static! {
 	pub static ref SQ: Method = new_unary_op_method("sq");
 }
 
-// pub fn use_type_as_generic_args<T>(trait_val: &mut T, mut type_ident: Ident)
-// 		where T: UseAttributes + Methods + ToOwned<Owned = T> {
-// 	// Apply using type as the first generic argument
-// 	trait_val.attributes().generics.apply_named(vec![(
-// 		type_ident.name.to_owned(), type_ident.to_owned())
-// 	]);
-// 	// Apply other types as they match generic arguments
-// 	trait_val.attributes().generics.apply(
-// 		type_ident.attributes().generics.to_owned()
-// 	);
-// 	// Apply the same generics to each method
-// 	for method in trait_val.methods_mut().iter_mut() {
-// 		method.name.attributes().generics.apply_named(vec![(
-// 			type_ident.name.to_owned(), type_ident.to_owned())
-// 		]);
-// 		method.name.attributes().generics.apply(
-// 			type_ident.attributes().generics.to_owned()
-// 		);
-// 		use_type_as_generic_args(&mut method.signature, type_ident.to_owned());
-// 	}
-// }
-
 pub fn new_bin_op(name: &'static str) -> Trait {
 	// Creates a trait with a single operation method
 	// E.g.
@@ -66,7 +44,7 @@ pub fn new_bin_op(name: &'static str) -> Trait {
 		.build();
 
 	let function_body = Exp::Value(Value { 
-		val: Untyped(Val::BuiltinPlaceholder), 
+		val: IsTyped(Val::BuiltinPlaceholder, primitive("t")), 
 		..Default::default() 
 	});
 
@@ -137,7 +115,7 @@ pub fn new_unary_op_method(name: &'static str) -> Method {
 		.build();
 
 	let function_body = Exp::Value(Value { 
-		val: Untyped(Val::BuiltinPlaceholder), 
+		val: IsTyped(Val::BuiltinPlaceholder, primitive("t")), 
 		..Default::default() 
 	});
 	

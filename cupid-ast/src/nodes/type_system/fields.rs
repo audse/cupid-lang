@@ -1,43 +1,25 @@
 use crate::*;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Unwrap, Tabled)]
-pub enum FieldSet {
-	Unnamed(Vec<Typed<Ident>>),
-	Named(Vec<(Str, Typed<Ident>)>),
-	Empty,
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Tabled)]
+pub struct FieldSet(
+	#[tabled(display_with="fmt_field_set")]
+	pub Vec<(Option<Str>, Typed<Ident>)>
+);
+
+fn fmt_field_set(field_set: &[(Option<Str>, Typed<Ident>)]) -> String {
+	let fields = field_set.iter().map(|(s, i)| quick_fmt!(fmt_option!(s), i)).collect::<Vec<String>>();
+	fmt_list!(fields, ", ")
 }
 
-impl Default for FieldSet { 
-	fn default() -> Self { Self::Empty } 
+impl std::ops::Deref for FieldSet {
+	type Target = Vec<(Option<Str>, Typed<Ident>)>;
+	fn deref(&self) -> &Self::Target {
+		&self.0
+	}
 }
 
-impl FieldSet {
-	pub fn iter_named(&self) -> impl Iterator<Item = &(Str, Typed<Ident>)> + '_ {
-		match self {
-			Self::Unnamed(_) => [].iter(),
-			Self::Named(fields) => fields.iter(),
-			Self::Empty => [].iter()
-		}
-	}
-	pub fn iter_unnamed(&self) -> impl Iterator<Item = &Typed<Ident>> + '_ {
-		match self {
-			Self::Unnamed(fields) => fields.iter(),
-			Self::Named(_) => [].iter(),
-			Self::Empty => [].iter()
-		}
-	}
-	pub fn iter_mut_named(&mut self) -> impl Iterator<Item = &mut (Str, Typed<Ident>)> + '_ {
-		match self {
-			Self::Unnamed(_) => [].iter_mut(),
-			Self::Named(fields) => fields.iter_mut(),
-			Self::Empty => [].iter_mut()
-		}
-	}
-	pub fn iter_mut_unnamed(&mut self) -> impl Iterator<Item = &mut Typed<Ident>> + '_ {
-		match self {
-			Self::Unnamed(fields) => fields.iter_mut(),
-			Self::Named(_) => [].iter_mut(),
-			Self::Empty => [].iter_mut()
-		}
+impl std::ops::DerefMut for FieldSet {
+	fn deref_mut(&mut self) -> &mut Self::Target {
+		&mut self.0
 	}
 }

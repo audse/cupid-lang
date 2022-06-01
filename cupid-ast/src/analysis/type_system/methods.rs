@@ -17,8 +17,9 @@ impl Analyze for Method {
 			value: self.value.to_owned().map(|f| 
 				Value::build()
 				.typed_val(Val::Function(Box::new(Untyped(f))), self.signature.to_owned())
+				.attributes(self.attributes().to_owned())
 				.build()
-			), 
+			),
 			type_hint: self.signature.to_ident(), 
 			mutable: false 
 		});

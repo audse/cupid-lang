@@ -3,7 +3,7 @@ use crate::*;
 build_struct! {
 	#[derive(Debug, Clone, PartialEq, Eq, Hash, Default, Tabled)]
 	pub PropertyBuilder => pub Property {
-		pub object: Typed<Box<Exp>>,
+		pub object: Box<Typed<Exp>>,
 		pub property: Typed<PropertyTerm>,
 
         #[tabled(skip)]

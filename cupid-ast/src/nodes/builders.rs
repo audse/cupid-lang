@@ -21,14 +21,6 @@ impl TypeBuilder {
 		self.name.attributes.generics = GenericList::from(generics);
 		self
 	}
-	pub fn named_fields(mut self, fields: Vec<(Str, Typed<Ident>)>) -> Self {
-		self.fields = FieldSet::Named(fields);
-		self
-	}
-	pub fn unnamed_fields(mut self, fields: Vec<Typed<Ident>>) -> Self {
-		self.fields = FieldSet::Unnamed(fields);
-		self
-	}
 	pub fn primitive(name: &'static str) -> Type {
 		Self::new()
 			.name_str(name)
@@ -37,11 +29,11 @@ impl TypeBuilder {
 	}
 	pub fn bin_op(self, generic: &'static str) -> Self {
 		self.generics(GenericList::from(vec![generic, generic, generic]))
-			.unnamed_fields(vec![
-				Untyped(Ident::new_name(generic)),
-				Untyped(Ident::new_name(generic)),
-				Untyped(Ident::new_name(generic)),
-			])
+			.fields(FieldSet(vec![
+				(None, Untyped(Ident::new_name(generic))),
+				(None, Untyped(Ident::new_name(generic))),
+				(None, Untyped(Ident::new_name(generic))),
+			]))
 			.base_type(BaseType::Function)
 	}
 	pub fn base_primitive(mut self, name: &'static str) -> Self {

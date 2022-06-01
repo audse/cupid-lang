@@ -15,11 +15,11 @@ macro_rules! fields {
 	// e.g. fields!["a", ..] => FieldSet::Unnamed(Str(a), ..)
 	// fields!["a": "b", ..] => FieldSet::Named((Str(a), TypeIdent(b)), ..)
 	($($f:tt),*) => { 
-		FieldSet::Unnamed(vec![ $( Untyped(primitive($f).into_ident()) ),* ])
+		FieldSet(vec![ $( (None, Untyped(primitive($f).into_ident())) ),* ])
 	};
 	($($name:tt: $f:tt),*) => {
-		FieldSet::Named(vec![ $( 
-			(Cow::Borrowed($f), Untyped(primitive($f).into_ident())) 
+		FieldSet(vec![ $( 
+			(Some(Cow::Borrowed($f)), Untyped(primitive($f).into_ident())) 
 		),* ])
 	};
 }

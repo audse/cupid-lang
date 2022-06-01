@@ -12,7 +12,7 @@ impl<T: Default> Default for Typed<T> {
 	}
 }
 
-impl<T: Default> Typed<T> {
+impl<T: Default + std::fmt::Debug> Typed<T> {
 	pub fn inner(&self) -> &T {
 		match self {
 			Self::Untyped(t) => t,
@@ -31,11 +31,18 @@ impl<T: Default> Typed<T> {
 			Self::Typed(t, _) => t
 		}
 	}
-	pub fn get_type(&self) -> &Type {
+	pub fn get_type(&self) -> Result<&Type, ErrCode> {
 		if let Self::Typed(_, t) = self {
-			t
+			Ok(t)
 		} else {
-			panic!("no type found")
+			Err(ERR_EXPECTED_TYPE)
+		}
+	}
+	pub fn get_node_type(&self) -> Result<&Type, ASTErr> where T: UseAttributes {
+		if let Self::Typed(_, t) = self {
+			Ok(t)
+		} else {
+			Err((self.source(), ERR_EXPECTED_TYPE))
 		}
 	}
 	pub fn get_type_mut(&mut self) -> &mut Type {

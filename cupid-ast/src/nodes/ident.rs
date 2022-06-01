@@ -10,9 +10,9 @@ build_struct! {
 }
 
 impl Ident {
-	pub fn new(name: &'static str, generics: GenericList) -> Self {
+	pub fn new<S: Into<Str>>(name: S, generics: GenericList) -> Self {
 		Self {
-			name: Cow::Borrowed(name),
+			name: name.into(),
 			attributes: Attributes {
 				generics,
 				source: None,
@@ -20,7 +20,7 @@ impl Ident {
 			}
 		}
 	}
-	pub fn new_name(name: &'static str) -> Self {
+	pub fn new_name<S: Into<Str>>(name: S) -> Self {
 		Self::new(name, GenericList(vec![]))
 	}
 	pub fn src(&self) -> usize {
@@ -30,8 +30,9 @@ impl Ident {
 
 impl PartialEq for Ident {
 	fn eq(&self, other: &Self) -> bool {
-		self.name == other.name 
-		&& self.attributes.generics == other.attributes.generics
+		self.can_unify(other)
+		// self.name == other.name 
+		// && self.attributes.generics.len() == other.attributes.generics.len()
 	}
 }
 
