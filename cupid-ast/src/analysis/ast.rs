@@ -1,7 +1,18 @@
 use crate::*;
 
 #[allow(unused_variables)]
-pub trait Analyze: UseAttributes + std::fmt::Display {
+pub trait PreAnalyze: UseAttributes + std::fmt::Display {
+	// Some nodes are analyzed before other things: e.g. top-level type definitions
+	fn pre_analyze_scope(&mut self, scope: &mut Env) -> ASTResult<()> { 
+		self.attributes_mut().closure = scope.current_closure;
+		Ok(())
+	}
+	fn pre_analyze_names(&mut self, scope: &mut Env) -> ASTResult<()> { Ok(()) }
+	fn pre_analyze_types(&mut self, scope: &mut Env) -> ASTResult<()> { Ok(()) }
+}
+
+#[allow(unused_variables)]
+pub trait Analyze: PreAnalyze {
 	fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), ASTErr> { 
 		self.attributes_mut().closure = scope.current_closure;
 		Ok(()) 

@@ -16,6 +16,8 @@
 - regex: '/' regex_inner '/'
 - regex_inner: !'/' ANY
 
+-~equal: '=' !'>'
+
 - identifier: !reserved_word WORD
 -~reserved_word:
 	'for'
@@ -36,7 +38,7 @@
 	| 'use'
 	| 'with'
 	| 'trait'
-	| 'self'
+	| 'me'
 	| 'let'
 	| 'const'
 	| 'in'
@@ -46,7 +48,6 @@
 	| 'or'
 	| 'as'
 	| 'istype'
-	| 'self'
 	| 'true'
 	| 'false'
 	| 'none'

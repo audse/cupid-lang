@@ -1,5 +1,7 @@
 use crate::*;
 
+impl PreAnalyze for Block {}
+
 impl Analyze for Block {
     fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
         for exp in self.body.iter_mut() {

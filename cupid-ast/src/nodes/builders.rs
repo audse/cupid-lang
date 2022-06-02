@@ -61,3 +61,10 @@ impl ValueBuilder {
 		self
 	}
 }
+
+impl IdentBuilder {
+	pub fn one_generic(mut self, generic: Typed<Ident>) -> Self {
+		self.attributes.generics = GenericList(vec![generic]);
+		self
+	}
+}

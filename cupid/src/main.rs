@@ -38,15 +38,13 @@ fn main() -> Result<(), String> {
 }
 
 fn run_repl(parser: &mut CupidParser, env: &mut Env) -> Result<(), (Source, ErrCode)> {
-	// add_globals!(env, BOOLEAN, DECIMAL, INTEGER, CHARACTER, STRING, FUNCTION, ARRAY, TUPLE, MAYBE, NOTHING);
-	// add_globals!(env, ADD, SUBTRACT, EQUAL, NOT_EQUAL, GET);
 	loop {
 		let mut line = String::new();
 		std::io::stdin().read_line(&mut line).unwrap();
 		parser.update(line.to_owned(), 1);
 		
 		let (mut parse_tree, _) = parser._expression().unwrap();
-		let mut ast = create_ast(&mut parse_tree, env).map_err(|e| (0, e))?;
+		let mut ast = Exp::create_ast(&mut parse_tree, env).map_err(|e| (0, e))?;
 		
 		ast.analyze_names(env)?;
 		ast.analyze_types(env)?;
@@ -56,7 +54,6 @@ fn run_repl(parser: &mut CupidParser, env: &mut Env) -> Result<(), (Source, ErrC
 
 fn run_path(path: &str, debug: bool) {
 	let mut file_handler = FileHandler::build()
-		.add_globals()
 		.read(path)
 		.debug(debug)
 		.build();

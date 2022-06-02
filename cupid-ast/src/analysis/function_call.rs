@@ -1,5 +1,7 @@
 use crate::*;
 
+impl PreAnalyze for FunctionCall {}
+
 impl Analyze for FunctionCall {
 	fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
 		self.function.0.analyze_scope(scope)?;

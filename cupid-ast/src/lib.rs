@@ -1,3 +1,4 @@
+#![feature(explicit_generic_args_with_impl_trait)]
 pub use std::collections::HashMap;
 pub use std::borrow::Cow;
 use std::hash::{

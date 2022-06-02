@@ -1,5 +1,7 @@
 use crate::*;
 
+impl PreAnalyze for Method {}
+
 impl Analyze for Method {
 	fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
 		scope.use_closure(self.attributes().closure);

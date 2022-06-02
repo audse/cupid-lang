@@ -1,40 +1,19 @@
 # depends on cupid.grammar
 
--~type_definition:
-	builtin_type_definition
-	| struct_type_definition
-	| sum_type_definition
-	| alias_type_definition
+- type_def: !'is' 'type' !'of' type_hint ~equal type_value
+- type_value: bracket_list[type_field] | type_hint
+- type_field: identifier? type_hint
 
--~type_kw: !'is' 'type' !'of'
-- builtin_type_definition: type_kw WORD !'='
+- trait_def: 'trait' type_hint ~equal trait_value
+- trait_value: bracket_list[implement_function] | implement_function
 
-- struct_type_definition: type_symbol ~equal bracket_list[struct_member]
-- struct_member: type_hint identifier
+- implement_type: 'use' type_hint ~equal bracket_list[implement_function]
+- implement_trait: 'use' type_hint 'with' type_hint ~equal bracket_list[implement_function]
 
-- sum_type_definition: type_symbol ~equal bracket_list[sum_member]
-- sum_member: type_hint
-
-- alias_type_definition: type_symbol ~equal type_hint
-
--~type_symbol: type_kw generics? identifier
-- generics: bracket_list[generic_argument]
-- generic_argument: identifier !':' | identifier ':' type_hint
-
-- typed_declaration: type_hint 'mut'? identifier ~equal term
+- implement_function: type_hint ':' _function
+- _function: _parameters _return_type? function_body?
+- _return_type: '-' '>' type_hint 
+- _parameters: list[_parameter]
+- _parameter: identifier type_hint?
 
 - type_hint: identifier bracket_list[type_hint]?
-
-- struct_type_hint: identifier bracket_list[struct_member_type_hint]
-- struct_member_type_hint: type_hint identifier
-
-- implement_type: 'use' generics? type_hint brace[declarations]
-
-- implement_trait: 'use' generics? identifier generics? 'with' type_hint implement_trait_body?
--~implement_trait_body: brace[declarations]
-
-- trait_definition: 'trait' generics? identifier ~equal bracket_list[typed_declaration]
-
--~equal: '=' !'>'
-
--~declarations: typed_declaration*

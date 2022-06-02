@@ -21,8 +21,8 @@ impl Default for Val {
 }
 
 impl TypeOf for Val {
-	fn type_of(&self, _scope: &mut Env) -> Result<Type, ASTErr> {
-    	infer_type(self).map_err(|code| (0, code))
+	fn type_of(&self, scope: &mut Env) -> Result<Type, ASTErr> {
+    	infer_type_from_scope(self, scope).map_err(|code| (0, code))
 	}
 }
 

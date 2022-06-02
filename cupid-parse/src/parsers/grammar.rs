@@ -161,7 +161,7 @@ impl GrammarParser {
 		let suffix_modifier = self.suffix_modifier();
 		Cow::Owned(Item { 
 			kind: kind.into(), 
-			source: node.token(), 
+			source: node.token(0), 
 			prefix_modifier, 
 			suffix_modifier,
 			args 

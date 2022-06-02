@@ -1,5 +1,7 @@
 use crate::*;
 
+impl PreAnalyze for Property {}
+
 impl Analyze for Property {
 	fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
 		self.object.analyze_scope(scope)?;
@@ -81,6 +83,7 @@ fn is_allowed_access(object_type: &Type, property: &Typed<PropertyTerm>) -> bool
 	}
 }
 
+impl PreAnalyze for PropertyTerm {}
 
 impl Analyze for PropertyTerm {
 	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), ASTErr> {

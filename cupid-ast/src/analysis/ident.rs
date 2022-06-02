@@ -1,10 +1,17 @@
 use crate::*;
 
+impl PreAnalyze for Ident {}
+
 impl Analyze for Ident {
 	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
 		let value = scope.get_symbol(self)?;
-		self.attributes_mut().closure = value.attributes().closure;
+		let closure = value.attributes().closure;
+		self.attributes_mut().closure = closure;
+		scope.use_closure(closure);
+		
 		self.attributes.generics.set_symbols(scope);
+
+		scope.reset_closure();
 		Ok(())
 	}
 	fn analyze_types(&mut self, scope: &mut Env) -> Result<(), ASTErr> {

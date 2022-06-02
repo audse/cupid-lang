@@ -18,7 +18,7 @@ impl CreateAST for Val {
 
 impl CreateAST for Value {
 	fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
-		let attributes = attributes(node, scope);
+		let attributes = attributes(node, scope)?;
 		Ok(Value {
 			val: Untyped(Val::create_ast(node, scope)?), 
 			attributes

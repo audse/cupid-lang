@@ -1,5 +1,7 @@
 use crate::*;
 
+impl PreAnalyze for Function {}
+
 impl Analyze for Function {
 	fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
 		self.attributes.closure = scope.add_closure(None, Context::Function);

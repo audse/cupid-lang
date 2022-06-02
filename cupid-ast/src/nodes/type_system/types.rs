@@ -25,6 +25,8 @@ pub enum BaseType {
 	Array,
 	Function,
 	Sum,
+	Struct,
+	Alias,
 	None
 }
 

@@ -1,3 +1,6 @@
+type int = []
+type dec = []
+type string = []
+type array [t] = [t] 
+
 int x = 10
-int.sq()
-x.sq()

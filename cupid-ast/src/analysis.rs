@@ -1,9 +1,6 @@
 mod ast;
 pub use ast::*;
 
-mod attributes;
-pub use attributes::*;
-
 mod block;
 pub use block::*;
 

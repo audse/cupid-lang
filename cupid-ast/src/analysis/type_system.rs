@@ -1,5 +1,8 @@
 pub use lazy_static::lazy_static;
 
+mod definition;
+pub use definition::*;
+
 mod inference;
 pub use inference::*;
 

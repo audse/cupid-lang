@@ -1,26 +1,25 @@
 use crate::*;
 
+macro_rules! analyze_exp {
+	($method:ident) => {
+		fn $method(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+			if let Self::Empty = self { return Ok(()) }
+			for_each_exp!(self, $method, scope)
+		}
+	};
+}
+
+impl PreAnalyze for Exp {
+	analyze_exp!(pre_analyze_scope);
+	analyze_exp!(pre_analyze_names);
+	analyze_exp!(pre_analyze_types);
+}
+
 impl Analyze for Exp {
-	fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
-		scope.traceback.push(quick_fmt!("Analyzing scope of ", self));
-		if let Self::Empty = self { return Ok(()) }
-		for_each_exp!(self, analyze_scope, scope)
-	}
-	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
-		scope.traceback.push(quick_fmt!("Analyzing names of ", self));
-		if let Self::Empty = self { return Ok(()) }
-		for_each_exp!(self, analyze_names, scope)
-	}
-	fn analyze_types(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
-		scope.traceback.push(quick_fmt!("Analyzing types of ", self));
-		if let Self::Empty = self { return Ok(()) }
-		for_each_exp!(self, analyze_types, scope)
-	}
-	fn check_types(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
-		scope.traceback.push(quick_fmt!("Checking types of ", self));
-		if let Self::Empty = self { return Ok(()) }
-		for_each_exp!(self, check_types, scope)
-	}
+	analyze_exp!(analyze_scope);
+	analyze_exp!(analyze_names);
+	analyze_exp!(analyze_types);
+	analyze_exp!(check_types);
 }
 
 impl UseAttributes for Exp {

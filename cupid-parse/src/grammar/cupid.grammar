@@ -3,8 +3,8 @@
 -~expression_item: statement | term
 
 -~statement:
-	type_definition
-	| trait_definition
+	type_def
+	| trait_def
 	| implement_type
 	| implement_trait
 	| typed_declaration
@@ -45,6 +45,7 @@
 -~brace_block: ~'{' expression* '}'
 -~arrow_block: ~arrow expression_item
 
+- typed_declaration: type_hint 'mut'? identifier (~equal term)?
 - assignment: identifier equal term
 
 - op_assignment: identifier operator equal term
@@ -71,7 +72,7 @@
 - pointer: '&' 'mut'? self_identifier
 - empty: ~'_'
 - group: ~'(' term? closing_paren
-- function: parameters  function_body
+- function: parameters function_body
 -~function_body: arrow ~empty | arrow group | block
 - parameters: '_' | self_param? list[annotated_parameter]
 -~self_param: 'mut'? self ','?
@@ -146,7 +147,7 @@
 
 -~self_identifier: self | identifier
 
-- self: 'self'
+- self: 'me'
 
 -~keyword_operator:
 	'in'

@@ -28,7 +28,7 @@ impl Display for Value {
 impl AsTable for Attributes {}
 impl Display for Attributes {
 	fn fmt(&self, f: &mut Formatter) -> Result {
-		write!(f, "{}", self.generics)
+		write!(f, "{}", self.as_table().with(Rotate::Left).with(Style::modern()))
 	}
 }
 
@@ -187,5 +187,12 @@ impl AsTable for Context {}
 impl Display for SymbolValue {
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
 		write!(f, "{}", fmt_option!(&self.value))
+	}
+}
+
+impl AsTable for TypeDefinition {}
+impl Display for TypeDefinition {
+	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+		write!(f, "{}", self.as_table())
 	}
 }

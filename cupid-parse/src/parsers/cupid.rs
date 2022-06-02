@@ -74,11 +74,11 @@ repeat!(&mut node, self._expression(), false);
 				let (mut node, pos) = self.start_parse("statement");
 				
 			alt! ((self, true, node, pos) {
-				once!(&mut node, self._type_definition(), false);
+				once!(&mut node, self._type_def(), false);
 			});
 
 			alt! ((self, true, node, pos) {
-				once!(&mut node, self._trait_definition(), false);
+				once!(&mut node, self._trait_def(), false);
 			});
 
 			alt! ((self, true, node, pos) {
@@ -287,6 +287,24 @@ once!(&mut node, self.expect(r"}"), false);
 			alt! ((self, true, node, pos) {
 				once!(&mut node, self._arrow(), true);
 once!(&mut node, self._expression_item(), false);
+			});
+				None
+			}
+			
+			pub fn _typed_declaration(&mut self) -> Option<(ParseNode, bool)> {
+				let (mut node, pos) = self.start_parse("typed_declaration");
+				
+			alt! ((self, false, node, pos) {
+				once!(&mut node, self._type_hint(), false);
+optional!(&mut node, self.expect(r"mut"), false);
+once!(&mut node, self._identifier(), false);
+
+				group! ((self, false, node, pos) {
+					once!(&mut node, self._equal(), true);
+once!(&mut node, self._term(), false);
+					break;
+				});
+			
 			});
 				None
 			}
@@ -880,15 +898,7 @@ optional!(&mut node, self._property_suffix(), false);
 				
 			alt! ((self, true, node, pos) {
 				once!(&mut node, self.expect(r"."), false);
-use_negative_lookahead!(self, self.tokens().index(), self.expect(r"("));
 once!(&mut node, self._property(), false);
-			});
-
-			alt! ((self, true, node, pos) {
-				once!(&mut node, self.expect(r"."), false);
-once!(&mut node, self.expect(r"("), false);
-once!(&mut node, self._term(), false);
-once!(&mut node, self.expect(r")"), false);
 			});
 				None
 			}
@@ -1042,7 +1052,7 @@ once!(&mut node, self.expect_number(), false);
 				let (mut node, pos) = self.start_parse("self");
 				
 			alt! ((self, false, node, pos) {
-				once!(&mut node, self.expect(r"self"), false);
+				once!(&mut node, self.expect(r"me"), false);
 			});
 				None
 			}
@@ -1295,146 +1305,142 @@ once!(&mut node, self.expect(r"]"), false);
 				None
 			}
 			
-			pub fn _type_definition(&mut self) -> Option<(ParseNode, bool)> {
-				let (mut node, pos) = self.start_parse("type_definition");
+			pub fn _type_def(&mut self) -> Option<(ParseNode, bool)> {
+				let (mut node, pos) = self.start_parse("type_def");
 				
-			alt! ((self, true, node, pos) {
-				once!(&mut node, self._builtin_type_definition(), false);
-			});
-
-			alt! ((self, true, node, pos) {
-				once!(&mut node, self._struct_type_definition(), false);
-			});
-
-			alt! ((self, true, node, pos) {
-				once!(&mut node, self._sum_type_definition(), false);
-			});
-
-			alt! ((self, true, node, pos) {
-				once!(&mut node, self._alias_type_definition(), false);
-			});
-				None
-			}
-			
-			pub fn _type_kw(&mut self) -> Option<(ParseNode, bool)> {
-				let (mut node, pos) = self.start_parse("type_kw");
-				
-			alt! ((self, true, node, pos) {
+			alt! ((self, false, node, pos) {
 				use_negative_lookahead!(self, self.tokens().index(), self.expect(r"is"));
 once!(&mut node, self.expect(r"type"), false);
 use_negative_lookahead!(self, self.tokens().index(), self.expect(r"of"));
-			});
-				None
-			}
-			
-			pub fn _builtin_type_definition(&mut self) -> Option<(ParseNode, bool)> {
-				let (mut node, pos) = self.start_parse("builtin_type_definition");
-				
-			alt! ((self, false, node, pos) {
-				once!(&mut node, self._type_kw(), false);
-once!(&mut node, self.expect_word(), false);
-use_negative_lookahead!(self, self.tokens().index(), self.expect(r"="));
-			});
-				None
-			}
-			
-			pub fn _struct_type_definition(&mut self) -> Option<(ParseNode, bool)> {
-				let (mut node, pos) = self.start_parse("struct_type_definition");
-				
-			alt! ((self, false, node, pos) {
-				once!(&mut node, self._type_symbol(), false);
-once!(&mut node, self._equal(), true);
-once!(&mut node, self._bracket_list(&Self::_struct_member), false);
-			});
-				None
-			}
-			
-			pub fn _struct_member(&mut self) -> Option<(ParseNode, bool)> {
-				let (mut node, pos) = self.start_parse("struct_member");
-				
-			alt! ((self, false, node, pos) {
-				once!(&mut node, self._type_hint(), false);
-once!(&mut node, self._identifier(), false);
-			});
-				None
-			}
-			
-			pub fn _sum_type_definition(&mut self) -> Option<(ParseNode, bool)> {
-				let (mut node, pos) = self.start_parse("sum_type_definition");
-				
-			alt! ((self, false, node, pos) {
-				once!(&mut node, self._type_symbol(), false);
-once!(&mut node, self._equal(), true);
-once!(&mut node, self._bracket_list(&Self::_sum_member), false);
-			});
-				None
-			}
-			
-			pub fn _sum_member(&mut self) -> Option<(ParseNode, bool)> {
-				let (mut node, pos) = self.start_parse("sum_member");
-				
-			alt! ((self, false, node, pos) {
-				once!(&mut node, self._type_hint(), false);
-			});
-				None
-			}
-			
-			pub fn _alias_type_definition(&mut self) -> Option<(ParseNode, bool)> {
-				let (mut node, pos) = self.start_parse("alias_type_definition");
-				
-			alt! ((self, false, node, pos) {
-				once!(&mut node, self._type_symbol(), false);
-once!(&mut node, self._equal(), true);
 once!(&mut node, self._type_hint(), false);
+once!(&mut node, self._equal(), true);
+once!(&mut node, self._type_value(), false);
 			});
 				None
 			}
 			
-			pub fn _type_symbol(&mut self) -> Option<(ParseNode, bool)> {
-				let (mut node, pos) = self.start_parse("type_symbol");
-				
-			alt! ((self, true, node, pos) {
-				once!(&mut node, self._type_kw(), false);
-optional!(&mut node, self._generics(), false);
-once!(&mut node, self._identifier(), false);
-			});
-				None
-			}
-			
-			pub fn _generics(&mut self) -> Option<(ParseNode, bool)> {
-				let (mut node, pos) = self.start_parse("generics");
+			pub fn _type_value(&mut self) -> Option<(ParseNode, bool)> {
+				let (mut node, pos) = self.start_parse("type_value");
 				
 			alt! ((self, false, node, pos) {
-				once!(&mut node, self._bracket_list(&Self::_generic_argument), false);
-			});
-				None
-			}
-			
-			pub fn _generic_argument(&mut self) -> Option<(ParseNode, bool)> {
-				let (mut node, pos) = self.start_parse("generic_argument");
-				
-			alt! ((self, false, node, pos) {
-				once!(&mut node, self._identifier(), false);
-use_negative_lookahead!(self, self.tokens().index(), self.expect(r":"));
+				once!(&mut node, self._bracket_list(&Self::_type_field), false);
 			});
 
 			alt! ((self, false, node, pos) {
-				once!(&mut node, self._identifier(), false);
-once!(&mut node, self.expect(r":"), false);
+				once!(&mut node, self._type_hint(), false);
+			});
+				None
+			}
+			
+			pub fn _type_field(&mut self) -> Option<(ParseNode, bool)> {
+				let (mut node, pos) = self.start_parse("type_field");
+				
+			alt! ((self, false, node, pos) {
+				optional!(&mut node, self._identifier(), false);
 once!(&mut node, self._type_hint(), false);
 			});
 				None
 			}
 			
-			pub fn _typed_declaration(&mut self) -> Option<(ParseNode, bool)> {
-				let (mut node, pos) = self.start_parse("typed_declaration");
+			pub fn _trait_def(&mut self) -> Option<(ParseNode, bool)> {
+				let (mut node, pos) = self.start_parse("trait_def");
+				
+			alt! ((self, false, node, pos) {
+				once!(&mut node, self.expect(r"trait"), false);
+once!(&mut node, self._type_hint(), false);
+once!(&mut node, self._equal(), true);
+once!(&mut node, self._trait_value(), false);
+			});
+				None
+			}
+			
+			pub fn _trait_value(&mut self) -> Option<(ParseNode, bool)> {
+				let (mut node, pos) = self.start_parse("trait_value");
+				
+			alt! ((self, false, node, pos) {
+				once!(&mut node, self._bracket_list(&Self::_implement_function), false);
+			});
+
+			alt! ((self, false, node, pos) {
+				once!(&mut node, self._implement_function(), false);
+			});
+				None
+			}
+			
+			pub fn _implement_type(&mut self) -> Option<(ParseNode, bool)> {
+				let (mut node, pos) = self.start_parse("implement_type");
+				
+			alt! ((self, false, node, pos) {
+				once!(&mut node, self.expect(r"use"), false);
+once!(&mut node, self._type_hint(), false);
+once!(&mut node, self._equal(), true);
+once!(&mut node, self._bracket_list(&Self::_implement_function), false);
+			});
+				None
+			}
+			
+			pub fn _implement_trait(&mut self) -> Option<(ParseNode, bool)> {
+				let (mut node, pos) = self.start_parse("implement_trait");
+				
+			alt! ((self, false, node, pos) {
+				once!(&mut node, self.expect(r"use"), false);
+once!(&mut node, self._type_hint(), false);
+once!(&mut node, self.expect(r"with"), false);
+once!(&mut node, self._type_hint(), false);
+once!(&mut node, self._equal(), true);
+once!(&mut node, self._bracket_list(&Self::_implement_function), false);
+			});
+				None
+			}
+			
+			pub fn _implement_function(&mut self) -> Option<(ParseNode, bool)> {
+				let (mut node, pos) = self.start_parse("implement_function");
 				
 			alt! ((self, false, node, pos) {
 				once!(&mut node, self._type_hint(), false);
-optional!(&mut node, self.expect(r"mut"), false);
-once!(&mut node, self._identifier(), false);
-once!(&mut node, self._equal(), true);
-once!(&mut node, self._term(), false);
+once!(&mut node, self.expect(r":"), false);
+once!(&mut node, self.__function(), false);
+			});
+				None
+			}
+			
+			pub fn __function(&mut self) -> Option<(ParseNode, bool)> {
+				let (mut node, pos) = self.start_parse("_function");
+				
+			alt! ((self, false, node, pos) {
+				once!(&mut node, self.__parameters(), false);
+optional!(&mut node, self.__return_type(), false);
+optional!(&mut node, self._function_body(), false);
+			});
+				None
+			}
+			
+			pub fn __return_type(&mut self) -> Option<(ParseNode, bool)> {
+				let (mut node, pos) = self.start_parse("_return_type");
+				
+			alt! ((self, false, node, pos) {
+				once!(&mut node, self.expect(r"-"), false);
+once!(&mut node, self.expect(r">"), false);
+once!(&mut node, self._type_hint(), false);
+			});
+				None
+			}
+			
+			pub fn __parameters(&mut self) -> Option<(ParseNode, bool)> {
+				let (mut node, pos) = self.start_parse("_parameters");
+				
+			alt! ((self, false, node, pos) {
+				once!(&mut node, self._list(&Self::__parameter), false);
+			});
+				None
+			}
+			
+			pub fn __parameter(&mut self) -> Option<(ParseNode, bool)> {
+				let (mut node, pos) = self.start_parse("_parameter");
+				
+			alt! ((self, false, node, pos) {
+				once!(&mut node, self._identifier(), false);
+optional!(&mut node, self._type_hint(), false);
 			});
 				None
 			}
@@ -1445,94 +1451,6 @@ once!(&mut node, self._term(), false);
 			alt! ((self, false, node, pos) {
 				once!(&mut node, self._identifier(), false);
 optional!(&mut node, self._bracket_list(&Self::_type_hint), false);
-			});
-				None
-			}
-			
-			pub fn _struct_type_hint(&mut self) -> Option<(ParseNode, bool)> {
-				let (mut node, pos) = self.start_parse("struct_type_hint");
-				
-			alt! ((self, false, node, pos) {
-				once!(&mut node, self._identifier(), false);
-once!(&mut node, self._bracket_list(&Self::_struct_member_type_hint), false);
-			});
-				None
-			}
-			
-			pub fn _struct_member_type_hint(&mut self) -> Option<(ParseNode, bool)> {
-				let (mut node, pos) = self.start_parse("struct_member_type_hint");
-				
-			alt! ((self, false, node, pos) {
-				once!(&mut node, self._type_hint(), false);
-once!(&mut node, self._identifier(), false);
-			});
-				None
-			}
-			
-			pub fn _implement_type(&mut self) -> Option<(ParseNode, bool)> {
-				let (mut node, pos) = self.start_parse("implement_type");
-				
-			alt! ((self, false, node, pos) {
-				once!(&mut node, self.expect(r"use"), false);
-optional!(&mut node, self._generics(), false);
-once!(&mut node, self._type_hint(), false);
-once!(&mut node, self._brace(&Self::_declarations), false);
-			});
-				None
-			}
-			
-			pub fn _implement_trait(&mut self) -> Option<(ParseNode, bool)> {
-				let (mut node, pos) = self.start_parse("implement_trait");
-				
-			alt! ((self, false, node, pos) {
-				once!(&mut node, self.expect(r"use"), false);
-optional!(&mut node, self._generics(), false);
-once!(&mut node, self._identifier(), false);
-optional!(&mut node, self._generics(), false);
-once!(&mut node, self.expect(r"with"), false);
-once!(&mut node, self._type_hint(), false);
-optional!(&mut node, self._implement_trait_body(), false);
-			});
-				None
-			}
-			
-			pub fn _implement_trait_body(&mut self) -> Option<(ParseNode, bool)> {
-				let (mut node, pos) = self.start_parse("implement_trait_body");
-				
-			alt! ((self, true, node, pos) {
-				once!(&mut node, self._brace(&Self::_declarations), false);
-			});
-				None
-			}
-			
-			pub fn _trait_definition(&mut self) -> Option<(ParseNode, bool)> {
-				let (mut node, pos) = self.start_parse("trait_definition");
-				
-			alt! ((self, false, node, pos) {
-				once!(&mut node, self.expect(r"trait"), false);
-optional!(&mut node, self._generics(), false);
-once!(&mut node, self._identifier(), false);
-once!(&mut node, self._equal(), true);
-once!(&mut node, self._bracket_list(&Self::_typed_declaration), false);
-			});
-				None
-			}
-			
-			pub fn _equal(&mut self) -> Option<(ParseNode, bool)> {
-				let (mut node, pos) = self.start_parse("equal");
-				
-			alt! ((self, true, node, pos) {
-				once!(&mut node, self.expect(r"="), false);
-use_negative_lookahead!(self, self.tokens().index(), self.expect(r">"));
-			});
-				None
-			}
-			
-			pub fn _declarations(&mut self) -> Option<(ParseNode, bool)> {
-				let (mut node, pos) = self.start_parse("declarations");
-				
-			alt! ((self, true, node, pos) {
-				repeat!(&mut node, self._typed_declaration(), false);
 			});
 				None
 			}
@@ -1668,6 +1586,16 @@ once!(&mut node, self.expect_any(), false);
 				None
 			}
 			
+			pub fn _equal(&mut self) -> Option<(ParseNode, bool)> {
+				let (mut node, pos) = self.start_parse("equal");
+				
+			alt! ((self, true, node, pos) {
+				once!(&mut node, self.expect(r"="), false);
+use_negative_lookahead!(self, self.tokens().index(), self.expect(r">"));
+			});
+				None
+			}
+			
 			pub fn _identifier(&mut self) -> Option<(ParseNode, bool)> {
 				let (mut node, pos) = self.start_parse("identifier");
 				
@@ -1754,7 +1682,7 @@ once!(&mut node, self.expect_word(), false);
 			});
 
 			alt! ((self, true, node, pos) {
-				once!(&mut node, self.expect(r"self"), false);
+				once!(&mut node, self.expect(r"me"), false);
 			});
 
 			alt! ((self, true, node, pos) {
@@ -1791,10 +1719,6 @@ once!(&mut node, self.expect_word(), false);
 
 			alt! ((self, true, node, pos) {
 				once!(&mut node, self.expect(r"istype"), false);
-			});
-
-			alt! ((self, true, node, pos) {
-				once!(&mut node, self.expect(r"self"), false);
 			});
 
 			alt! ((self, true, node, pos) {

@@ -44,8 +44,8 @@ impl Env {
 	pub fn fmt_current(&self) -> String {
 		fmt_option!(&self.closures[self.current_closure].0, |x| format!("({x})"))
 	}
-	pub fn add_source(&mut self, source: &mut ParseNode) -> usize {
-		self.source_data.push(source.to_owned());
+	pub fn add_source(&mut self, source: ParseNode) -> usize {
+		self.source_data.push(source);
 		self.source_data.len() - 1
 	}
 	pub fn use_closure(&mut self, closure: usize) {

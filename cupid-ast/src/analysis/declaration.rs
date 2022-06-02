@@ -1,5 +1,7 @@
 use crate::*;
 
+impl PreAnalyze for Declaration {}
+
 impl Analyze for Declaration {
 	fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
 		self.type_hint.analyze_scope(scope)?;

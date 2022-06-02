@@ -1,18 +1,20 @@
 use crate::*;
 
+pub type Field = (Option<Str>, Typed<Ident>);
+
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Tabled)]
 pub struct FieldSet(
 	#[tabled(display_with="fmt_field_set")]
-	pub Vec<(Option<Str>, Typed<Ident>)>
+	pub Vec<Field>
 );
 
-fn fmt_field_set(field_set: &[(Option<Str>, Typed<Ident>)]) -> String {
+fn fmt_field_set(field_set: &[Field]) -> String {
 	let fields = field_set.iter().map(|(s, i)| quick_fmt!(fmt_option!(s), i)).collect::<Vec<String>>();
 	fmt_list!(fields, ", ")
 }
 
 impl std::ops::Deref for FieldSet {
-	type Target = Vec<(Option<Str>, Typed<Ident>)>;
+	type Target = Vec<Field>;
 	fn deref(&self) -> &Self::Target {
 		&self.0
 	}

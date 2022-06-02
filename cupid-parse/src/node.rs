@@ -7,78 +7,61 @@ pub struct ParseNode {
 	pub tokens: Vec<Token>,
 }
 
+pub enum Index<'i> {
+	Int(usize),
+	Str(&'i str)
+}
+
+impl From<usize> for Index<'_> {
+	fn from(i: usize) -> Self {
+		Self::Int(i)
+	}
+}
+
+impl<'i> From<&'i str> for Index<'i> {
+	fn from(s: &'i str) -> Self {
+		Self::Str(s)
+	}
+}
+
+use Index::*;
+
 impl ParseNode {
 	pub fn source(&self) -> Cow<'static, str> {
 		self.tokens[0].source.to_owned()
 	}
-	pub fn token(&self) -> Token {
-		self.tokens[0].to_owned()
-	}
-	pub fn take_token(&self, index: usize) -> Token {
+	pub fn token(&self, index: usize) -> Token {
 		self.tokens[index].to_owned()
-	}
-	pub fn get_map<R, E>(&mut self, name: &str, function: impl FnOnce(&mut Self) -> Result<R, E> ) -> Result<R, E> {
-		function(self.get_mut(name).unwrap())
-	}
-	pub fn option_map<R, E>(&mut self, name: &str, function: impl FnOnce(&mut Self) -> Result<R, E> ) -> Result<Option<R>, E> {
-		if let Some(node) = self.get_mut(name) {
-			Ok(Some(function(node)?))
-		} else {
-			Ok(None)
-		}
-	}
-	pub fn map<R, E>(&mut self, function: impl FnMut(&mut Self) -> Result<R, E>) -> Result<Vec<R>, E> {
-		self.children.iter_mut().map(function).collect()
-	}
-	pub fn filter_map<R, E>(&mut self, function: impl FnMut(&mut Self) -> Option<Result<R, E>>) -> Result<Vec<R>, E> {
-		self.children.iter_mut().filter_map(function).collect()
-	}
-	pub fn filter_map_noresult<R>(&mut self, function: &dyn Fn(&mut Self) -> Option<R>) -> Vec<R> {
-		self.children.iter_mut().filter_map(function).collect()
-	}
-	pub fn map_named<R, E>(&mut self, name: &str, mut function: impl FnMut(&mut Self) -> Result<R, E>) -> Result<Vec<R>, E> {
-		self.children
-			.iter_mut()
-			.filter_map(|c| if &*c.name == name { 
-				Some(function(c)) 
-			} else { 
-				None 
-			})
-			.collect()
-	}
-	pub fn has(&self, name: &str) -> bool {
-		self.children.iter().any(|c| c.name == name)
 	}
 	pub fn has_token(&self, name: &str) -> bool {
 		self.tokens.iter().any(|c| c.source == name)
 	}
-	pub fn get(&mut self, name: &str) -> &mut Self {
-		self.children.iter_mut().find(|c| c.name == name).unwrap()
+	pub fn has<'i, I: Into<Index<'i>>>(&mut self, name: I) -> bool {
+		self.get_option(name).is_some()
 	}
-	pub fn get_mut(&mut self, name: &str) -> Option<&mut Self> {
-		self.children.iter_mut().find(|c| c.name == name)
+	pub fn get<'i, I: Into<Index<'i>>>(&mut self, index: I) -> &mut Self {
+		self.get_option(index).unwrap()
 	}
-	pub fn get_all(&mut self, name: &str) -> Vec<&mut Self> {
-		self.children.iter_mut().filter(|c| c.name == name).collect()
+	pub fn get_option<'i, I: Into<Index<'i>>>(&mut self, name: I) -> Option<&mut Self> {
+		match name.into() {
+			Int(i) => self.children.get_mut(i),
+			Str(name) => self.children.iter_mut().find(|c| c.name == name)
+		}
 	}
-	pub fn child(&mut self, index: usize) -> &mut Self {
-		&mut self.children[index]
+	pub fn get_map<'a, I: Into<Index<'a>>, R, E>(&mut self, name: I, function: impl FnOnce(&mut Self) -> Result<R, E> ) -> Result<R, E> {
+		function(self.get_option(name).unwrap())
 	}
-	pub fn some_child(&mut self, index: usize) -> Option<&mut Self> {
-		self.children.get_mut(index)
+	pub fn get_option_map<'i, I: Into<Index<'i>>, R, E>(&mut self, name: I, function: impl FnOnce(&mut Self) -> Result<R, E> ) -> Result<Option<R>, E> {
+		self.get_option(name).map(function).invert()
 	}
-	pub fn child_is(&mut self, index: usize, name: &str) -> bool {
-		&*(self.children[index].name) == name
+	pub fn get_all_named(&mut self, name: &str) -> Vec<&mut Self> {
+		self.children.iter_mut().filter(|c| &*c.name == name).collect()
 	}
-	pub fn get_children(&mut self, name: &str) -> Vec<&mut Self> {
-		self.get(name).children.iter_mut().collect()
+	pub fn map_named<R, E>(&mut self, name: &str, function: impl FnMut(&mut Self) -> Result<R, E>) -> Result<Vec<R>, E> {
+		self.get_all_named(name).into_iter().map(function).collect()
 	}
-	pub fn collect_tokens(&mut self) -> Vec<Token> {
-		self.children.iter_mut().flat_map(|c| {
-			let mut tokens = c.tokens.to_owned();
-			tokens.append(&mut c.collect_tokens());
-			tokens
-		}).collect()
+	pub fn map_children_of<'i, I: Into<Index<'i>>, R, E>(&mut self, name: I, function: impl FnMut(&mut Self) -> Result<R, E>) -> Result<Vec<R>, E> {
+		self.get(name).children.iter_mut().map(function).collect()
 	}
 }
 

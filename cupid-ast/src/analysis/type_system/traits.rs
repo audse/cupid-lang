@@ -1,5 +1,7 @@
 use crate::*;
 
+impl PreAnalyze for Trait {}
+
 impl Analyze for Trait {
 	fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
 		let closure = scope.add_isolated_closure(Some(self.name.to_owned()), Context::Trait);

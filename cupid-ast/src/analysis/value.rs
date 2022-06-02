@@ -1,5 +1,7 @@
 use crate::*;
 
+impl PreAnalyze for Value {}
+
 impl Analyze for Value {
 	fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
 		match self.val.inner_mut() {

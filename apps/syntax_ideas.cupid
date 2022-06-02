@@ -1,0 +1,43 @@
+let sq fun = a int .. int => a ^ 2
+
+type int = []
+type dec = []
+type string = []
+
+type name = [
+	first string,
+	last string
+]
+
+let jacob name = [ first: 'Jacob', last: 'Aldred' ]
+jacob.first
+
+let name[first/x, last/y] = jacob
+log (x) # 'jacob'
+
+type maybe [t] = [
+	yes t,
+	no
+]
+
+use maybe [t] = [
+
+	yes: me .. t => match me [
+		maybe/yes/val: val,
+		maybe/no: # do something
+	],
+
+	yes_or: me, default t .. t => match me [
+		./yes/val: val,
+		./no: default
+	],
+
+]
+
+trait add [t] = [
+	add: me, t other -> t
+]
+
+use add with int = [
+	add: me, int other -> int => me + other
+]

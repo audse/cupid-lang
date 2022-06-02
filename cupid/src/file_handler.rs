@@ -23,20 +23,6 @@ impl FileHandlerBuilder {
 		self.contents = std::fs::read_to_string(path).unwrap_or_else(|_| panic!("Unable to find file: {path}"));
 		self
 	}
-	pub fn add_globals(mut self) -> Self {
-		if let Err((_, code)) = add_globals (
-			&mut self.scope, 
-			global_vec![BOOLEAN, DECIMAL, INTEGER, CHARACTER, STRING, FUNCTION, ARRAY, TUPLE, MAYBE, NOTHING], 
-			global_vec![ADD, SUBTRACT, EQUAL, NOT_EQUAL, GET]
-		) {
-			if self.debug {
-				eprintln!("{}", self.scope);
-				eprintln!("{}", fmt_list!(self.scope.traceback.split_at(self.scope.traceback.len() - 10).1, "\n"));
-			}
-			panic!("{}", code)
-		}
-		self
-	}
 }
 
 impl FileHandler {
@@ -47,6 +33,7 @@ impl FileHandler {
 		if let Err((src, code)) = self.parse_analyze() {
 			if self.debug {
 				eprintln!("{}", fmt_list!(self.scope.traceback, "\n"));
+				// eprintln!("{}", self.scope);
 			}
 			panic!("{}", err_from_code(src, code, &mut self.scope))
 		}
@@ -64,17 +51,24 @@ impl FileHandler {
 			}
 		}
 
-		for exp in ast.iter_mut() {
-			exp.analyze_scope(&mut self.scope)?;
+		macro_rules! do_passes {
+			($($method:ident),*) => {
+				$(
+					for exp in ast.iter_mut() {
+						exp.$method(&mut self.scope)?;
+					}
+				)*
+			};
 		}
-		for exp in ast.iter_mut() {
-			exp.analyze_names(&mut self.scope)?;
-		}
-		for exp in ast.iter_mut() {
-			exp.analyze_types(&mut self.scope)?;
-		}
-		for exp in ast.iter_mut() {
-			exp.check_types(&mut self.scope)?;
+
+		do_passes! {
+			pre_analyze_scope,
+			pre_analyze_names,
+			pre_analyze_types,
+			analyze_scope,
+			analyze_names,
+			analyze_types,
+			check_types
 		}
 
 		if self.debug {

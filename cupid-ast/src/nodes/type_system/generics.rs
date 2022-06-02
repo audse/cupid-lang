@@ -18,6 +18,7 @@ impl GenericList {
 								.name(generic.to_owned().into_inner())
 								.build()
 						)))
+						.attributes(generic.attributes.to_owned())
 						.build()),
 					type_hint: TYPE.to_ident(), 
 					mutable: false 
