@@ -19,6 +19,9 @@ pub use function::*;
 mod ident;
 pub use ident::*;
 
+mod implement;
+pub use implement::*;
+
 mod property;
 pub use property::*;
 

@@ -1,6 +1,20 @@
 type int = []
 type dec = []
 type string = []
-type array [t] = [t] 
+type array [t] = [t]
+type fun = []
+type map [k, v] = [k, v]
 
-int x = 10
+trait add [t] = [
+	add [t]: left t, right t -> t
+]
+
+use int = [
+	sq: left int -> int,
+	pow: left int, right int -> int,
+	sq_pow: left int -> int => left.sq().pow(10)
+]
+
+use add with int = []
+
+int.sq()

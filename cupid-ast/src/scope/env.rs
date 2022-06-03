@@ -41,6 +41,9 @@ impl Default for Env {
 }
 
 impl Env {
+	pub fn trace<S: Into<String>>(&mut self, message: S) {
+		self.traceback.push(message.into());
+	}
 	pub fn fmt_current(&self) -> String {
 		fmt_option!(&self.closures[self.current_closure].0, |x| format!("({x})"))
 	}
@@ -66,14 +69,15 @@ impl Env {
 		self.closures.len() - 1
 	}
 	pub fn add_isolated_closure(&mut self, ident: Option<Ident>, context: Context) -> usize {
-		self.closures.push((ident, Closure::new(context)));
+		// always has access to top-level scope
+		self.closures.push((ident, Closure::new_child(0, context)));
 		self.closures.len() - 1
 	}
 	pub fn has_symbol(&mut self, symbol: &Ident) -> Result<(), ASTErr> {
 		if self.get_symbol(symbol).is_ok() {
 			Ok(())
 		} else {
-			self.traceback.push(format!("Could not find {symbol} in the current scope: {} {}", self.current_closure, self.fmt_current()));
+			self.trace(format!("Could not find {symbol} in the current scope: {} {}", self.current_closure, self.fmt_current()));
 			Err((symbol.src(), ERR_NOT_FOUND))
 		}
 	}
@@ -93,11 +97,12 @@ impl Env {
 		if let Some(parent_index) = parent {
 			self.get_symbol_from(symbol, parent_index)
 		} else {
-			self.traceback.push(format!("Could not find {symbol} in the current scope: {} {}", self.current_closure, self.fmt_current()));
+			self.trace(format!("Could not find {symbol} in the current scope: {} {}", self.current_closure, self.fmt_current()));
 			Err((symbol.src(), ERR_NOT_FOUND))
 		}
 	}
 	pub fn update_closure(&mut self, symbol: &Ident, closure: usize) -> Result<(), ASTErr> {
+		// TODO why does this infinite loop?
 		// self.modify_symbol(symbol, |val| {
 		// 	val.attributes_mut().closure = closure;
 		// 	Ok(())

@@ -11,10 +11,12 @@ use_utils! {
 				"function_call" =>  create_binary_op_or_ast!(FunctionCall, node, scope, Box::new(FunctionCall::create_ast(node, scope)?)),
 				"function" => create_ast!(Function, node, scope),
 				"identifier" => create_ast!(Ident, node, scope),
+				"implement_type" | "implement_trait" => create_ast!(Implement, node, scope),
 				"property" => create_binary_op_or_ast!(Property, node, scope, Box::new(Property::create_ast(node, scope)?)),
 				"typed_declaration" => create_ast!(Declaration, node, scope),
 				"logic_op" | "compare_op" | "add" | "multiply" | "exponent" | "type_cast" | "group" => Exp::create_ast(node.get(0), scope),
-				"type_def" => create_ast!(TypeDefinition, node, scope),
+				"type_def" => create_ast!(TypeDef, node, scope),
+				"trait_def" => create_ast!(TraitDef, node, scope),
 				_ => panic!("unrecognized: {node:?}")
 			}
 		}
@@ -70,10 +72,15 @@ use_utils! {
 			Ok(FunctionCall::build()
 				.attributes(attributes(node, scope)?)
 				.args(node
-					.map_children_of::<&str, Typed<Exp>, ErrCode>(
+					.get_option_map(
 						"arguments", 
-						|a| Ok(Untyped(Exp::create_ast(a, scope)?))
-					)?)
+						|c| c.children
+							.iter_mut()
+							.map(|arg| Ok(Untyped(Exp::create_ast(arg, scope)?)))
+							.collect::<Result<Vec<Typed<Exp>>, ErrCode>>()
+					)?
+					.unwrap_or_default()
+				)
 				.function(Untyped((Ident::create_ast(node.get(0), scope)?, None)))
 				.build())
 		}
@@ -83,14 +90,21 @@ use_utils! {
 use_utils! {
 	impl CreateAST for Function {
 		fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
-			Ok(FunctionBuilder::new()
+			let body = node
+				.get_option("function_body")
+				.map(|n| Block::create_ast(n.get(0), scope))
+				.invert()?
+				.unwrap_or_default();
+			Ok(Function::build()
 				.attributes(attributes(node, scope)?)
 				.params(node
-					.map_children_of(
-						"parameters", 
+					.get("parameters")
+					.map_named(
+						"parameter",
 						|param| Declaration::create_ast(param, scope)
 					)?)
-				.body(Untyped(Block::create_ast(node.get(1), scope)?))
+				.return_type(Untyped(Ident::create_ast(node.get("type_hint"), scope)?))
+				.body(Untyped(body))
 				.build())
 		}
 	}
@@ -119,7 +133,7 @@ use_utils! {
 				),
 				"identifier" => PropertyTerm::FunctionCall(
 					FunctionCall::build()
-						.function(Untyped((GET.to_ident(), None)))
+						.function(Untyped((Ident::new_name("get!"), None)))
 						.args(vec![Untyped(Exp::create_ast(node, scope)?)])
 						.build()
 						.boxed()
@@ -133,7 +147,7 @@ use_utils! {
 }
 
 use_utils! {
-	impl CreateAST for TypeDefinition {
+	impl CreateAST for TypeDef {
 		fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
 			let ident = Ident::create_ast(node.get(0), scope)?;
 			let fields_node = node.get("type_value");
@@ -145,7 +159,7 @@ use_utils! {
 			} else {
 				BaseType::Struct
 			};
-			Ok(TypeDefinition::build()
+			Ok(TypeDef::build()
 				.name(ident)
 				.fields(fields)
 				.base_type(base_type)
@@ -171,6 +185,61 @@ use_utils! {
 				fields.push(alias_type_hint);
 			}
 			Ok(FieldSet(fields))
+		}
+	}
+}
+
+use_utils! {
+	impl CreateAST for Implement {
+		fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
+			let mut types = node.get_all_named("type_hint");
+			let (for_type, for_trait) = if types.len() > 1 {
+				(Ident::create_ast(types[1], scope)?, Some(Ident::create_ast(types[0], scope)?))
+			} else {
+				(Ident::create_ast(types[0], scope)?, None)
+			};
+			let methods = node.map_children_of("methods", |method| Method::create_ast(method, scope))?;
+			Ok(Implement::build()
+				.for_type(for_type)
+				.for_trait(for_trait)
+				.methods(methods)
+				.attributes(attributes(node, scope)?)
+				.build())
+		}
+	}
+}
+
+use_utils! {
+	impl CreateAST for Method {
+		fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
+			Ok(Method::build()
+				.name(Ident::create_ast(node.get("type_hint"), scope)?)
+				.value(Function::create_ast(node.get("method_function"), scope)?)
+				.build())
+		}
+	}
+}
+
+use_utils! {
+	impl CreateAST for TraitDef {
+		fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
+			let ident = Ident::create_ast(node.get(0), scope)?;
+			let trait_value = node.get("trait_value");
+			let methods: Vec<Method> = if let Some(methods) = trait_value.get_option("methods") {
+				methods.map_named("method", |method| Method::create_ast(method, scope))?
+			} else {
+				// single method with same ident as trait
+				// e.g. `trait add [t] = left t, right t => left + right`
+				// desugars to `trait add [t] = [ add [t]: ... ]`
+				vec![Method::build()
+					.name(ident.to_owned())
+					.value(Function::create_ast(trait_value.get("method_function"), scope)?)
+					.build()]
+			};
+			Ok(TraitDef::build()
+				.name(ident)
+				.methods(methods)
+				.build())
 		}
 	}
 }

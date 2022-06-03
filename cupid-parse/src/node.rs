@@ -39,8 +39,8 @@ impl ParseNode {
 	pub fn has<'i, I: Into<Index<'i>>>(&mut self, name: I) -> bool {
 		self.get_option(name).is_some()
 	}
-	pub fn get<'i, I: Into<Index<'i>>>(&mut self, index: I) -> &mut Self {
-		self.get_option(index).unwrap()
+	pub fn get<'i, I: Into<Index<'i>> + std::fmt::Debug + Copy>(&mut self, index: I) -> &mut Self {
+		self.get_option(index).unwrap_or_else(|| panic!("cannot find {index:?}"))
 	}
 	pub fn get_option<'i, I: Into<Index<'i>>>(&mut self, name: I) -> Option<&mut Self> {
 		match name.into() {
@@ -48,8 +48,8 @@ impl ParseNode {
 			Str(name) => self.children.iter_mut().find(|c| c.name == name)
 		}
 	}
-	pub fn get_map<'a, I: Into<Index<'a>>, R, E>(&mut self, name: I, function: impl FnOnce(&mut Self) -> Result<R, E> ) -> Result<R, E> {
-		function(self.get_option(name).unwrap())
+	pub fn get_map<'a, I: Into<Index<'a>> + std::fmt::Debug + Copy, R, E>(&mut self, name: I, function: impl FnOnce(&mut Self) -> Result<R, E> ) -> Result<R, E> {
+		function(self.get_option(name).unwrap_or_else(|| panic!("cannot find {name:?}")))
 	}
 	pub fn get_option_map<'i, I: Into<Index<'i>>, R, E>(&mut self, name: I, function: impl FnOnce(&mut Self) -> Result<R, E> ) -> Result<Option<R>, E> {
 		self.get_option(name).map(function).invert()
@@ -60,7 +60,7 @@ impl ParseNode {
 	pub fn map_named<R, E>(&mut self, name: &str, function: impl FnMut(&mut Self) -> Result<R, E>) -> Result<Vec<R>, E> {
 		self.get_all_named(name).into_iter().map(function).collect()
 	}
-	pub fn map_children_of<'i, I: Into<Index<'i>>, R, E>(&mut self, name: I, function: impl FnMut(&mut Self) -> Result<R, E>) -> Result<Vec<R>, E> {
+	pub fn map_children_of<'i, I: Into<Index<'i>> + std::fmt::Debug + Copy, R, E>(&mut self, name: I, function: impl FnMut(&mut Self) -> Result<R, E>) -> Result<Vec<R>, E> {
 		self.get(name).children.iter_mut().map(function).collect()
 	}
 }

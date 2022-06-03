@@ -52,11 +52,7 @@ impl Analyze for Type {
 		}
 
 		for method in self.methods.iter_mut() {
-			scope.modify_symbol(&method.name, |val| {
-				let val_type = val.as_function_mut()?.get_type_mut();
-				val_type.unify_with(&self_ident.attributes().generics)?;
-				Ok(())
-			})?;
+			// scope.modify_symbol(&method.name, &mut unify_method)?;
 			method.analyze_types(scope)?;
 		}
 

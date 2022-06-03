@@ -60,7 +60,7 @@
 	| bracket_array
 	| group
 	| unary_op
-	| self_identifier
+	| identifier
 	| boolean
 	| none
 	| regex
@@ -69,14 +69,9 @@
 	| decimal
 	| number
 
-- pointer: '&' 'mut'? self_identifier
+- pointer: '&' 'mut'? identifier
 - empty: ~'_'
 - group: ~'(' term? closing_paren
-- function: parameters function_body
--~function_body: arrow ~empty | arrow group | block
-- parameters: '_' | self_param? list[annotated_parameter]
--~self_param: 'mut'? self ','?
-- annotated_parameter: type_hint identifier
 
 - log: log_keyword paren[arguments]
 - builtin_function_call: =!'.' builtin_function paren[arguments]
@@ -99,7 +94,7 @@
 - range_inclusive_exclusive: '[' range_term ~'.' ~'.' ']' range_term
 - range_exclusive_inclusive: range_term '[' ~'.' ~'.' range_term ']'
 - range_exclusive_exclusive: range_term '[' ~'.' ~'.' ']' range_term
--~range_term: group | unary_op | number | self_identifier
+-~range_term: group | unary_op | number | identifier
 
 # operations can be kinda slow, going through all that, so this is a shortcut
 -~no_op: !'-' !'not' atom !',' !'.' !'(' !operator !keyword_operator
@@ -145,10 +140,6 @@
 - decimal: NUMBER ~'.' NUMBER
 - number: NUMBER
 
--~self_identifier: self | identifier
-
-- self: 'me'
-
 -~keyword_operator:
 	'in'
 	| 'is' !'not' !'type'
@@ -164,7 +155,7 @@
 	| '<'
 	| '<' '='
 
-- arrow: '=' '>'
+-~arrow: '=' '>'
 	
 -~comment_delimiter: '*' '*' '*'
 -~comment_content: ANY !comment_delimiter

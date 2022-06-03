@@ -9,6 +9,7 @@ impl Analyze for Declaration {
 		Ok(())
 	}
 	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+		scope.trace(quick_fmt!("Declaring variable `", self.name, "` [", self.type_hint, "]"));
 		scope.no_symbol(&self.name)?;
 		
 		let value = SymbolValue {
@@ -21,6 +22,7 @@ impl Analyze for Declaration {
 		self.value.analyze_names(scope)
 	}
 	fn analyze_types(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+		self.type_hint.analyze_types(scope)?;
 		self.value.analyze_types(scope)?;
 
 		self.type_hint.to_typed(self.type_hint.type_of(scope)?);
@@ -36,7 +38,7 @@ impl Analyze for Declaration {
 			self.value.get_node_type()?
 		);
 		if expected != found {
-			scope.traceback.push(format!("Expected type\n{expected}, found type\n{found}"));
+			scope.trace(format!("Expected type\n{expected}, found type\n{found}"));
 			return Err((self.attributes.source.unwrap(), ERR_TYPE_MISMATCH));
 		}
 		Ok(())

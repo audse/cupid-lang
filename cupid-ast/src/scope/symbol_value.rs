@@ -27,7 +27,7 @@ impl SymbolValue {
 		}
 		Err((value.attributes.source.unwrap(), 417))
 	}
-	pub fn as_function(&self) -> Result<Typed<Function>, ASTErr> {
+	pub fn as_function(&self) -> Result<Function, ASTErr> {
 		let value = self.value.as_ref().unwrap();
 		if let Val::Function(function) = &*value.val {
 			return Ok(*function.to_owned());
@@ -48,7 +48,7 @@ impl SymbolValue {
 		}
 		Err((value.attributes.source.unwrap(), 418))
 	}
-	pub fn as_function_mut(&mut self) -> Result<&mut Typed<Function>, ASTErr> {
+	pub fn as_function_mut(&mut self) -> Result<&mut Function, ASTErr> {
 		let value = self.value.as_mut().unwrap();
 		if let Val::Function(function_val) = &mut *value.val {
 			return Ok(function_val);

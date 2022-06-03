@@ -18,12 +18,14 @@ impl Analyze for Ident {
 		scope.use_closure(self.attributes.closure);
 
 		for generic in self.attributes.generics.iter_mut() {
+			scope.trace(format!("Finding type of generic `{generic}`"));
 			if let Ok(type_val) = scope.get_type(generic) {
 				generic.to_typed(type_val);
 			}
 		}
 
 		scope.reset_closure();
+
 		Ok(())
 	}
 }

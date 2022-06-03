@@ -9,23 +9,21 @@ pub trait UseScope {
 
 impl UseScope for Env {
 	fn get_symbol(&mut self, symbol: &Ident) -> Result<SymbolValue, ASTErr> {
-		self.traceback.push(format!("Getting symbol: {symbol}"));
+		self.trace(format!("Getting symbol `{symbol}`"));
 		if let Ok(value) = self.get_symbol_from(symbol, self.current_closure) {
 			return Ok(value);
 		}
 		self.global.get_symbol(symbol)
 	}
 	fn get_type(&mut self, symbol: &Ident) -> Result<Type, ASTErr> {
-		self.traceback.push(format!("Getting type symbol: {symbol}"));
-		if let Some(closure) = self.closures.get_mut(self.current_closure) {
-			if let Ok(value) = closure.1.get_type(symbol) {
-				return Ok(value)
-			}
+		self.trace(format!("Getting type symbol `{symbol}`"));
+		if let Ok(value) = self.get_symbol_from(symbol, self.current_closure) {
+			return value.as_type();
 		}
 		self.global.get_type(symbol)
 	}
 	fn set_symbol(&mut self, symbol: &Ident, value: SymbolValue) {
-		self.traceback.push(format!("Setting symbol: {symbol} to value: {value}"));
+		self.trace(format!("Setting symbol `{symbol}` to value: \n{value}"));
 		if let Some(closure) = self.closures.get_mut(self.current_closure) {
 			closure.1.set_symbol(symbol, value);
 		} else {
@@ -33,7 +31,7 @@ impl UseScope for Env {
 		}
 	}
 	fn modify_symbol(&mut self, symbol: &Ident, function: impl FnMut(&mut SymbolValue) -> Result<(), ASTErr>) -> Result<(), ASTErr> {
-		self.traceback.push(format!("Modifying symbol: {symbol}"));
+		self.trace(format!("Modifying symbol `{symbol}`"));
 		if let Some(closure) = self.closures.get_mut(self.current_closure) {
 			closure.1.modify_symbol(symbol, function)
 		} else {

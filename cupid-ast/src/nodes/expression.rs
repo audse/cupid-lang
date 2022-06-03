@@ -8,8 +8,10 @@ pub enum Exp {
 	Function(Function),
 	FunctionCall(Box<FunctionCall>),
 	Ident(Ident),
+	Implement(Implement),
 	Property(Box<Property>),
-	TypeDefinition(TypeDefinition),
+	TraitDef(TraitDef),
+	TypeDef(TypeDef),
 	Value(Value),
 }
 
@@ -28,8 +30,10 @@ macro_rules! for_each_exp {
 			Self::Function(function) => function.$method($($arg)?),
 			Self::FunctionCall(function_call) => function_call.$method($($arg)?),
 			Self::Ident(ident) => ident.$method($($arg)?),
+			Self::Implement(implement) => implement.$method($($arg)?),
 			Self::Property(property) => property.$method($($arg)?),
-			Self::TypeDefinition(property) => property.$method($($arg)?),
+			Self::TraitDef(trait_def) => trait_def.$method($($arg)?),
+			Self::TypeDef(type_def) => type_def.$method($($arg)?),
 			Self::Value(value) => value.$method($($arg)?),
 			_ => panic!("unexpected expression: {:?}", $s)
 		}

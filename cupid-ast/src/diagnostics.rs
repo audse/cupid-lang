@@ -14,6 +14,7 @@ pub use error_context::*;
 
 pub fn err_from_code(src: Source, code: ErrCode, scope: &mut Env) -> String {
 	// println!("{scope}");
+	
 	println!("{} \n{}", scope.fmt_current(), scope.closures[scope.current_closure].1.as_table());
 	let source_node = &scope.source_data[src];
 	(match code {

@@ -38,7 +38,6 @@
 	| 'use'
 	| 'with'
 	| 'trait'
-	| 'me'
 	| 'let'
 	| 'const'
 	| 'in'

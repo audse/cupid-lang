@@ -21,8 +21,8 @@ impl Analyze for FunctionCall {
 		generics.push(Untyped(Ident::new_name("t")));
 		self.function.0.attributes.generics = GenericList(generics);
 
-		self.function.1 = Some((*scope.get_symbol(&self.function.0)?.as_function()?).to_owned());
-		self.function.1.map_mut(|f| f.analyze_names(scope)).invert()?;
+		self.function.1 = Some(scope.get_symbol(&self.function.0)?.as_function()?);
+		// self.function.1.map_mut(|f| f.analyze_names(scope)).invert()?;
 		
     	for arg in self.args.iter_mut() {
 			arg.analyze_names(scope)?;
@@ -59,6 +59,6 @@ impl UseAttributes for FunctionCall {
 
 impl TypeOf for FunctionCall {
 	fn type_of(&self, scope: &mut Env) -> Result<Type, ASTErr> {
-		self.function.1.as_ref().unwrap().body.type_of(scope)
+		self.function.1.as_ref().unwrap().return_type.type_of(scope)
 	}
 }

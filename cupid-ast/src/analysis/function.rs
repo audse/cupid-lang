@@ -6,9 +6,13 @@ impl Analyze for Function {
 	fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
 		self.attributes.closure = scope.add_closure(None, Context::Function);
 		scope.use_closure(self.attributes.closure);
-
-		self.body.analyze_scope(scope)?;
 		
+		for param in self.params.iter_mut() {
+			param.analyze_scope(scope)?;
+		}
+		self.return_type.analyze_scope(scope)?;
+		self.body.analyze_scope(scope)?;	
+
 		scope.reset_closure();
 		Ok(())
 	}
@@ -16,8 +20,10 @@ impl Analyze for Function {
 		scope.use_closure(self.attributes.closure);
 		
 		for param in self.params.iter_mut() {
+			scope.trace("Adding parameter...");
 			param.analyze_names(scope)?;
 		}
+		self.return_type.analyze_names(scope)?;
 		self.body.analyze_names(scope)?;
 		
 		scope.reset_closure();
@@ -29,9 +35,27 @@ impl Analyze for Function {
 		for param in self.params.iter_mut() {
 			param.analyze_types(scope)?;
 		}
-		self.body.analyze_types(scope)?;
-		self.body.to_typed(self.body.type_of(scope)?);
 		
+		self.body.analyze_types(scope)?;
+		self.return_type.analyze_types(scope)?;
+
+		self.body.to_typed(self.body.type_of(scope)?);
+		self.return_type.to_typed(self.return_type.type_of(scope)?);
+		
+		scope.reset_closure();
+		Ok(())
+	}
+	fn check_types(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+		scope.use_closure(self.attributes.closure);
+
+		let (body_type, return_type) = (
+			self.body.get_node_type()?,
+			self.return_type.get_node_type()?
+		);
+		if self.body.get_node_type()? != self.return_type.get_node_type()? {
+			scope.trace(format!("\nExpected to return: \n{return_type}Actually returned: \n{body_type}"));
+			return Err((self.return_type.source(), ERR_TYPE_MISMATCH));
+		}
 		scope.reset_closure();
 		Ok(())
 	}
@@ -47,17 +71,7 @@ impl UseAttributes for Function {
 }
 
 impl TypeOf for Function {
-	fn type_of(&self, _scope: &mut Env) -> Result<Type, ASTErr> {
-		let return_type = self.body.get_node_type()?;
-    	let mut params: Vec<Typed<Ident>> = self.params
-			.iter()
-			.map(|p| (p.type_hint).to_owned())
-			.collect();
-		params.push(IsTyped(Ident::default(), return_type.to_owned()));
-			
-		let mut signature = FUNCTION.to_owned();
-		signature.unify_with(&params)?;
-
-		Ok(signature)
+	fn type_of(&self, scope: &mut Env) -> Result<Type, ASTErr> {
+		infer_function(self, scope)
 	}
 }

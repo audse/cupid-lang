@@ -26,9 +26,10 @@ impl Analyze for Property {
 
 		// Property names get analyzed after object's type is analyzed
 		// so that associated type methods can be resolved
+		scope.trace(format!("Finding property of {}", self.object));
 		if self.property.analyze_names(scope).is_err() {
 			let object_type = self.object.get_node_type()?;
-			log!("closure", object_type.attributes().closure);
+			scope.trace(format!("Finding method in type {}", object_type));
 			scope.use_closure(object_type.attributes().closure);
 			self.property.analyze_names(scope)?;
 		}
@@ -86,6 +87,13 @@ fn is_allowed_access(object_type: &Type, property: &Typed<PropertyTerm>) -> bool
 impl PreAnalyze for PropertyTerm {}
 
 impl Analyze for PropertyTerm {
+	fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+		match self {
+			Self::Term(term) => term.analyze_scope(scope),
+			Self::FunctionCall(function_call) => function_call.analyze_scope(scope),
+			_ => Ok(())
+		}
+	}
 	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
     	match self {
 			Self::Term(term) => term.analyze_names(scope),
@@ -131,7 +139,8 @@ impl TypeOf for PropertyTerm {
     	match self {
 			Self::Term(term) => term.type_of(scope),
 			Self::FunctionCall(function_call) => function_call.type_of(scope),
-			Self::Index(..) => Ok(INTEGER.to_owned())
+			Self::Index(i, attr) => infer_type(&Val::Integer(*i as i32), scope)
+				.map_err(|(_, e)| (attr.source.unwrap_or(0), e))
 		}
 	}
 }

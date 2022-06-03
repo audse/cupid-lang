@@ -49,12 +49,10 @@ impl Display for Trait {
 impl AsTable for Function {}
 impl Display for Function {
 	fn fmt(&self, f: &mut Formatter) -> Result {
-		let (return_type, params) = self.params.split_last().unwrap();
-
 		let func = tabled::builder::Builder::new()
 			.set_columns(0..2)
-			.add_record(["params", &params.table().with(Style::modern()).to_string()])
-			.add_record(["=>", &return_type.type_hint.to_string()])
+			.add_record(["params", &(&self.params).table().with(Style::modern()).to_string()])
+			.add_record(["=>", &self.return_type.to_string()])
 			.build()
 			.with(Disable::Row(0..1))
 			.with(Style::modern())
@@ -170,7 +168,7 @@ impl Display for PropertyTerm {
 impl AsTable for Method {}
 impl Display for Method {
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-		write!(f, "{} \n{} {}", self.name, self.signature, fmt_option!(&self.value))
+		write!(f, "{} {}", self.name, self.value)
 	}
 }
 
@@ -190,8 +188,22 @@ impl Display for SymbolValue {
 	}
 }
 
-impl AsTable for TypeDefinition {}
-impl Display for TypeDefinition {
+impl AsTable for TypeDef {}
+impl Display for TypeDef {
+	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+		write!(f, "{}", self.as_table())
+	}
+}
+
+impl AsTable for Implement {}
+impl Display for Implement {
+	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+		write!(f, "{}", self.as_table())
+	}
+}
+
+impl AsTable for TraitDef {}
+impl Display for TraitDef {
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
 		write!(f, "{}", self.as_table())
 	}

@@ -25,3 +25,12 @@ impl std::ops::DerefMut for FieldSet {
 		&mut self.0
 	}
 }
+
+impl From<&Declaration> for Field {
+	fn from(dec: &Declaration) -> Self {
+		(
+			Some(dec.name.name.to_owned()),
+			dec.type_hint.to_owned()
+		)
+	}
+}

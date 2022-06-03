@@ -41,7 +41,10 @@ impl UseAttributes for Value {
 }
 
 impl TypeOf for Value {
-	fn type_of(&self, _scope: &mut Env) -> Result<Type, ASTErr> {
-    	self.val.get_type().map(|t| t.to_owned()).map_err(|e| (self.source(), e))
+	fn type_of(&self, scope: &mut Env) -> Result<Type, ASTErr> {
+		match &self.val {
+			IsTyped(_, t) => Ok(t.to_owned()),
+			Untyped(val) => infer_type(val, scope)
+		}
 	}
 }

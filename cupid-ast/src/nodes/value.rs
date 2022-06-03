@@ -6,7 +6,7 @@ pub enum Val {
 	Boolean(bool),
 	Char(char),
 	Decimal(i32, u32),
-	Function(Box<Typed<crate::Function>>),
+	Function(Box<crate::Function>),
 	Integer(i32),
 	None,
 	String(Cow<'static, str>),
@@ -22,7 +22,7 @@ impl Default for Val {
 
 impl TypeOf for Val {
 	fn type_of(&self, scope: &mut Env) -> Result<Type, ASTErr> {
-    	infer_type_from_scope(self, scope).map_err(|code| (0, code))
+    	infer_type(self, scope)
 	}
 }
 

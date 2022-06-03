@@ -116,3 +116,9 @@ impl <T: Default + std::fmt::Display> std::fmt::Display for Typed<T> {
 		}
 	}
 }
+
+impl From<Type> for Typed<Ident> {
+	fn from(t: Type) -> Self {
+		IsTyped(t.to_ident(), t)
+	}
+}

@@ -1,43 +1,76 @@
 use crate::*;
 
-pub fn infer_type_from_scope(value: &Val, scope: &mut Env) -> Result<Type, ErrCode> {
+pub enum InferValue<'v> {
+	Value(&'v Value),
+	Val(&'v Val)
+}
+
+impl<'v> From<&'v Value> for InferValue<'v> {
+	fn from(v: &'v Value) -> Self {
+		Self::Value(v)
+	}
+}
+
+impl<'v> From<&'v Val> for InferValue<'v> {
+	fn from(v: &'v Val) -> Self {
+		Self::Val(v)
+	}
+}
+
+impl InferValue<'_> {
+	fn val(&self) -> &Val {
+		match self {
+			Self::Value(v) => &*v.val,
+			Self::Val(v) => v
+		}
+	}
+	fn source(&self) -> usize {
+		match self {
+			InferValue::Val(_) => 0,
+			InferValue::Value(v) => v.source()
+		}
+	}
+}
+
+pub fn infer_type<'v, V>(value: &'v V, scope: &mut Env) -> ASTResult<Type> where InferValue<'v>: From<&'v V> {
 	use Val::*;
-	match &value {
-		Array(array) => infer_array_from_scope(array, scope),
+	let val: InferValue = value.into();
+	match &val.val() {
+		Array(array) => infer_array(array, scope),
 		Boolean(_) => get_primitive("bool", scope),
 		Char(_) => get_primitive("char", scope),
 		Decimal(..) => get_primitive("dec", scope),
 		Integer(_) => get_primitive("int", scope),
 		String(_) => get_primitive("string", scope),
-		Tuple(tuple) => infer_tuple_from_scope(tuple, scope),
-		Function(function) => infer_function_from_scope(function, scope),
+		Tuple(tuple) => infer_tuple(tuple, scope),
+		Function(function) => infer_function(function, scope),
 		None | BuiltinPlaceholder => get_primitive("nothing", scope),
-		_ => Err(ERR_CANNOT_INFER)
+		_ => Err((val.source(), ERR_CANNOT_INFER))
 	}
 }
 
-fn get_primitive(primitive: &'static str, scope: &mut Env) -> Result<Type, ErrCode> {
+fn get_primitive(primitive: &'static str, scope: &mut Env) -> ASTResult<Type> {
 	let ident = Ident::new_name(primitive);
-	scope.get_type(&ident).map_err(|(_, e)| e)
+	scope.get_type(&ident)
 }
 
-fn infer_array_from_scope(array: &[Val], scope: &mut Env) -> Result<Type, ErrCode> {
+fn infer_array(array: &[Val], scope: &mut Env) -> ASTResult<Type> {
 	let mut ident = Ident::build().name("array".into());
 
 	if let Some(first_element) = array.first() {
-		let first_element = infer_type_from_scope(first_element, scope)?;
+		let first_element = infer_type(first_element, scope)?;
 		ident = ident.one_generic(IsTyped(first_element.to_ident(), first_element));
 	}
 
 	get_type_and_unify(ident.build(), scope)
 }
 
-fn infer_tuple_from_scope(tuple: &[Val], scope: &mut Env) -> Result<Type, ErrCode> {
+fn infer_tuple(tuple: &[Val], scope: &mut Env) -> ASTResult<Type> {
 	let mut ident = Ident::new_name("tuple");
 
-	let types: Result<Vec<Typed<Ident>>, ErrCode> = tuple
+	let types: ASTResult<Vec<Typed<Ident>>> = tuple
 		.iter()
-		.map(|t| Ok(IsTyped(Ident::default(), infer_type_from_scope(t, scope)?)))
+		.map(|t| Ok(IsTyped(Ident::default(), infer_type(t, scope)?)))
 		.collect();
 	let types = types?;
 
@@ -46,58 +79,27 @@ fn infer_tuple_from_scope(tuple: &[Val], scope: &mut Env) -> Result<Type, ErrCod
 	get_type_and_unify(ident, scope)
 }
 
-fn infer_function_from_scope(function: &Function, scope: &mut Env) -> Result<Type, ErrCode> {
+pub fn infer_function(function: &Function, scope: &mut Env) -> ASTResult<Type> {
 	let mut ident = Ident::new_name("fun");
-	let mut param_types = function.params.iter().map(|p| p.type_hint.to_owned()).collect::<Vec<Typed<Ident>>>();
-	let return_type = function.body.type_of(scope).map_err(|e| e.1)?;
-	param_types.push(IsTyped(return_type.to_ident(), return_type)); // return type
-	ident.attributes.generics = GenericList(param_types);
-	get_type_and_unify(ident, scope)
+	
+	let mut fields = function.params.iter().map(|p| p.into()).collect::<Vec<Field>>();
+	let return_type = function.return_type.type_of(scope)?;
+	fields.push((
+		Some("returns".into()), 
+		return_type.into()
+	));
+
+	let generics = fields.iter().map(|(_, f)| f.to_owned()).collect::<Vec<Typed<Ident>>>();
+	ident.attributes.generics = GenericList(generics);
+
+	let mut fun_type = get_type_and_unify(ident, scope)?;
+	fun_type.fields = FieldSet(fields);
+	fun_type.base_type = BaseType::Function;
+	Ok(fun_type)
 }
 
-fn get_type_and_unify(ident: Ident, scope: &mut Env) -> Result<Type, ErrCode> {
-	let mut type_value = scope.get_type(&ident).map_err(|e| e.1)?;
-	type_value.unify_with(&*ident.attributes.generics).map_err(|e| e.1)?;
+fn get_type_and_unify(ident: Ident, scope: &mut Env) -> ASTResult<Type> {
+	let mut type_value = scope.get_type(&ident)?;
+	type_value.unify_with(&*ident.attributes.generics)?;
 	Ok(type_value)
-}
-
-pub fn infer_type(value: &Val) -> Result<Type, ErrCode> {
-	use Val::*;
-	match &value {
-		Array(array) => infer_array(array),
-		Boolean(_) => Ok((*BOOLEAN).to_owned()),
-		Char(_) => Ok((*CHARACTER).to_owned()),
-		Decimal(..) => Ok((*DECIMAL).to_owned()),
-		Integer(_) => Ok((*INTEGER).to_owned()),
-		String(_) => Ok((*STRING).to_owned()),
-		Tuple(tuple) => infer_tuple(tuple),
-		Function(function) => infer_function(function),
-		None => Ok((*NOTHING).to_owned()),
-		BuiltinPlaceholder => Ok((*NOTHING).to_owned()),
-		_ => Err(ERR_CANNOT_INFER)
-	}
-}
-
-fn infer_array(array: &[Val]) -> Result<Type, ErrCode> {
-	Ok(if let Some(first_element) = array.first() {
-		array_type(infer_type(first_element)?)
-	} else {
-		(*ARRAY).to_owned()
-	})
-}
-
-fn infer_tuple(tuple: &[Val]) -> Result<Type, ErrCode> {
-	let types: Result<Vec<Typed<Ident>>, ErrCode> = tuple
-		.iter()
-		.map(|t| Ok(IsTyped(Ident::default(), infer_type(t)?)))
-		.collect();
-	Ok(tuple_type(types?))
-}
-
-fn infer_function(function: &Function) -> Result<Type, ErrCode> {
-	let mut function_type = (*FUNCTION).to_owned();
-	if let Typed::Typed(_, t) = &function.body {
-		function_type.unify(t).map_err(|(_, e)| e)?;
-	}
-	Ok(function_type)
 }

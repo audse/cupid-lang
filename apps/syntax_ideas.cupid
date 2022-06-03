@@ -9,7 +9,7 @@ type name = [
 	last string
 ]
 
-let jacob name = [ first: 'Jacob', last: 'Aldred' ]
+let jacob name = [ first: 'Jacob', last: 'A' ]
 jacob.first
 
 let name[first/x, last/y] = jacob
@@ -22,7 +22,7 @@ type maybe [t] = [
 
 use maybe [t] = [
 
-	yes: me .. t => match me [
+	yes: me -> t => match me [
 		maybe/yes/val: val,
 		maybe/no: # do something
 	],

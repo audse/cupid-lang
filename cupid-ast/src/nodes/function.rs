@@ -8,6 +8,8 @@ build_struct! {
 		#[tabled(display_with = "fmt_vec")]
 		pub params: Vec<Declaration>,
 
+		pub return_type: Typed<Ident>,
+
 		pub attributes: Attributes,
 	}
 }

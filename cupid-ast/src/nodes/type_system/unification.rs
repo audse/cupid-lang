@@ -100,11 +100,15 @@ impl Unify for Vec<Typed<Ident>> {
 impl Unify for Type {
 	fn unify(&mut self, other: &Self) -> UnifyResult {
 		self.name.unify(&other.name)?;
+		
+		if self.fields.len() != other.fields.len() {
+			panic!("cannot unify");
+		}
+
 		self.fields.unify_with(&**other.attributes().generics)?;
 
 		for method in &mut self.methods {
 			method.name.unify(&other.name)?;
-			method.signature.unify(other)?;
 		}
 
 		for trait_ident in &mut self.traits {
@@ -131,12 +135,12 @@ impl Unify for Type {
 
 impl Unify for Method {
 	fn unify_with(&mut self, other: &[Typed<Ident>]) -> UnifyResult {
+		// TODO
 		self.name.unify_with(other)?;
-		self.signature.unify_with(other)
+		Ok(())
 	}
 	fn can_unify(&self, other: &Self) -> bool {
-		self.name.can_unify(&other.name) 
-			&& self.signature.can_unify(&other.signature)
+		self.name.can_unify(&other.name)
 	}
 }
 
@@ -163,7 +167,6 @@ impl Unify for Trait {
 
 		for method in self.methods.iter_mut() {
 			method.name.unify(&other.name)?;
-			method.signature.unify_with(generics)?;
 		}
 
 		for bound in self.bounds.iter_mut() {

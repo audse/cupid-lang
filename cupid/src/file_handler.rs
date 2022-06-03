@@ -42,6 +42,10 @@ impl FileHandler {
 	}
 	pub fn parse_analyze(&mut self) -> Result<(), (Source, ErrCode)> {
 		let (mut parse_tree, _) = self.parser._file().unwrap();
+		if self.debug {
+			log!(@pretty=true parse_tree);
+		}
+
 		let mut ast = create_file_ast(&mut parse_tree, &mut self.scope).map_err(|e| (0, e))?;
 
 		if self.debug {

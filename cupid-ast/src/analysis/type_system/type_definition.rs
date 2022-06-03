@@ -1,6 +1,6 @@
 use crate::*;
 
-impl PreAnalyze for TypeDefinition {
+impl PreAnalyze for TypeDef {
 	fn pre_analyze_scope(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
 		let closure = scope.add_isolated_closure(Some(self.name.to_owned()), Context::Type);
 		self.attributes_mut().closure = closure;
@@ -19,32 +19,31 @@ impl PreAnalyze for TypeDefinition {
 			type_hint: TYPE.to_ident(),
 			mutable: false
 		};
-		
+
+		scope.trace(quick_fmt!("Defining type ", self.name));
 		scope.set_symbol(&self.name, symbol_value);
 		Ok(())
 	}
 }
 
-impl Analyze for TypeDefinition {
+impl Analyze for TypeDef {
 	fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
 		self.name.analyze_scope(scope)?;
 		Ok(())
 	}
 	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+		scope.trace(quick_fmt!("Analyzing generics of type ", self.name));
 		self.name.analyze_names(scope)?;
 		Ok(())
 	}
 	fn analyze_types(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
-		scope.use_closure(self.attributes().closure);
-
+		scope.trace(quick_fmt!("Analyzing types of generics of type ", self.name));
 		self.name.analyze_types(scope)?;
-
-		scope.reset_closure();
 		Ok(())
 	}
 }
 
-impl UseAttributes for TypeDefinition {
+impl UseAttributes for TypeDef {
 	fn attributes(&self) -> &Attributes {
 		&self.name.attributes
 	}
@@ -53,4 +52,4 @@ impl UseAttributes for TypeDefinition {
 	}
 }
 
-impl TypeOf for TypeDefinition {}
+impl TypeOf for TypeDef {}

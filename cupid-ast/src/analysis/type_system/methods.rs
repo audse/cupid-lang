@@ -1,33 +1,42 @@
 use crate::*;
 
-impl PreAnalyze for Method {}
+impl PreAnalyze for Method {
+	fn pre_analyze_scope(&mut self, scope: &mut Env) -> ASTResult<()> {
+		let closure = scope.add_closure(
+			Some(self.name.to_owned()), 
+			Context::Method
+		);
+		self.attributes_mut().closure = closure;
+		Ok(())
+	}
+	fn pre_analyze_names(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+		scope.set_symbol(&self.name, SymbolValue {
+			value: Some(Value { 
+				val: Untyped(Val::Function(Box::new(self.value.to_owned()))),
+				attributes: self.name.attributes.to_owned() 
+			}),
+			type_hint: TYPE.to_ident(), 
+			mutable: false,
+		});
+		Ok(())
+	}
+}
 
 impl Analyze for Method {
 	fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
-		scope.use_closure(self.attributes().closure);
-		
 		self.name.analyze_scope(scope)?;
-		self.value.map_mut(|val| val.analyze_scope(scope)).invert()?;
 
+		scope.use_closure(self.attributes().closure);
+		self.value.analyze_scope(scope)?;
 		scope.reset_closure();
 		Ok(())
 	}
 	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+		scope.trace(format!("Defining method {}", self.name));
 		scope.use_closure(self.attributes().closure);
 
-		scope.set_symbol(&self.name, SymbolValue { 
-			value: self.value.to_owned().map(|f| 
-				Value::build()
-				.typed_val(Val::Function(Box::new(Untyped(f))), self.signature.to_owned())
-				.attributes(self.attributes().to_owned())
-				.build()
-			),
-			type_hint: self.signature.to_ident(), 
-			mutable: false 
-		});
-
-		self.name.analyze_names(scope)?;
-		self.signature.analyze_names(scope)?;
+		self.name.attributes.generics.set_symbols(scope);
+		self.value.analyze_names(scope)?;
 
 		scope.reset_closure();
 		Ok(())
@@ -35,11 +44,8 @@ impl Analyze for Method {
 	fn analyze_types(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
 		scope.use_closure(self.attributes().closure);
 
-		self.signature.analyze_types(scope)?;
-
-		if let Some(val) = &mut self.value {
-			val.analyze_types(scope)?;
-		}
+		self.name.analyze_types(scope)?;
+		self.value.analyze_types(scope)?;
 
 		scope.reset_closure();
     	Ok(())
@@ -47,16 +53,7 @@ impl Analyze for Method {
 	fn check_types(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
 		scope.use_closure(self.attributes().closure);
 
-		if let Some(val) = &mut self.value {
-			val.check_types(scope)?;
-
-			let val_type = val.type_of(scope)?;
-			if self.signature != val_type {
-				log!("Expected type\n", self.signature, "Found type\n", val_type);
-				// scope.traceback.push(quick_fmt!("Expected type\n", self.signature, "Found type\n", val_type));
-				return Err((self.source(), ERR_TYPE_MISMATCH));
-			}
-		}
+		self.value.check_types(scope)?;
 
 		scope.reset_closure();
 		Ok(())
@@ -69,5 +66,11 @@ impl UseAttributes for Method {
 	}
 	fn attributes_mut(&mut self) -> &mut Attributes { 
 		self.name.attributes_mut() 
+	}
+}
+
+impl TypeOf for Method {
+	fn type_of(&self, scope: &mut Env) -> Result<Type, ASTErr> {
+		self.value.type_of(scope)
 	}
 }
