@@ -1,7 +1,7 @@
 use crate::*;
 
 impl PreAnalyze for TypeDef {
-	fn pre_analyze_scope(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+	fn pre_analyze_scope(&mut self, scope: &mut Env) -> ASTResult<()> {
 		let closure = scope.add_isolated_closure(Some(self.name.to_owned()), Context::Type);
 		self.attributes_mut().closure = closure;
 		Ok(())
@@ -27,16 +27,16 @@ impl PreAnalyze for TypeDef {
 }
 
 impl Analyze for TypeDef {
-	fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+	fn analyze_scope(&mut self, scope: &mut Env) -> ASTResult<()> {
 		self.name.analyze_scope(scope)?;
 		Ok(())
 	}
-	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+	fn analyze_names(&mut self, scope: &mut Env) -> ASTResult<()> {
 		scope.trace(quick_fmt!("Analyzing generics of type ", self.name));
 		self.name.analyze_names(scope)?;
 		Ok(())
 	}
-	fn analyze_types(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+	fn analyze_types(&mut self, scope: &mut Env) -> ASTResult<()> {
 		scope.trace(quick_fmt!("Analyzing types of generics of type ", self.name));
 		self.name.analyze_types(scope)?;
 		Ok(())

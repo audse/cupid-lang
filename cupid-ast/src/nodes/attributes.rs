@@ -30,3 +30,12 @@ impl Attributes {
 		}
 	}
 }
+
+impl<T: UseAttributes + Default + std::fmt::Debug> UseAttributes for Typed<T> {
+	fn attributes(&self) -> &Attributes {
+		self.inner().attributes()
+	}
+	fn attributes_mut(&mut self) -> &mut Attributes {
+		self.inner_mut().attributes_mut()
+	}
+}

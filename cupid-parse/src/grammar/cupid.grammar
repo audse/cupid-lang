@@ -42,8 +42,8 @@
 - else_if_block: ~'else' ~'if' operation block
 - else_block: ~'else' block
 - box_block: ~'box' brace_block
--~brace_block: ~'{' expression* '}'
--~arrow_block: ~arrow expression_item
+-~brace_block: brace_multiple[expression]
+-~arrow_block: arrow expression_item
 
 - typed_declaration: type_hint 'mut'? identifier (~equal term)?
 - assignment: identifier equal term
@@ -70,12 +70,12 @@
 	| number
 
 - pointer: '&' 'mut'? identifier
-- empty: ~'_'
-- group: ~'(' term? closing_paren
+- empty: '_'
+- group: '(' term? closing_paren
 
-- log: log_keyword paren[arguments]
-- builtin_function_call: =!'.' builtin_function paren[arguments]
-- arguments: list[term]
+- log: log_keyword arguments
+- builtin_function_call: =!'.' builtin_function arguments
+- arguments: paren_list[term]
 
 -~log_keyword: 'log' | 'logs' | 'log_line' | 'logs_line' | 'debug'
 
@@ -124,8 +124,7 @@
 -!property: function_call property_suffix?
 -~property_suffix: '.' property
 
-- function_call: atom function_call_suffix?
--~function_call_suffix: '(' arguments ')'
+- function_call: atom arguments?
 
 - unary_op: '-' atom | 'not' atom
 

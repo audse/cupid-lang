@@ -3,7 +3,7 @@ use crate::*;
 impl PreAnalyze for Trait {}
 
 impl Analyze for Trait {
-	fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+	fn analyze_scope(&mut self, scope: &mut Env) -> ASTResult<()> {
 		let closure = scope.add_isolated_closure(Some(self.name.to_owned()), Context::Trait);
 		scope.update_closure(&self.name, closure)?;
 		scope.use_closure(closure);
@@ -18,7 +18,7 @@ impl Analyze for Trait {
 		scope.reset_closure();
 		Ok(())
 	}
-	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+	fn analyze_names(&mut self, scope: &mut Env) -> ASTResult<()> {
 		scope.use_closure(self.attributes().closure);
 
 		self.name.analyze_names(scope)?;
@@ -29,7 +29,7 @@ impl Analyze for Trait {
 		scope.reset_closure();
 		Ok(())
 	}
-	fn analyze_types(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+	fn analyze_types(&mut self, scope: &mut Env) -> ASTResult<()> {
 		scope.use_closure(self.attributes().closure);
 
 		for method in self.methods.iter_mut() {
@@ -39,7 +39,7 @@ impl Analyze for Trait {
 		scope.reset_closure();
 		Ok(())
 	}
-	fn check_types(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+	fn check_types(&mut self, scope: &mut Env) -> ASTResult<()> {
 		scope.use_closure(self.attributes().closure);
 
 		for method in self.methods.iter_mut() {

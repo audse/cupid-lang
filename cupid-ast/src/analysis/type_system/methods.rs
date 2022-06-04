@@ -9,7 +9,7 @@ impl PreAnalyze for Method {
 		self.attributes_mut().closure = closure;
 		Ok(())
 	}
-	fn pre_analyze_names(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+	fn pre_analyze_names(&mut self, scope: &mut Env) -> ASTResult<()> {
 		scope.set_symbol(&self.name, SymbolValue {
 			value: Some(Value { 
 				val: Untyped(Val::Function(Box::new(self.value.to_owned()))),
@@ -23,7 +23,7 @@ impl PreAnalyze for Method {
 }
 
 impl Analyze for Method {
-	fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+	fn analyze_scope(&mut self, scope: &mut Env) -> ASTResult<()> {
 		self.name.analyze_scope(scope)?;
 
 		scope.use_closure(self.attributes().closure);
@@ -31,7 +31,7 @@ impl Analyze for Method {
 		scope.reset_closure();
 		Ok(())
 	}
-	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+	fn analyze_names(&mut self, scope: &mut Env) -> ASTResult<()> {
 		scope.trace(format!("Defining method {}", self.name));
 		scope.use_closure(self.attributes().closure);
 
@@ -41,7 +41,7 @@ impl Analyze for Method {
 		scope.reset_closure();
 		Ok(())
 	}
-	fn analyze_types(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+	fn analyze_types(&mut self, scope: &mut Env) -> ASTResult<()> {
 		scope.use_closure(self.attributes().closure);
 
 		self.name.analyze_types(scope)?;
@@ -50,7 +50,7 @@ impl Analyze for Method {
 		scope.reset_closure();
     	Ok(())
 	}
-	fn check_types(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+	fn check_types(&mut self, scope: &mut Env) -> ASTResult<()> {
 		scope.use_closure(self.attributes().closure);
 
 		self.value.check_types(scope)?;
@@ -70,7 +70,7 @@ impl UseAttributes for Method {
 }
 
 impl TypeOf for Method {
-	fn type_of(&self, scope: &mut Env) -> Result<Type, ASTErr> {
+	fn type_of(&self, scope: &mut Env) -> ASTResult<Cow<'_, Type>> {
 		self.value.type_of(scope)
 	}
 }

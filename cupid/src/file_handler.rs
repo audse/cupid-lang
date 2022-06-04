@@ -29,24 +29,24 @@ impl FileHandler {
 	pub fn run(&mut self) {
 		self.reporter.report_start(&self.path);
 
-		self.parser.update(std::mem::take(&mut self.contents), 0);
+		self.parser.update(self.contents.to_owned(), 0);
 		if let Err((src, code)) = self.parse_analyze() {
 			if self.debug {
 				eprintln!("{}", fmt_list!(self.scope.traceback, "\n"));
-				// eprintln!("{}", self.scope);
 			}
-			panic!("{}", err_from_code(src, code, &mut self.scope))
+			eprintln!("{}", src.context(&mut self.scope, &self.contents));
+			panic!("{}", src.message(code));
 		}
 
 		self.reporter.report_complete();
 	}
-	pub fn parse_analyze(&mut self) -> Result<(), (Source, ErrCode)> {
+	pub fn parse_analyze(&mut self) -> ASTResult<()> {
 		let (mut parse_tree, _) = self.parser._file().unwrap();
 		if self.debug {
 			log!(@pretty=true parse_tree);
 		}
 
-		let mut ast = create_file_ast(&mut parse_tree, &mut self.scope).map_err(|e| (0, e))?;
+		let mut ast = create_file_ast(&mut parse_tree, &mut self.scope).map_err(|e| (Exp::Empty, e))?;
 
 		if self.debug {
 			println!("\nParsing...\n");
@@ -56,13 +56,11 @@ impl FileHandler {
 		}
 
 		macro_rules! do_passes {
-			($($method:ident),*) => {
-				$(
-					for exp in ast.iter_mut() {
-						exp.$method(&mut self.scope)?;
-					}
-				)*
-			};
+			($($method:ident),*) => { $( 
+				for exp in ast.iter_mut() {
+					exp.$method(&mut self.scope)?;
+				} 
+			)* };
 		}
 
 		do_passes! {

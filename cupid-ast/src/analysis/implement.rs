@@ -25,7 +25,7 @@ impl PreAnalyze for Implement {
 }
 
 impl Analyze for Implement {
-	fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+	fn analyze_scope(&mut self, scope: &mut Env) -> ASTResult<()> {
 		scope.use_closure(self.attributes.closure);
 		
 		for method in self.methods.iter_mut() {
@@ -61,7 +61,7 @@ impl Analyze for Implement {
 		scope.reset_closure();
 		Ok(())
 	}
-	fn check_types(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+	fn check_types(&mut self, scope: &mut Env) -> ASTResult<()> {
 		scope.use_closure(self.attributes.closure);
 
 		for method in self.methods.iter_mut() {
@@ -84,8 +84,9 @@ impl UseAttributes for Implement {
 	}
 }
 
+#[allow(unused_variables)]
 impl TypeOf for Implement {
-	fn type_of(&self, _scope: &mut Env) -> Result<Type, ASTErr> {
-		Ok(TYPE.to_owned())
+	fn type_of(&self, scope: &mut Env) -> ASTResult<Cow<'_, Type>> { 
+		Ok((&*NOTHING).into())
 	}
 }

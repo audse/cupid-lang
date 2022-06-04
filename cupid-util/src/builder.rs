@@ -4,10 +4,10 @@
 macro_rules! build_struct {
 	( 
 		$(#[$derive:meta])?
-		$bv:vis $builder_name:ident => $v:vis $struct_name:ident {
+		$bv:vis $builder_name:ident => $v:vis $struct_name:ident $($life:lifetime)? {
 		$( 
 			$(#[$fderive:meta])?
-			$fv:vis $field:ident: $t:ty 
+			$fv:vis $field:ident: $t:ty
 		),* $(,)?
 	}) => {
 		$(#[$derive])?

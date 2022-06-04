@@ -3,14 +3,14 @@ use crate::*;
 impl PreAnalyze for FunctionCall {}
 
 impl Analyze for FunctionCall {
-	fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+	fn analyze_scope(&mut self, scope: &mut Env) -> ASTResult<()> {
 		self.function.0.analyze_scope(scope)?;
 		for arg in self.args.iter_mut() {
 			arg.analyze_scope(scope)?;
 		}
 		Ok(())
 	}
-	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+	fn analyze_names(&mut self, scope: &mut Env) -> ASTResult<()> {
 
 		// Add temporary type variables for argument types
 		let mut generics = self.args
@@ -29,13 +29,13 @@ impl Analyze for FunctionCall {
 		}
 		Ok(())
 	}
-	fn analyze_types(&mut self, scope: &mut Env) -> Result<(), ASTErr> {		
+	fn analyze_types(&mut self, scope: &mut Env) -> ASTResult<()> {		
 		for arg in self.args.iter_mut() {
 			arg.analyze_types(scope)?;
 		}
     	Ok(())
 	}
-	fn check_types(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+	fn check_types(&mut self, scope: &mut Env) -> ASTResult<()> {
 		let function = self.function.1.as_mut().unwrap();
 		function.analyze_types(scope)?;
 		
@@ -58,7 +58,7 @@ impl UseAttributes for FunctionCall {
 }
 
 impl TypeOf for FunctionCall {
-	fn type_of(&self, scope: &mut Env) -> Result<Type, ASTErr> {
+	fn type_of(&self, scope: &mut Env) -> ASTResult<Cow<'_, Type>> { 
 		self.function.1.as_ref().unwrap().return_type.type_of(scope)
 	}
 }

@@ -20,40 +20,46 @@ impl SymbolValueBuilder {
 }
 
 impl SymbolValue {
-	pub fn as_type(&self) -> Result<Type, ASTErr> {
+	pub fn as_type(&self) -> ASTResult<Type> {
 		let value = self.value.as_ref().unwrap();
 		if let Val::Type(type_hint) = &*value.val {
 			return Ok(type_hint.to_owned());
 		}
-		Err((value.attributes.source.unwrap(), 417))
+		value.to_err(ERR_EXPECTED_TYPE)
 	}
-	pub fn as_function(&self) -> Result<Function, ASTErr> {
+	pub fn as_function(&self) -> ASTResult<Function> {
 		let value = self.value.as_ref().unwrap();
 		if let Val::Function(function) = &*value.val {
 			return Ok(*function.to_owned());
 		}
-		Err((value.attributes.source.unwrap(), 418))
+		value.to_err(ERR_EXPECTED_FUNCTION)
 	}
-	pub fn as_trait(&self) -> Result<Trait, ASTErr> {
+	pub fn as_function_mut(&mut self) -> ASTResult<&mut Function> {
+		let value = self.value.as_mut().unwrap();
+		if !matches!(&*value.val, Val::Function(_)) {
+			value.to_err(ERR_EXPECTED_FUNCTION)
+		} else if let Val::Function(function_val) = &mut *value.val {
+			Ok(function_val)
+		} else {
+			unreachable!()
+		}
+	}
+	pub fn as_trait(&self) -> ASTResult<Trait> {
 		let value = self.value.as_ref().unwrap();
 		if let Val::Trait(trait_val) = &*value.val {
 			return Ok(trait_val.to_owned());
 		}
-		Err((value.attributes.source.unwrap(), 418))
+		value.to_err(ERR_EXPECTED_TRAIT)
 	}
-	pub fn as_trait_mut(&mut self) -> Result<&mut Trait, ASTErr> {
+	pub fn as_trait_mut(&mut self) -> ASTResult<&mut Trait> {
 		let value = self.value.as_mut().unwrap();
-		if let Val::Trait(trait_val) = &mut *value.val {
-			return Ok(trait_val);
+		if !matches!(&*value.val, Val::Trait(_)) {
+			value.to_err(ERR_EXPECTED_TRAIT)
+		} else if let Val::Trait(trait_val) = &mut *value.val {
+			Ok(trait_val)
+		} else {
+			unreachable!()
 		}
-		Err((value.attributes.source.unwrap(), 418))
-	}
-	pub fn as_function_mut(&mut self) -> Result<&mut Function, ASTErr> {
-		let value = self.value.as_mut().unwrap();
-		if let Val::Function(function_val) = &mut *value.val {
-			return Ok(function_val);
-		}
-		Err((value.attributes.source.unwrap(), 418))
 	}
 }
 

@@ -1,11 +1,18 @@
 pub type ErrCode = usize;
 
-pub const ERR_CANNOT_INFER: usize = 100;
-pub const ERR_TYPE_MISMATCH: usize = 400;
-pub const ERR_NOT_FOUND: usize = 404;
-pub const ERR_BAD_ACCESS: usize = 405;
-pub const ERR_ALREADY_DEFINED: usize = 406;
-pub const ERR_CANNOT_UNIFY: usize = 409;
-pub const ERR_EXPECTED_TYPE: usize = 417;
-pub const ERR_UNEXPECTED_TYPE: usize = 418;
-pub const ERR_EXPECTED_FUNCTION: usize = 419;
+pub const ERR_CANNOT_INFER: ErrCode = 100;
+pub const ERR_TYPE_MISMATCH: ErrCode = 400;
+pub const ERR_NOT_FOUND: ErrCode = 404;
+pub const ERR_BAD_ACCESS: ErrCode = 405;
+pub const ERR_ALREADY_DEFINED: ErrCode = 406;
+pub const ERR_CANNOT_UNIFY: ErrCode = 409;
+pub const ERR_EXPECTED_TYPE: ErrCode = 417;
+pub const ERR_UNEXPECTED_TYPE: ErrCode = 418;
+pub const ERR_EXPECTED_FUNCTION: ErrCode = 419;
+pub const ERR_EXPECTED_TRAIT: ErrCode = 420;
+pub const ERR_UNCLOSED_DELIMITER: ErrCode = 422;
+
+#[macro_export]
+macro_rules! exhaustive {
+	($node:tt) => { unreachable!("No other error types for {} nodes", $node) }
+}

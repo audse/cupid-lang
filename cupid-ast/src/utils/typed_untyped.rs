@@ -38,11 +38,11 @@ impl<T: Default + std::fmt::Debug> Typed<T> {
 			Err(ERR_EXPECTED_TYPE)
 		}
 	}
-	pub fn get_node_type(&self) -> Result<&Type, ASTErr> where T: UseAttributes {
+	pub fn get_node_type(&self) -> ASTResult<&Type> where T: ErrorContext {
 		if let Self::Typed(_, t) = self {
 			Ok(t)
 		} else {
-			Err((self.source(), ERR_EXPECTED_TYPE))
+			self.to_err(ERR_EXPECTED_TYPE)
 		}
 	}
 	pub fn get_type_mut(&mut self) -> &mut Type {
@@ -81,9 +81,9 @@ impl Typed<Ident> {
 }
 
 impl TypeOf for Typed<Ident> {
-	fn type_of(&self, scope: &mut Env) -> Result<Type, ASTErr> {
+	fn type_of(&self, scope: &mut Env) -> ASTResult<Cow<'_, Type>> { 
 		match self {
-			Self::Typed(_, t) => Ok(t.to_owned()),
+			Self::Typed(_, t) => Ok(t.into()),
 			Self::Untyped(v) => v.type_of(scope)
 		}
 	}

@@ -27,7 +27,7 @@ fn unify<T: Unify + ?Sized>(param: &mut T, arg: Option<&T>) -> UnifyResult {
 impl Unify for Ident {
 	fn unify(&mut self, other: &Self) -> UnifyResult {
 		if self.name != other.name {
-			return Err((self.src(), ERR_CANNOT_UNIFY))
+			return self.to_err(ERR_CANNOT_UNIFY)
 		}
 		self.attributes.generics.unify(&*other.attributes.generics)
 	}
@@ -50,7 +50,7 @@ impl Unify for Typed<Ident> {
 			(Untyped(_), Untyped(_)) => (),
 			(IsTyped(..), IsTyped(..)) => {
 				if self != other {
-					return Err((self.src(), ERR_CANNOT_UNIFY))
+					return self.to_err(ERR_CANNOT_UNIFY)
 				}
 			}
 		};

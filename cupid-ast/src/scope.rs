@@ -7,9 +7,6 @@ pub use context::*;
 mod env;
 pub use env::*;
 
-mod globals;
-pub use globals::*;
-
 mod single_scope;
 pub use single_scope::*;
 

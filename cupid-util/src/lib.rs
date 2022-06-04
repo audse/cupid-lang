@@ -36,12 +36,12 @@ impl<T, E> InvertOption<T, E> for Option<Result<T, E>> {
 	}
 }
 
-pub trait MapMut<T, R> {
-	fn map_mut<F: FnOnce(&mut T) -> R>(&mut self, f: F) -> Option<R>;
+pub trait MapMut<'a, T: 'a, R: 'a> {
+	fn map_mut<F: FnOnce(&'a mut T) -> R>(&'a mut self, f: F) -> Option<R>;
 }
 
-impl<T, R> MapMut<T, R> for Option<T> {
-	fn map_mut<F: FnOnce(&mut T) -> R>(&mut self, f: F) -> Option<R> {
+impl<'a, T: 'a, R: 'a> MapMut<'a, T, R> for Option<T> {
+	fn map_mut<F: FnOnce(&'a mut T) -> R>(&'a mut self, f: F) -> Option<R> {
 		self.as_mut().map(f)
 	}
 }

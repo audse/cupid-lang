@@ -21,10 +21,10 @@ impl Parser for CupidParser {
 }
 
 impl CupidParser {
-	pub fn new(source: String, file: usize) -> Self {
+	pub fn new<S: Into<Cow<'static, str>>>(source: S, file: usize) -> Self {
 		Self { tokens: Self::build(source, file), file }
 	}
-	pub fn update(&mut self, source: String, file: usize) {
+	pub fn update<S: Into<Cow<'static, str>>>(&mut self, source: S, file: usize) {
 		self.tokens = Self::build(source, file);
 		self.file = file;
 	}
@@ -274,9 +274,7 @@ once!(&mut node, self._brace_block(), false);
 				let (mut node, pos) = self.start_parse("brace_block");
 				
 			alt! ((self, true, node, pos) {
-				once!(&mut node, self.expect(r"{"), true);
-repeat!(&mut node, self._expression(), false);
-once!(&mut node, self.expect(r"}"), false);
+				once!(&mut node, self._brace_multiple(&Self::_expression), false);
 			});
 				None
 			}
@@ -285,7 +283,7 @@ once!(&mut node, self.expect(r"}"), false);
 				let (mut node, pos) = self.start_parse("arrow_block");
 				
 			alt! ((self, true, node, pos) {
-				once!(&mut node, self._arrow(), true);
+				once!(&mut node, self._arrow(), false);
 once!(&mut node, self._expression_item(), false);
 			});
 				None
@@ -445,7 +443,7 @@ once!(&mut node, self._identifier(), false);
 				let (mut node, pos) = self.start_parse("empty");
 				
 			alt! ((self, false, node, pos) {
-				once!(&mut node, self.expect(r"_"), true);
+				once!(&mut node, self.expect(r"_"), false);
 			});
 				None
 			}
@@ -454,7 +452,7 @@ once!(&mut node, self._identifier(), false);
 				let (mut node, pos) = self.start_parse("group");
 				
 			alt! ((self, false, node, pos) {
-				once!(&mut node, self.expect(r"("), true);
+				once!(&mut node, self.expect(r"("), false);
 optional!(&mut node, self._term(), false);
 once!(&mut node, self._closing_paren(), false);
 			});
@@ -466,7 +464,7 @@ once!(&mut node, self._closing_paren(), false);
 				
 			alt! ((self, false, node, pos) {
 				once!(&mut node, self._log_keyword(), false);
-once!(&mut node, self._paren(&Self::_arguments), false);
+once!(&mut node, self._arguments(), false);
 			});
 				None
 			}
@@ -477,7 +475,7 @@ once!(&mut node, self._paren(&Self::_arguments), false);
 			alt! ((self, false, node, pos) {
 				use_negative_lookbehind!(self, self.tokens().index(), self.expect(r"."));
 once!(&mut node, self._builtin_function(), false);
-once!(&mut node, self._paren(&Self::_arguments), false);
+once!(&mut node, self._arguments(), false);
 			});
 				None
 			}
@@ -486,7 +484,7 @@ once!(&mut node, self._paren(&Self::_arguments), false);
 				let (mut node, pos) = self.start_parse("arguments");
 				
 			alt! ((self, false, node, pos) {
-				once!(&mut node, self._list(&Self::_term), false);
+				once!(&mut node, self._paren_list(&Self::_term), false);
 			});
 				None
 			}
@@ -844,18 +842,7 @@ once!(&mut node, self._property(), false);
 				
 			alt! ((self, false, node, pos) {
 				once!(&mut node, self._atom(), false);
-optional!(&mut node, self._function_call_suffix(), false);
-			});
-				None
-			}
-			
-			pub fn _function_call_suffix(&mut self) -> Option<(ParseNode, bool)> {
-				let (mut node, pos) = self.start_parse("function_call_suffix");
-				
-			alt! ((self, true, node, pos) {
-				once!(&mut node, self.expect(r"("), false);
-once!(&mut node, self._arguments(), false);
-once!(&mut node, self.expect(r")"), false);
+optional!(&mut node, self._arguments(), false);
 			});
 				None
 			}
@@ -1322,7 +1309,7 @@ once!(&mut node, self._type_hint(), false);
 				let (mut node, pos) = self.start_parse("methods");
 				
 			alt! ((self, false, node, pos) {
-				optional!(&mut node, self._bracket_list(&Self::_method), false);
+				once!(&mut node, self._bracket_list(&Self::_method), false);
 			});
 				None
 			}
@@ -1463,6 +1450,17 @@ once!(&mut node, self._closing_brace(), false);
 				None
 			}
 			
+			pub fn _brace_multiple(&mut self, inner: &ParseFun) -> Option<(ParseNode, bool)> {
+				let (mut node, pos) = self.start_parse("brace_multiple");
+				
+			alt! ((self, true, node, pos) {
+				once!(&mut node, self.expect(r"{"), false);
+repeat!(&mut node, inner(self), false);
+once!(&mut node, self._closing_brace(), false);
+			});
+				None
+			}
+			
 			pub fn _bracket(&mut self, inner: &ParseFun) -> Option<(ParseNode, bool)> {
 				let (mut node, pos) = self.start_parse("bracket");
 				
@@ -1489,7 +1487,7 @@ once!(&mut node, self._closing_bracket(), false);
 				let (mut node, pos) = self.start_parse("closing_paren");
 				
 			alt! ((self, true, node, pos) {
-				once!(&mut node, self.expect(r")"), true);
+				once!(&mut node, self.expect(r")"), false);
 			});
 
 			alt! ((self, true, node, pos) {
@@ -1502,7 +1500,7 @@ once!(&mut node, self._closing_bracket(), false);
 				let (mut node, pos) = self.start_parse("closing_brace");
 				
 			alt! ((self, true, node, pos) {
-				once!(&mut node, self.expect(r"}"), true);
+				once!(&mut node, self.expect(r"}"), false);
 			});
 
 			alt! ((self, true, node, pos) {
@@ -1515,7 +1513,7 @@ once!(&mut node, self._closing_bracket(), false);
 				let (mut node, pos) = self.start_parse("closing_bracket");
 				
 			alt! ((self, true, node, pos) {
-				once!(&mut node, self.expect(r"]"), true);
+				once!(&mut node, self.expect(r"]"), false);
 			});
 
 			alt! ((self, true, node, pos) {

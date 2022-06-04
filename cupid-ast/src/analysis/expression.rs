@@ -2,7 +2,7 @@ use crate::*;
 
 macro_rules! analyze_exp {
 	($method:ident) => {
-		fn $method(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+		fn $method(&mut self, scope: &mut Env) -> ASTResult<()> {
 			if let Self::Empty = self { return Ok(()) }
 			for_each_exp!(self, $method, scope)
 		}
@@ -32,9 +32,9 @@ impl UseAttributes for Exp {
 }
 
 impl TypeOf for Exp {
-	fn type_of(&self, scope: &mut Env) -> Result<Type, ASTErr> {
+	fn type_of(&self, scope: &mut Env) -> ASTResult<Cow<'_, Type>> { 
 		if let Self::Empty = self {
-			return Ok(NOTHING.to_owned())
+            return Ok((&*NOTHING).into())
 		}
 		for_each_exp!(self, type_of, scope)
 	}

@@ -5,13 +5,14 @@
 -~paren_list[inner]: '(' list[inner] closing_paren
 
 -~brace[inner]: '{' inner closing_brace
+-~brace_multiple[inner]: '{' inner* closing_brace
 
 -~bracket[inner]: '[' inner closing_bracket
 -~bracket_list[inner]: '[' list[inner] closing_bracket
 
--~closing_paren: ~')' | <e 'missing closing parenthesis'>
--~closing_brace: ~'}' | <e 'missing closing brace'>
--~closing_bracket: ~']' | <e 'missing closing bracket'>
+-~closing_paren: ')' | <e 'missing closing parenthesis'>
+-~closing_brace: '}' | <e 'missing closing brace'>
+-~closing_bracket: ']' | <e 'missing closing bracket'>
 
 - regex: '/' regex_inner '/'
 - regex_inner: !'/' ANY

@@ -3,7 +3,7 @@ use crate::*;
 impl PreAnalyze for Function {}
 
 impl Analyze for Function {
-	fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+	fn analyze_scope(&mut self, scope: &mut Env) -> ASTResult<()> {
 		self.attributes.closure = scope.add_closure(None, Context::Function);
 		scope.use_closure(self.attributes.closure);
 		
@@ -16,7 +16,7 @@ impl Analyze for Function {
 		scope.reset_closure();
 		Ok(())
 	}
-	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+	fn analyze_names(&mut self, scope: &mut Env) -> ASTResult<()> {
 		scope.use_closure(self.attributes.closure);
 		
 		for param in self.params.iter_mut() {
@@ -29,7 +29,7 @@ impl Analyze for Function {
 		scope.reset_closure();
 		Ok(())
 	}
-	fn analyze_types(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+	fn analyze_types(&mut self, scope: &mut Env) -> ASTResult<()> {
 		scope.use_closure(self.attributes.closure);
 		
 		for param in self.params.iter_mut() {
@@ -39,22 +39,22 @@ impl Analyze for Function {
 		self.body.analyze_types(scope)?;
 		self.return_type.analyze_types(scope)?;
 
-		self.body.to_typed(self.body.type_of(scope)?);
-		self.return_type.to_typed(self.return_type.type_of(scope)?);
+		self.body.to_typed(self.body.type_of(scope)?.into_owned());
+		self.return_type.to_typed(self.return_type.type_of(scope)?.into_owned());
 		
 		scope.reset_closure();
 		Ok(())
 	}
-	fn check_types(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+	fn check_types(&mut self, scope: &mut Env) -> ASTResult<()> {
 		scope.use_closure(self.attributes.closure);
 
 		let (body_type, return_type) = (
 			self.body.get_node_type()?,
 			self.return_type.get_node_type()?
 		);
-		if self.body.get_node_type()? != self.return_type.get_node_type()? {
+		if body_type != return_type {
 			scope.trace(format!("\nExpected to return: \n{return_type}Actually returned: \n{body_type}"));
-			return Err((self.return_type.source(), ERR_TYPE_MISMATCH));
+			return self.return_type.to_err(ERR_TYPE_MISMATCH)
 		}
 		scope.reset_closure();
 		Ok(())
@@ -71,7 +71,7 @@ impl UseAttributes for Function {
 }
 
 impl TypeOf for Function {
-	fn type_of(&self, scope: &mut Env) -> Result<Type, ASTErr> {
-		infer_function(self, scope)
+	fn type_of(&self, scope: &mut Env) -> ASTResult<Cow<'_, Type>> { 
+		Ok(infer_function(self, scope)?.into())
 	}
 }

@@ -13,13 +13,13 @@ pub trait PreAnalyze: UseAttributes + std::fmt::Display {
 
 #[allow(unused_variables)]
 pub trait Analyze: PreAnalyze {
-	fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), ASTErr> { 
+	fn analyze_scope(&mut self, scope: &mut Env) -> ASTResult<()> { 
 		self.attributes_mut().closure = scope.current_closure;
 		Ok(()) 
 	}
-	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), ASTErr> { Ok(()) }
-	fn analyze_types(&mut self, scope: &mut Env) -> Result<(), ASTErr> { Ok(()) }
-	fn check_types(&mut self, scope: &mut Env) -> Result<(), ASTErr> { Ok(()) }
+	fn analyze_names(&mut self, scope: &mut Env) -> ASTResult<()> { Ok(()) }
+	fn analyze_types(&mut self, scope: &mut Env) -> ASTResult<()> { Ok(()) }
+	fn check_types(&mut self, scope: &mut Env) -> ASTResult<()> { Ok(()) }
 }
 
 pub trait Interpret {

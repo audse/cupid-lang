@@ -15,8 +15,8 @@ impl Parser for GrammarParser {
 }
 
 impl GrammarParser {
-	pub fn new(name: Str, source: Cow<'static, str>, file: usize) -> Self {
-		Self { name, tokens: Self::build(source.into(), file), file }
+	pub fn new<S: Into<Cow<'static, str>>>(name: Str, source: S, file: usize) -> Self {
+		Self { name, tokens: Self::build(source, file), file }
 	}
 	
 	pub fn grammar(&mut self) -> Grammar {

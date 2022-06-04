@@ -1,18 +1,18 @@
 use crate::*;
 
-pub enum InferValue<'v> {
-	Value(&'v Value),
-	Val(&'v Val)
+pub enum InferValue<'val> {
+	Value(&'val Value),
+	Val(&'val Val)
 }
 
-impl<'v> From<&'v Value> for InferValue<'v> {
-	fn from(v: &'v Value) -> Self {
+impl<'val> From<&'val Value> for InferValue<'val> {
+	fn from(v: &'val Value) -> Self {
 		Self::Value(v)
 	}
 }
 
-impl<'v> From<&'v Val> for InferValue<'v> {
-	fn from(v: &'v Val) -> Self {
+impl<'val> From<&'val Val> for InferValue<'val> {
+	fn from(v: &'val Val) -> Self {
 		Self::Val(v)
 	}
 }
@@ -24,15 +24,9 @@ impl InferValue<'_> {
 			Self::Val(v) => v
 		}
 	}
-	fn source(&self) -> usize {
-		match self {
-			InferValue::Val(_) => 0,
-			InferValue::Value(v) => v.source()
-		}
-	}
 }
 
-pub fn infer_type<'v, V>(value: &'v V, scope: &mut Env) -> ASTResult<Type> where InferValue<'v>: From<&'v V> {
+pub fn infer_type<'val, V>(value: &'val V, scope: &mut Env) -> ASTResult<Type> where InferValue<'val>: From<&'val V>, V: ErrorContext {
 	use Val::*;
 	let val: InferValue = value.into();
 	match &val.val() {
@@ -45,7 +39,7 @@ pub fn infer_type<'v, V>(value: &'v V, scope: &mut Env) -> ASTResult<Type> where
 		Tuple(tuple) => infer_tuple(tuple, scope),
 		Function(function) => infer_function(function, scope),
 		None | BuiltinPlaceholder => get_primitive("nothing", scope),
-		_ => Err((val.source(), ERR_CANNOT_INFER))
+		_ => value.to_err(ERR_CANNOT_INFER)
 	}
 }
 
@@ -68,11 +62,10 @@ fn infer_array(array: &[Val], scope: &mut Env) -> ASTResult<Type> {
 fn infer_tuple(tuple: &[Val], scope: &mut Env) -> ASTResult<Type> {
 	let mut ident = Ident::new_name("tuple");
 
-	let types: ASTResult<Vec<Typed<Ident>>> = tuple
-		.iter()
-		.map(|t| Ok(IsTyped(Ident::default(), infer_type(t, scope)?)))
-		.collect();
-	let types = types?;
+	let mut types = vec![];
+	for item in tuple {
+		types.push(IsTyped(Ident::default(), infer_type(item, scope)?.to_owned()));
+	}
 
 	ident.attributes.generics = GenericList(types);
 	
@@ -83,7 +76,7 @@ pub fn infer_function(function: &Function, scope: &mut Env) -> ASTResult<Type> {
 	let mut ident = Ident::new_name("fun");
 	
 	let mut fields = function.params.iter().map(|p| p.into()).collect::<Vec<Field>>();
-	let return_type = function.return_type.type_of(scope)?;
+	let return_type = function.return_type.type_of(scope)?.into_owned();
 	fields.push((
 		Some("returns".into()), 
 		return_type.into()

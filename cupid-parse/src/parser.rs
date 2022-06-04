@@ -5,7 +5,7 @@ pub trait Parser {
 	fn tokens(&mut self) -> &mut BiDirectionalIterator<Token>;
 	fn file(&self) -> usize;
 	
-	fn build(source: String, file: usize) -> BiDirectionalIterator<Token> {
+	fn build<S: Into<Cow<'static, str>>>(source: S, file: usize) -> BiDirectionalIterator<Token> {
 		let mut tokenizer = Tokenizer::new(source.into(), file);
 		tokenizer.scan();
 		BiDirectionalIterator::new(tokenizer.tokens)

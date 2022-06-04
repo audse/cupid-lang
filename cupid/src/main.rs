@@ -26,7 +26,10 @@ fn main() -> Result<(), String> {
 		let mut env = Env::default();
 		match run_repl(&mut parser, &mut env) {
 			Ok(()) => (),
-			Err((src, code)) => panic!("{}", err_from_code(src, code, &mut env))
+			Err((src, code)) => {
+				eprintln!("{}", src.context(&mut env, ""));
+				panic!("{}", src.message(code));
+			}
 		}
 	} else if let Some(which) = args.generate {
         run_generator(which);
@@ -37,14 +40,14 @@ fn main() -> Result<(), String> {
 	Ok(())
 }
 
-fn run_repl(parser: &mut CupidParser, env: &mut Env) -> Result<(), (Source, ErrCode)> {
+fn run_repl(parser: &mut CupidParser, env: &mut Env) -> ASTResult<()> {
 	loop {
 		let mut line = String::new();
 		std::io::stdin().read_line(&mut line).unwrap();
 		parser.update(line.to_owned(), 1);
 		
 		let (mut parse_tree, _) = parser._expression().unwrap();
-		let mut ast = Exp::create_ast(&mut parse_tree, env).map_err(|e| (0, e))?;
+		let mut ast = Exp::create_ast(&mut parse_tree, env).map_err(|e| (Exp::Empty, e))?;
 		
 		ast.analyze_names(env)?;
 		ast.analyze_types(env)?;

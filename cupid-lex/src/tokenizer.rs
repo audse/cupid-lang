@@ -31,13 +31,14 @@ impl Tokenizer {
 		let index = if self.line_index > source.len() { 
 			self.line_index - source.len()
 		} else { 0 };
+		let end_index = index + source.len();
 		self.tokens.push(Token { 
 			source, 
 			index, 
 			line: self.line, 
 			file: self.file,
-			end_index: 0, // TODO
-			end_line: 0 // TODO
+			end_index, // TODO
+			end_line: self.line // TODO
 		});
 	}
 	pub fn current(&self) -> char { *self.chars.get(self.index).unwrap_or(&'\0') }

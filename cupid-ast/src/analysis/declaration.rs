@@ -3,12 +3,12 @@ use crate::*;
 impl PreAnalyze for Declaration {}
 
 impl Analyze for Declaration {
-	fn analyze_scope(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+	fn analyze_scope(&mut self, scope: &mut Env) -> ASTResult<()> {
 		self.type_hint.analyze_scope(scope)?;
 		self.value.analyze_scope(scope)?;
 		Ok(())
 	}
-	fn analyze_names(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+	fn analyze_names(&mut self, scope: &mut Env) -> ASTResult<()> {
 		scope.trace(quick_fmt!("Declaring variable `", self.name, "` [", self.type_hint, "]"));
 		scope.no_symbol(&self.name)?;
 		
@@ -21,16 +21,16 @@ impl Analyze for Declaration {
 		scope.set_symbol(&self.name, value);
 		self.value.analyze_names(scope)
 	}
-	fn analyze_types(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+	fn analyze_types(&mut self, scope: &mut Env) -> ASTResult<()> {
 		self.type_hint.analyze_types(scope)?;
 		self.value.analyze_types(scope)?;
 
-		self.type_hint.to_typed(self.type_hint.type_of(scope)?);
-		self.value.to_typed(self.value.type_of(scope)?);
+		self.type_hint.to_typed(self.type_hint.type_of(scope)?.into_owned());
+		self.value.to_typed(self.value.type_of(scope)?.into_owned());
 		
 		Ok(())
 	}
-	fn check_types(&mut self, scope: &mut Env) -> Result<(), ASTErr> {
+	fn check_types(&mut self, scope: &mut Env) -> ASTResult<()> {
 		self.value.check_types(scope)?;
 
 		let (expected, found) = (
@@ -39,7 +39,7 @@ impl Analyze for Declaration {
 		);
 		if expected != found {
 			scope.trace(format!("Expected type\n{expected}, found type\n{found}"));
-			return Err((self.attributes.source.unwrap(), ERR_TYPE_MISMATCH));
+			return self.to_err(ERR_TYPE_MISMATCH);
 		}
 		Ok(())
 	}

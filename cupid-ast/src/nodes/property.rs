@@ -21,3 +21,17 @@ pub enum PropertyTerm {
 impl Default for PropertyTerm {
 	fn default() -> Self { Self::Term(Box::new(Exp::Empty)) }
 }
+
+impl From<PropertyTerm> for Exp {
+	fn from(property: PropertyTerm) -> Self {
+		use PropertyTerm::*;
+		match property {
+			FunctionCall(function_call) => Exp::FunctionCall(function_call),
+			Index(i, attr) => Exp::Value(Value {
+				val: Untyped(Val::Integer(i as i32)),
+				attributes: attr
+			}),
+			Term(exp) => *exp
+		}
+	}
+}

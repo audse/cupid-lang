@@ -21,10 +21,10 @@ impl Parser for BaseParser {
 }
 
 impl BaseParser {
-	pub fn new(source: String, file: usize) -> Self {
+	pub fn new<S: Into<Cow<'static, str>>>(source: S, file: usize) -> Self {
 		Self { tokens: Self::build(source, file), file }
 	}
-	pub fn update(&mut self, source: String, file: usize) {
+	pub fn update<S: Into<Cow<'static, str>>>(&mut self, source: S, file: usize) {
 		self.tokens = Self::build(source, file);
 		self.file = file;
 	}

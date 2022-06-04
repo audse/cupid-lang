@@ -11,7 +11,7 @@ trait add [t] = [
 
 use int = [
 	sq: left int -> int,
-	pow: left int, right int -> int,
+	pow: left int, right int -> string,
 	sq_pow: left int -> int => left.sq().pow(10)
 ]
 

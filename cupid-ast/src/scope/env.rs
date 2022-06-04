@@ -73,22 +73,22 @@ impl Env {
 		self.closures.push((ident, Closure::new_child(0, context)));
 		self.closures.len() - 1
 	}
-	pub fn has_symbol(&mut self, symbol: &Ident) -> Result<(), ASTErr> {
+	pub fn has_symbol(&mut self, symbol: &Ident) -> ASTResult<()> {
 		if self.get_symbol(symbol).is_ok() {
 			Ok(())
 		} else {
 			self.trace(format!("Could not find {symbol} in the current scope: {} {}", self.current_closure, self.fmt_current()));
-			Err((symbol.src(), ERR_NOT_FOUND))
+			symbol.to_err(ERR_NOT_FOUND)
 		}
 	}
-	pub fn no_symbol(&mut self, symbol: &Ident) -> Result<(), ASTErr> {
+	pub fn no_symbol(&mut self, symbol: &Ident) -> ASTResult<()> {
 		if self.get_symbol(symbol).is_ok() {
-			Err((symbol.src(), ERR_ALREADY_DEFINED))
+			symbol.to_err(ERR_ALREADY_DEFINED)
 		} else {
 			Ok(())
 		}
 	}
-	pub fn get_symbol_from(&mut self, symbol: &Ident, closure_index: usize) -> Result<SymbolValue, ASTErr> {
+	pub fn get_symbol_from(&mut self, symbol: &Ident, closure_index: usize) -> ASTResult<SymbolValue> {
 		let closure = &mut self.closures[closure_index];
 		let parent = closure.1.parent();
 		if let Ok(value) = closure.1.get_symbol(symbol) {
@@ -98,10 +98,10 @@ impl Env {
 			self.get_symbol_from(symbol, parent_index)
 		} else {
 			self.trace(format!("Could not find {symbol} in the current scope: {} {}", self.current_closure, self.fmt_current()));
-			Err((symbol.src(), ERR_NOT_FOUND))
+			symbol.to_err(ERR_NOT_FOUND)
 		}
 	}
-	pub fn update_closure(&mut self, symbol: &Ident, closure: usize) -> Result<(), ASTErr> {
+	pub fn update_closure(&mut self, symbol: &Ident, closure: usize) -> ASTResult<()> {
 		// TODO why does this infinite loop?
 		// self.modify_symbol(symbol, |val| {
 		// 	val.attributes_mut().closure = closure;
@@ -111,5 +111,8 @@ impl Env {
 		value.value.map_mut(|a| a.attributes.closure = closure);
 		self.set_symbol(symbol, value);
 		Ok(())
+	}
+	pub fn get_source_node(&self, source: usize) -> &ParseNode {
+		&self.source_data[source]
 	}
 }

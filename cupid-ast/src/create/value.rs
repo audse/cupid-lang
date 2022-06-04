@@ -1,8 +1,9 @@
 use crate::*;
 use super::attributes;
 
+#[allow(unused_variables)]
 impl CreateAST for Val {
-	fn create_ast(node: &mut ParseNode, _scope: &mut Env) -> Result<Self, ErrCode> {
+	fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
 		let mut tokens = node.tokens.to_owned();
 		Ok(match &*node.name {
 			"boolean" => boolean(tokens.remove(0)),
