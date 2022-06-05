@@ -7,7 +7,7 @@
 	| trait_def
 	| implement_type
 	| implement_trait
-	| typed_declaration
+	| declaration
 	| break
 	| return
 	| continue
@@ -45,7 +45,8 @@
 -~brace_block: brace_multiple[expression]
 -~arrow_block: arrow expression_item
 
-- typed_declaration: type_hint 'mut'? identifier (~equal term)?
+- declaration: 'let' 'mut'? identifier (':' type_hint)? (equal term)?
+
 - assignment: identifier equal term
 
 - op_assignment: identifier operator equal term

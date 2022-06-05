@@ -1,20 +1,35 @@
 type int = []
 type dec = []
 type string = []
-type array [t] = [t]
+type array (t) = [t]
 type fun = []
-type map [k, v] = [k, v]
+type map (k, v) = [k, v]
 
-trait add [t] = [
-	add [t]: left t, right t -> t
+type person = [
+	name : string,
+	age : int,
 ]
 
-use int = [
-	sq: left int -> int,
-	pow: left int, right int -> string,
-	sq_pow: left int -> int => left.sq().pow(10)
+sum maybe (t) = [
+	yes : t,
+	no
 ]
 
-use add with int = []
+sum result (ok, err) = [
+	ok : ok,
+	err : err
+]
 
-int.sq()
+trait add (t) = [
+	add = left : t, right : t -> t,
+]
+
+implement int = [
+	pow = left : int, right : int -> int,
+	sq = left : int -> int => left.pow(2),
+]
+
+implement int + add (int) = []
+
+
+let my_num : int = 10.sq()

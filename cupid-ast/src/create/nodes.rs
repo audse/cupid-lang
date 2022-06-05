@@ -13,7 +13,7 @@ use_utils! {
 				"identifier" => create_ast!(Ident, node, scope),
 				"implement_type" | "implement_trait" => create_ast!(Implement, node, scope),
 				"property" => create_binary_op_or_ast!(Property, node, scope, Box::new(Property::create_ast(node, scope)?)),
-				"typed_declaration" => create_ast!(Declaration, node, scope),
+				"typed_declaration" | "declaration" => create_ast!(Declaration, node, scope),
 				"logic_op" | "compare_op" | "add" | "multiply" | "exponent" | "type_cast" | "group" => Exp::create_ast(node.get(0), scope),
 				"type_def" => create_ast!(TypeDef, node, scope),
 				"trait_def" => create_ast!(TraitDef, node, scope),
@@ -156,6 +156,8 @@ use_utils! {
 				BaseType::Alias
 			} else if fields_node.children.is_empty() {
 				BaseType::Primitive(ident.name.to_owned())
+			} else if &*node.token(0).source == "sum" {
+				BaseType::Sum
 			} else {
 				BaseType::Struct
 			};
@@ -193,11 +195,8 @@ use_utils! {
 	impl CreateAST for Implement {
 		fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
 			let mut types = node.get_all_named("type_hint");
-			let (for_type, for_trait) = if types.len() > 1 {
-				(Ident::create_ast(types[1], scope)?, Some(Ident::create_ast(types[0], scope)?))
-			} else {
-				(Ident::create_ast(types[0], scope)?, None)
-			};
+			let for_type = Ident::create_ast(types[0], scope)?;
+			let for_trait = types.get_mut(1).map_mut(|t| Ident::create_ast(t, scope)).invert()?;
 			let methods = node.map_children_of("methods", |method| Method::create_ast(method, scope))?;
 			Ok(Implement::build()
 				.for_type(for_type)

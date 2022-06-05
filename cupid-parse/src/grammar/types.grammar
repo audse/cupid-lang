@@ -1,20 +1,21 @@
 # depends on cupid.grammar
 
-- type_hint: identifier bracket_list[type_hint]?
+- type_hint: identifier paren_list[type_hint]?
 
-- type_def: !'is' 'type' !'of' type_hint ~equal type_value
+- type_def: type_kw type_hint ~equal type_value
+-~type_kw: 'sum' | !'is' 'type' !'of'
 
 - type_value: bracket_list[type_field] | type_hint
-- type_field: identifier type_hint | identifier
+- type_field: tagged_type | identifier
 
 - trait_def: 'trait' type_hint ~equal trait_value
 - trait_value: methods | method_function
 
-- implement_type: 'use' type_hint implement_trait? ~equal methods
--~implement_trait: 'with' type_hint
+- implement_type: 'implement' type_hint implement_trait? ~equal methods
+-~implement_trait: '+' type_hint
 - methods: bracket_list[method]
 
-- method: type_hint ':' method_function
+- method: type_hint equal method_function
 - method_function: parameters return_type function_body?
 
 - function: parameters return_type function_body
@@ -22,4 +23,6 @@
 
 -~return_type: '-' '>' type_hint 
 - parameters: '_' | list[parameter]
-- parameter: 'mut'? identifier type_hint
+- parameter: 'mut'? tagged_type
+
+-~tagged_type: identifier ':' type_hint
