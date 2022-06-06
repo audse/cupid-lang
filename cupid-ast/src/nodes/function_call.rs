@@ -2,13 +2,13 @@ use crate::*;
 
 build_struct! {
 	#[derive(Debug, Clone, PartialEq, Eq, Hash, Default, Tabled)]
-	pub FunctionCallBuilder => pub FunctionCall {
+	pub FunctionCallBuilder => pub FunctionCall<'ast> {
 
 		#[tabled(display_with = "fmt_function")]
-		pub function: Typed<(Ident, Option<Function>)>,
+		pub function: Typed<(Ident, Option<Function<'ast>>)>,
 
 		#[tabled(display_with = "fmt_vec")]
-		pub args: Vec<Typed<Exp>>,
+		pub args: Vec<Typed<Exp<'ast>>>,
 		
         #[tabled(skip)]
 		pub attributes: Attributes,

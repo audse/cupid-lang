@@ -35,8 +35,8 @@ impl TypeOf for Ident {
 		// if an ident for a type, e.g. `int`
 		let symbol_value = scope.get_symbol(self)?;
 		if let Some(value) = symbol_value.value {
-			if let Val::Type(mut type_hint) = value.val.into_inner() {
-				type_hint.unify_with(&self.attributes().generics)?;
+			if let Some(type_hint) = value.as_type_mut() {
+				type_hint = type_hint.to_owned().unify_with(&self.attributes.generics);
 				return Ok(type_hint.into());
 			}
 		}

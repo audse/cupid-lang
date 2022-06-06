@@ -9,20 +9,20 @@ macro_rules! analyze_exp {
 	};
 }
 
-impl PreAnalyze for Exp {
+impl PreAnalyze for Exp<'_> {
 	analyze_exp!(pre_analyze_scope);
 	analyze_exp!(pre_analyze_names);
 	analyze_exp!(pre_analyze_types);
 }
 
-impl Analyze for Exp {
+impl Analyze for Exp<'_> {
 	analyze_exp!(analyze_scope);
 	analyze_exp!(analyze_names);
 	analyze_exp!(analyze_types);
 	analyze_exp!(check_types);
 }
 
-impl UseAttributes for Exp {
+impl UseAttributes for Exp<'_> {
 	fn attributes(&self) -> &Attributes {
 		for_each_exp!(self, attributes)
 	}
@@ -31,7 +31,7 @@ impl UseAttributes for Exp {
 	}
 }
 
-impl TypeOf for Exp {
+impl TypeOf for Exp<'_> {
 	fn type_of(&self, scope: &mut Env) -> ASTResult<Cow<'_, Type>> { 
 		if let Self::Empty = self {
             return Ok((&*NOTHING).into())

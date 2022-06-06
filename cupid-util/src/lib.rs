@@ -45,3 +45,10 @@ impl<'a, T: 'a, R: 'a> MapMut<'a, T, R> for Option<T> {
 		self.as_mut().map(f)
 	}
 }
+
+#[macro_export]
+macro_rules! strip_plus {
+    (+ $($rest: tt)*) => {
+        $($rest)*
+    }
+}

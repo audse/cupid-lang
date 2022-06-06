@@ -2,11 +2,11 @@ use crate::*;
 
 build_struct! {
 	#[derive(Debug, PartialEq, Eq, Hash, Clone, Default, Tabled)]
-	pub TraitDefBuilder => pub TraitDef {
+	pub TraitDefBuilder => pub TraitDef<'ast> {
 		pub name: Ident,
 
 		#[tabled(display_with = "fmt_vec")]
-		pub methods: Vec<Method>,
+		pub methods: Vec<Method<'ast>>,
 
 		#[tabled(display_with = "fmt_vec")]
 		pub bounds: Vec<Ident>,
@@ -15,7 +15,7 @@ build_struct! {
 	}
 }
 
-impl From<TraitDef> for Trait {
+impl From<TraitDef<'_>> for Trait<'_> {
 	fn from(def: TraitDef) -> Self {
 		Trait::build()
 			.name(def.name)

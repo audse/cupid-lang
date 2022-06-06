@@ -26,7 +26,7 @@ impl std::ops::DerefMut for FieldSet {
 	}
 }
 
-impl From<&Declaration> for Field {
+impl From<&Declaration<'_>> for Field {
 	fn from(dec: &Declaration) -> Self {
 		(
 			Some(dec.name.name.to_owned()),

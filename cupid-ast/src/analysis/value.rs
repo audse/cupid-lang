@@ -1,37 +1,48 @@
 use crate::*;
 
-impl PreAnalyze for Value {}
+impl<T: Default> PreAnalyze for Value<T> {}
 
-impl Analyze for Value {
+impl<T: Default> Analyze for Value<T> {
 	fn analyze_scope(&mut self, scope: &mut Env) -> ASTResult<()> {
-		match self.val.inner_mut() {
-			Val::Function(function) => function.analyze_scope(scope),
-			Val::Type(type_val) => type_val.analyze_scope(scope),
-			Val::Trait(trait_val) => trait_val.analyze_scope(scope),
-			_ => Ok(())
+		if let Some(function) = self.as_function_mut() {
+			function.analyze_scope(scope)?;
 		}
+		if let Some(type_val) = self.as_type_mut() {
+			type_val.analyze_scope(scope)?;
+		}
+		if let Some(trait_val) = self.as_trait_mut() {
+			trait_val.analyze_scope(scope)?;
+		}
+		Ok(())
 	}
 	fn analyze_names(&mut self, scope: &mut Env) -> ASTResult<()> {
-    	match self.val.inner_mut() {
-			Val::Function(function) => function.analyze_names(scope),
-			Val::Type(type_val) => type_val.analyze_names(scope),
-			Val::Trait(trait_val) => trait_val.analyze_names(scope),
-			_ => Ok(())
+		if let Some(function) = self.as_function_mut() {
+			function.analyze_names(scope)?;
 		}
+		if let Some(type_val) = self.as_type_mut() {
+			type_val.analyze_names(scope)?;
+		}
+		if let Some(trait_val) = self.as_trait_mut() {
+			trait_val.analyze_names(scope)?;
+		}
+		Ok(())
 	}
 	fn analyze_types(&mut self, scope: &mut Env) -> ASTResult<()> {
-		match self.val.inner_mut() {
-			Val::Function(function) => function.analyze_types(scope)?,
-			Val::Type(type_val) => type_val.analyze_types(scope)?,
-			Val::Trait(trait_val) => trait_val.analyze_types(scope)?,
-			_ => ()
-		};
-		self.val.to_typed(self.val.type_of(scope)?.into_owned());
+		if let Some(function) = self.as_function_mut() {
+			function.analyze_types(scope)?;
+		}
+		if let Some(type_val) = self.as_type_mut() {
+			type_val.analyze_types(scope)?;
+		}
+		if let Some(trait_val) = self.as_trait_mut() {
+			trait_val.analyze_types(scope)?;
+		}
+		self.value.to_typed(self.value.type_of(scope)?.into_owned());
 		Ok(())
 	}
 }
 
-impl UseAttributes for Value {
+impl<T: Default> UseAttributes for Value<T> {
 	fn attributes(&self) -> &Attributes { 
 		&self.attributes
 	}
@@ -40,11 +51,11 @@ impl UseAttributes for Value {
 	}
 }
 
-impl TypeOf for Value {
+impl<T: Default> TypeOf for Value<T> {
 	fn type_of(&self, scope: &mut Env) -> ASTResult<Cow<'_, Type>> {
-		match &self.val {
+		match &self.value {
 			IsTyped(_, t) => Ok(t.into()),
-			Untyped(val) => Ok(infer_type(val, scope)?.into())
+			Untyped(val) => val.infer(scope)?.into()
 		}
 	}
 }

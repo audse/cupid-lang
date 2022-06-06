@@ -1,8 +1,8 @@
 use crate::*;
 
-impl PreAnalyze for Declaration {}
+impl PreAnalyze for Declaration<'_> {}
 
-impl Analyze for Declaration {
+impl Analyze for Declaration<'_> {
 	fn analyze_scope(&mut self, scope: &mut Env) -> ASTResult<()> {
 		self.type_hint.analyze_scope(scope)?;
 		self.value.analyze_scope(scope)?;
@@ -45,7 +45,7 @@ impl Analyze for Declaration {
 	}
 }
 
-impl UseAttributes for Declaration {
+impl UseAttributes for Declaration<'_> {
     fn attributes(&self) -> &Attributes {
         &self.attributes
     }
@@ -54,4 +54,4 @@ impl UseAttributes for Declaration {
     }
 }
 
-impl TypeOf for Declaration {}
+impl TypeOf for Declaration<'_> {}

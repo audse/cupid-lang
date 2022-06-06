@@ -5,19 +5,14 @@ type array (t) = [t]
 type fun = []
 type map (k, v) = [k, v]
 
-type person = [
-	name : string,
-	age : int,
+sum bool = [
+	true_,
+	false_
 ]
 
 sum maybe (t) = [
 	yes : t,
 	no
-]
-
-sum result (ok, err) = [
-	ok : ok,
-	err : err
 ]
 
 trait add (t) = [

@@ -31,7 +31,7 @@ macro_rules! create_binary_op_or_ast {
 
 #[macro_export]
 macro_rules! use_utils {
-	(impl CreateAST for $node_name:tt { $($implement_trait:item)* }) => {
+	(impl CreateAST for $node_name:ty { $($implement_trait:item)* }) => {
 		impl CreateAST for $node_name {
 			$($implement_trait)*
 		}

@@ -2,7 +2,7 @@ use crate::*;
 
 
 use_utils! {
-	impl CreateAST for Exp {
+	impl CreateAST for Exp<'_> {
 		fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
 			match &*node.name {
 				"block" => create_ast!(Block, node, scope),
@@ -24,7 +24,7 @@ use_utils! {
 }
 
 use_utils! {
-	impl CreateAST for Block {
+	impl CreateAST for Block<'_> {
 		fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
 			let attributes = attributes(node, scope)?;
 			Ok(Self {
@@ -36,7 +36,7 @@ use_utils! {
 }
 
 use_utils! {
-	impl CreateAST for Declaration {
+	impl CreateAST for Declaration<'_> {
 		fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
 			Ok(DeclarationBuilder::new()
 				.attributes(attributes(node, scope)?)
@@ -67,7 +67,7 @@ use_utils! {
 }
 
 use_utils! {
-	impl CreateAST for FunctionCall {
+	impl CreateAST for FunctionCall<'_> {
 		fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
 			Ok(FunctionCall::build()
 				.attributes(attributes(node, scope)?)
@@ -88,7 +88,7 @@ use_utils! {
 }
 
 use_utils! {
-	impl CreateAST for Function {
+	impl CreateAST for Function<'_> {
 		fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
 			let body = node
 				.get_option("function_body")
@@ -111,7 +111,7 @@ use_utils! {
 }
 
 use_utils! {
-	impl CreateAST for Property {
+	impl CreateAST for Property<'_> {
 		fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
 			Ok(PropertyBuilder::new()
 				.attributes(attributes(node, scope)?)
@@ -123,7 +123,7 @@ use_utils! {
 }
 
 use_utils! {
-	impl CreateAST for PropertyTerm {
+	impl CreateAST for PropertyTerm<'_> {
 		fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
 			Ok(match &*node.name {
 				"function_call" => PropertyTerm::FunctionCall(FunctionCall::create_ast(node, scope)?.boxed()),
@@ -147,7 +147,7 @@ use_utils! {
 }
 
 use_utils! {
-	impl CreateAST for TypeDef {
+	impl CreateAST for TypeDef<'_> {
 		fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
 			let ident = Ident::create_ast(node.get(0), scope)?;
 			let fields_node = node.get("type_value");
@@ -192,7 +192,7 @@ use_utils! {
 }
 
 use_utils! {
-	impl CreateAST for Implement {
+	impl CreateAST for Implement<'_> {
 		fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
 			let mut types = node.get_all_named("type_hint");
 			let for_type = Ident::create_ast(types[0], scope)?;
@@ -209,7 +209,7 @@ use_utils! {
 }
 
 use_utils! {
-	impl CreateAST for Method {
+	impl CreateAST for Method<'_> {
 		fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
 			Ok(Method::build()
 				.name(Ident::create_ast(node.get("type_hint"), scope)?)
@@ -220,7 +220,7 @@ use_utils! {
 }
 
 use_utils! {
-	impl CreateAST for TraitDef {
+	impl CreateAST for TraitDef<'_> {
 		fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
 			let ident = Ident::create_ast(node.get(0), scope)?;
 			let trait_value = node.get("trait_value");

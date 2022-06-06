@@ -1,6 +1,6 @@
 use crate::*;
 
-impl PreAnalyze for Method {
+impl PreAnalyze for Method<'_> {
 	fn pre_analyze_scope(&mut self, scope: &mut Env) -> ASTResult<()> {
 		let closure = scope.add_closure(
 			Some(self.name.to_owned()), 
@@ -12,7 +12,7 @@ impl PreAnalyze for Method {
 	fn pre_analyze_names(&mut self, scope: &mut Env) -> ASTResult<()> {
 		scope.set_symbol(&self.name, SymbolValue {
 			value: Some(Value { 
-				val: Untyped(Val::Function(Box::new(self.value.to_owned()))),
+				value: Untyped(self.value.to_owned()),
 				attributes: self.name.attributes.to_owned() 
 			}),
 			type_hint: TYPE.to_ident(), 
@@ -22,7 +22,7 @@ impl PreAnalyze for Method {
 	}
 }
 
-impl Analyze for Method {
+impl Analyze for Method<'_> {
 	fn analyze_scope(&mut self, scope: &mut Env) -> ASTResult<()> {
 		self.name.analyze_scope(scope)?;
 
@@ -60,7 +60,7 @@ impl Analyze for Method {
 	}
 }
 
-impl UseAttributes for Method {
+impl UseAttributes for Method<'_> {
 	fn attributes(&self) -> &Attributes { 
 		self.name.attributes() 
 	}
@@ -69,7 +69,7 @@ impl UseAttributes for Method {
 	}
 }
 
-impl TypeOf for Method {
+impl TypeOf for Method<'_> {
 	fn type_of(&self, scope: &mut Env) -> ASTResult<Cow<'_, Type>> {
 		self.value.type_of(scope)
 	}

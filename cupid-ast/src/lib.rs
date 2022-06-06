@@ -28,7 +28,7 @@ pub use diagnostics::*;
 
 pub type Source = usize;
 pub type ErrCode = usize;
-pub type ASTErr = (Exp, ErrCode);
+pub type ASTErr<'ast> = (Exp<'ast>, ErrCode);
 
 mod nodes;
 pub use nodes::*;

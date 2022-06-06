@@ -88,6 +88,16 @@ pub trait Parser {
 	}
 	
 	#[inline]
+	fn expect_parse_number(&mut self) -> Option<Token> {
+		if let Some(next) = self.tokens().peek(0) {
+			if is_number(&next.source) {
+				return self.tokens().next()
+			}
+		}
+		None
+	}
+	
+	#[inline]
 	fn expect_tag(&mut self, arg: &'static str) -> Option<(ParseNode, bool)> {
 		if !self.tokens().at_end() {
 			let file = self.file();

@@ -1,44 +1,54 @@
 use crate::*;
 use super::attributes;
 
-#[allow(unused_variables)]
-impl CreateAST for Val {
+// #[allow(unused_variables)]
+// impl CreateAST for Val {
+// 	fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
+// 		let mut tokens = node.tokens.to_owned();
+// 		Ok(match &*node.name {
+// 			"boolean" => boolean(tokens.remove(0)),
+// 			"none" => Val::None,
+// 			"char" => char(tokens),
+// 			"string" => string(tokens.remove(0)),
+// 			"decimal" => decimal(tokens),
+// 			"number" => integer(tokens.remove(0)),
+// 			_ => panic!("could not parse value: {node:?}")
+// 		})
+// 	}
+// }
+
+impl<T: Default> CreateAST for Value<T> {
 	fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
+		let attributes = attributes(node, scope)?;
 		let mut tokens = node.tokens.to_owned();
-		Ok(match &*node.name {
+		let value: T = match &*node.name {
 			"boolean" => boolean(tokens.remove(0)),
-			"none" => Val::None,
+			"none" => Nothing,
 			"char" => char(tokens),
 			"string" => string(tokens.remove(0)),
 			"decimal" => decimal(tokens),
 			"number" => integer(tokens.remove(0)),
 			_ => panic!("could not parse value: {node:?}")
-		})
-	}
-}
-
-impl CreateAST for Value {
-	fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
-		let attributes = attributes(node, scope)?;
+		};
 		Ok(Value {
-			val: Untyped(Val::create_ast(node, scope)?), 
+			value: Untyped(value), 
 			attributes
 		})
 	}
 }
 
-fn boolean(token: Token) -> Val {
+fn boolean(token: Token) -> bool {
 	match &*token.source {
-		"true" => Val::Boolean(true),
-		"false" => Val::Boolean(false),
+		"true" => true,
+		"false" => false,
 		_ => panic!("expected boolean")
 	}
 }
 
-fn char(tokens: Vec<Token>) -> Val {
+fn char(tokens: Vec<Token>) -> char {
 	let get_char = |token: &Token| token.source.chars().next().unwrap();	
 	if tokens.len() == 2 {
-		Val::Char(get_char(&tokens[1]))
+		get_char(&tokens[1])
 	} else {
 		let chars = [get_char(&tokens[1]), get_char(&tokens[2])];
 		let c = match format!("{}{}", chars[0], chars[1]).as_str() {
@@ -48,29 +58,29 @@ fn char(tokens: Vec<Token>) -> Val {
 			r"\s" => ' ',
 			c => panic!("not char: {c}")
 		};
-		Val::Char(c)
+		c
 	}
 }
 
-fn string(token: Token) -> Val {
+fn string(token: Token) -> String {
 	let mut string = token.source.to_owned();
 	if let Some(first) = string.chars().next() {
 		if is_quote(first) {
 			string = Cow::Owned(string[1..string.len()-1].to_string());
 		}
 	}
-	Val::String(string)
+	string
 }
 
-fn decimal(tokens: Vec<Token>) -> Val {
-	Val::Decimal(
+fn decimal(tokens: Vec<Token>) -> Decimal {
+	Decimal(
 		tokens[0].source.parse::<i32>().unwrap(),
 		tokens[1].source.parse::<u32>().unwrap(),
 	)
 }
 
-pub fn integer(token: Token) -> Val {
-	Val::Integer(token.source.parse::<i32>().unwrap())
+pub fn integer(token: Token) -> i32 {
+	token.source.parse::<i32>().unwrap()
 }
 
 

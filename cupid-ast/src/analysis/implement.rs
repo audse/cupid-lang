@@ -1,6 +1,6 @@
 use crate::*;
 
-impl PreAnalyze for Implement {
+impl PreAnalyze for Implement<'_> {
 	fn pre_analyze_names(&mut self, scope: &mut Env) -> ASTResult<()> {
 		let for_type = scope.get_type(&self.for_type)?;
 		let closure = for_type.attributes().closure;
@@ -24,7 +24,7 @@ impl PreAnalyze for Implement {
 	}
 }
 
-impl Analyze for Implement {
+impl Analyze for Implement<'_> {
 	fn analyze_scope(&mut self, scope: &mut Env) -> ASTResult<()> {
 		scope.use_closure(self.attributes.closure);
 		
@@ -75,7 +75,7 @@ impl Analyze for Implement {
 	}
 }
 
-impl UseAttributes for Implement {
+impl UseAttributes for Implement<'_> {
 	fn attributes(&self) -> &Attributes {
 		&self.attributes
 	}
@@ -85,7 +85,7 @@ impl UseAttributes for Implement {
 }
 
 #[allow(unused_variables)]
-impl TypeOf for Implement {
+impl TypeOf for Implement<'_> {
 	fn type_of(&self, scope: &mut Env) -> ASTResult<Cow<'_, Type>> { 
 		Ok((&*NOTHING).into())
 	}

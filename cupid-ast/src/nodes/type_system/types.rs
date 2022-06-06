@@ -5,7 +5,7 @@ pub type TypedIdent = (Str, Ident);
 
 build_struct! { 
 	#[derive(Debug, Clone, Default, Tabled)]
-	pub TypeBuilder => pub Type {
+	pub TypeBuilder => pub Type<'ast> {
 		pub name: Ident,
 		
 		pub fields: FieldSet,
@@ -14,7 +14,7 @@ build_struct! {
 		pub traits: Vec<Ident>,
 
 		#[tabled(display_with = "fmt_vec")]
-		pub methods: Vec<Method>,
+		pub methods: Vec<Method<'ast>>,
 		pub base_type: BaseType,
 	}
 }
@@ -30,19 +30,19 @@ pub enum BaseType {
 	None
 }
 
-impl PartialEq for Type {
+impl PartialEq for Type<'_> {
 	fn eq(&self, other: &Self) -> bool {
 		self.name == other.name
 	}
 }
 
-impl Eq for Type {}
+impl Eq for Type<'_> {}
 
 impl Default for BaseType {
 	fn default() -> Self { Self::None }
 }
 
-impl Hash for Type {
+impl Hash for Type<'_> {
 	fn hash<H: Hasher>(&self, state: &mut H) {
     	self.name.hash(state);
 		self.fields.hash(state);
@@ -51,7 +51,7 @@ impl Hash for Type {
 	}
 }
 
-impl Type {
+impl Type<'_> {
 	pub fn into_ident(self) -> Ident {
 		self.name
 	}
@@ -69,23 +69,17 @@ impl Type {
 	}
 }
 
-impl ToIdent for Type {
+impl ToIdent for Type<'_> {
 	fn to_ident(&self) -> Ident {
     	self.name.to_owned()
 	}
 }
 
-impl From<Type> for Val {
-	fn from(t: Type) -> Val {
-		Val::Type(t)
-	}
-}
-
-impl From<Type> for Value {
+impl From<Type<'_>> for Value<Type<'_>> {
 	fn from(t: Type) -> Self {
 		Value::build()
 			.attributes(t.attributes().to_owned())
-			.val(IsTyped(t.into(), TYPE.to_owned()))
+			.value(IsTyped(t, TYPE.to_owned()))
 			.build()
 	}
 }

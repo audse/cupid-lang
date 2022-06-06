@@ -1,8 +1,8 @@
 use crate::*;
 
-impl PreAnalyze for Property {}
+impl PreAnalyze for Property<'_> {}
 
-impl Analyze for Property {
+impl Analyze for Property<'_> {
 	fn analyze_scope(&mut self, scope: &mut Env) -> ASTResult<()> {
 		self.object.analyze_scope(scope)?;
 		self.property.analyze_scope(scope)?;
@@ -56,7 +56,7 @@ impl Analyze for Property {
 	}
 }
 
-impl UseAttributes for Property {
+impl UseAttributes for Property<'_> {
     fn attributes(&self) -> &Attributes {
         &self.attributes
     }
@@ -66,7 +66,7 @@ impl UseAttributes for Property {
 }
 
 #[allow(unused_variables)]
-impl TypeOf for Property {
+impl TypeOf for Property<'_> {
 	fn type_of(&self, scope: &mut Env) -> ASTResult<Cow<'_, Type>> { 
 		let property_type = self.property
 			.get_type()
@@ -88,9 +88,9 @@ fn is_allowed_access(object_type: &Type, property: &Typed<PropertyTerm>) -> bool
 	}
 }
 
-impl PreAnalyze for PropertyTerm {}
+impl PreAnalyze for PropertyTerm<'_> {}
 
-impl Analyze for PropertyTerm {
+impl Analyze for PropertyTerm<'_> {
 	fn analyze_scope(&mut self, scope: &mut Env) -> ASTResult<()> {
 		match self {
 			Self::Term(term) => term.analyze_scope(scope),
@@ -121,7 +121,7 @@ impl Analyze for PropertyTerm {
 	}
 }
 
-impl UseAttributes for PropertyTerm {
+impl UseAttributes for PropertyTerm<'_> {
 	fn attributes(&self) -> &Attributes {
 		match self {
 			Self::FunctionCall(function_call) => function_call.attributes(),
@@ -138,14 +138,16 @@ impl UseAttributes for PropertyTerm {
 	}
 }
 
-impl TypeOf for PropertyTerm {
+impl TypeOf for PropertyTerm<'_> {
 	fn type_of(&self, scope: &mut Env) -> ASTResult<Cow<'_, Type>> { 
     	match self {
 			Self::Term(term) => term.type_of(scope),
 			Self::FunctionCall(function_call) => function_call.type_of(scope),
-			Self::Index(i, _) => Ok(infer_type(&Val::Integer(*i as i32), scope)
+			Self::Index(i, _) => Ok(
+				i.infer(scope)
 				.map_err(|(_, e)| self.as_err(e))?
-				.into())
+				.into()
+			)
 		}
 	}
 }

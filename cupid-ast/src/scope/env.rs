@@ -1,11 +1,11 @@
 use crate::*;
 
 #[derive(Debug, Clone, Tabled)]
-pub struct Env {
-	pub global: Scope,
+pub struct Env<'scope> {
+	pub global: Scope<'scope>,
 
 	#[tabled(display_with="fmt_closures")]
-	pub closures: Vec<(Option<Ident>, Closure)>,
+	pub closures: Vec<(Option<Ident>, Closure<'scope>)>,
 
 	#[tabled(skip)]
 	pub current_closure: usize,
@@ -24,7 +24,7 @@ fn fmt_closures(closures: &[(Option<Ident>, Closure)]) -> String {
 	fmt_list!(closures, |(i, c)| format!("{} :\n{}", fmt_option!(i), c), "\n")
 }
 
-impl Default for Env {
+impl Default for Env<'_> {
 	fn default() -> Self {
     	Self {
 			global: Scope::new(Context::Global),
@@ -40,7 +40,7 @@ impl Default for Env {
 	}
 }
 
-impl Env {
+impl Env<'_> {
 	pub fn trace<S: Into<String>>(&mut self, message: S) {
 		self.traceback.push(message.into());
 	}

@@ -1,8 +1,8 @@
 use crate::*;
 
-impl PreAnalyze for Block {}
+impl PreAnalyze for Block<'_> {}
 
-impl Analyze for Block {
+impl Analyze for Block<'_> {
     fn analyze_scope(&mut self, scope: &mut Env) -> ASTResult<()> {
         for exp in self.body.iter_mut() {
             exp.analyze_scope(scope)?;
@@ -29,7 +29,7 @@ impl Analyze for Block {
     }
 }
 
-impl UseAttributes for Block {
+impl UseAttributes for Block<'_> {
     fn attributes(&self) -> &Attributes {
         &self.attributes
     }
@@ -38,7 +38,7 @@ impl UseAttributes for Block {
     }
 }
 
-impl TypeOf for Block {
+impl TypeOf for Block<'_> {
 	fn type_of(&self, scope: &mut Env) -> ASTResult<Cow<'_, Type>> { 
         if let Some(exp) = (*self.body).last() {
             exp.type_of(scope)

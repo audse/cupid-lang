@@ -1,14 +1,14 @@
 use crate::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Tabled)]
-pub struct Closure {
+pub struct Closure<'scope> {
 	#[tabled(display_with="fmt_option")]
 	pub parent: Option<usize>,
 	#[tabled(display_with="fmt_vec")]
-	pub scopes: Vec<Scope>
+	pub scopes: Vec<Scope<'scope>>
 }
 
-impl Closure {
+impl Closure<'_> {
 	pub fn new(context: Context) -> Self {
 		Self {
 			parent: None,

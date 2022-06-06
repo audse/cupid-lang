@@ -1,8 +1,8 @@
 use crate::*;
 
-impl PreAnalyze for FunctionCall {}
+impl PreAnalyze for FunctionCall<'_> {}
 
-impl Analyze for FunctionCall {
+impl Analyze for FunctionCall<'_> {
 	fn analyze_scope(&mut self, scope: &mut Env) -> ASTResult<()> {
 		self.function.0.analyze_scope(scope)?;
 		for arg in self.args.iter_mut() {
@@ -48,7 +48,7 @@ impl Analyze for FunctionCall {
 	}
 }
 
-impl UseAttributes for FunctionCall {
+impl UseAttributes for FunctionCall<'_> {
     fn attributes(&self) -> &Attributes {
         &self.attributes
     }
@@ -57,7 +57,7 @@ impl UseAttributes for FunctionCall {
     }
 }
 
-impl TypeOf for FunctionCall {
+impl TypeOf for FunctionCall<'_> {
 	fn type_of(&self, scope: &mut Env) -> ASTResult<Cow<'_, Type>> { 
 		self.function.1.as_ref().unwrap().return_type.type_of(scope)
 	}

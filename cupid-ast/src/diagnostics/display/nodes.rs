@@ -1,29 +1,29 @@
 use super::*;
 
-impl Display for Val {
-	fn fmt(&self, f: &mut Formatter) -> Result {		
-		match self {
-			Val::Array(val) | Val::Tuple(val) => write!(f, "{}", fmt_list!(val, ", ")),
-			Val::Boolean(b) => write!(f, "{b}"),
-			Val::Char(c) => write!(f, "{c}"),
-			Val::Decimal(a, b) => write!(f, "{a}.{b}"),
-			Val::Function(fun) => write!(f, "{fun}"),
-			Val::Integer(i) => write!(f, "{i}"),
-			Val::None => write!(f, "none"),
-			Val::String(s) => write!(f, "{s}"),
-			Val::Type(t) => write!(f, "{t}"),
-			Val::Trait(t) => write!(f, "{t}"),
-			Val::BuiltinPlaceholder => write!(f, "placeholder!")
-		}
-	}
-}
+// impl Display for Val {
+// 	fn fmt(&self, f: &mut Formatter) -> Result {		
+// 		match self {
+// 			Val::Array(val) | Val::Tuple(val) => write!(f, "{}", fmt_list!(val, ", ")),
+// 			Val::Boolean(b) => write!(f, "{b}"),
+// 			Val::Char(c) => write!(f, "{c}"),
+// 			Val::Decimal(a, b) => write!(f, "{a}.{b}"),
+// 			Val::Function(fun) => write!(f, "{fun}"),
+// 			Val::Integer(i) => write!(f, "{i}"),
+// 			Val::None => write!(f, "none"),
+// 			Val::String(s) => write!(f, "{s}"),
+// 			Val::Type(t) => write!(f, "{t}"),
+// 			Val::Trait(t) => write!(f, "{t}"),
+// 			Val::BuiltinPlaceholder => write!(f, "placeholder!")
+// 		}
+// 	}
+// }
 
-impl AsTable for Value {}
-impl Display for Value {
-	fn fmt(&self, f: &mut Formatter) -> Result {
-		write!(f, "{}", &*self.val)
-	}
-}
+// impl AsTable for Value {}
+// impl Display for Value {
+// 	fn fmt(&self, f: &mut Formatter) -> Result {
+// 		write!(f, "{}", &*self.val)
+// 	}
+// }
 
 impl AsTable for Attributes {}
 impl Display for Attributes {
@@ -32,8 +32,8 @@ impl Display for Attributes {
 	}
 }
 
-impl AsTable for Trait {}
-impl Display for Trait {
+impl AsTable for Trait<'_> {}
+impl Display for Trait<'_> {
 	fn fmt(&self, f: &mut Formatter) -> Result {
 		let mut table = self.as_table();
 		if self.bounds.is_empty() {
@@ -46,8 +46,8 @@ impl Display for Trait {
 	}
 }
 
-impl AsTable for Function {}
-impl Display for Function {
+impl AsTable for Function<'_> {}
+impl Display for Function<'_> {
 	fn fmt(&self, f: &mut Formatter) -> Result {
 		let func = tabled::builder::Builder::new()
 			.set_columns(0..2)
@@ -79,8 +79,8 @@ impl Display for FieldSet {
 	}
 }
 
-impl AsTable for Type {}
-impl Display for Type {
+impl AsTable for Type<'_> {}
+impl Display for Type<'_> {
 	fn fmt(&self, f: &mut Formatter) -> Result {
 		let mut table = self.as_table()
 			.with(Rotate::Left)
@@ -110,27 +110,27 @@ impl Display for Type {
 	}
 }
 
-impl AsTable for Block {}
-impl Display for Block {
+impl AsTable for Block<'_> {}
+impl Display for Block<'_> {
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
 		write!(f, "{{ {} }}", fmt_list!(self.body, "\n"))
 	}
 }
 
-impl AsTable for Declaration {}
-impl Display for Declaration {
+impl AsTable for Declaration<'_> {}
+impl Display for Declaration<'_> {
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
 		write!(f, "{}", self.as_table())
 	}
 }
 
-impl AsTable for Exp {
+impl AsTable for Exp<'_> {
 	fn as_table(&self) -> Table {
 		for_each_exp!(self, as_table)
 	}
 }
 
-impl Display for Exp {
+impl Display for Exp<'_> {
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
 		if let Exp::Empty = self {
 			write!(f, "empty")
@@ -140,22 +140,22 @@ impl Display for Exp {
 	}
 }
 
-impl AsTable for FunctionCall {}
-impl Display for FunctionCall {
+impl AsTable for FunctionCall<'_> {}
+impl Display for FunctionCall<'_> {
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
 		write!(f, "{}[{}]({})", self.function.0, fmt_option!(&self.function.1, |x| format!("({x})")), fmt_list!(self.args, ", "))
 	}
 }
 
-impl AsTable for Property {}
-impl Display for Property {
+impl AsTable for Property<'_> {}
+impl Display for Property<'_> {
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
 		write!(f, "{}.{}", self.object, self.property)
 	}
 }
 
-impl AsTable for PropertyTerm {}
-impl Display for PropertyTerm {
+impl AsTable for PropertyTerm<'_> {}
+impl Display for PropertyTerm<'_> {
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
 		match self {
 			Self::Index(index, _) => write!(f, "{index}"),
@@ -165,8 +165,8 @@ impl Display for PropertyTerm {
 	}
 }
 
-impl AsTable for Method {}
-impl Display for Method {
+impl AsTable for Method<'_> {}
+impl Display for Method<'_> {
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
 		write!(f, "{} {}", self.name, self.value)
 	}
@@ -182,28 +182,28 @@ impl Display for GenericList {
 impl AsTable for BaseType {}
 impl AsTable for Context {}
 
-impl Display for SymbolValue {
+impl Display for SymbolValue<'_> {
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
 		write!(f, "{}", fmt_option!(&self.value))
 	}
 }
 
-impl AsTable for TypeDef {}
-impl Display for TypeDef {
+impl AsTable for TypeDef<'_> {}
+impl Display for TypeDef<'_> {
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
 		write!(f, "{}", self.as_table())
 	}
 }
 
-impl AsTable for Implement {}
-impl Display for Implement {
+impl AsTable for Implement<'_> {}
+impl Display for Implement<'_> {
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
 		write!(f, "{}", self.as_table())
 	}
 }
 
-impl AsTable for TraitDef {}
-impl Display for TraitDef {
+impl AsTable for TraitDef<'_> {}
+impl Display for TraitDef<'_> {
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
 		write!(f, "{}", self.as_table())
 	}

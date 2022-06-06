@@ -1,6 +1,6 @@
 use crate::*;
 
-impl TypeBuilder {
+impl TypeBuilder<'_> {
 	pub fn name_str(mut self, name: &'static str) -> Self {
 		self.name.name = name.into();
 		self
@@ -43,24 +43,24 @@ impl TypeBuilder {
 }
 
 
-impl ValueBuilder {
-	pub fn typed_val(mut self, val: Val, val_type: Type) -> Self {
-		self.val = IsTyped(val, val_type);
-		self
-	}
-	pub fn untyped_val<V: Into<Val>>(mut self, val: V) -> Self {
-		self.val = Untyped(val.into());
-		self
-	}
-	pub fn none(mut self) -> Self {
-		self.val = IsTyped(Val::None, NOTHING.to_owned());
-		self
-	}
-	pub fn builtin(mut self) -> Self {
-		self.val = IsTyped(Val::BuiltinPlaceholder, NOTHING.to_owned());
-		self
-	}
-}
+// impl ValueBuilder {
+// 	pub fn typed_val(mut self, val: Val, val_type: Type) -> Self {
+// 		self.val = IsTyped(val, val_type);
+// 		self
+// 	}
+// 	pub fn untyped_val<V: Into<Val>>(mut self, val: V) -> Self {
+// 		self.val = Untyped(val.into());
+// 		self
+// 	}
+// 	pub fn none(mut self) -> Self {
+// 		self.val = IsTyped(Val::None, NOTHING.to_owned());
+// 		self
+// 	}
+// 	pub fn builtin(mut self) -> Self {
+// 		self.val = IsTyped(Val::BuiltinPlaceholder, NOTHING.to_owned());
+// 		self
+// 	}
+// }
 
 impl IdentBuilder {
 	pub fn one_generic(mut self, generic: Typed<Ident>) -> Self {

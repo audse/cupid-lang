@@ -1,21 +1,21 @@
 use crate::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Unwrap, Tabled)]
-pub enum Exp {
-	Block(Block),
-	Declaration(Declaration),
+pub enum Exp<'ast> {
+	Block(Block<'ast>),
+	Declaration(Declaration<'ast>),
 	Empty,
-	Function(Function),
-	FunctionCall(Box<FunctionCall>),
+	Function(Function<'ast>),
+	FunctionCall(Box<FunctionCall<'ast>>),
 	Ident(Ident),
-	Implement(Implement),
-	Property(Box<Property>),
-	TraitDef(TraitDef),
-	TypeDef(TypeDef),
-	Value(Value),
+	Implement(Implement<'ast>),
+	Property(Box<Property<'ast>>),
+	TraitDef(TraitDef<'ast>),
+	TypeDef(TypeDef<'ast>),
+	Value(BoxValue<'ast>),
 }
 
-impl Default for Exp {
+impl Default for Exp<'_> {
 	fn default() -> Self {
     	Self::Empty
 	}
