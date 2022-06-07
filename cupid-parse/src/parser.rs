@@ -162,16 +162,6 @@ pub trait Parser {
 	}
 }
 
-impl From<(Token, &'static str)> for ParseNode {
-	fn from(data: (Token, &'static str)) -> Self {
-		ParseNode {
-			name: Cow::Borrowed(data.1),
-			tokens: vec![data.0],
-			children: vec![],
-		}
-	}
-}
-
 macro_rules! add_child {
 	($pass_through:tt, $is_concealed:expr, $item:expr, $val:expr) => {
 		if $pass_through && !$is_concealed {

@@ -2,44 +2,50 @@ use crate::*;
 
 build_struct! {
 	#[derive(Debug, Clone, Default, Tabled)]
-	pub TraitBuilder => pub Trait<'ast> {
+	pub TraitBuilder => pub Trait {
 		pub name: Ident,
 		
 		#[tabled(display_with = "fmt_vec")]
-		pub methods: Vec<Method<'ast>>,
+		pub methods: Vec<Method>,
 
 		#[tabled(display_with = "fmt_vec")]
 		pub bounds: Vec<Ident>,
 	}
 }
 
-impl Trait<'_> {
+impl Trait {
 	pub fn into_ident(&self) -> Ident {
 		self.name.to_owned()
 	}
 }
 
-impl ToIdent for Trait<'_> { 
+impl ToIdent for Trait { 
 	fn to_ident(&self) -> Ident { self.name.to_owned() } 
 }
 
-impl PartialEq for Trait<'_> { 
+impl PartialEq for Trait { 
 	fn eq(&self, other: &Self) -> bool { self.name == other.name } 
 }
 
-impl Eq for Trait<'_> {}
+impl Eq for Trait {}
 
-impl Hash for Trait<'_> {
+impl Hash for Trait {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		self.name.hash(state);
 	}
 }
 
-impl From<Trait<'_>> for Value<Trait<'_>> {
+impl From<Trait> for Value {
 	fn from(t: Trait) -> Self {
-		Value::build()
-			.attributes(t.attributes().to_owned())
-			.val(IsTyped(t, TRAIT.to_owned()))
-			.build()
+		VTrait(t)
+	}
+}
+
+impl UseAttributes for Trait {
+	fn attributes(&self) -> &Attributes {
+		&self.name.attributes
+	}
+	fn attributes_mut(&mut self) -> &mut Attributes {
+		&mut self.name.attributes
 	}
 }

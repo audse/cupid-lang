@@ -1,12 +1,12 @@
 use crate::*;
 
-impl ToError for Block<'_> {
+impl ToError for Block {
 	fn as_err(&self, code: usize) -> crate::ASTErr {
 		(Exp::Block(self.to_owned()), code)
 	}
 }
 
-impl ErrorContext for Block<'_> {
+impl ErrorContext for Block {
 	fn context(&self, scope: &mut Env, source: &str) -> String {
 		let node = self.source_node(scope);
 		let (open_token, close_token) = (node.token(0), node.token(1));
@@ -47,27 +47,27 @@ impl ErrorContext for Block<'_> {
 	}
 }
 
-impl ToError for Declaration<'_> {
+impl ToError for Declaration {
 	fn as_err(&self, code: usize) -> crate::ASTErr {
 		(Exp::Declaration(self.to_owned()), code)
 	}
 }
 
 #[allow(unused_variables)]
-impl ErrorContext for Declaration<'_> {
+impl ErrorContext for Declaration {
 	fn context(&self, scope: &mut Env, source: &str) -> String {
 		self.to_string()
 	}
 }
 
-impl ToError for Exp<'_> {
+impl ToError for Exp {
 	fn as_err(&self, code: usize) -> crate::ASTErr {
 		(self.to_owned(), code)
 	}
 }
 
 #[allow(unused_variables)]
-impl ErrorContext for Exp<'_> {
+impl ErrorContext for Exp {
 	fn context(&self, scope: &mut Env, source: &str) -> String {
 		for_each_exp!(self, context, scope, source)
 	}
@@ -76,27 +76,27 @@ impl ErrorContext for Exp<'_> {
 	}
 }
 
-impl ToError for FunctionCall<'_> {
+impl ToError for FunctionCall {
 	fn as_err(&self, code: usize) -> crate::ASTErr {
 		(Exp::FunctionCall(Box::new(self.to_owned())), code)
 	}
 }
 
 #[allow(unused_variables)]
-impl ErrorContext for FunctionCall<'_> {
+impl ErrorContext for FunctionCall {
 	fn context(&self, scope: &mut Env, source: &str) -> String {
 		self.to_string()
 	}
 }
 
-impl ToError for Function<'_> {
+impl ToError for Function {
 	fn as_err(&self, code: usize) -> crate::ASTErr {
 		(Exp::Function(self.to_owned()), code)
 	}
 }
 
 #[allow(unused_variables)]
-impl ErrorContext for Function<'_> {
+impl ErrorContext for Function {
 	fn context(&self, scope: &mut Env, source: &str) -> String {
 		self.to_string()
 	}
@@ -128,92 +128,92 @@ impl ErrorContext for Ident {
 	}
 }
 
-impl ToError for Implement<'_> {
+impl ToError for Implement {
 	fn as_err(&self, code: usize) -> crate::ASTErr {
 		(Exp::Implement(self.to_owned()), code)
 	}
 }
 
 #[allow(unused_variables)]
-impl ErrorContext for Implement<'_> {
+impl ErrorContext for Implement {
 	fn context(&self, scope: &mut Env, source: &str) -> String {
 		self.to_string()
 	}
 }
 
-impl ToError for Property<'_> {
+impl ToError for Property {
 	fn as_err(&self, code: usize) -> crate::ASTErr {
 		(Exp::Property(Box::new(self.to_owned())), code)
 	}
 }
 
 #[allow(unused_variables)]
-impl ErrorContext for Property<'_> {
+impl ErrorContext for Property {
 	fn context(&self, scope: &mut Env, source: &str) -> String {
 		self.to_string()
 	}
 }
 
-impl ToError for PropertyTerm<'_> {
+impl ToError for PropertyTerm {
 	fn as_err(&self, code: usize) -> crate::ASTErr {
 		(self.to_owned().into(), code)
 	}
 }
 
 #[allow(unused_variables)]
-impl ErrorContext for PropertyTerm<'_> {
+impl ErrorContext for PropertyTerm {
 	fn context(&self, scope: &mut Env, source: &str) -> String {
 		self.to_string()
 	}
 }
 
-impl ToError for Method<'_> {
+impl ToError for Method {
 	fn as_err(&self, code: usize) -> crate::ASTErr {
 		(Exp::Function(self.to_owned().value), code)
 	}
 }
 
 #[allow(unused_variables)]
-impl ErrorContext for Method<'_> {
+impl ErrorContext for Method {
 	fn context(&self, scope: &mut Env, source: &str) -> String {
 		self.to_string()
 	}
 }
 
-impl ToError for TraitDef<'_> {
+impl ToError for TraitDef {
 	fn as_err(&self, code: usize) -> crate::ASTErr {
 		(Exp::TraitDef(self.to_owned()), code)
 	}
 }
 
 #[allow(unused_variables)]
-impl ErrorContext for TraitDef<'_> {
+impl ErrorContext for TraitDef {
 	fn context(&self, scope: &mut Env, source: &str) -> String {
 		self.to_string()
 	}
 }
 
-impl ToError for TypeDef<'_> {
+impl ToError for TypeDef {
 	fn as_err(&self, code: usize) -> crate::ASTErr {
 		(Exp::TypeDef(self.to_owned()), code)
 	}
 }
 
 #[allow(unused_variables)]
-impl ErrorContext for TypeDef<'_> {
+impl ErrorContext for TypeDef {
 	fn context(&self, scope: &mut Env, source: &str) -> String {
 		self.to_string()
 	}
 }
 
-impl<T: Default> ToError for Value<T> {
+impl ToError for Value {
 	fn as_err(&self, code: usize) -> crate::ASTErr {
 		(Exp::Value(self.to_owned()), code)
 	}
 }
 
 #[allow(unused_variables)]
-impl<T: Default> ErrorContext for Value<T> {
+impl ErrorContext for Value {
 	fn context(&self, scope: &mut Env, source: &str) -> String {
 		self.to_string()
 	}

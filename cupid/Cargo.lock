@@ -303,6 +303,7 @@ dependencies = [
  "clap 3.1.9",
  "colored",
  "criterion",
+ "cupid_analysis",
  "cupid_ast",
  "cupid_lex",
  "cupid_parse",
@@ -317,12 +318,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "cupid_analysis"
+version = "0.1.0"
+dependencies = [
+ "colored",
+ "cupid_ast",
+ "cupid_lex",
+ "cupid_util",
+ "derive_more",
+ "lazy_static",
+ "tabled",
+]
+
+[[package]]
 name = "cupid_ast"
 version = "0.1.0"
 dependencies = [
  "colored",
  "cupid_lex",
- "cupid_parse",
  "cupid_util",
  "derive_more",
  "lazy_static",
@@ -334,6 +347,7 @@ name = "cupid_lex"
 version = "0.1.0"
 dependencies = [
  "colored",
+ "cupid_util",
  "serde",
 ]
 
@@ -341,14 +355,18 @@ dependencies = [
 name = "cupid_parse"
 version = "0.1.0"
 dependencies = [
+ "cupid_ast",
  "cupid_lex",
  "cupid_util",
- "serde",
 ]
 
 [[package]]
 name = "cupid_util"
 version = "0.1.0"
+dependencies = [
+ "colored",
+ "tabled",
+]
 
 [[package]]
 name = "derive_more"

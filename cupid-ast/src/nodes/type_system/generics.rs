@@ -12,14 +12,11 @@ impl GenericList {
 			if scope.get_type(generic).is_err() {
 				// TODO is this right
 				scope.set_symbol(generic, SymbolValue { 
-					value: Some(Value::build()
-						.value(Untyped(Type::build()
+					value: Some(VType(Type::build()
 							.name(generic.to_owned().into_inner())
 							.build()
-						))
-						.attributes(generic.attributes.to_owned())
-						.build()),
-					type_hint: TYPE.to_ident(), 
+						)),
+					type_hint: type_type().into_ident(), 
 					mutable: false 
 				})
 			}

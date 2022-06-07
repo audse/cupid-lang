@@ -1,11 +1,11 @@
 use crate::*;
 
 #[derive(Debug, Clone, Tabled)]
-pub struct Env<'scope> {
-	pub global: Scope<'scope>,
+pub struct Env {
+	pub global: Scope,
 
 	#[tabled(display_with="fmt_closures")]
-	pub closures: Vec<(Option<Ident>, Closure<'scope>)>,
+	pub closures: Vec<(Option<Ident>, Closure)>,
 
 	#[tabled(skip)]
 	pub current_closure: usize,
@@ -16,6 +16,9 @@ pub struct Env<'scope> {
 	#[tabled(skip)]
 	pub source_data: Vec<ParseNode>,
 
+	#[tabled(skip)]
+	pub token_data: Vec<Vec<Token>>,
+
 	#[tabled(display_with="fmt_vec")]
 	pub traceback: Vec<String>,
 }
@@ -24,7 +27,7 @@ fn fmt_closures(closures: &[(Option<Ident>, Closure)]) -> String {
 	fmt_list!(closures, |(i, c)| format!("{} :\n{}", fmt_option!(i), c), "\n")
 }
 
-impl Default for Env<'_> {
+impl Default for Env {
 	fn default() -> Self {
     	Self {
 			global: Scope::new(Context::Global),
@@ -35,12 +38,13 @@ impl Default for Env<'_> {
 			current_closure: 0,
 			prev_closures: vec![0],
 			source_data: vec![],
+			token_data: vec![],
 			traceback: vec![],
 		}
 	}
 }
 
-impl Env<'_> {
+impl Env {
 	pub fn trace<S: Into<String>>(&mut self, message: S) {
 		self.traceback.push(message.into());
 	}
@@ -108,7 +112,7 @@ impl Env<'_> {
 		// 	Ok(())
 		// })
 		let mut value = self.get_symbol(symbol)?;
-		value.value.map_mut(|a| a.attributes.closure = closure);
+		value.value.map_mut(|a| a.attributes_mut().closure = closure);
 		self.set_symbol(symbol, value);
 		Ok(())
 	}

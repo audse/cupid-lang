@@ -1,8 +1,8 @@
 use crate::*;
 
-impl PreAnalyze for Type<'_> {}
+impl PreAnalyze for Type {}
 
-impl Analyze for Type<'_> {
+impl Analyze for Type {
 	fn analyze_scope(&mut self, scope: &mut Env) -> ASTResult<()> {
 		let closure = scope.add_isolated_closure(Some(self.name.to_owned()), Context::Type);
 		self.attributes_mut().closure = closure;
@@ -67,14 +67,5 @@ impl Analyze for Type<'_> {
 		}
 		scope.reset_closure();
 		Ok(())
-	}
-}
-
-impl UseAttributes for Type<'_> {
-	fn attributes(&self) -> &Attributes { 
-		self.name.attributes() 
-	}
-	fn attributes_mut(&mut self) -> &mut Attributes { 
-		self.name.attributes_mut() 
 	}
 }

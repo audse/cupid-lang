@@ -1,21 +1,21 @@
 use crate::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Unwrap, Tabled)]
-pub enum Exp<'ast> {
-	Block(Block<'ast>),
-	Declaration(Declaration<'ast>),
+pub enum Exp {
+	Block(Block),
+	Declaration(Declaration),
 	Empty,
-	Function(Function<'ast>),
-	FunctionCall(Box<FunctionCall<'ast>>),
+	Function(Function),
+	FunctionCall(Box<FunctionCall>),
 	Ident(Ident),
-	Implement(Implement<'ast>),
-	Property(Box<Property<'ast>>),
-	TraitDef(TraitDef<'ast>),
-	TypeDef(TypeDef<'ast>),
-	Value(BoxValue<'ast>),
+	Implement(Implement),
+	Property(Box<Property>),
+	TraitDef(TraitDef),
+	TypeDef(TypeDef),
+	Value(Value),
 }
 
-impl Default for Exp<'_> {
+impl Default for Exp {
 	fn default() -> Self {
     	Self::Empty
 	}
@@ -38,4 +38,13 @@ macro_rules! for_each_exp {
 			_ => panic!("unexpected expression: {:?}", $s)
 		}
 	};
+}
+
+impl UseAttributes for Exp {
+	fn attributes(&self) -> &Attributes {
+		for_each_exp!(self, attributes)
+	}
+	fn attributes_mut(&mut self) -> &mut Attributes {
+		for_each_exp!(self, attributes_mut)
+	}
 }

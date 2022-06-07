@@ -2,74 +2,64 @@ use crate::*;
 
 build_struct! {
 	#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Tabled)]
-	pub SymbolValueBuilder => pub SymbolValue<'val> {
+	pub SymbolValueBuilder => pub SymbolValue {
 		
 		#[tabled(display_with = "fmt_option")]
-		pub value: Option<BoxValue<'val>>,
+		pub value: Option<Value>,
 		pub type_hint: Ident,
 		pub mutable: bool,
 	}
 }
 
-impl<'val> SymbolValueBuilder<'val> {
-	pub fn from_type<T: ToOwned<Owned = T> + UseAttributes + ToIdent + Into<BoxValue<'val>>>(mut self, type_val: T) -> Self {
-		self.type_hint = type_val.to_ident();
-		self.value = Some(type_val.into());
-		self
-	}
-}
-
-impl SymbolValue<'_> {
+impl SymbolValue {
 	pub fn as_type(&self) -> ASTResult<Type> {
 		let value = self.value.as_ref().unwrap();
-		if let Some(type_hint) = &**value.value.as_type() {
-			return Ok(type_hint.to_owned());
+		match value {
+			VType(type_val) => Ok(type_val.to_owned()),
+			x => x.to_err(ERR_EXPECTED_TYPE)
 		}
-		value.to_err(ERR_EXPECTED_TYPE)
 	}
 	pub fn as_function(&self) -> ASTResult<Function> {
 		let value = self.value.as_ref().unwrap();
-		if let Some(function) = &**value.value.as_function() {
-			return Ok(function.to_owned());
+		match value {
+			VFunction(function) => Ok(*function.to_owned()),
+			x => x.to_err(ERR_EXPECTED_FUNCTION)
 		}
-		value.to_err(ERR_EXPECTED_FUNCTION)
 	}
 	pub fn as_function_mut(&mut self) -> ASTResult<&mut Function> {
 		let value = self.value.as_mut().unwrap();
-		if let Some(function) = &**value.value.as_function_mut() {
-			return Ok(function.to_owned());
-		} else {
-			value.to_err(ERR_EXPECTED_FUNCTION)
+		match value {
+			VFunction(function) => Ok(&mut *function),
+			x => x.to_err(ERR_EXPECTED_FUNCTION)
 		}
 	}
 	pub fn as_trait(&self) -> ASTResult<Trait> {
 		let value = self.value.as_ref().unwrap();
-		if let Some(trait_val) = &**value.value.as_trait() {
-			return Ok(trait_val.to_owned());
+		match value {
+			VTrait(trait_val) => Ok(trait_val.to_owned()),
+			x => x.to_err(ERR_EXPECTED_TRAIT)
 		}
-		value.to_err(ERR_EXPECTED_TRAIT)
 	}
 	pub fn as_trait_mut(&mut self) -> ASTResult<&mut Trait> {
 		let value = self.value.as_mut().unwrap();
-		if let Some(trait_val) = &**value.value.as_trait_mut() {
-			return Ok(trait_val.to_owned());
-		} else {
-			value.to_err(ERR_EXPECTED_TRAIT)
+		match value {
+			VTrait(trait_val) => Ok(trait_val),
+			x => x.to_err(ERR_EXPECTED_TRAIT)
 		}
 	}
 }
 
-impl UseAttributes for SymbolValue<'_> {
+impl UseAttributes for SymbolValue {
     fn attributes(&self) -> &Attributes {
 		if let Some(value) = &self.value {
-			&value.attributes
+			value.attributes()
 		} else {
 			&self.type_hint.attributes
 		}
     }
 	fn attributes_mut(&mut self) -> &mut Attributes {
 		if let Some(value) = &mut self.value {
-			&mut value.attributes
+			value.attributes_mut()
 		} else {
 			&mut self.type_hint.attributes
 		}

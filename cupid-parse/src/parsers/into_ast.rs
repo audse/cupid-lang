@@ -1,48 +1,35 @@
 use crate::*;
 
 pub trait IntoAST {
-	fn into_ast(parser: &mut impl Parser) -> Option<Self> where Self: Sized;
-}
-
-build_struct! {
-	#[derive(Debug, Clone, Default)]
-	pub ValueBuilder => pub Value <T: Default + Clone> {
-		pub val: T,
-		pub tokens: Vec<Token>,
-	}
-}
-
-impl<T: Default + Clone> ValueBuilder<T> {
-	fn token(self, t: Token) -> Self {
-		self.tokens(vec![t])
-	}
+	fn into_ast(parser: &mut impl Parser, scope: &mut Env) -> Option<Self> where Self: Sized;
 }
 
 macro_rules! parse_alt {
-	($parser:tt => $b:block) => {{
+	($parser:tt $(, $tokens:ident)? => $b:block) => {{
 		let pos = $parser.tokens().index();
 		$b
 		$parser.tokens().goto(pos);
 	}}
 }
 
-impl IntoAST for Value<i32> {
-	fn into_ast(parser: &mut impl Parser) -> Option<Self> {
-		let value = Value::build();
+pub fn attr(tokens: Vec<Token>, scope: &mut Env) -> Attributes {
+	scope.token_data.push(tokens);
+	let generics = vec![];
+	Attributes::build()
+		.source(Some(scope.token_data.len() - 1))
+		.generics(GenericList(generics))
+		.build()
+}
+
+impl IntoAST for Value {
+	fn into_ast(parser: &mut impl Parser, scope: &mut Env) -> Option<Self> {
 		parse_alt!(parser => {
 			if let Some(val_token) = parser.expect_parse_number() {
-				return Some(value
-					.val(val_token.source().parse::<i32>().unwrap())
-					.token(val_token)
-					.build());
+				let int = val_token.source().parse::<i32>().unwrap();
+				let attr = attr(vec![val_token], scope);
+				return Some(VInteger(int, attr))
 			}
 		});
 		None
-	}
-}
-
-impl IntoAST for Value<String> {
-	fn into_ast(parser: &mut impl Parser) -> Option<Self> {
-		todo!()
 	}
 }

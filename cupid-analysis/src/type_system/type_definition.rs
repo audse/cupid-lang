@@ -1,6 +1,6 @@
 use crate::*;
 
-impl PreAnalyze for TypeDef<'_> {
+impl PreAnalyze for TypeDef {
 	fn pre_analyze_scope(&mut self, scope: &mut Env) -> ASTResult<()> {
 		let closure = scope.add_isolated_closure(Some(self.name.to_owned()), Context::Type);
 		self.attributes_mut().closure = closure;
@@ -8,15 +8,10 @@ impl PreAnalyze for TypeDef<'_> {
 	}
 	fn pre_analyze_names(&mut self, scope: &mut Env) -> ASTResult<()> {
 		scope.no_symbol(&self.name)?;
-
-		let type_value = Value {
-			value: IsTyped(self.to_owned().into(), TYPE.to_owned()),
-			attributes: self.attributes().to_owned()
-		};
-		
+				
 		let symbol_value = SymbolValue {
-			value: Some(type_value),
-			type_hint: TYPE.to_ident(),
+			value: Some(VType(self.to_owned().into())),
+			type_hint: type_type().to_ident(),
 			mutable: false
 		};
 
@@ -26,7 +21,7 @@ impl PreAnalyze for TypeDef<'_> {
 	}
 }
 
-impl Analyze for TypeDef<'_> {
+impl Analyze for TypeDef {
 	fn analyze_scope(&mut self, scope: &mut Env) -> ASTResult<()> {
 		self.name.analyze_scope(scope)?;
 		Ok(())
@@ -43,13 +38,4 @@ impl Analyze for TypeDef<'_> {
 	}
 }
 
-impl UseAttributes for TypeDef<'_> {
-	fn attributes(&self) -> &Attributes {
-		&self.name.attributes
-	}
-	fn attributes_mut(&mut self) -> &mut Attributes {
-		&mut self.name.attributes
-	}
-}
-
-impl TypeOf for TypeDef<'_> {}
+impl TypeOf for TypeDef {}

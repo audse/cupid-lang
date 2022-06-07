@@ -91,3 +91,7 @@ macro_rules! quick_fmt_str {
 		format!("{}", $e)
 	};
 }
+
+pub fn fmt_option<T: std::fmt::Display>(opt: &Option<T>) -> String {
+	fmt_option!(opt)
+}

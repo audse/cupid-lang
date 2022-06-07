@@ -24,6 +24,7 @@ cupid_util = { version = "0.1.0", path = '../cupid-util' }
 cupid_lex = { version = "0.1.0", path = '../cupid-lex' }
 cupid_parse = { version = "0.1.0", path = '../cupid-parse' }
 cupid_ast = { version = "0.1.0", path = '../cupid-ast' }
+cupid_analysis = { version = "0.1.0", path = '../cupid-analysis' }
 
 [dev-dependencies]
 criterion = "0.3"

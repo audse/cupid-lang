@@ -74,18 +74,9 @@ impl<T: Default + std::fmt::Debug> Typed<T> {
 
 impl Typed<Ident> {
 	pub fn nothing() -> Self {
-		let nothing = NOTHING.to_owned();
-		let nothing_ident = nothing.to_owned().into_ident();
+		let nothing = nothing_type();
+		let nothing_ident = nothing_type().into_ident();
 		Self::Typed(nothing_ident, nothing)
-	}
-}
-
-impl TypeOf for Typed<Ident> {
-	fn type_of(&self, scope: &mut Env) -> ASTResult<Cow<'_, Type>> { 
-		match self {
-			Self::Typed(_, t) => Ok(t.into()),
-			Self::Untyped(v) => v.type_of(scope)
-		}
 	}
 }
 

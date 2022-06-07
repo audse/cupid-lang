@@ -1,8 +1,3 @@
-pub use lazy_static::lazy_static;
-
-mod type_definition;
-pub use type_definition::*;
-
 mod inference;
 pub use inference::*;
 
@@ -14,6 +9,12 @@ pub use trait_definition::*;
 
 mod traits;
 pub use traits::*;
+
+mod type_definition;
+pub use type_definition::*;
+
+mod type_of;
+pub use type_of::*;
 
 mod types;
 pub use types::*;

@@ -1,43 +1,63 @@
 // Requires impl ToOwned + derive Default
 
+/*$(<
+				$($life:lifetime),* 
+				$($generic:ident $(: $($bound:ident $( + $others:ident)*)?)?),*
+
+				...
+
+
+				$(<$($life),* $($generic $(: $($bound $( + $others)*)?)?),*>)?
+			>)?*/
+
+pub trait Builder: Default + ToOwned<Owned = Self> {
+	type Struct;
+	fn new() -> Self {
+		Self::default()
+	}
+	fn build() -> Self::Struct;
+}
+
 #[macro_export]
 macro_rules! build_struct {
 	( 
 		$(#[$derive:meta])?
-		$bv:vis $builder_name:ident => $v:vis $struct_name:ident 
-			$(<$($life:lifetime),* $($generic:ident $(: $($bound:ident $( + $others:tt)*)?)?),*>)? {
+		$bv:vis $builder_name:ident => $v:vis 
+		$struct_name:ident $(< $( $lt:tt $( : $clt:tt $(+ $dlt:tt )* )? ),+ >)?
+		
+			 {
 		$( 
 			$(#[$fderive:meta])?
 			$fv:vis $field:ident : $t:ty
 		),* $(,)?
 	}) => {
 		$(#[$derive])?
-		$v struct $struct_name $(<$($life),* $($generic $(: $($bound $( + $others)*)?)?),*>)? {
+		$v struct $struct_name $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? {
 			$( 
 				$(#[$fderive])?
 				$fv $field: $t 
 			),*
 		}
 		$(#[$derive])?
-		$bv struct $builder_name $(<$($life),* $($generic $(: $($bound $( + $others)*)?)?),*>)?  {
+		$bv struct $builder_name $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)?  {
 			$( 
 				$(#[$fderive])?
 				$fv $field: $t 
 			),*
 		}
 
-		impl $(<$($life),* $($generic $(: $($bound $( + $others)*)?)?),*>)? $struct_name $(<$($life),* $($generic),*>)? {
-			pub fn build() -> $builder_name $(<$($life),* $($generic),*>)? {
+		impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? $struct_name $(< $( $lt ),+ >)? {
+			pub fn build() -> $builder_name $(< $( $lt ),+ >)? {
 				$builder_name::new()
 			}
 		}
 		
-		impl $(<$($life),* $($generic $(: $($bound $( + $others)*)?)?),*>)? $builder_name $(<$($life),* $($generic),*>)? {
+		impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? $builder_name $(< $( $lt ),+ >)? {
 			pub fn new() -> Self {
 				Self::default()
 			}
-			pub fn build(self) -> $struct_name $(<$($life),* $($generic),*>)? {
-				$struct_name $(::<$($generic),*>)? {
+			pub fn build(self) -> $struct_name $(< $( $lt ),+ >)? {
+				$struct_name {
 					$( $field: self.$field ),*
 				}
 			}
@@ -49,17 +69,17 @@ macro_rules! build_struct {
 			)*
 		}
 			
-		impl $(<$($life),* $($generic $(: $($bound $( + $others)*)?)?),*>)? From<$struct_name $(<$($life),* $($generic),*>)?> for $builder_name $(<$($life),* $($generic),*>)? {
-			fn from(s: $struct_name $(<$($life),* $($generic),*>)?) -> Self {
-				$builder_name $(::<$($generic),*>)? {
+		impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? From<$struct_name$(< $( $lt ),+ >)?> for $builder_name $(< $( $lt ),+ >)? {
+			fn from(s: $struct_name $(< $( $lt ),+ >)? ) -> Self {
+				$builder_name$(::< $( $lt ),+ >)?  {
 					$( $field: s.$field ),*
 				}
 			}
 		}
 			
-		impl $(<$($life),* $($generic $(: $($bound $( + $others)*)?)?),*>)? From<&$struct_name $(<$($life),* $($generic),*>)?> for $builder_name $(<$($life),* $($generic),*>)? {
-			fn from(s: &$struct_name $(<$($life),* $($generic),*>)?) -> Self {
-				$builder_name $(::<$($generic),*>)? {
+		impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? From<&$builder_name$(< $( $lt ),+ >)?> for $struct_name $(< $( $lt ),+ >)? {
+			fn from(s: &$builder_name $(< $( $lt ),+ >)? ) -> Self {
+				$struct_name$(::< $( $lt ),+ >)? {
 					$( $field: s.$field.to_owned() ),*
 				}
 			}

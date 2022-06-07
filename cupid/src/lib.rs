@@ -17,6 +17,7 @@ pub use cupid_lex::*;
 pub use cupid_parse::*;
 pub use cupid_util::*;
 pub use cupid_ast::*;
+pub use cupid_analysis::*;
 
 mod file_handler;
 pub use file_handler::FileHandler;

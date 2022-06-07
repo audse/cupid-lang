@@ -47,3 +47,12 @@ impl Hash for Ident {
 pub trait ToIdent {
 	fn to_ident(&self) -> Ident;
 }
+
+impl UseAttributes for Ident {
+    fn attributes(&self) -> &Attributes {
+        &self.attributes
+    }
+    fn attributes_mut(&mut self) -> &mut Attributes {
+        &mut self.attributes
+    }
+}

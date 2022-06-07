@@ -1,28 +1,6 @@
 use std::borrow::Cow;
-use std::ops::{Deref, DerefMut};
 
-pub struct CowStr(Cow<'static, str>);
-impl Deref for CowStr {
-	type Target = Cow<'static, str>;
-	fn deref(&self) -> &Self::Target {
-		&self.0
-	}
-}
-
-impl DerefMut for CowStr {
-	fn deref_mut(&mut self) -> &mut Self::Target {
-		&mut self.0
-	}
-}
-
-impl CowStr {
-	pub fn borrow(s: &'static str) -> Self {
-		Self(Cow::Borrowed(s))
-	}
-	pub fn own(s: String) -> Self {
-		Self(Cow::Owned(s))
-	}
-}
+pub type Str = Cow<'static, str>;
 
 pub fn pluralize<N, S>(number: N, word: S) -> String where N: Into<usize>, S: Into<String> {
 	let num: usize = number.into();

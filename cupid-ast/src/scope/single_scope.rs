@@ -1,13 +1,13 @@
 use crate::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Tabled)]
-pub struct Scope<'scope> {
+pub struct Scope {
 	pub context: Context,
 	#[tabled(display_with="fmt_map")]
-	pub symbols: HashMap<Ident, SymbolValue<'scope>>,
+	pub symbols: HashMap<Ident, SymbolValue>,
 }
 
-impl Scope<'_> {
+impl Scope {
 	pub fn new(context: Context) -> Self {
 		Self {
 			context,

@@ -7,5 +7,5 @@ edition = "2021"
 
 [dependencies]
 cupid_lex = { version = "0.1.0", path = '../cupid-lex' }
+cupid_ast = { version = "0.1.0", path = '../cupid-ast' }
 cupid_util = { version = "0.1.0", path = '../cupid-util' }
-serde = { version = "1.0", features = ["derive"] }

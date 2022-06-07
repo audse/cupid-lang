@@ -1,11 +1,10 @@
 use crate::*;
 
-pub type Str = Cow<'static, str>;
 pub type TypedIdent = (Str, Ident);
 
 build_struct! { 
 	#[derive(Debug, Clone, Default, Tabled)]
-	pub TypeBuilder => pub Type<'ast> {
+	pub TypeBuilder => pub Type {
 		pub name: Ident,
 		
 		pub fields: FieldSet,
@@ -14,7 +13,7 @@ build_struct! {
 		pub traits: Vec<Ident>,
 
 		#[tabled(display_with = "fmt_vec")]
-		pub methods: Vec<Method<'ast>>,
+		pub methods: Vec<Method>,
 		pub base_type: BaseType,
 	}
 }
@@ -30,19 +29,19 @@ pub enum BaseType {
 	None
 }
 
-impl PartialEq for Type<'_> {
+impl PartialEq for Type {
 	fn eq(&self, other: &Self) -> bool {
 		self.name == other.name
 	}
 }
 
-impl Eq for Type<'_> {}
+impl Eq for Type {}
 
 impl Default for BaseType {
 	fn default() -> Self { Self::None }
 }
 
-impl Hash for Type<'_> {
+impl Hash for Type {
 	fn hash<H: Hasher>(&self, state: &mut H) {
     	self.name.hash(state);
 		self.fields.hash(state);
@@ -51,7 +50,7 @@ impl Hash for Type<'_> {
 	}
 }
 
-impl Type<'_> {
+impl Type {
 	pub fn into_ident(self) -> Ident {
 		self.name
 	}
@@ -69,17 +68,42 @@ impl Type<'_> {
 	}
 }
 
-impl ToIdent for Type<'_> {
+impl ToIdent for Type {
 	fn to_ident(&self) -> Ident {
     	self.name.to_owned()
 	}
 }
 
-impl From<Type<'_>> for Value<Type<'_>> {
+impl From<Type> for Value{
 	fn from(t: Type) -> Self {
-		Value::build()
-			.attributes(t.attributes().to_owned())
-			.value(IsTyped(t, TYPE.to_owned()))
-			.build()
+		VType(t)
 	}
 }
+
+impl UseAttributes for Type {
+	fn attributes(&self) -> &Attributes { 
+		self.name.attributes() 
+	}
+	fn attributes_mut(&mut self) -> &mut Attributes { 
+		self.name.attributes_mut() 
+	}
+}
+
+impl From<Type> for std::borrow::Cow<'_, Type> {
+	fn from(t: Type) -> Self {
+		std::borrow::Cow::Owned(t)
+	}
+}
+
+impl<'t> From<&'t Type> for std::borrow::Cow<'t, Type> {
+	fn from(t: &'t Type) -> Self {
+		std::borrow::Cow::Borrowed(t)
+	}
+}
+
+impl<'t> From<&'t mut Type> for std::borrow::Cow<'t, Type> {
+	fn from(t: &'t mut Type) -> Self {
+		std::borrow::Cow::Borrowed(t)
+	}
+}
+

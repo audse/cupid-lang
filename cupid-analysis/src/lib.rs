@@ -1,3 +1,5 @@
+pub use cupid_ast::*;
+
 mod ast;
 pub use ast::*;
 

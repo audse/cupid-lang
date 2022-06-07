@@ -1,4 +1,5 @@
 #![feature(explicit_generic_args_with_impl_trait)]
+#![feature(associated_type_bounds)]
 pub use std::collections::HashMap;
 pub use std::borrow::Cow;
 use std::hash::{
@@ -13,22 +14,15 @@ pub use colored::Colorize;
 pub use cupid_lex::{
 	Error,
 	Token,
+	ParseNode,
 };
-pub use cupid_parse::ParseNode;
 pub use cupid_util::*;
 
-mod analysis;
-pub use analysis::*;
-
-mod create;
-pub use create::*;
+pub type Source = usize;
+pub type ASTErr = (Exp, ErrCode);
 
 mod diagnostics;
 pub use diagnostics::*;
-
-pub type Source = usize;
-pub type ErrCode = usize;
-pub type ASTErr<'ast> = (Exp<'ast>, ErrCode);
 
 mod nodes;
 pub use nodes::*;

@@ -1,8 +1,8 @@
 use crate::*;
 
-impl PreAnalyze for Function<'_> {}
+impl PreAnalyze for Function {}
 
-impl Analyze for Function<'_> {
+impl Analyze for Function {
 	fn analyze_scope(&mut self, scope: &mut Env) -> ASTResult<()> {
 		self.attributes.closure = scope.add_closure(None, Context::Function);
 		scope.use_closure(self.attributes.closure);
@@ -61,17 +61,8 @@ impl Analyze for Function<'_> {
 	}
 }
 
-impl UseAttributes for Function<'_> {
-    fn attributes(&self) -> &Attributes {
-        &self.attributes
-    }
-    fn attributes_mut(&mut self) -> &mut Attributes {
-        &mut self.attributes
-    }
-}
-
-impl TypeOf for Function<'_> {
-	fn type_of(&self, scope: &mut Env) -> ASTResult<Cow<'_, Type>> { 
+impl TypeOf for Function {
+	fn type_of(&self, scope: &mut Env) -> ASTResult<Cow<Type>> { 
 		Ok(infer_function(self, scope)?.into())
 	}
 }

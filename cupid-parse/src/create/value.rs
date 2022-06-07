@@ -1,38 +1,20 @@
 use crate::*;
 use super::attributes;
 
-// #[allow(unused_variables)]
-// impl CreateAST for Val {
-// 	fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
-// 		let mut tokens = node.tokens.to_owned();
-// 		Ok(match &*node.name {
-// 			"boolean" => boolean(tokens.remove(0)),
-// 			"none" => Val::None,
-// 			"char" => char(tokens),
-// 			"string" => string(tokens.remove(0)),
-// 			"decimal" => decimal(tokens),
-// 			"number" => integer(tokens.remove(0)),
-// 			_ => panic!("could not parse value: {node:?}")
-// 		})
-// 	}
-// }
-
-impl<T: Default> CreateAST for Value<T> {
+impl CreateAST for Value {
 	fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
 		let attributes = attributes(node, scope)?;
-		let mut tokens = node.tokens.to_owned();
-		let value: T = match &*node.name {
-			"boolean" => boolean(tokens.remove(0)),
-			"none" => Nothing,
-			"char" => char(tokens),
-			"string" => string(tokens.remove(0)),
-			"decimal" => decimal(tokens),
-			"number" => integer(tokens.remove(0)),
+		Ok(match &*node.name {
+			"boolean" => VBoolean(boolean(node.token(0)), attributes),
+			"none" => VNone(attributes),
+			"char" => VChar(char(node.tokens.to_owned()), attributes),
+			"string" => VString(string(node.token(0)), attributes),
+			"decimal" => {
+				let dec = decimal(node.tokens.to_owned());
+				VDecimal(dec.0, dec.1, attributes)
+			},
+			"number" => VInteger(integer(node.token(0)), attributes),
 			_ => panic!("could not parse value: {node:?}")
-		};
-		Ok(Value {
-			value: Untyped(value), 
-			attributes
 		})
 	}
 }
@@ -62,7 +44,7 @@ fn char(tokens: Vec<Token>) -> char {
 	}
 }
 
-fn string(token: Token) -> String {
+fn string(token: Token) -> Str {
 	let mut string = token.source.to_owned();
 	if let Some(first) = string.chars().next() {
 		if is_quote(first) {
@@ -72,8 +54,8 @@ fn string(token: Token) -> String {
 	string
 }
 
-fn decimal(tokens: Vec<Token>) -> Decimal {
-	Decimal(
+fn decimal(tokens: Vec<Token>) -> (i32, u32) {
+	(
 		tokens[0].source.parse::<i32>().unwrap(),
 		tokens[1].source.parse::<u32>().unwrap(),
 	)

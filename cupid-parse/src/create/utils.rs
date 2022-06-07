@@ -50,13 +50,13 @@ pub trait CreateASTUtils: CreateAST + Default {
 
 pub fn attributes(node: &mut ParseNode, scope: &mut Env) -> Result<Attributes, ErrCode> {
 	let source = scope.add_source(node.to_owned());
-	let generics = node.map_named::<Typed<Ident>, ErrCode>(
+	let generics: Result<Vec<Typed<Ident>>, ErrCode> = node.map_named(
 		"type_hint", 
 		|t| Ok(Untyped(Ident::create_ast(t, scope)?))
-	)?;
+	);
 	Ok(Attributes::build()
 		.source(Some(source))
-		.generics(GenericList(generics))
+		.generics(GenericList(generics?))
 		.build())
 }
 

@@ -1,6 +1,6 @@
 use crate::*;
 
-impl TypeBuilder<'_> {
+impl TypeBuilder {
 	pub fn name_str(mut self, name: &'static str) -> Self {
 		self.name.name = name.into();
 		self

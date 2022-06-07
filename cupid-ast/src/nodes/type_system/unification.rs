@@ -1,6 +1,6 @@
 use crate::*;
 
-pub type ASTResult<'ast, T> = Result<T, ASTErr<'ast>>;
+pub type ASTResult<T> = Result<T, ASTErr>;
 pub type UnifyResult = ASTResult<()>;
 
 #[allow(unused_variables)]

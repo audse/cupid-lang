@@ -1,13 +1,7 @@
-use crate::{
-	ASTResult, 
-	UseAttributes,
-};
+use crate::*;
 
 mod display;
 pub use display::*;
-
-mod error_codes;
-pub use error_codes::*;
 
 mod context;
 pub use context::*;
@@ -27,6 +21,9 @@ pub fn err_from_code(code: ErrCode) -> String {
 
 pub trait ToError: UseAttributes {
 	fn to_err<T>(&self, code: usize) -> ASTResult<T> {
+		Err(self.as_err(code))
+	}
+	fn to_err_mut<T>(&mut self, code: usize) -> ASTResult<T> {
 		Err(self.as_err(code))
 	}
 	fn as_err(&self, code: usize) -> crate::ASTErr;

@@ -1,7 +1,5 @@
 use crate::*;
 
-pub type Str = Cow<'static, str>;
-
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Grammar {
 	pub name: Str,

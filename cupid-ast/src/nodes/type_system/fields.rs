@@ -3,7 +3,7 @@ use crate::*;
 pub type Field = (Option<Str>, Typed<Ident>);
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Tabled)]
-pub struct FieldSet(
+pub struct FieldSet (
 	#[tabled(display_with="fmt_field_set")]
 	pub Vec<Field>
 );
@@ -26,7 +26,7 @@ impl std::ops::DerefMut for FieldSet {
 	}
 }
 
-impl From<&Declaration<'_>> for Field {
+impl From<&Declaration> for Field {
 	fn from(dec: &Declaration) -> Self {
 		(
 			Some(dec.name.name.to_owned()),

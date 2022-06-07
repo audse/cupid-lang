@@ -31,13 +31,16 @@ impl Analyze for Ident {
 }
 
 impl TypeOf for Ident {
-	fn type_of(&self, scope: &mut Env) -> ASTResult<Cow<'_, Type>> { 
+	fn type_of(&self, scope: &mut Env) -> ASTResult<Cow<Type>> { 
 		// if an ident for a type, e.g. `int`
 		let symbol_value = scope.get_symbol(self)?;
 		if let Some(value) = symbol_value.value {
-			if let Some(type_hint) = value.as_type_mut() {
-				type_hint = type_hint.to_owned().unify_with(&self.attributes.generics);
-				return Ok(type_hint.into());
+			match value {
+				VType(mut type_val) => {
+					type_val.unify_with(&self.attributes.generics)?;
+					return Ok(type_val.into());
+				},
+				_ => ()
 			}
 		}
 		// get the type associated with the ident's value
@@ -45,11 +48,11 @@ impl TypeOf for Ident {
 	}
 }
 
-impl UseAttributes for Ident {
-    fn attributes(&self) -> &Attributes {
-        &self.attributes
-    }
-    fn attributes_mut(&mut self) -> &mut Attributes {
-        &mut self.attributes
-    }
+impl TypeOf for Typed<Ident> {
+	fn type_of(&self, scope: &mut Env) -> ASTResult<Cow<Type>> { 
+		match self {
+			Self::Typed(_, t) => Ok(t.into()),
+			Self::Untyped(v) => v.type_of(scope)
+		}
+	}
 }

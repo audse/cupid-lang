@@ -14,6 +14,9 @@ pub use builder::*;
 mod displays;
 pub use displays::*;
 
+mod error_codes;
+pub use error_codes::*;
+
 mod fmt;
 pub use fmt::*;
 
@@ -21,6 +24,9 @@ mod static_map;
 
 mod strings;
 pub use strings::*;
+
+mod table_fmt;
+pub use table_fmt::*;
 
 pub fn invert<T, E>(x: Option<Result<T, E>>) -> Result<Option<T>, E> {
     x.map_or(Ok(None), |v| v.map(Some))
@@ -44,11 +50,4 @@ impl<'a, T: 'a, R: 'a> MapMut<'a, T, R> for Option<T> {
 	fn map_mut<F: FnOnce(&'a mut T) -> R>(&'a mut self, f: F) -> Option<R> {
 		self.as_mut().map(f)
 	}
-}
-
-#[macro_export]
-macro_rules! strip_plus {
-    (+ $($rest: tt)*) => {
-        $($rest)*
-    }
 }

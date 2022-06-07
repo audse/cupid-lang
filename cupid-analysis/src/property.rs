@@ -1,8 +1,8 @@
 use crate::*;
 
-impl PreAnalyze for Property<'_> {}
+impl PreAnalyze for Property {}
 
-impl Analyze for Property<'_> {
+impl Analyze for Property {
 	fn analyze_scope(&mut self, scope: &mut Env) -> ASTResult<()> {
 		self.object.analyze_scope(scope)?;
 		self.property.analyze_scope(scope)?;
@@ -56,18 +56,9 @@ impl Analyze for Property<'_> {
 	}
 }
 
-impl UseAttributes for Property<'_> {
-    fn attributes(&self) -> &Attributes {
-        &self.attributes
-    }
-    fn attributes_mut(&mut self) -> &mut Attributes {
-        &mut self.attributes
-    }
-}
-
 #[allow(unused_variables)]
-impl TypeOf for Property<'_> {
-	fn type_of(&self, scope: &mut Env) -> ASTResult<Cow<'_, Type>> { 
+impl TypeOf for Property {
+	fn type_of(&self, scope: &mut Env) -> ASTResult<Cow<Type>> { 
 		let property_type = self.property
 			.get_type()
 			.map_err(|e| self.property.as_err(e));
@@ -88,9 +79,9 @@ fn is_allowed_access(object_type: &Type, property: &Typed<PropertyTerm>) -> bool
 	}
 }
 
-impl PreAnalyze for PropertyTerm<'_> {}
+impl PreAnalyze for PropertyTerm {}
 
-impl Analyze for PropertyTerm<'_> {
+impl Analyze for PropertyTerm {
 	fn analyze_scope(&mut self, scope: &mut Env) -> ASTResult<()> {
 		match self {
 			Self::Term(term) => term.analyze_scope(scope),
@@ -121,30 +112,13 @@ impl Analyze for PropertyTerm<'_> {
 	}
 }
 
-impl UseAttributes for PropertyTerm<'_> {
-	fn attributes(&self) -> &Attributes {
-		match self {
-			Self::FunctionCall(function_call) => function_call.attributes(),
-			Self::Index(_, attr) => attr,
-			Self::Term(term) => term.attributes()
-		}
-	}
-	fn attributes_mut(&mut self) -> &mut Attributes {
-		match self {
-			Self::FunctionCall(function_call) => function_call.attributes_mut(),
-			Self::Index(_, attr) => attr,
-			Self::Term(term) => term.attributes_mut()
-		}
-	}
-}
-
-impl TypeOf for PropertyTerm<'_> {
-	fn type_of(&self, scope: &mut Env) -> ASTResult<Cow<'_, Type>> { 
+impl TypeOf for PropertyTerm {
+	fn type_of(&self, scope: &mut Env) -> ASTResult<Cow<Type>> { 
     	match self {
 			Self::Term(term) => term.type_of(scope),
 			Self::FunctionCall(function_call) => function_call.type_of(scope),
-			Self::Index(i, _) => Ok(
-				i.infer(scope)
+			Self::Index(i, attr) => Ok(
+				infer_type(&VInteger(*i as i32, attr.to_owned()), scope)
 				.map_err(|(_, e)| self.as_err(e))?
 				.into()
 			)
