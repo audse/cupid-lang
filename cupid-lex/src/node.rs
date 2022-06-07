@@ -75,33 +75,6 @@ impl From<(Token, &'static str)> for ParseNode {
 	}
 }
 
-// impl std::fmt::Debug for ParseNode {
-// 	fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
-// 		match (!self.children.is_empty(), !self.tokens.is_empty()) {
-// 			(true, true) => {
-// 				f.debug_struct(&format!("\"{}\"", self.name))
-// 					.field("tokens", &format!("{}", DisplayVec::new(&self.tokens, false)))
-// 					.field("children", &self.children)
-// 					.finish()
-// 			},
-// 			(true, false) => {
-// 				f.debug_struct(&*self.name)
-// 					.field("children", &self.children)
-// 					.finish()
-// 			},
-// 			(false, true) => {
-// 				f.debug_struct(&*self.name)
-// 					.field("tokens", &format!("{}", DisplayVec::new(&self.tokens, false)))
-// 					.finish()
-// 			},
-// 			(false, false) => {
-// 				f.debug_struct(&*self.name)
-// 					.finish()
-// 			},
-// 		}
-// 	}
-// }
-
 impl std::fmt::Display for ParseNode {
 	fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
 		write!(f, "{:#?}", self)

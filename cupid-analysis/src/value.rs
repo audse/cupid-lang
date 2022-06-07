@@ -43,12 +43,6 @@ impl Analyze for Value {
 
 impl TypeOf for Value {
 	fn type_of(&self, scope: &mut Env) -> ASTResult<Cow<Type>> {
-		infer_type(self, scope).map(|t| t.into())
+		Ok(self.infer(scope)?.into())
 	}
 }
-
-// impl InferType for Box<dyn InferType> {
-// 	fn infer(&self, scope: &mut Env) -> ASTResult<Type> {
-// 		(**self).infer(scope)
-// 	}
-// }

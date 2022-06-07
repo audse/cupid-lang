@@ -117,11 +117,7 @@ impl TypeOf for PropertyTerm {
     	match self {
 			Self::Term(term) => term.type_of(scope),
 			Self::FunctionCall(function_call) => function_call.type_of(scope),
-			Self::Index(i, attr) => Ok(
-				infer_type(&VInteger(*i as i32, attr.to_owned()), scope)
-				.map_err(|(_, e)| self.as_err(e))?
-				.into()
-			)
+			Self::Index(i, attr) => Ok(VInteger(*i as i32, attr.to_owned()).infer(scope)?.into())
 		}
 	}
 }

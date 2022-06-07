@@ -63,6 +63,6 @@ impl Analyze for Function {
 
 impl TypeOf for Function {
 	fn type_of(&self, scope: &mut Env) -> ASTResult<Cow<Type>> { 
-		Ok(infer_function(self, scope)?.into())
+		Ok(self.infer(scope)?.into())
 	}
 }
