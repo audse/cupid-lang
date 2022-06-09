@@ -49,3 +49,5 @@ impl UseAttributes for Trait {
 		&mut self.name.attributes
 	}
 }
+
+impl UseClosure for Trait {}

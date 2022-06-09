@@ -10,8 +10,6 @@ build_struct! {
 
 		#[tabled(display_with = "fmt_vec")]
 		pub bounds: Vec<Ident>,
-
-		pub attributes: Attributes,
 	}
 }
 
@@ -27,9 +25,11 @@ impl From<TraitDef> for Trait {
 
 impl UseAttributes for TraitDef {
 	fn attributes(&self) -> &Attributes {
-		&self.attributes
+		&self.name.attributes
 	}
 	fn attributes_mut(&mut self) -> &mut Attributes {
-		&mut self.attributes
+		&mut self.name.attributes
 	}
 }
+
+impl UseClosure for TraitDef {}

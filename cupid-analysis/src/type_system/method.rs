@@ -1,14 +1,20 @@
 use crate::*;
 
 impl PreAnalyze for Method {
+    #[trace]
 	fn pre_analyze_scope(&mut self, scope: &mut Env) -> ASTResult<()> {
-		let closure = scope.add_closure(
+		self.set_closure_to(scope.add_closure(
 			Some(self.name.to_owned()), 
 			Context::Method
-		);
-		self.attributes_mut().closure = closure;
+		));
+		self.use_closure(scope);
+
+		self.value.analyze_scope(scope)?;
+
+		scope.reset_closure();
 		Ok(())
 	}
+    #[trace]
 	fn pre_analyze_names(&mut self, scope: &mut Env) -> ASTResult<()> {
 		scope.set_symbol(&self.name, SymbolValue {
 			value: Some(VFunction(Box::new(self.value.to_owned()))),
@@ -20,26 +26,25 @@ impl PreAnalyze for Method {
 }
 
 impl Analyze for Method {
+    #[trace]
 	fn analyze_scope(&mut self, scope: &mut Env) -> ASTResult<()> {
 		self.name.analyze_scope(scope)?;
-
-		scope.use_closure(self.attributes().closure);
-		self.value.analyze_scope(scope)?;
-		scope.reset_closure();
 		Ok(())
 	}
+    #[trace]
 	fn analyze_names(&mut self, scope: &mut Env) -> ASTResult<()> {
 		scope.trace(format!("Defining method {}", self.name));
-		scope.use_closure(self.attributes().closure);
+		self.use_closure(scope);
 
-		self.name.attributes.generics.set_symbols(scope);
+		self.name.analyze_names(scope)?;
 		self.value.analyze_names(scope)?;
 
 		scope.reset_closure();
 		Ok(())
 	}
+    #[trace]
 	fn analyze_types(&mut self, scope: &mut Env) -> ASTResult<()> {
-		scope.use_closure(self.attributes().closure);
+		self.use_closure(scope);
 
 		self.name.analyze_types(scope)?;
 		self.value.analyze_types(scope)?;
@@ -47,8 +52,9 @@ impl Analyze for Method {
 		scope.reset_closure();
     	Ok(())
 	}
+    #[trace]
 	fn check_types(&mut self, scope: &mut Env) -> ASTResult<()> {
-		scope.use_closure(self.attributes().closure);
+		self.use_closure(scope);
 
 		self.value.check_types(scope)?;
 

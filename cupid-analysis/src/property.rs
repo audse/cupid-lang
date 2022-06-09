@@ -3,55 +3,45 @@ use crate::*;
 impl PreAnalyze for Property {}
 
 impl Analyze for Property {
+    #[trace]
 	fn analyze_scope(&mut self, scope: &mut Env) -> ASTResult<()> {
+		self.set_closure(scope);
 		self.object.analyze_scope(scope)?;
 		self.property.analyze_scope(scope)?;
 		Ok(())
 	}
-	fn analyze_names(&mut self, scope: &mut Env) -> ASTResult<()> {		
+    #[trace]
+	fn analyze_names(&mut self, scope: &mut Env) -> ASTResult<()> {	
     	self.object.analyze_names(scope)?;
-
-		scope.use_closure(self.object.attributes().closure);
-
-		// _ = self.property.analyze_names(scope);
-		
-		scope.reset_closure();
 		Ok(())
 	}
+    #[trace]
 	fn analyze_types(&mut self, scope: &mut Env) -> ASTResult<()> {
     	self.object.analyze_types(scope)?;
 		self.object.to_typed(self.object.type_of(scope)?.into_owned());
+		let object_type = self.object.get_node_type()?;
 
-		scope.use_closure(self.object.attributes().closure);
+		object_type.use_closure(scope);
 
 		// Property names get analyzed after object's type is analyzed
 		// so that associated type methods can be resolved
-		scope.trace(format!("Finding property of {}", self.object));
-		if self.property.analyze_names(scope).is_err() {
-			let object_type = self.object.get_node_type()?;
-			scope.trace(format!("Finding method in type {}", object_type));
-			scope.use_closure(object_type.attributes().closure);
-			self.property.analyze_names(scope)?;
-		}
+		scope.trace(format!("Finding property `{}` of type \n{object_type}", *self.property));
 
+		self.property.analyze_names(scope)?;
 		self.property.analyze_types(scope)?;
 		self.property.to_typed(self.property.type_of(scope)?.into_owned());
 		
 		scope.reset_closure();
 		Ok(())
 	}
+    #[trace]
 	fn check_types(&mut self, scope: &mut Env) -> ASTResult<()> {	
 		self.object.check_types(scope)?;
-		scope.use_closure(self.object.attributes().closure);
-
     	let object_type = self.object.get_node_type()?;
-		
 		self.property.check_types(scope)?;
 		if !is_allowed_access(object_type, &self.property) {
 			return self.to_err(ERR_BAD_ACCESS)
 		}
-		
-		scope.reset_closure();
 		Ok(())
 	}
 }

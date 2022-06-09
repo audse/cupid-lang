@@ -1,3 +1,5 @@
+type type! = []
+type trait! = []
 type int = []
 type dec = []
 type string = []
@@ -25,6 +27,5 @@ implement int = [
 ]
 
 implement int + add (int) = []
-
 
 let my_num : int = 10.sq()

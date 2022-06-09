@@ -3,20 +3,24 @@ use crate::*;
 #[derive(Debug, Clone, PartialEq, Eq, Default, Tabled)]
 pub struct Closure {
 	#[tabled(display_with="fmt_option")]
+	pub name: Option<Ident>,
+	#[tabled(display_with="fmt_option")]
 	pub parent: Option<usize>,
 	#[tabled(display_with="fmt_vec")]
 	pub scopes: Vec<Scope>
 }
 
 impl Closure {
-	pub fn new(context: Context) -> Self {
+	pub fn new(name: Option<Ident>, context: Context) -> Self {
 		Self {
+			name,
 			parent: None,
 			scopes: vec![Scope::new(context)]
 		}
 	}
-	pub fn new_child(parent: usize, context: Context) -> Self {
+	pub fn new_child(name: Option<Ident>, parent: usize, context: Context) -> Self {
 		Self {
+			name,
 			parent: Some(parent),
 			scopes: vec![Scope::new(context)]
 		}

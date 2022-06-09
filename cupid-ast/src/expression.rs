@@ -48,3 +48,5 @@ impl UseAttributes for Exp {
 		for_each_exp!(self, attributes_mut)
 	}
 }
+
+impl UseClosure for Exp {}

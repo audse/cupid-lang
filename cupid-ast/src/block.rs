@@ -18,3 +18,5 @@ impl UseAttributes for Block {
         &mut self.attributes
     }
 }
+
+impl UseClosure for Block {}

@@ -56,3 +56,5 @@ impl UseAttributes for Ident {
         &mut self.attributes
     }
 }
+
+impl UseClosure for Ident {}

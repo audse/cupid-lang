@@ -89,6 +89,8 @@ impl UseAttributes for Type {
 	}
 }
 
+impl UseClosure for Type {}
+
 impl From<Type> for std::borrow::Cow<'_, Type> {
 	fn from(t: Type) -> Self {
 		std::borrow::Cow::Owned(t)
@@ -106,4 +108,3 @@ impl<'t> From<&'t mut Type> for std::borrow::Cow<'t, Type> {
 		std::borrow::Cow::Borrowed(t)
 	}
 }
-

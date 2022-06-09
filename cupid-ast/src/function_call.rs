@@ -9,9 +9,9 @@ build_struct! {
 
 		#[tabled(display_with = "fmt_vec")]
 		pub args: Vec<Typed<Exp>>,
-		
-        #[tabled(skip)]
-		pub attributes: Attributes,
+
+		#[tabled(skip)]
+		pub attributes: Attributes
 	}
 }
 
@@ -27,3 +27,5 @@ impl UseAttributes for FunctionCall {
         &mut self.attributes
     }
 }
+
+impl UseClosure for FunctionCall {}

@@ -1,4 +1,11 @@
 #[macro_export]
+macro_rules! fmt_type {
+	($name:ident) => {
+		std::any::type_name::<$name>().rsplit_once("::").unwrap().1
+	}
+}
+
+#[macro_export]
 macro_rules! fmt_list {
 	($list:expr) => { $list.iter().map(|x| x.to_string()).collect::<Vec<String>>() };
 	($list:expr, $sep:tt) => { $list.iter().map(|x| x.to_string()).collect::<Vec<String>>().join($sep) };

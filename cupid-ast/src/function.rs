@@ -22,3 +22,5 @@ impl UseAttributes for Function {
         &mut self.attributes
     }
 }
+
+impl UseClosure for Function {}

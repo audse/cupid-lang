@@ -112,12 +112,16 @@ impl ToError for Ident {
 impl ErrorContext for Ident {
 	fn context(&self, scope: &mut Env, source: &str) -> String {
 		let source_node = self.source_node(scope);
-		let token = source_node.token(0);
+		let token = if source_node.tokens.is_empty() {
+			source_node.children[0].token(0)
+		} else {
+			source_node.token(0)
+		};
 		let lines = token.lines(source);
 		let underlines = token.underline(lines);
 		format!(
 			"{}\nAccessing identifier `{}`\n\n{}\n", 
-			scope.closures[scope.current_closure].1,
+			scope.closures[scope.current_closure],
 			(&*self.name).bold().yellow(),
 			underlines
 				.iter()
@@ -175,6 +179,19 @@ impl ToError for Method {
 
 #[allow(unused_variables)]
 impl ErrorContext for Method {
+	fn context(&self, scope: &mut Env, source: &str) -> String {
+		self.to_string()
+	}
+}
+
+impl ToError for SymbolValue {
+	fn as_err(&self, code: usize) -> crate::ASTErr {
+		(Exp::Value(self.value.to_owned().unwrap_or_default()), code)
+	}
+}
+
+#[allow(unused_variables)]
+impl ErrorContext for SymbolValue {
 	fn context(&self, scope: &mut Env, source: &str) -> String {
 		self.to_string()
 	}

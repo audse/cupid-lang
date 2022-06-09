@@ -3,7 +3,7 @@ use crate::{
 	Tabled,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Display, Tabled)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Display, Tabled)]
 pub enum Context {
 	Global,
 	Closure,

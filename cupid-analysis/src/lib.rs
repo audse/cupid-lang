@@ -1,3 +1,4 @@
+pub use cupid_trace::trace;
 pub use cupid_ast::*;
 
 mod ast;

@@ -1,11 +1,11 @@
 use crate::*;
 
 pub fn type_type() -> Type {
-	primitive("type")
+	primitive("type!")
 }
 
 pub fn trait_type() -> Type {
-	primitive("trait")
+	primitive("trait!")
 }
 
 pub fn nothing_type() -> Type {

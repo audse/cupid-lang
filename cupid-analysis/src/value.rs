@@ -3,7 +3,9 @@ use crate::*;
 impl PreAnalyze for Value {}
 
 impl Analyze for Value {
+    #[trace]
 	fn analyze_scope(&mut self, scope: &mut Env) -> ASTResult<()> {
+		self.attributes_mut().closure = scope.current_closure;
 		match self {
 			VArray(x, ..) | VTuple(x, ..) => x.iter_mut().map(|el| el.analyze_scope(scope)).collect(),
 			VFunction(function, ..) => function.analyze_scope(scope),
@@ -12,6 +14,7 @@ impl Analyze for Value {
 			_ => Ok(())
 		}
 	}
+    #[trace]
 	fn analyze_names(&mut self, scope: &mut Env) -> ASTResult<()> {
 		match self {
 			VArray(x, ..) | VTuple(x, ..) => x.iter_mut().map(|el| el.analyze_names(scope)).collect(),
@@ -21,6 +24,7 @@ impl Analyze for Value {
 			_ => Ok(())
 		}
 	}
+    #[trace]
 	fn analyze_types(&mut self, scope: &mut Env) -> ASTResult<()> {
 		match self {
 			VArray(x, ..) | VTuple(x, ..) => x.iter_mut().map(|el| el.analyze_types(scope)).collect(),
@@ -30,6 +34,7 @@ impl Analyze for Value {
 			_ => Ok(())
 		}
 	}
+    #[trace]
 	fn check_types(&mut self, scope: &mut Env) -> ASTResult<()> {
 		match self {
 			VArray(x, ..) | VTuple(x, ..) => x.iter_mut().map(|el| el.check_types(scope)).collect(),

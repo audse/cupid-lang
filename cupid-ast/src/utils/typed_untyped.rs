@@ -42,6 +42,7 @@ impl<T: Default + std::fmt::Debug> Typed<T> {
 		if let Self::Typed(_, t) = self {
 			Ok(t)
 		} else {
+			eprintln!("Accessing node {self:?}");
 			self.to_err(ERR_EXPECTED_TYPE)
 		}
 	}

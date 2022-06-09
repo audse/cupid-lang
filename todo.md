@@ -2,43 +2,19 @@
 
 ## Variables
 
-- [x] Declaration
-- [x] Assignment
-- [x] Immutable
-- [x] Deep immutable
-- [x] Rework grammar
-- [ ] Add const/let for type inference
-- [ ] Do I want references/pointers?
-  - [x] Pass by value/copy automatically
-  - [ ] Explicit references can be made with `&`
-- [ ] Store variables on the stack
+- [ ] Explicit references (mutable state)
+- [ ] Store variables in vec, not hashmap?
 
 ## Type system
 
-- [x] Type declaration
-  - [x] Product (struct)
-  - [x] Sum (enum)
-  - [x] Nested
-  - [x] Alias
-- [ ] Maybe types
-- [x] Map types
-  - [x] `dict (string, int)`
-  - [x] `array (int)`
-- [ ] Generics
-  - [x] In type declaration
-  - [x] In use blocks
-  - [ ] In functions
-  - [ ] Trait bounds
+- [ ] Trait bounds
 - [ ] Type casting
-  - [x] Primitives
-  - [ ] Array
-  - [ ] Map
-  - [ ] Generics
-  - [ ] Round decimal instead of clipping
+	- [ ] Primitives
+	- [ ] Array
+	- [ ] Generics
+	- [ ] Round decimal instead of clipping
 - [ ] First-class types
-  - [ ] Pass as values/args
-  - [x] Log
-  - [x] `istype`
+	- [ ] Pass as values/args
 - [ ] Sum type variants
 - [ ] Tagged sum type variants
 - [ ] Gradual typing
@@ -49,137 +25,68 @@
 ### Traits
 
 - [ ] Type implementations
+	- [ ] Require implementation of all functions without defaults
+	- [ ] Make sure no extra functions are added
+	- [ ] Implement different variations with different type args...
 
-  - [ ] Declare `use` block
-    - [x] Primitives
-    - [ ] Array
-    - [ ] Map
-    - [x] Function
-      - [ ] `call`
-      - [ ] `bind`
-      - [ ] Decorators
-    - [x] Struct
-    - [x] Alias
-    - [x] Sum
-  - [x] Call associated functions on any struct instance
-  - [ ] Require implementation of all functions without defaults
-  - [ ] Make sure no extra functions are added
-  - [ ] Implement different variations with different type args...
-
-    e.g. `use [bool] into with int` and `use [dec] into with int`
-
-- [x] Require `self` on functions that use self
-- [x] Require `mut self`
-- [ ] Automatic trait implementation
-- [ ] Change trait syntax to use `:` instead of `=`
+		e.g. `use [bool] into with int` and `use [dec] into with int`
 
 ### Type checker
 
-- [x] Assignment type checking
-  - [x] Approximate
-- [x] Deep assignment type checking
-- [x] Property assignment check
 - [ ] Check that all elements in array/map are same type
-- [ ] No approximate type checking for structs when using `istype`
 
 ```
 type person = [
-  string name,
+	string name,
 ]
 map [string, string] someone = [
-  name: 'Jane Doe'
+	name: 'Jane Doe'
 ]
 someone istype person # should be false
 ```
 
 - [ ] `uses` operator for traits e.g. `int uses add`
 
-## Operators
-
-- [x] Exponent
-- [x] Modulus
-- [x] Operator assignment
-- [ ] Compare data structures
-- [x] Logical and
-- [x] Logical or
-- [x] Negation
-- [x] Operator overloading
-- [x] Type of
-- [x] Use trait implementations instead of simple value checking
-- [x] Unary op
-
 ## Functions
 
-- [x] Anonymous functions
-- [x] Block functions
-- [x] Function chaining
-- [ ] Closed scope
+- [ ] Function chaining
 - [ ] Return statement
 - [ ] Keyword args
-- [x] Typed parameters
-- [x] Return type
-- [x] Callbacks
 - [ ] Default values (allow fewer/skipped args)
-- [x] No arguments
-- [ ] Call immediately
-- [x] Closures need some help...capture scope inside function body
-- [ ] Mutable params? E.g. passing a mutable struct to a function, the original struct should be mutated, right?
-- [x] Universal call syntax (I kind of already have this)
-
-## Blocks
-
-- [x] If blocks
-- [x] Else blocks
-- [x] Else if blocks
+- [ ] Mutable params
+- [ ] Operations
 
 ## Loops
 
-- [x] While loop
-- [x] For..in loop
+- [ ] While loop
+- [ ] For..in loop
 - [ ] Indeterminate loop
 - [ ] Named loops
 - [ ] Break statements
-  - [ ] `break`
-  - [ ] `break (return_value)`
-  - [ ] `break identifier(return_value)`
-  - [ ] Continue
+	- [ ] `break`
+	- [ ] `break (return_value)`
+	- [ ] `break identifier(return_value)`
+	- [ ] Continue
 
 ## Values
 
-- [x] Array
-- [x] Dictionary
-- [ ] Tuples (keywords)
+- [ ] Tuples (optional keywords)
 - [ ] Range
-  - [x] Numbers
-  - [ ] Step
-  - [ ] Characters
-- [x] Property access
-- [x] Property assignment
-- [x] Lightweight array that isn't a map
-- [x] Add/remove properties
-- [x] Property chaining (needs to be left recursive)
-- [x] Self keyword
-  - [x] Reference inner properties
-  - [x] Mutate inner properties
 - [ ] Number/string types
-  - [ ] Irrational numbers
-  - [ ] UTF-8, 16, etc
-  - [ ] Signed/unsigned numbers
+	- [ ] Irrational numbers
+	- [ ] UTF-8, 16, etc
+	- [ ] Signed/unsigned numbers
 
 ## Scoping
 
 - [ ] Named scopes
-- [x] Simple block scopes `{ # can access outer scope }`
-- [x] Boxed scopes `box { # cannot access outer scope }`
-- [ ] No global scope?
-- [ ] Inject standard library stuff into boxed scopes
 
 ## Features
 
 - [ ] De-structuring
 - [ ] Pattern matching
 - [ ] Array slices using range syntax e.g. `my_array[0..5]`
-  - [ ] Include negative numbers
+	- [ ] Include negative numbers
 - [ ] Variable shadowing
 - [ ] Template strings `'my favorite number is {{ 30 + 7 }}'`
 - [ ] Escape keywords like Rusts `r#type` (only better ...)
@@ -218,21 +125,12 @@ fun [array [map [string, int]]]
 fun array map [string, int]
 ```
 
-## Bugfixes
-
-- [ ] Something is wrong with groups in grammar files
-- [x] An empty map `[]` could be a dict or a list or anything- type inference?
-- [ ] If you use a primitive type where generics should go, it acts as a generic. Should be an error
-- [x] Should be able to log property functions without calling them (e.g. `log (myint.sq)`)
-- [x] Is `log`/`log_line` working?
-  - [x] Doesn't work in function bodies
-
 ## Builtin library
 
 - [ ] String functions/properties
-  - [x] Length
-  - [ ] Contains
-  - [x] Replace/replace all
+	- [ ] Length
+	- [ ] Contains
+	- [ ] Replace/replace all
 - [ ] Map functions
 
 ## Standard library
@@ -252,8 +150,10 @@ fun array map [string, int]
 - [ ] Cut down on clones/owned- use `Rc`
 - [ ] Instead of reassigning whole symbol, mutate symbol value
 - [ ] Make parsing faster
-  - [ ] Branching rather than repeats
-  - [ ] Organize infix operators better
+	- [ ] Branching rather than repeats
+	- [ ] Organize infix operators better
+- [ ] Use arena instead of passing nodes/children around directly
+	- [ ] Do this in the parsing phase
 
 ### Error handling
 
@@ -268,13 +168,13 @@ fun array map [string, int]
 
 - [x] Import files
 - [ ] Import specific symbols from files
-  - [ ] Bring in dependencies of those symbols
+	- [ ] Bring in dependencies of those symbols
 
 ## Parser
 
 - [ ] Error handling by using branching grammar syntax
-  - [ ] Write custom common errors associated with rules
-  - [ ] `recover!` macro
+	- [ ] Write custom common errors associated with rules
+	- [ ] `recover!` macro
 - [ ] Inline start/end comments
 - [ ] Lookbehind (for array)
 - [x] Functions
@@ -283,9 +183,9 @@ fun array map [string, int]
 
 - [ ] Language server
 - [ ] Command line tools
-  - [ ] Testing
-  - [ ] Running files `cupid play my_file.cupid`
-  - [ ] Package manager
+	- [ ] Testing
+	- [ ] Running files `cupid play my_file.cupid`
+	- [ ] Package manager
 - [ ] Formatter
 - [ ] Linter
 - [ ] Vscode extension
@@ -311,15 +211,19 @@ fun array map [string, int]
 
 - [ ] Overview
 - [ ] Standard library
-  - [x] Integer
-    - [x] Built in methods
-    - [ ] Trait implementations
-  - [ ] Char
-  - [ ] Decimal
-    - [ ] Built in methods
-    - [ ] Trait implementations
-  - [ ] String
-  - [ ] Array
-  - [ ] Map
-  - [ ] Traits
+	- [ ] Builtin methods
+		- [ ] Integer
+		- [ ] Char
+		- [ ] Decimal
+		- [ ] String
+		- [ ] Array
+		- [ ] Map
+	- [ ] Trait implementations
+		- [ ] Integer
+		- [ ] Char
+		- [ ] Decimal
+		- [ ] String
+		- [ ] Array
+		- [ ] Map
+	- [ ] All Traits
 - [ ] Style guide

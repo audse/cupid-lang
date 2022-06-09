@@ -14,3 +14,4 @@ colored = "2.0.0"
 cupid_lex = { version = "0.1.0", path = '../cupid-lex' }
 cupid_ast = { version = "0.1.0", path = '../cupid-ast' }
 cupid_util = { version = "0.1.0", path = '../cupid-util' }
+cupid_trace = { version = "0.1.0", path = '../cupid-trace' }

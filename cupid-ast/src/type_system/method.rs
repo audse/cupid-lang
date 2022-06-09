@@ -16,3 +16,5 @@ impl UseAttributes for Method {
 		self.name.attributes_mut() 
 	}
 }
+
+impl UseClosure for Method {}

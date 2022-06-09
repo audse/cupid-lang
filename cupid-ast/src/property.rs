@@ -5,20 +5,19 @@ build_struct! {
 	pub PropertyBuilder => pub Property {
 		pub object: Box<Typed<Exp>>,
 		pub property: Typed<PropertyTerm>,
-
-        #[tabled(skip)]
-		pub attributes: Attributes,
 	}
 }
 
 impl UseAttributes for Property {
     fn attributes(&self) -> &Attributes {
-        &self.attributes
+        self.object.attributes()
     }
     fn attributes_mut(&mut self) -> &mut Attributes {
-        &mut self.attributes
+        self.object.attributes_mut()
     }
 }
+
+impl UseClosure for Property {}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Tabled)]
 pub enum PropertyTerm {

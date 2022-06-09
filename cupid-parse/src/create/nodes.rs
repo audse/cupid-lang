@@ -6,7 +6,7 @@ use_utils! {
 		fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
 			match &*node.name {
 				"block" => create_ast!(Block, node, scope),
-				// "boolean" | "none" | "char" | "string" | "decimal" | "number" => create_ast!(Value, node, scope),
+				"boolean" | "none" | "char" | "string" | "decimal" | "number" => create_ast!(Value, node, scope),
 				"expression" | "comment" => Exp::create_ast(node.get(0), scope),
 				"function_call" =>  create_binary_op_or_ast!(FunctionCall, node, scope, Box::new(FunctionCall::create_ast(node, scope)?)),
 				"function" => create_ast!(Function, node, scope),
@@ -70,7 +70,6 @@ use_utils! {
 	impl CreateAST for FunctionCall {
 		fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
 			Ok(FunctionCall::build()
-				.attributes(attributes(node, scope)?)
 				.args(node
 					.get_option_map(
 						"arguments", 
@@ -113,10 +112,20 @@ use_utils! {
 use_utils! {
 	impl CreateAST for Property {
 		fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
+			let object = Exp::create_ast(node.get(0), scope)?;
+			let mut property_term = PropertyTerm::create_ast(node.get(1), scope)?;
+
+			// Use object as first arg of method (uniform function call syntax)
+			match &mut property_term {
+				PropertyTerm::FunctionCall(function_call) => {
+					function_call.args.insert(0, Untyped(object.to_owned()));
+				},
+				_ => ()
+			}
+
 			Ok(PropertyBuilder::new()
-				.attributes(attributes(node, scope)?)
-				.object(Exp::create_ast(node.get(0), scope)?.untyped_box())
-				.property(Untyped(PropertyTerm::create_ast(node.get(1), scope)?))
+				.object(object.untyped_box())
+				.property(Untyped(property_term))
 				.build())
 		}
 	}

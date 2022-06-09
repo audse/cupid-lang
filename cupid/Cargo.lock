@@ -307,6 +307,7 @@ dependencies = [
  "cupid_ast",
  "cupid_lex",
  "cupid_parse",
+ "cupid_trace",
  "cupid_util",
  "lazy_static",
  "serde",
@@ -324,6 +325,7 @@ dependencies = [
  "colored",
  "cupid_ast",
  "cupid_lex",
+ "cupid_trace",
  "cupid_util",
  "derive_more",
  "lazy_static",
@@ -358,6 +360,15 @@ dependencies = [
  "cupid_ast",
  "cupid_lex",
  "cupid_util",
+]
+
+[[package]]
+name = "cupid_trace"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

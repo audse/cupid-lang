@@ -1,16 +1,15 @@
 use crate::*;
 
 impl PreAnalyze for Implement {
+    #[trace]
 	fn pre_analyze_names(&mut self, scope: &mut Env) -> ASTResult<()> {
 		let for_type = scope.get_type(&self.for_type)?;
-		let closure = for_type.attributes().closure;
-		self.attributes.closure = closure;
+		self.set_closure_to(for_type.closure());
 
 		if let Some(for_trait) = &self.for_trait {
-			scope.get_symbol(for_trait)?;
+			scope.has_symbol(for_trait)?;
 		}
-		
-		scope.use_closure(closure);
+		self.use_closure(scope);
 
 		for method in self.methods.iter_mut() {
 			scope.no_symbol(&method.name)?;
@@ -25,8 +24,9 @@ impl PreAnalyze for Implement {
 }
 
 impl Analyze for Implement {
+    #[trace]
 	fn analyze_scope(&mut self, scope: &mut Env) -> ASTResult<()> {
-		scope.use_closure(self.attributes.closure);
+		self.use_closure(scope);
 		
 		for method in self.methods.iter_mut() {
 			method.analyze_scope(scope)?;
@@ -35,8 +35,9 @@ impl Analyze for Implement {
 		scope.reset_closure();
 		Ok(())
 	}
+    #[trace]
 	fn analyze_names(&mut self, scope: &mut Env) -> ASTResult<()> {
-		scope.use_closure(self.attributes.closure);
+		self.use_closure(scope);
 
 		self.for_type.analyze_names(scope)?;
 		self.for_trait.map_mut(|t| t.analyze_names(scope)).invert()?;
@@ -48,8 +49,9 @@ impl Analyze for Implement {
 		scope.reset_closure();
 		Ok(())
 	}
+    #[trace]
 	fn analyze_types(&mut self, scope: &mut Env) -> ASTResult<()> {
-		scope.use_closure(self.attributes.closure);
+		self.use_closure(scope);
 
 		self.for_type.analyze_types(scope)?;
 		self.for_trait.map_mut(|t| t.analyze_types(scope)).invert()?;
@@ -61,8 +63,9 @@ impl Analyze for Implement {
 		scope.reset_closure();
 		Ok(())
 	}
+    #[trace]
 	fn check_types(&mut self, scope: &mut Env) -> ASTResult<()> {
-		scope.use_closure(self.attributes.closure);
+		self.use_closure(scope);
 
 		for method in self.methods.iter_mut() {
 			if !method.value.body.body.is_empty() {

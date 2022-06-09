@@ -23,3 +23,5 @@ impl UseAttributes for Implement {
 		&mut self.attributes
 	}
 }
+
+impl UseClosure for Implement {}

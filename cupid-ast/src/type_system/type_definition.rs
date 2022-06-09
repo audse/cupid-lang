@@ -27,3 +27,5 @@ impl UseAttributes for TypeDef {
 		&mut self.name.attributes
 	}
 }
+
+impl UseClosure for TypeDef {}

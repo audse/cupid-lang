@@ -10,8 +10,8 @@ pub use generics::*;
 mod implement;
 pub use implement::*;
 
-mod methods;
-pub use methods::*;
+mod method;
+pub use method::*;
 
 mod trait_definition;
 pub use trait_definition::*;

@@ -21,7 +21,15 @@ impl Display for Env {
 		write!(f, "{}", self.closures.iter()
 			.cloned()
 			.enumerate()
-			.map(|(i, (n, c))| TablePair(quick_fmt!(i, fmt_option!(c.parent, |p| format!(" (parent: {p})")), "\n", fmt_option!(n)), c))
+			.map(|(i, c)| TablePair(
+				quick_fmt!(
+					i, 
+					fmt_option!(&c.parent, |p| format!(" (parent: {p})")), 
+					"\n", 
+					fmt_option!(&c.name)
+				), 
+				c
+			))
 			.table()
 			.with(Style::modern())
 		)
