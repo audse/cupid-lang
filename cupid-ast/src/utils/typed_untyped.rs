@@ -46,6 +46,11 @@ impl<T: Default + std::fmt::Debug> Typed<T> {
 			self.to_err(ERR_EXPECTED_TYPE)
 		}
 	}
+	pub fn is_type_type(&self) -> bool {
+		if let Self::Typed(_, t) = self {
+			&*t.name.name == "type!"
+		} else { false }
+	}
 	pub fn get_type_mut(&mut self) -> &mut Type {
 		if let Self::Typed(_, t) = self {
 			t

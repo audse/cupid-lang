@@ -1,17 +1,19 @@
 use crate::*;
 
-pub type Field = (Option<Str>, Typed<Ident>);
+build_struct! {
+	#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Tabled)]
+	pub FieldBuilder => pub Field {
+		pub name: Ident,
+		#[tabled(display_with="fmt_option")]
+		pub type_hint: Option<Typed<Ident>>
+	}
+}
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Tabled)]
 pub struct FieldSet (
-	#[tabled(display_with="fmt_field_set")]
+	#[tabled(display_with="fmt_vec")]
 	pub Vec<Field>
 );
-
-fn fmt_field_set(field_set: &[Field]) -> String {
-	let fields = field_set.iter().map(|(s, i)| quick_fmt!(fmt_option!(s), i)).collect::<Vec<String>>();
-	fmt_list!(fields, ", ")
-}
 
 impl std::ops::Deref for FieldSet {
 	type Target = Vec<Field>;
@@ -28,9 +30,20 @@ impl std::ops::DerefMut for FieldSet {
 
 impl From<&Declaration> for Field {
 	fn from(dec: &Declaration) -> Self {
-		(
-			Some(dec.name.name.to_owned()),
-			dec.type_hint.to_owned()
-		)
+		Field {
+			name: dec.name.to_owned(),
+			type_hint: Some(dec.type_hint.to_owned())
+		}
+	}
+}
+
+impl From<Field> for Declaration {
+	fn from(f: Field) -> Self {
+		let attr = f.name.attributes.to_owned();
+		Declaration::build()
+			.type_hint(f.type_hint.unwrap_or_else(|| IsTyped(type_type().into_ident(), type_type())))
+			.name(f.name)
+			.attributes(attr)
+			.build()
 	}
 }

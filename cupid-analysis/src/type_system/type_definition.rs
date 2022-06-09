@@ -19,6 +19,15 @@ impl PreAnalyze for TypeDef {
 
 		scope.trace(quick_fmt!("Defining type ", self.name));
 		scope.set_symbol(&self.name, symbol_value);
+
+		self.use_closure(scope);
+
+		for field in &mut *self.fields {
+			let mut dec: Declaration = field.to_owned().into();
+			dec.analyze_names(scope)?;
+		}
+
+		scope.reset_closure();
 		Ok(())
 	}
 }

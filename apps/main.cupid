@@ -1,5 +1,9 @@
+
+# Type def
+
 type type! = []
 type trait! = []
+type none = []
 type int = []
 type dec = []
 type string = []
@@ -8,8 +12,8 @@ type fun = []
 type map (k, v) = [k, v]
 
 sum bool = [
-	true_,
-	false_
+	true,
+	false
 ]
 
 sum maybe (t) = [
@@ -17,15 +21,26 @@ sum maybe (t) = [
 	no
 ]
 
-trait add (t) = [
-	add = left : t, right : t -> t,
-]
-
 implement int = [
 	pow = left : int, right : int -> int,
 	sq = left : int -> int => left.pow(2),
 ]
 
-implement int + add (int) = []
+# Trait def
 
-let my_num : int = 10.sq()
+trait equal! (t) = [
+	equal! = left : t, right : t -> bool => ()
+]
+
+# infix 1 'is' = equal! (t)
+
+trait not_equal! (t) = [
+	not_equal! = left : t, right : t -> bool => ()
+]
+
+# infix 2 'is not' = not_equal! (t)
+
+implement int + equal! = []
+implement int + not_equal! = []
+
+bool.true

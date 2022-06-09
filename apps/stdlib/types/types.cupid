@@ -1,5 +1,0 @@
-package type_kind
-package type_def
-package type_ops
-package type_of
-package type_check

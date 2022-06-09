@@ -406,14 +406,6 @@ once!(&mut node, self._term(), false);
 			});
 
 			alt! ((self, true, node, pos) {
-				once!(&mut node, self._boolean(), false);
-			});
-
-			alt! ((self, true, node, pos) {
-				once!(&mut node, self._none(), false);
-			});
-
-			alt! ((self, true, node, pos) {
 				once!(&mut node, self._regex(), false);
 			});
 
@@ -898,28 +890,6 @@ optional!(&mut node, self._term(), false);
 				None
 			}
 			
-			pub fn _boolean(&mut self) -> Option<(ParseNode, bool)> {
-				let (mut node, pos) = self.start_parse("boolean");
-				
-			alt! ((self, false, node, pos) {
-				once!(&mut node, self.expect(r"true"), false);
-			});
-
-			alt! ((self, false, node, pos) {
-				once!(&mut node, self.expect(r"false"), false);
-			});
-				None
-			}
-			
-			pub fn _none(&mut self) -> Option<(ParseNode, bool)> {
-				let (mut node, pos) = self.start_parse("none");
-				
-			alt! ((self, false, node, pos) {
-				once!(&mut node, self.expect(r"none"), false);
-			});
-				None
-			}
-			
 			pub fn _char(&mut self) -> Option<(ParseNode, bool)> {
 				let (mut node, pos) = self.start_parse("char");
 				
@@ -1129,6 +1099,36 @@ once!(&mut node, self._comment_delimiter(), true);
 
 			alt! ((self, false, node, pos) {
 				once!(&mut node, self.expect(r"remove"), false);
+			});
+				None
+			}
+			
+			pub fn _op_def(&mut self) -> Option<(ParseNode, bool)> {
+				let (mut node, pos) = self.start_parse("op_def");
+				
+			alt! ((self, false, node, pos) {
+				once!(&mut node, self._op_kw(), false);
+once!(&mut node, self._number(), false);
+once!(&mut node, self._string(), false);
+once!(&mut node, self._equal(), false);
+once!(&mut node, self._type_hint(), false);
+			});
+				None
+			}
+			
+			pub fn _op_kw(&mut self) -> Option<(ParseNode, bool)> {
+				let (mut node, pos) = self.start_parse("op_kw");
+				
+			alt! ((self, false, node, pos) {
+				once!(&mut node, self.expect(r"infix"), false);
+			});
+
+			alt! ((self, false, node, pos) {
+				once!(&mut node, self.expect(r"prefix"), false);
+			});
+
+			alt! ((self, false, node, pos) {
+				once!(&mut node, self.expect(r"postfix"), false);
 			});
 				None
 			}
@@ -1701,18 +1701,6 @@ once!(&mut node, self.expect_word(), false);
 
 			alt! ((self, true, node, pos) {
 				once!(&mut node, self.expect(r"istype"), false);
-			});
-
-			alt! ((self, true, node, pos) {
-				once!(&mut node, self.expect(r"true"), false);
-			});
-
-			alt! ((self, true, node, pos) {
-				once!(&mut node, self.expect(r"false"), false);
-			});
-
-			alt! ((self, true, node, pos) {
-				once!(&mut node, self.expect(r"none"), false);
 			});
 
 			alt! ((self, true, node, pos) {

@@ -18,8 +18,14 @@ impl Analyze for Property {
     #[trace]
 	fn analyze_types(&mut self, scope: &mut Env) -> ASTResult<()> {
     	self.object.analyze_types(scope)?;
+
+		// TODO this makes multiple type_of calls, can we use 1?
 		self.object.to_typed(self.object.type_of(scope)?.into_owned());
-		let object_type = self.object.get_node_type()?;
+		let object_type = if self.object.is_type_type() {
+			self.object.inner().type_of_hint(scope)?
+		} else {
+			self.object.get_node_type()?.into()
+		};
 
 		object_type.use_closure(scope);
 

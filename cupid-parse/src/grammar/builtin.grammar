@@ -16,3 +16,6 @@
 	| 'set'
 	| 'get'
 	| 'remove'
+
+- op_def: op_kw number string equal type_hint
+- op_kw: 'infix' | 'prefix' | 'postfix'

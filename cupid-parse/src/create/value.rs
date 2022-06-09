@@ -5,8 +5,6 @@ impl CreateAST for Value {
 	fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
 		let attributes = attributes(node, scope)?;
 		Ok(match &*node.name {
-			"boolean" => VBoolean(boolean(node.token(0)), attributes),
-			"none" => VNone(attributes),
 			"char" => VChar(char(node.tokens.to_owned()), attributes),
 			"string" => VString(string(node.token(0)), attributes),
 			"decimal" => {
@@ -16,14 +14,6 @@ impl CreateAST for Value {
 			"number" => VInteger(integer(node.token(0)), attributes),
 			_ => panic!("could not parse value: {node:?}")
 		})
-	}
-}
-
-fn boolean(token: Token) -> bool {
-	match &*token.source {
-		"true" => true,
-		"false" => false,
-		_ => panic!("expected boolean")
 	}
 }
 

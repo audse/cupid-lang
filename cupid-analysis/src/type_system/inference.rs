@@ -38,12 +38,12 @@ impl InferType for Function {
 		
 		let mut fields = self.params.iter().map(|p| p.into()).collect::<Vec<Field>>();
 		let return_type = self.return_type.type_of(scope)?.into_owned();
-		fields.push((
-			Some("returns".into()), 
-			return_type.into()
-		));
+		fields.push(Field {
+			name: Ident::new_name("returns"),
+			type_hint: Some(return_type.into())
+		});
 
-		let generics = fields.iter().map(|(_, f)| f.to_owned()).collect::<Vec<Typed<Ident>>>();
+		let generics = fields.iter().map(|f| f.type_hint.to_owned().unwrap()).collect::<Vec<Typed<Ident>>>();
 		ident.attributes.generics = GenericList(generics);
 
 		let mut fun_type = get_type_and_unify(ident, scope)?;

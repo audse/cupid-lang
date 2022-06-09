@@ -6,7 +6,7 @@ use_utils! {
 		fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
 			match &*node.name {
 				"block" => create_ast!(Block, node, scope),
-				"boolean" | "none" | "char" | "string" | "decimal" | "number" => create_ast!(Value, node, scope),
+				"char" | "string" | "decimal" | "number" => create_ast!(Value, node, scope),
 				"expression" | "comment" => Exp::create_ast(node.get(0), scope),
 				"function_call" =>  create_binary_op_or_ast!(FunctionCall, node, scope, Box::new(FunctionCall::create_ast(node, scope)?)),
 				"function" => create_ast!(Function, node, scope),
@@ -21,6 +21,26 @@ use_utils! {
 			}
 		}
 	}
+}
+
+pub trait ParseAST {
+	fn node(&mut self) -> &mut ParseNode;
+	fn exp(&mut self, scope: &mut Env) -> Result<Exp, ErrCode> {
+		Exp::create_ast(self.node(), scope)
+	}
+	fn ident(&mut self, scope: &mut Env) -> Result<Ident, ErrCode> {
+		Ident::create_ast(self.node(), scope)
+	}
+	fn get_ident(&mut self, scope: &mut Env) -> Result<Ident, ErrCode> {
+		Ident::create_ast(self.node().get("identifier"), scope)
+	}
+	fn get_type_hint(&mut self, scope: &mut Env) -> Result<Ident, ErrCode> {
+		Ident::create_ast(self.node().get("type_hint"), scope)
+	}
+}
+
+impl ParseAST for ParseNode {
+	fn node(&mut self) -> &mut ParseNode { self }
 }
 
 use_utils! {
@@ -40,10 +60,10 @@ use_utils! {
 		fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
 			Ok(DeclarationBuilder::new()
 				.attributes(attributes(node, scope)?)
-				.type_hint(Untyped(to_type_hint(node.get("type_hint"), scope)?))
-				.name(Ident::create_ast(node.get("identifier"), scope)?)
+				.type_hint(Untyped(node.get_type_hint(scope)?))
+				.name(node.get_ident(scope)?)
 				.value(node
-					.get_option_map(2, |c| Exp::create_ast(c, scope))?
+					.get_option_map(2, |c| c.exp(scope))?
 					.unwrap_or(Exp::Empty)
 					.untyped_box())
 				.mutable(node.has_token("mut"))
@@ -80,7 +100,7 @@ use_utils! {
 					)?
 					.unwrap_or_default()
 				)
-				.function(Untyped((Ident::create_ast(node.get(0), scope)?, None)))
+				.function(Untyped((node.get(0).ident(scope)?, None)))
 				.build())
 		}
 	}
@@ -102,7 +122,7 @@ use_utils! {
 						"parameter",
 						|param| Declaration::create_ast(param, scope)
 					)?)
-				.return_type(Untyped(Ident::create_ast(node.get("type_hint"), scope)?))
+				.return_type(Untyped(node.get_type_hint(scope)?))
 				.body(Untyped(body))
 				.build())
 		}
@@ -143,11 +163,11 @@ use_utils! {
 				"identifier" => PropertyTerm::FunctionCall(
 					FunctionCall::build()
 						.function(Untyped((Ident::new_name("get!"), None)))
-						.args(vec![Untyped(Exp::create_ast(node, scope)?)])
+						.args(vec![Untyped(node.exp(scope)?)])
 						.build()
 						.boxed()
 				),
-				"group" => PropertyTerm::Term(Exp::create_ast(node, scope)?.boxed()),
+				"group" => PropertyTerm::Term(node.exp(scope)?.boxed()),
 				"property" => Self::create_ast(node.get(0), scope)?,
 				_ => unreachable!()
 			})
@@ -158,7 +178,7 @@ use_utils! {
 use_utils! {
 	impl CreateAST for TypeDef {
 		fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
-			let ident = Ident::create_ast(node.get(0), scope)?;
+			let ident = node.get(0).ident(scope)?;
 			let fields_node = node.get("type_value");
 			let fields = FieldSet::create_ast(fields_node, scope)?;
 			let base_type = if fields_node.has("type_hint") {
@@ -183,13 +203,14 @@ use_utils! {
 	impl CreateAST for FieldSet {
 		fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
 			let mut get_field = |c: &mut ParseNode| -> Result<Field, ErrCode> {
-				let type_hint = Untyped(Ident::create_ast(c.get(c.children.len() - 1), scope)?);
-				let name = if c.children.len() > 1 {
-					Some(c.get(0).token(0).source)
-				} else {
-					None
-				};
-				Ok((name, type_hint))
+				let type_hint: Result<Option<Typed<Ident>>, ErrCode> = c.get_option_map(
+					1, 
+					|t| Ok(Untyped(t.ident(scope)?))
+				);
+				Ok(Field::build()
+					.name(c.get(0).ident(scope)?)
+					.type_hint(type_hint?)
+					.build())
 			};
 			let mut fields = node.map_named("type_field", &mut get_field)?;
 			if let Some(alias_type_hint) = node.get_option_map("type_hint", &mut get_field)? {
@@ -204,8 +225,8 @@ use_utils! {
 	impl CreateAST for Implement {
 		fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
 			let mut types = node.get_all_named("type_hint");
-			let for_type = Ident::create_ast(types[0], scope)?;
-			let for_trait = types.get_mut(1).map_mut(|t| Ident::create_ast(t, scope)).invert()?;
+			let for_type = types[0].ident(scope)?;
+			let for_trait = types.get_mut(1).map_mut(|t| t.ident(scope)).invert()?;
 			let methods = node.map_children_of("methods", |method| Method::create_ast(method, scope))?;
 			Ok(Implement::build()
 				.for_type(for_type)
@@ -221,7 +242,7 @@ use_utils! {
 	impl CreateAST for Method {
 		fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
 			Ok(Method::build()
-				.name(Ident::create_ast(node.get("type_hint"), scope)?)
+				.name(node.get_type_hint(scope)?)
 				.value(Function::create_ast(node.get("method_function"), scope)?)
 				.build())
 		}
@@ -231,7 +252,7 @@ use_utils! {
 use_utils! {
 	impl CreateAST for TraitDef {
 		fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
-			let ident = Ident::create_ast(node.get(0), scope)?;
+			let ident = node.get(0).ident(scope)?;
 			let trait_value = node.get("trait_value");
 			let methods: Vec<Method> = if let Some(methods) = trait_value.get_option("methods") {
 				methods.map_named("method", |method| Method::create_ast(method, scope))?

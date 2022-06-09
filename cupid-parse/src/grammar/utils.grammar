@@ -48,7 +48,4 @@
 	| 'or'
 	| 'as'
 	| 'istype'
-	| 'true'
-	| 'false'
-	| 'none'
 	| 'package'

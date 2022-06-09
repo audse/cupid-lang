@@ -29,4 +29,10 @@ impl TypeOf for Exp {
 		}
 		for_each_exp!(self, type_of, scope)
 	}
+	fn type_of_hint(&self, scope: &mut Env) -> ASTResult<Cow<Type>> { 
+		if let Self::Empty = self {
+            return Ok(nothing_type().into())
+		}
+		for_each_exp!(self, type_of_hint, scope)
+	}
 }

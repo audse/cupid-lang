@@ -146,24 +146,20 @@ impl Unify for Method {
 
 impl Unify for FieldSet {
 	fn unify_with(&mut self, other: &[Typed<Ident>]) -> UnifyResult {
-		for (_, field_type) in (*self).iter_mut() {
-			field_type.unify_with(other)?;
+		for field in (*self).iter_mut() {
+			field.type_hint.map_mut(|t| t.unify_with(other)).invert()?;
 		}
 		Ok(())
 	}
-	// fn can_unify(&self, other: &Self) -> bool {
-	// 	let other = other.iter();
-	// 	for (_, field_type) in self.iter() {
-	// 		if let Some(next) = field_type.next() {
-	// 			field_type.can_unify(other)
-	// 		}
-	// 	}
-	// }
 }
 
 impl Unify for Trait {
 	fn unify(&mut self, other: &Self) -> UnifyResult {
 		let generics = &**other.attributes().generics;
+
+		if self.methods.len() != other.methods.len() {
+			panic!("cannot unify trait {}", self.name)
+		}
 
 		for method in self.methods.iter_mut() {
 			method.name.unify(&other.name)?;

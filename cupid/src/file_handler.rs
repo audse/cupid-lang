@@ -34,7 +34,8 @@ impl FileHandler {
 			if self.debug {
 				eprintln!("{}", fmt_list!(self.scope.traceback, "\n"));
 			}
-			println!("{}", src.context(&mut self.scope, &self.contents));
+			eprintln!("{}", src.context(&mut self.scope, &self.contents));
+			// eprintln!("{}", self.scope);
 			panic!("{}", src.message(code));
 		}
 

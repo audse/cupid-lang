@@ -46,6 +46,9 @@ pub trait CreateASTUtils: CreateAST + Default {
 	fn untyped_box(self) -> Box<Typed<Self>> {
 		Box::new(Untyped(self))
 	}
+	fn untyped(self) -> Typed<Self> {
+		Untyped(self)
+	}
 }
 
 pub fn attributes(node: &mut ParseNode, scope: &mut Env) -> Result<Attributes, ErrCode> {
@@ -58,16 +61,4 @@ pub fn attributes(node: &mut ParseNode, scope: &mut Env) -> Result<Attributes, E
 		.source(Some(source))
 		.generics(GenericList(generics?))
 		.build())
-}
-
-pub fn to_type_hint(node: &mut ParseNode, scope: &mut Env) -> Result<Ident, ErrCode> {
-	let mut ident = Ident::create_ast(node.get(0), scope)?;
-	let mut generics = vec![];
-	
-	for child in node.get_all_named("type_hint").iter_mut() {
-		let argument = to_type_hint(child, scope)?;
-		generics.push(Untyped(argument));
-	}
-	ident.attributes.generics = GenericList(generics);
-	Ok(ident)
 }

@@ -44,6 +44,12 @@ impl Hash for Ident {
 	}
 }
 
+impl From<Str> for Ident {
+	fn from(name: Str) -> Self {
+		Self::build().name(name).build()
+	}
+}
+
 pub trait ToIdent {
 	fn to_ident(&self) -> Ident;
 }

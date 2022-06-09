@@ -66,11 +66,17 @@ impl Display for Ident {
 	}
 }
 
+impl AsTable for Field {}
+impl Display for Field {
+	fn fmt(&self, f: &mut Formatter) -> Result {
+		write!(f, "{} {}", &self.name, fmt_option!(&self.type_hint, |x| format!(" : {x}")))
+	}
+}
+
 impl AsTable for FieldSet {}
 impl Display for FieldSet {
 	fn fmt(&self, f: &mut Formatter) -> Result {
-		let fields = fmt_list!(self.0, |(a, b)| format!("{} {b}", fmt_option!(a, |x| format!("{x}:"))));
-		write!(f, "{}", fmt_vec(&fields))
+		write!(f, "{}", self.as_table())
 	}
 }
 

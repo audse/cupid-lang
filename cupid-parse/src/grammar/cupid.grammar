@@ -62,8 +62,6 @@
 	| group
 	| unary_op
 	| identifier
-	| boolean
-	| none
 	| regex
 	| string
 	| char
@@ -133,8 +131,6 @@
 - return: 'return' term?
 - continue: 'continue'
 
-- boolean: 'true' | 'false'
-- none: 'none'
 - char: '\' '\'? LETTER | '\' '\'
 - string: STRING
 - decimal: NUMBER ~'.' NUMBER
