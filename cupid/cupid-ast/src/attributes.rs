@@ -54,3 +54,5 @@ impl<T: UseAttributes + Default + std::fmt::Debug> UseAttributes for Typed<T> {
 		self.inner_mut().attributes_mut()
 	}
 }
+
+pub trait Trace {}

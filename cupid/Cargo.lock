@@ -154,6 +154,7 @@ version = "0.1.0"
 dependencies = [
  "colored",
  "cupid_lex",
+ "cupid_trace",
  "cupid_util",
  "derive_more",
  "tabled",

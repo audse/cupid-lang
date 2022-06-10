@@ -1,6 +1,0 @@
-symbol add! +
-symbol subtract! -
-symbol multiply! *
-symbol divide! /
-symbol equal! is
-symbol not_equal! is not

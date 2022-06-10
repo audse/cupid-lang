@@ -5,12 +5,9 @@ edition = "2021"
 
 
 [dependencies]
-
 derive_more = "0.99.17"
-
 tabled = { version = "0.7.0", features = ["color"] }
-
 colored = "2.0.0"
-
 cupid_lex = { path = '../cupid-lex' }
 cupid_util = { path = '../cupid-util' }
+cupid_trace = { path = '../cupid-trace' }

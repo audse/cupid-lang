@@ -1,17 +1,11 @@
-
 pub use std::collections::HashMap;
-
 pub use std::borrow::Cow;
-
 use std::hash::{
 	Hash,
 	Hasher,
 };
-
 use derive_more::*;
-
 use tabled::*;
-
 use colored::Colorize;
 
 use cupid_lex::{
@@ -19,6 +13,7 @@ use cupid_lex::{
 	node::ParseNode,
 };
 use cupid_util::*;
+use cupid_trace::trace_this;
 
 pub type Source = usize;
 pub type ASTErr = (Exp, ErrCode);

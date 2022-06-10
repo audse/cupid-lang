@@ -4,9 +4,6 @@ pub use bidirectional_iterator::*;
 pub mod builder;
 pub use builder::*;
 
-pub mod displays;
-pub use displays::*;
-
 pub mod error_codes;
 pub use error_codes::*;
 

@@ -20,3 +20,13 @@ impl UseAttributes for Block {
 }
 
 impl UseClosure for Block {}
+
+#[trace_this]
+impl Trace for Block {
+    fn trace_enter_block(&self, scope: &mut Env) {
+        scope.trace("Entered block");
+    }
+    fn trace_exit_block(&self, scope: &mut Env) {
+        scope.trace("Exited block");
+    }
+}
