@@ -1,10 +1,13 @@
 use crate::*;
 
+mod context;
+pub use context::*;
+
 mod display;
 pub use display::*;
 
-mod context;
-pub use context::*;
+mod trace;
+pub use trace::*;
 
 pub fn err_from_code(code: ErrCode) -> String {
 	match code {

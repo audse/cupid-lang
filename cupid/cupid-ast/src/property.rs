@@ -19,6 +19,7 @@ impl UseAttributes for Property {
 
 impl UseClosure for Property {}
 
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Tabled)]
 pub enum PropertyTerm {
 	FunctionCall(Box<FunctionCall>),

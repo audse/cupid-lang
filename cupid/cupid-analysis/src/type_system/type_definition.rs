@@ -17,7 +17,7 @@ impl PreAnalyze for TypeDef {
 			mutable: false
 		};
 
-		scope.trace(quick_fmt!("Defining type ", self.name));
+		self.trace_define_type(scope);
 		scope.set_symbol(&self.name, symbol_value);
 
 		self.use_closure(scope);
@@ -40,13 +40,13 @@ impl Analyze for TypeDef {
 	}
     #[trace]
 	fn analyze_names(&mut self, scope: &mut Env) -> ASTResult<()> {
-		scope.trace(quick_fmt!("Analyzing generics of type ", self.name));
+		self.trace_analyze_generic_names(scope);
 		self.name.analyze_names(scope)?;
 		Ok(())
 	}
     #[trace]
 	fn analyze_types(&mut self, scope: &mut Env) -> ASTResult<()> {
-		scope.trace(quick_fmt!("Analyzing types of generics of type ", self.name));
+		self.trace_analyze_generic_types(scope);
 		self.name.analyze_types(scope)?;
 		Ok(())
 	}

@@ -26,8 +26,7 @@ impl Analyze for Property {
 
 		// Property names get analyzed after object's type is analyzed
 		// so that associated type methods can be resolved
-		scope.trace(format!("Finding property `{}` of type \n{object_type}", *self.property));
-
+		self.trace_find_property(&object_type, scope);
 		self.property.analyze_names(scope)?;
 		self.property.analyze_types(scope)?;
 		self.property.to_typed(self.property.type_of(scope)?.into_owned());

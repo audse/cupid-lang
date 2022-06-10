@@ -17,7 +17,7 @@ impl PreAnalyze for TraitDef {
 			mutable: false
 		};
 
-		scope.trace(quick_fmt!("Defining trait ", self.name));
+		self.trace_define_trait(scope);
 		scope.set_symbol(&self.name, symbol_value);
 		Ok(())
 	}
@@ -31,13 +31,13 @@ impl Analyze for TraitDef {
 	}
     #[trace]
 	fn analyze_names(&mut self, scope: &mut Env) -> ASTResult<()> {
-		scope.trace(quick_fmt!("Analyzing generics of trait ", self.name));
+		self.trace_analyze_generic_names(scope);
 		self.name.analyze_names(scope)?;
 		Ok(())
 	}
     #[trace]
 	fn analyze_types(&mut self, scope: &mut Env) -> ASTResult<()> {
-		scope.trace(quick_fmt!("Analyzing types of generics of trait ", self.name));
+		self.trace_analyze_generic_types(scope);
 		self.name.analyze_types(scope)?;
 		Ok(())
 	}

@@ -19,7 +19,7 @@ impl Analyze for FunctionCall {
 		self.function.1 = Some(function);
 		
 		self.use_closure(scope);
-		scope.trace("Analyzing names of arguments...");
+		self.trace_analyze_arg_names(scope);
     	for arg in self.args.iter_mut() {
 			arg.analyze_names(scope)?;
 		}
@@ -32,7 +32,7 @@ impl Analyze for FunctionCall {
 		function.analyze_types(scope)?;
 
 		self.use_closure(scope);
-		scope.trace("Analyzing types of arguments...");
+		self.trace_analyze_arg_types(scope);
 		for arg in self.args.iter_mut() {
 			arg.analyze_types(scope)?;
 			arg.to_typed(arg.type_of(scope)?.into_owned());

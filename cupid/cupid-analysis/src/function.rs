@@ -22,7 +22,7 @@ impl Analyze for Function {
 		self.use_closure(scope);
 
 		for param in self.params.iter_mut() {
-			scope.trace("Adding parameter...");
+			param.trace_declare_param(scope);
 			param.analyze_names(scope)?;
 		}
 		self.return_type.analyze_names(scope)?;
@@ -57,7 +57,7 @@ impl Analyze for Function {
 			self.return_type.get_node_type()?
 		);
 		if body_type != return_type {
-			scope.trace(format!("\nExpected to return: \n{return_type}Actually returned: \n{body_type}"));
+			self.trace_type_mismatch(scope);
 			return self.return_type.to_err(ERR_TYPE_MISMATCH)
 		}
 		scope.reset_closure();

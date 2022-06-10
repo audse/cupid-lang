@@ -11,7 +11,24 @@ use syn::{
 use proc_macro2::TokenStream as TokenStream2;
 use proc_macro::TokenStream;
 
+/// Allows structs to have unique items in the `Trace` trait by creating a new
+/// trait behind the scenes
 /// 
+/// ## Example
+/// ```
+/// use cupid_trace::trace_this;
+/// 
+/// #[derive(Debug)]
+/// struct MyStruct;
+/// trait Trace {}
+/// 
+/// #[trace_this]
+/// impl Trace for MyStruct {
+///    fn trace(&self) {
+///         println!("Accessing {self:?}")
+///    }
+/// }
+/// ```
 #[proc_macro_attribute]
 pub fn trace_this(_: TokenStream, input: TokenStream) -> TokenStream {
 	let input = TokenStream2::from(input);
@@ -40,7 +57,7 @@ pub fn trace_this(_: TokenStream, input: TokenStream) -> TokenStream {
 
 					let output = quote::quote! {
 						impl Trace for #self_ty {}
-						pub trait #new_trait {
+						pub trait #new_trait: Trace {
 							#(#item_signatures)*
 						}
 						#(#attrs)*
@@ -64,10 +81,13 @@ pub fn trace_this(_: TokenStream, input: TokenStream) -> TokenStream {
 }
 
 /// Adds a trace message to the scope when entering and exiting a function call
-/// Example
+/// 
+/// ## Example ouput
+/// ```no_run
 /// --> Declaration::analyze_scope
 /// ...
 /// <-- Declaration::analyze_scope
+/// ```
 #[proc_macro_attribute]
 pub fn trace(_: TokenStream, input: TokenStream) -> TokenStream {
 	let input = TokenStream2::from(input);

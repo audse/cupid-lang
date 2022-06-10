@@ -33,7 +33,7 @@ impl Analyze for Method {
 	}
     #[trace]
 	fn analyze_names(&mut self, scope: &mut Env) -> ASTResult<()> {
-		scope.trace(format!("Defining method {}", self.name));
+		self.trace_define_method(scope);
 		self.use_closure(scope);
 
 		self.name.analyze_names(scope)?;

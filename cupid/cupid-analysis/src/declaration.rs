@@ -12,7 +12,7 @@ impl Analyze for Declaration {
 	}
     #[trace]
 	fn analyze_names(&mut self, scope: &mut Env) -> ASTResult<()> {
-		scope.trace(quick_fmt!("Declaring variable `", self.name, "` [", self.type_hint, "]"));
+		self.trace_declare(scope);
 		scope.no_symbol(&self.name)?;
 		
 		let value = SymbolValue {
@@ -44,7 +44,7 @@ impl Analyze for Declaration {
 			self.value.get_node_type()?
 		);
 		if expected != found {
-			scope.trace(format!("Expected type\n{expected}, found type\n{found}"));
+			self.trace_type_mismatch(scope);
 			return self.to_err(ERR_TYPE_MISMATCH);
 		}
 		Ok(())

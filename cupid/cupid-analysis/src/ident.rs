@@ -20,7 +20,7 @@ impl Analyze for Ident {
 		// self.use_closure(scope);
 
 		for generic in self.attributes.generics.iter_mut() {
-			scope.trace(format!("Finding type of generic `{generic}`"));
+			generic.trace_find_generic_type(scope);
 			if let Ok(type_val) = scope.get_type(generic) {
 				generic.to_typed(type_val);
 			}
