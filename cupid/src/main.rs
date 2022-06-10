@@ -1,5 +1,20 @@
-use clap::Parser;
 use cupid::*;
+
+
+use clap::Parser;
+
+use cupid_parse::{
+	create::CreateAST,
+	parsers::CupidParser,
+	run::use_generator,
+};
+use cupid_ast::{
+	ASTResult,
+	Env,
+	ErrorContext,
+	Exp,
+};
+use cupid_analysis::Analyze;
 
 #[derive(Parser)]
 struct Cli {
@@ -56,7 +71,7 @@ fn run_repl(parser: &mut CupidParser, env: &mut Env) -> ASTResult<()> {
 }
 
 fn run_path(path: &str, debug: bool) {
-	let mut file_handler = FileHandler::build()
+	let mut file_handler = file_handler::FileHandler::build()
 		.read(path)
 		.debug(debug)
 		.build();

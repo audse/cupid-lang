@@ -80,6 +80,7 @@ someone istype person # should be false
 ## Scoping
 
 - [ ] Named scopes
+- [ ] Replace single scope index with list of scope indices
 
 ## Features
 

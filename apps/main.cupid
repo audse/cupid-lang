@@ -23,7 +23,7 @@ sum maybe (t) = [
 
 implement int = [
 	pow = left : int, right : int -> int,
-	sq = left : int -> int => left.pow(2),
+	sq = left : int -> int => left.pow(2)
 ]
 
 # Trait def
@@ -43,4 +43,7 @@ trait not_equal! (t) = [
 implement int + equal! = []
 implement int + not_equal! = []
 
-bool.true
+type true = bool::true
+type false = bool::false
+
+# let my_val : bool = true

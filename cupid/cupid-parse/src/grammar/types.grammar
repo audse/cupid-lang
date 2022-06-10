@@ -1,0 +1,30 @@
+# depends on cupid.grammar
+
+- type_hint: identifier paren_list[type_hint]? 
+-!type_property: type_hint type_property_suffix?
+-~type_property_suffix: ':' ':' type_property
+
+- type_def: type_kw type_hint ~equal type_value
+-~type_kw: 'sum' | !'is' 'type' !'of'
+
+- type_value: bracket_list[type_field] | type_property
+- type_field: tagged_type | identifier
+
+- trait_def: 'trait' type_hint ~equal trait_value
+- trait_value: methods | method_function
+
+- implement_type: 'implement' type_hint implement_trait? ~equal methods
+-~implement_trait: '+' type_hint
+- methods: bracket_list[method]
+
+- method: type_hint equal method_function
+- method_function: parameters return_type function_body?
+
+- function: parameters return_type function_body
+- function_body: arrow empty | arrow group | block
+
+-~return_type: '-' '>' type_property 
+- parameters: '_' | list[parameter]
+- parameter: 'mut'? tagged_type
+
+-~tagged_type: identifier ':' type_property

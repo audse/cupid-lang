@@ -1,8 +1,19 @@
+use colored::*;
 use std::time::{
 	Instant,
 	Duration,
 };
-use crate::*;
+use cupid_util::*;
+use cupid_lex::errors::Error;
+use cupid_parse::{
+	create::create_file_ast,
+	parsers::CupidParser,
+};
+use cupid_ast::*;
+use cupid_analysis::{
+	Analyze,
+	PreAnalyze,
+};
 
 build_struct! {
 	#[derive(Debug, Clone, Default)]

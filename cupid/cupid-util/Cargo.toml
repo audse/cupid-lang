@@ -1,0 +1,10 @@
+[package]
+name = "cupid_util"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+
+tabled = { version = "0.7.0", features = ["color"] }
+
+colored = "2.0.0"

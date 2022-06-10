@@ -1,0 +1,11 @@
+[package]
+name = "cupid_parse"
+version = "0.1.0"
+edition = "2021"
+
+
+
+[dependencies]
+cupid_lex = { path = '../cupid-lex' }
+cupid_ast = { path = '../cupid-ast' }
+cupid_util = { path = '../cupid-util' }
