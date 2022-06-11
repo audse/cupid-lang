@@ -1,6 +1,6 @@
 use crate::*;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Tabled)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Typed<T: Default> {
 	Untyped(T),
 	Typed(T, Type),
@@ -36,14 +36,6 @@ impl<T: Default + std::fmt::Debug> Typed<T> {
 			Ok(t)
 		} else {
 			Err(ERR_EXPECTED_TYPE)
-		}
-	}
-	pub fn get_node_type(&self) -> ASTResult<&Type> where T: ErrorContext {
-		if let Self::Typed(_, t) = self {
-			Ok(t)
-		} else {
-			eprintln!("Accessing node {self:?}");
-			self.to_err(ERR_EXPECTED_TYPE)
 		}
 	}
 	pub fn is_type_type(&self) -> bool {
@@ -101,15 +93,6 @@ impl<T: Default> std::ops::DerefMut for Typed<T> {
 		match self {
 			Self::Untyped(t) => t,
 			Self::Typed(t, _) => t
-		}
-	}
-}
-
-impl <T: Default + std::fmt::Display> std::fmt::Display for Typed<T> {
-	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-		match self {
-			Self::Typed(v, t) => write!(f, "typed [{v}]\n{t}"),
-			Self::Untyped(v) => write!(f, "untyped [{v}]"),
 		}
 	}
 }

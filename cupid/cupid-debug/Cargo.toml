@@ -1,11 +1,11 @@
 [package]
-name = "cupid_analysis"
+name = "cupid_debug"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+colored = "2.0.0"
 cupid_ast = { path = '../cupid-ast' }
-cupid_debug = { path = '../cupid-debug' }
-cupid_scope = { path = '../cupid-scope' }
+cupid_lex = { path = '../cupid-lex' }
 cupid_trace = { path = '../cupid-trace' }
 cupid_util = { path = '../cupid-util' }

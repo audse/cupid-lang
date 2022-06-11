@@ -3,22 +3,17 @@ use crate::*;
 pub type TypedIdent = (Str, Ident);
 
 build_struct! { 
-	#[derive(Debug, Clone, Default, Tabled)]
+	#[derive(Debug, Clone, Default)]
 	pub TypeBuilder => pub Type {
 		pub name: Ident,
-		
 		pub fields: FieldSet,
-
-		#[tabled(display_with = "fmt_vec")]
 		pub traits: Vec<Ident>,
-
-		#[tabled(display_with = "fmt_vec")]
 		pub methods: Vec<Method>,
 		pub base_type: BaseType,
 	}
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Display, Tabled)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Display)]
 pub enum BaseType {
 	Primitive(Str),
 	Array,
@@ -89,8 +84,6 @@ impl UseAttributes for Type {
 		self.name.attributes_mut() 
 	}
 }
-
-impl UseClosure for Type {}
 
 impl From<Type> for std::borrow::Cow<'_, Type> {
 	fn from(t: Type) -> Self {

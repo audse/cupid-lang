@@ -1,30 +1,14 @@
 use crate::*;
 
-#[derive(Debug, Clone, Tabled)]
+#[derive(Debug, Clone)]
 pub struct Env {
 	pub global: Scope,
-
-	#[tabled(display_with="fmt_closures")]
 	pub closures: Vec<Closure>,
-
-	#[tabled(skip)]
 	pub current_closure: usize,
-
-	#[tabled(skip)]
 	pub prev_closures: Vec<usize>,
-
-	#[tabled(skip)]
 	pub source_data: Vec<ParseNode>,
-
-	#[tabled(skip)]
 	pub token_data: Vec<Vec<Token>>,
-
-	#[tabled(display_with="fmt_vec")]
 	pub traceback: Vec<String>,
-}
-
-fn fmt_closures(closures: &[Closure]) -> String {
-	fmt_list!(closures, |c| format!("{} :\n{}", fmt_option!(&c.name), c), "\n")
 }
 
 impl Default for Env {
@@ -123,5 +107,13 @@ impl Env {
 	}
 	pub fn get_source_node(&self, source: usize) -> &ParseNode {
 		&self.source_data[source]
+	}
+	pub fn get_type(&mut self, symbol: &Ident) -> ASTResult<Type> {
+		let val = self.get_symbol(symbol)?;
+		if let Some(VType(val)) = val.value {
+			Ok(val)
+		} else {
+			val.to_err(ERR_EXPECTED_TYPE)
+		}
 	}
 }

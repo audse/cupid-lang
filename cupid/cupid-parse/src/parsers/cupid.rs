@@ -3,13 +3,13 @@
 #![allow(unused_variables)]
 #![allow(dead_code)]
 #![allow(unused_macros)]
+use std::borrow::Cow;
+use cupid_util::BiDirectionalIterator;
 use cupid_lex::{
 	node::ParseNode,
 	token::Token,
 };
-use cupid_util::BiDirectionalIterator;
 use crate::parser::*;
-use crate::*;
 
 type ParseFun = dyn Fn(&mut CupidParser) -> Option<(ParseNode, bool)>;
 
@@ -305,7 +305,7 @@ once!(&mut node, self._identifier(), false);
 
 				group! ((self, false, node, pos) {
 					once!(&mut node, self.expect(r":"), false);
-once!(&mut node, self._type_property(), false);
+once!(&mut node, self._type_hint(), false);
 					break;
 				});
 			
@@ -823,7 +823,7 @@ optional!(&mut node, self._type_cast_suffix(), false);
 				
 			alt! ((self, true, node, pos) {
 				once!(&mut node, self.expect(r"as"), false);
-once!(&mut node, self._type_property(), false);
+once!(&mut node, self._type_hint(), false);
 			});
 				None
 			}
@@ -1424,7 +1424,7 @@ once!(&mut node, self._group(), false);
 			alt! ((self, true, node, pos) {
 				once!(&mut node, self.expect(r"-"), false);
 once!(&mut node, self.expect(r">"), false);
-once!(&mut node, self._type_property(), false);
+once!(&mut node, self._type_hint(), false);
 			});
 				None
 			}
@@ -1458,7 +1458,7 @@ once!(&mut node, self._tagged_type(), false);
 			alt! ((self, true, node, pos) {
 				once!(&mut node, self._identifier(), false);
 once!(&mut node, self.expect(r":"), false);
-once!(&mut node, self._type_property(), false);
+once!(&mut node, self._type_hint(), false);
 			});
 				None
 			}

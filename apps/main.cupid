@@ -40,8 +40,8 @@ trait not_equal! (t) = [
 
 # infix 2 'is not' = not_equal! (t)
 
-implement int + equal! = []
-implement int + not_equal! = []
+implement int + equal! (int) = []
+implement int + not_equal! (int) = []
 
 type true = bool::true
 type false = bool::false

@@ -3,7 +3,7 @@ use crate::*;
 /// Top-level items such as type definitions and trait definitions go through 
 /// similar steps to `Analyze` before anything else is analyzed
 #[allow(unused_variables)]
-pub trait PreAnalyze: UseAttributes + std::fmt::Display {
+pub trait PreAnalyze: UseAttributes {
 	fn pre_analyze_scope(&mut self, scope: &mut Env) -> ASTResult<()> { 
 		self.attributes_mut().closure = scope.current_closure;
 		Ok(())
@@ -12,7 +12,9 @@ pub trait PreAnalyze: UseAttributes + std::fmt::Display {
 	fn pre_analyze_types(&mut self, scope: &mut Env) -> ASTResult<()> { Ok(()) }
 }
 
-/// Makes three passes over parsed input:
+/// Analyzes parse tree to check for correctness before compilation/interpretation
+/// 
+/// Works in three phases:
 /// 1. `analyze_scope` - adds the scope of each node as an attribute and modifies
 /// the scope of its children
 /// 2. `analyze_names` - sets symbols for declarations/definitions, and makes sure

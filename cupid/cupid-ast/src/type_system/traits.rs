@@ -1,14 +1,10 @@
 use crate::*;
 
 build_struct! {
-	#[derive(Debug, Clone, Default, Tabled)]
+	#[derive(Debug, Clone, Default)]
 	pub TraitBuilder => pub Trait {
 		pub name: Ident,
-		
-		#[tabled(display_with = "fmt_vec")]
 		pub methods: Vec<Method>,
-
-		#[tabled(display_with = "fmt_vec")]
 		pub bounds: Vec<Ident>,
 	}
 }
@@ -49,5 +45,3 @@ impl UseAttributes for Trait {
 		&mut self.name.attributes
 	}
 }
-
-impl UseClosure for Trait {}

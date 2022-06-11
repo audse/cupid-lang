@@ -10,7 +10,7 @@ impl Analyze for Ident {
 		self.set_closure_to(value.attributes().closure);
 		self.use_closure(scope);
 		
-		self.attributes.generics.set_symbols(scope);
+		self.set_symbols(scope);
 
 		scope.reset_closure();
 		Ok(())
@@ -62,6 +62,28 @@ impl TypeOf for Typed<Ident> {
 		match self {
 			Self::Typed(_, t) => Ok(t.into()),
 			Self::Untyped(v) => v.type_of_hint(scope)
+		}
+	}
+}
+
+trait SetGenerics {
+	 fn set_symbols(&self, scope: &mut Env);
+}
+
+impl SetGenerics for Ident {
+	fn set_symbols(&self, scope: &mut Env) {
+		for generic in self.attributes.generics.iter() {
+			if scope.get_type(generic).is_err() {
+				// TODO is this right
+				scope.set_symbol(generic, SymbolValue { 
+					value: Some(VType(Type::build()
+							.name(generic.to_owned().into_inner())
+							.build()
+						)),
+					type_hint: type_type().into_ident(), 
+					mutable: false 
+				})
+			}
 		}
 	}
 }

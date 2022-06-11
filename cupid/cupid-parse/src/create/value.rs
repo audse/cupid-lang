@@ -3,7 +3,10 @@ use cupid_lex::{
 	node::ParseNode,
 };
 use cupid_util::{ErrCode, Str};
-use crate::create::CreateAST;
+use crate::{
+	create::CreateAST,
+	Env,
+};
 use cupid_ast::*;
 use super::attributes;
 

@@ -23,8 +23,8 @@
 - function: parameters return_type function_body
 - function_body: arrow empty | arrow group | block
 
--~return_type: '-' '>' type_property 
+-~return_type: '-' '>' type_hint 
 - parameters: '_' | list[parameter]
 - parameter: 'mut'? tagged_type
 
--~tagged_type: identifier ':' type_property
+-~tagged_type: identifier ':' type_hint

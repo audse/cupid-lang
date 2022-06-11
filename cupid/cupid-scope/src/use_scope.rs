@@ -2,7 +2,6 @@ use crate::*;
 
 pub trait UseScope {
 	fn get_symbol(&mut self, symbol: &Ident) -> ASTResult<SymbolValue>;
-	fn get_type(&mut self, symbol: &Ident) -> ASTResult<Type>;
 	fn set_symbol(&mut self, symbol: &Ident, value: SymbolValue);
 	fn modify_symbol(&mut self, symbol: &Ident, function: impl FnMut(&mut SymbolValue) -> ASTResult<()>) -> ASTResult<()>;
 }
@@ -14,13 +13,6 @@ impl UseScope for Env {
 			return Ok(value);
 		}
 		self.global.get_symbol(symbol)
-	}
-	fn get_type(&mut self, symbol: &Ident) -> ASTResult<Type> {
-		self.trace_get_type(symbol);
-		if let Ok(value) = self.get_symbol_from(symbol, self.current_closure) {
-			return value.as_type();
-		}
-		self.global.get_type(symbol)
 	}
 	fn set_symbol(&mut self, symbol: &Ident, value: SymbolValue) {
 		self.trace_set_symbol(symbol, &value);
@@ -50,14 +42,6 @@ impl UseScope for Closure {
 		
 		symbol.to_err(ERR_NOT_FOUND)
 	}
-	fn get_type(&mut self, symbol: &Ident) -> ASTResult<Type> {
-		for scope in self.scopes.iter_mut() {
-			if let Ok(value) = scope.get_type(symbol) {
-				return Ok(value);
-			}
-		}
-		symbol.to_err(ERR_NOT_FOUND)
-	}
 	fn set_symbol(&mut self, symbol: &Ident, value: SymbolValue) {
 		self.scopes.last_mut().unwrap().set_symbol(symbol, value);
 	}
@@ -83,14 +67,6 @@ impl UseScope for Scope {
 		} else {
 			symbol.to_err(ERR_NOT_FOUND)
 		}
-	}
-	fn get_type(&mut self, symbol: &Ident) -> ASTResult<Type> {
-		if let Ok(value) = self.get_symbol(symbol) {
-			if let Ok(value) = value.as_type() {
-				return Ok(value);
-			}
-		}
-		symbol.to_err(ERR_NOT_FOUND)
 	}
 	fn set_symbol(&mut self, symbol: &Ident, value: SymbolValue) {
 		self.symbols.insert(symbol.to_owned(), value);

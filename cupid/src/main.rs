@@ -10,11 +10,12 @@ use cupid_parse::{
 };
 use cupid_ast::{
 	ASTResult,
-	Env,
-	ErrorContext,
 	Exp,
+	UseAttributes,
 };
 use cupid_analysis::Analyze;
+use cupid_scope::Env;
+use cupid_debug::ErrorContext;
 
 #[derive(Parser)]
 struct Cli {
@@ -42,7 +43,8 @@ fn main() -> Result<(), String> {
 		match run_repl(&mut parser, &mut env) {
 			Ok(()) => (),
 			Err((src, code)) => {
-				eprintln!("{}", src.context(&mut env, ""));
+				let node = env.get_source_node(src.source());
+				eprintln!("{}", src.context(node, ""));
 				panic!("{}", src.message(code));
 			}
 		}

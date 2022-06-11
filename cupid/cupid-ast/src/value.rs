@@ -1,6 +1,6 @@
 use crate::*;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Unwrap, Tabled)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Unwrap)]
 pub enum Value {
 	VArray(Vec<Value>, Attributes),
 	VBoolean(bool, Attributes),

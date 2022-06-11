@@ -5,6 +5,7 @@ members = [
 	"cupid-ast",
 	"cupid-lex",
 	"cupid-parse",
+	"cupid-scope",
 	"cupid-trace",
 	"cupid-util"
 ]
@@ -18,9 +19,11 @@ edition = "2021"
 colored = "2.0.0"
 clap = { version = "3.1.18", features = ["derive"] }
 
-cupid_util = { path = 'cupid-util' }
+cupid_analysis = { path = 'cupid-analysis' }
+cupid_ast = { path = 'cupid-ast' }
+cupid_debug = { path = 'cupid-debug' }
 cupid_lex = { path = 'cupid-lex' }
 cupid_parse = { path = 'cupid-parse' }
-cupid_ast = { path = 'cupid-ast' }
-cupid_analysis = { path = 'cupid-analysis' }
+cupid_scope = { path = 'cupid-scope' }
 cupid_trace = { path = 'cupid-trace' }
+cupid_util = { path = 'cupid-util' }

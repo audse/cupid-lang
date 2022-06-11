@@ -14,6 +14,8 @@ use cupid_analysis::{
 	Analyze,
 	PreAnalyze,
 };
+use cupid_debug::*;
+use cupid_scope::*;
 
 build_struct! {
 	#[derive(Debug, Clone, Default)]
@@ -45,7 +47,8 @@ impl FileHandler {
 			if self.debug {
 				eprintln!("{}", fmt_list!(self.scope.traceback, "\n"));
 			}
-			eprintln!("{}", src.context(&mut self.scope, &self.contents));
+			let node = self.scope.get_source_node(src.source());
+			eprintln!("{}", src.context(node, &self.contents));
 			// eprintln!("{}", self.scope);
 			panic!("{}", src.message(code));
 		}
@@ -62,9 +65,9 @@ impl FileHandler {
 
 		if self.debug {
 			println!("\nParsing...\n");
-			for node in ast.iter_mut() {
-				println!("{}", node.as_table())
-			}
+			// for node in ast.iter_mut() {
+			// 	println!("{}", node.as_table())
+			// }
 		}
 
 		macro_rules! do_passes {
@@ -87,9 +90,9 @@ impl FileHandler {
 
 		if self.debug {
 			println!("\n\nAnalyzing...\n");
-			for node in ast.iter_mut() {
-				println!("{}", node.as_table())
-			}
+			// for node in ast.iter_mut() {
+			// 	println!("{}", node.as_table())
+			// }
 		}
 
 		Ok(())

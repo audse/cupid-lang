@@ -1,7 +1,7 @@
 use crate::*;
 
 build_struct! {
-	#[derive(Debug, Clone, PartialEq, Eq, Hash, Default, Tabled)]
+	#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 	pub PropertyBuilder => pub Property {
 		pub object: Box<Typed<Exp>>,
 		pub property: Typed<PropertyTerm>,
@@ -17,10 +17,8 @@ impl UseAttributes for Property {
     }
 }
 
-impl UseClosure for Property {}
 
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Tabled)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PropertyTerm {
 	FunctionCall(Box<FunctionCall>),
 	Index(usize, Attributes),

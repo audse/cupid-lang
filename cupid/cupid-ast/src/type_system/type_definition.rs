@@ -1,7 +1,7 @@
 use crate::*;
 
 build_struct! {
-	#[derive(Debug, Clone, PartialEq, Eq, Hash, Tabled, Default)]
+	#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 	pub TypeDefBuilder => pub TypeDef {
 		pub name: Ident,
 		pub fields: FieldSet,
@@ -27,5 +27,3 @@ impl UseAttributes for TypeDef {
 		&mut self.name.attributes
 	}
 }
-
-impl UseClosure for TypeDef {}

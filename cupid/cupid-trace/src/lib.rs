@@ -12,21 +12,30 @@ use proc_macro2::TokenStream as TokenStream2;
 use proc_macro::TokenStream;
 
 /// Allows structs to have unique items in the `Trace` trait by creating a new
-/// trait behind the scenes
+/// trait behind the scenes. This kind of defeats the purpose of traits, but
+/// really it's just allow better semantic separation of code.
 /// 
 /// ## Example
 /// ```
 /// use cupid_trace::trace_this;
 /// 
 /// #[derive(Debug)]
-/// struct MyStruct;
+/// struct MyFirstStruct;
+/// struct MySecondStruct;
+/// 
 /// trait Trace {}
 /// 
 /// #[trace_this]
-/// impl Trace for MyStruct {
-///    fn trace(&self) {
+/// impl Trace for MyFirstStruct {
+///    fn trace_something(&self) {
 ///         println!("Accessing {self:?}")
 ///    }
+/// }
+/// 
+/// impl Trace for MySecondStruct {
+///     fn trace_something_else(&self) {
+///         println!("Doing something with {self:?}")
+///     }
 /// }
 /// ```
 #[proc_macro_attribute]
@@ -93,7 +102,11 @@ pub fn trace(_: TokenStream, input: TokenStream) -> TokenStream {
 	let input = TokenStream2::from(input);
 
 	let item: ImplItem = syn::parse2(input).expect("failed to parse input");
-
+	
+	if option_env!("RUST_DEBUG") != Some("true") {
+		return quote::quote!(#item).into();
+	}
+	
 	match &item {
 		ImplItem::Method(ImplItemMethod { attrs, vis, sig, block, ..}) => {
 			let ident = &sig.ident;

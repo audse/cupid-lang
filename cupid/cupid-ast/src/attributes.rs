@@ -1,27 +1,11 @@
 use crate::*;
 
 build_struct! {
-	#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Tabled)]
+	#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 	pub AttributesBuilder => pub Attributes {
 		pub closure: usize,
-		#[tabled(display_with = "fmt_option")]
 		pub source: Option<usize>,
 		pub generics: GenericList,
-	}
-}
-
-pub trait UseClosure: UseAttributes {
-	fn set_closure(&mut self, scope: &Env) {
-		self.attributes_mut().closure = scope.current_closure;
-	}
-	fn set_closure_to(&mut self, closure: usize) {
-		self.attributes_mut().closure = closure;
-	}
-	fn closure(&self) -> usize {
-		self.attributes().closure
-	}
-	fn use_closure(&self, scope: &mut Env) {
-		scope.use_closure(self.closure(), fmt_type!(Self));
 	}
 }
 
@@ -46,6 +30,15 @@ impl Attributes {
 	}
 }
 
+impl UseAttributes for Attributes {
+	fn attributes(&self) -> &Attributes {
+		self
+	}
+	fn attributes_mut(&mut self) -> &mut Attributes {
+		self
+	}
+}
+
 impl<T: UseAttributes + Default + std::fmt::Debug> UseAttributes for Typed<T> {
 	fn attributes(&self) -> &Attributes {
 		self.inner().attributes()
@@ -55,4 +48,11 @@ impl<T: UseAttributes + Default + std::fmt::Debug> UseAttributes for Typed<T> {
 	}
 }
 
-pub trait Trace {}
+impl<'ast, T: UseAttributes> UseAttributes for &'ast T {
+	fn attributes(&self) -> &Attributes {
+		(*self).attributes()
+	}
+	fn attributes_mut(&mut self) -> &mut Attributes {
+		todo!()
+	}
+}

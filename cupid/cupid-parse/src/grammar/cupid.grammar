@@ -45,7 +45,7 @@
 -~brace_block: brace_multiple[expression]
 -~arrow_block: arrow expression_item
 
-- declaration: 'let' 'mut'? identifier (':' type_property)? (equal term)?
+- declaration: 'let' 'mut'? identifier (':' type_hint)? (equal term)?
 
 - assignment: identifier equal term
 
@@ -119,7 +119,7 @@
 -~exponent_suffix: '^' exponent
 
 - type_cast: property type_cast_suffix?
--~type_cast_suffix: 'as' type_property
+-~type_cast_suffix: 'as' type_hint
 
 -!property: function_call property_suffix?
 -~property_suffix: '.' property

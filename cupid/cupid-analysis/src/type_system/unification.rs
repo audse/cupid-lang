@@ -1,6 +1,5 @@
 use crate::*;
 
-pub type ASTResult<T> = Result<T, ASTErr>;
 pub type UnifyResult = ASTResult<()>;
 
 #[allow(unused_variables)]
@@ -158,7 +157,7 @@ impl Unify for Trait {
 		let generics = &**other.attributes().generics;
 
 		if self.methods.len() != other.methods.len() {
-			panic!("cannot unify trait {}", self.name)
+			panic!("cannot unify trait {}", &self.name as &dyn Fmt)
 		}
 
 		for method in self.methods.iter_mut() {

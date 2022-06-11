@@ -9,3 +9,16 @@ pub trait TypeOf {
 		Ok(type_type().into())
 	}
 }
+
+pub trait GetNodeType {
+	fn get_node_type(&self) -> ASTResult<&Type>;
+}
+
+impl<T: ErrorContext + Default> GetNodeType for Typed<T> {
+	fn get_node_type(&self) -> ASTResult<&Type> {
+		match self {
+			IsTyped(_, t) => Ok(t),
+			Untyped(_) => self.to_err(ERR_EXPECTED_TYPE)
+		}
+	}
+}

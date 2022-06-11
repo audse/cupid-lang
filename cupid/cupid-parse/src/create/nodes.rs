@@ -69,7 +69,7 @@ use_utils! {
 		fn create_ast(node: &mut ParseNode, scope: &mut Env) -> Result<Self, ErrCode> {
 			Ok(DeclarationBuilder::new()
 				.attributes(attributes(node, scope)?)
-				.type_hint(Untyped(node.get_type_property(scope)?))
+				.type_hint(Untyped(node.get_type_hint(scope)?))
 				.name(node.get_ident(scope)?)
 				.value(node
 					.get_option_map(2, |c| c.exp(scope))?
@@ -133,7 +133,7 @@ use_utils! {
 						"parameter",
 						|param| Declaration::create_ast(param, scope)
 					)?)
-				.return_type(Untyped(node.get_type_property(scope)?))
+				.return_type(Untyped(node.get_type_hint(scope)?))
 				.body(Untyped(body))
 				.build())
 		}

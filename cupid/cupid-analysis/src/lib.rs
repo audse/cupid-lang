@@ -1,5 +1,7 @@
-pub use cupid_trace::trace;
 pub use cupid_ast::*;
+pub use cupid_debug::*;
+pub use cupid_scope::*;
+pub use cupid_trace::trace;
 pub use cupid_util::*;
 
 pub mod ast;
@@ -25,6 +27,9 @@ pub use ident::*;
 
 pub mod property;
 pub use property::*;
+
+pub mod symbol_value;
+pub use symbol_value::*;
 
 pub mod type_system;
 pub use type_system::*;

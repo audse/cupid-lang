@@ -38,7 +38,7 @@ impl ParseNode {
 		self.tokens[0].source.to_owned()
 	}
 	pub fn token(&self, index: usize) -> Token {
-		self.tokens[index].to_owned()
+		self.tokens.get(index).unwrap_or_else(|| panic!("couldn't find token {index} in {self}")).to_owned()
 	}
 	pub fn has_token(&self, name: &str) -> bool {
 		self.tokens.iter().any(|c| c.source == name)

@@ -13,9 +13,6 @@ pub use fmt::*;
 pub mod strings;
 pub use strings::*;
 
-pub mod table_fmt;
-pub use table_fmt::*;
-
 pub fn invert<T, E>(x: Option<Result<T, E>>) -> Result<Option<T>, E> {
     x.map_or(Ok(None), |v| v.map(Some))
 }

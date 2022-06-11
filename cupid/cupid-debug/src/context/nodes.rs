@@ -8,8 +8,7 @@ impl ToError for Block {
 }
 
 impl ErrorContext for Block {
-	fn context(&self, scope: &mut Env, source: &str) -> String {
-		let node = self.source_node(scope);
+	fn context(&self, node: &ParseNode, source: &str) -> String {
 		let (open_token, close_token) = (node.token(0), node.token(1));
 		let underlines = match open_token.source() {
 			"=" => {
@@ -56,8 +55,8 @@ impl ToError for Declaration {
 
 #[allow(unused_variables)]
 impl ErrorContext for Declaration {
-	fn context(&self, scope: &mut Env, source: &str) -> String {
-		self.to_string()
+	fn context(&self, node: &ParseNode, source: &str) -> String {
+		self.fmt_node()
 	}
 }
 
@@ -69,8 +68,9 @@ impl ToError for Exp {
 
 #[allow(unused_variables)]
 impl ErrorContext for Exp {
-	fn context(&self, scope: &mut Env, source: &str) -> String {
-		for_each_exp!(self, context, scope, source)
+	fn context(&self, node: &ParseNode, source: &str) -> String {
+		for_each_exp!(self, context, node, source)
+		// todo!()
 	}
 	fn message(&self, code: ErrCode) -> String {
 		for_each_exp!(self, message, code)
@@ -85,8 +85,8 @@ impl ToError for FunctionCall {
 
 #[allow(unused_variables)]
 impl ErrorContext for FunctionCall {
-	fn context(&self, scope: &mut Env, source: &str) -> String {
-		self.to_string()
+	fn context(&self, node: &ParseNode, source: &str) -> String {
+		self.fmt_node()
 	}
 }
 
@@ -98,8 +98,8 @@ impl ToError for Function {
 
 #[allow(unused_variables)]
 impl ErrorContext for Function {
-	fn context(&self, scope: &mut Env, source: &str) -> String {
-		self.to_string()
+	fn context(&self, node: &ParseNode, source: &str) -> String {
+		self.fmt_node()
 	}
 }
 
@@ -111,18 +111,20 @@ impl ToError for Ident {
 
 #[allow(unused_variables)]
 impl ErrorContext for Ident {
-	fn context(&self, scope: &mut Env, source: &str) -> String {
-		let source_node = self.source_node(scope);
-		let token = if source_node.tokens.is_empty() {
-			source_node.children[0].token(0)
+	fn context(&self, node: &ParseNode, source: &str) -> String {
+		let token = if node.tokens.is_empty() {
+			if node.children[0].tokens.is_empty() {
+				node.children[0].children[0].token(0)
+			} else {
+				node.children[0].token(0)
+			}
 		} else {
-			source_node.token(0)
+			node.token(0)
 		};
 		let lines = token.lines(source);
 		let underlines = token.underline(lines);
 		format!(
-			"{}\nAccessing identifier `{}`\n\n{}\n", 
-			scope.closures[scope.current_closure],
+			"\nAccessing identifier `{}`\n\n{}\n", 
 			(&*self.name).bold().yellow(),
 			underlines
 				.iter()
@@ -141,8 +143,8 @@ impl ToError for Implement {
 
 #[allow(unused_variables)]
 impl ErrorContext for Implement {
-	fn context(&self, scope: &mut Env, source: &str) -> String {
-		self.to_string()
+	fn context(&self, node: &ParseNode, source: &str) -> String {
+		self.fmt_node()
 	}
 }
 
@@ -154,8 +156,8 @@ impl ToError for Property {
 
 #[allow(unused_variables)]
 impl ErrorContext for Property {
-	fn context(&self, scope: &mut Env, source: &str) -> String {
-		self.to_string()
+	fn context(&self, node: &ParseNode, source: &str) -> String {
+		(self as &dyn Fmt).fmt_node()
 	}
 }
 
@@ -167,8 +169,8 @@ impl ToError for PropertyTerm {
 
 #[allow(unused_variables)]
 impl ErrorContext for PropertyTerm {
-	fn context(&self, scope: &mut Env, source: &str) -> String {
-		self.to_string()
+	fn context(&self, node: &ParseNode, source: &str) -> String {
+		self.fmt_node()
 	}
 }
 
@@ -180,8 +182,8 @@ impl ToError for Method {
 
 #[allow(unused_variables)]
 impl ErrorContext for Method {
-	fn context(&self, scope: &mut Env, source: &str) -> String {
-		self.to_string()
+	fn context(&self, node: &ParseNode, source: &str) -> String {
+		self.fmt_node()
 	}
 }
 
@@ -193,8 +195,21 @@ impl ToError for SymbolValue {
 
 #[allow(unused_variables)]
 impl ErrorContext for SymbolValue {
-	fn context(&self, scope: &mut Env, source: &str) -> String {
-		self.to_string()
+	fn context(&self, node: &ParseNode, source: &str) -> String {
+		self.fmt_node()
+	}
+}
+
+impl ToError for Trait {
+	fn as_err(&self, code: usize) -> crate::ASTErr {
+		(Exp::Value(VTrait(self.to_owned())), code)
+	}
+}
+
+#[allow(unused_variables)]
+impl ErrorContext for Trait {
+	fn context(&self, node: &ParseNode, source: &str) -> String {
+		self.fmt_node()
 	}
 }
 
@@ -206,8 +221,21 @@ impl ToError for TraitDef {
 
 #[allow(unused_variables)]
 impl ErrorContext for TraitDef {
-	fn context(&self, scope: &mut Env, source: &str) -> String {
-		self.to_string()
+	fn context(&self, node: &ParseNode, source: &str) -> String {
+		self.fmt_node()
+	}
+}
+
+impl ToError for Type {
+	fn as_err(&self, code: usize) -> crate::ASTErr {
+		(Exp::Value(VType(self.to_owned())), code)
+	}
+}
+
+#[allow(unused_variables)]
+impl ErrorContext for Type {
+	fn context(&self, node: &ParseNode, source: &str) -> String {
+		self.fmt_node()
 	}
 }
 
@@ -219,8 +247,8 @@ impl ToError for TypeDef {
 
 #[allow(unused_variables)]
 impl ErrorContext for TypeDef {
-	fn context(&self, scope: &mut Env, source: &str) -> String {
-		self.to_string()
+	fn context(&self, node: &ParseNode, source: &str) -> String {
+		self.fmt_node()
 	}
 }
 
@@ -232,8 +260,8 @@ impl ToError for Value {
 
 #[allow(unused_variables)]
 impl ErrorContext for Value {
-	fn context(&self, scope: &mut Env, source: &str) -> String {
-		self.to_string()
+	fn context(&self, node: &ParseNode, source: &str) -> String {
+		self.fmt_node()
 	}
 }
 
@@ -244,8 +272,8 @@ impl<T: ToError + Default + std::fmt::Debug> ToError for Typed<T> {
 }
 
 #[allow(unused_variables)]
-impl<T: ErrorContext + Default + std::fmt::Debug + std::fmt::Display> ErrorContext for Typed<T> {
-	fn context(&self, scope: &mut Env, source: &str) -> String {
+impl<T: ErrorContext + Default + std::fmt::Debug + std::fmt::Display + Clone> ErrorContext for Typed<T> {
+	fn context(&self, node: &ParseNode, source: &str) -> String {
 		self.to_string()
 	}
 }

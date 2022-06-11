@@ -1,7 +1,7 @@
 use crate::*;
 
 build_struct! {
-	#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Tabled)]
+	#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 	pub MethodBuilder => pub Method {
 		pub name: Ident,
 		pub value: Function,
@@ -16,5 +16,3 @@ impl UseAttributes for Method {
 		self.name.attributes_mut() 
 	}
 }
-
-impl UseClosure for Method {}

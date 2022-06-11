@@ -21,3 +21,6 @@ pub use type_of::*;
 
 mod types;
 pub use types::*;
+
+mod unification;
+pub use unification::*;

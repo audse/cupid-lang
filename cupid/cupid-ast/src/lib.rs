@@ -5,21 +5,11 @@ use std::hash::{
 	Hasher,
 };
 use derive_more::*;
-use tabled::*;
-use colored::Colorize;
-
-use cupid_lex::{
-	token::Token,
-	node::ParseNode,
-};
 use cupid_util::*;
-use cupid_trace::trace_this;
 
 pub type Source = usize;
 pub type ASTErr = (Exp, ErrCode);
-
-pub mod diagnostics;
-pub use diagnostics::*;
+pub type ASTResult<T> = Result<T, ASTErr>;
 
 pub mod attributes;
 pub use attributes::*;
@@ -46,14 +36,14 @@ pub use ident::*;
 pub mod property;
 pub use property::*;
 
+pub mod symbol_value;
+pub use symbol_value::*;
+
 pub mod type_system;
 pub use type_system::*;
 
 pub mod value;
 pub use value::*;
-
-pub mod scope;
-pub use scope::*;
 
 pub mod utils;
 pub use utils::*;

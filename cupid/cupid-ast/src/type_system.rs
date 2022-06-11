@@ -24,6 +24,3 @@ pub use type_definition::*;
 
 mod types;
 pub use types::*;
-
-mod unification;
-pub use unification::*;

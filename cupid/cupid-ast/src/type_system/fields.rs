@@ -1,17 +1,15 @@
 use crate::*;
 
 build_struct! {
-	#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Tabled)]
+	#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 	pub FieldBuilder => pub Field {
 		pub name: Ident,
-		#[tabled(display_with="fmt_option")]
 		pub type_hint: Option<Typed<Ident>>
 	}
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Tabled)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct FieldSet (
-	#[tabled(display_with="fmt_vec")]
 	pub Vec<Field>
 );
 
@@ -51,5 +49,23 @@ impl From<Field> for Declaration {
 			.name(f.name)
 			.attributes(attr)
 			.build()
+	}
+}
+
+impl UseAttributes for Field {
+	fn attributes(&self) -> &Attributes {
+		self.name.attributes()
+	}
+	fn attributes_mut(&mut self) -> &mut Attributes {
+		self.name.attributes_mut()
+	}
+}
+
+impl UseAttributes for FieldSet {
+	fn attributes(&self) -> &Attributes {
+		unreachable!("cannot get attributes of field set")
+	}
+	fn attributes_mut(&mut self) -> &mut Attributes {
+		unreachable!("cannot get attributes of field set")
 	}
 }
