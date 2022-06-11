@@ -30,8 +30,7 @@ impl Ident {
 
 impl PartialEq for Ident {
 	fn eq(&self, other: &Self) -> bool {
-		self.name == other.name 
-		&& self.attributes.generics.len() == other.attributes.generics.len()
+		self.type_eq(other)
 	}
 }
 

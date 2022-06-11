@@ -108,3 +108,9 @@ impl From<Type> for Typed<Ident> {
 		IsTyped(t.to_ident(), t)
 	}
 }
+
+impl From<&'static str> for Typed<Ident> {
+	fn from(name: &'static str) -> Self {
+		Untyped(name.into())
+	}
+}

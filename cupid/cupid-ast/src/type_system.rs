@@ -19,5 +19,8 @@ pub use traits::*;
 pub mod  type_definition;
 pub use type_definition::*;
 
+pub mod type_eq;
+pub use type_eq::*;
+
 pub mod  types;
 pub use types::*;

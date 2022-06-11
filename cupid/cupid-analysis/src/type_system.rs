@@ -16,9 +16,6 @@ pub use traits::*;
 pub mod type_definition;
 pub use type_definition::*;
 
-pub mod type_eq;
-pub use type_eq::*;
-
 pub mod type_of;
 pub use type_of::*;
 
@@ -27,3 +24,5 @@ pub use types::*;
 
 pub mod unification;
 pub use unification::*;
+
+mod unification_test;

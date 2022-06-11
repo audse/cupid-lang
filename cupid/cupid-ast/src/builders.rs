@@ -25,6 +25,9 @@ impl TypeBuilder {
 		self.base_type = BaseType::Primitive(name.into());
 		self
 	}
+	pub fn base_array(self) -> Self { self.base_type(BaseType::Array) }
+	pub fn base_fun(self) -> Self { self.base_type(BaseType::Function) }
+	pub fn base_sum(self) -> Self { self.base_type(BaseType::Sum) }
 	pub fn add_fields(mut self, mut fields: Vec<Field>) -> Self {
 		self.fields.append(&mut fields);
 		self
