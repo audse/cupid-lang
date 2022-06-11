@@ -1,26 +1,29 @@
-mod implement;
+pub mod implement;
 pub use implement::*;
 
-mod inference;
+pub mod inference;
 pub use inference::*;
 
-mod method;
+pub mod method;
 pub use method::*;
 
-mod trait_definition;
+pub mod trait_definition;
 pub use trait_definition::*;
 
-mod traits;
+pub mod traits;
 pub use traits::*;
 
-mod type_definition;
+pub mod type_definition;
 pub use type_definition::*;
 
-mod type_of;
+pub mod type_eq;
+pub use type_eq::*;
+
+pub mod type_of;
 pub use type_of::*;
 
-mod types;
+pub mod types;
 pub use types::*;
 
-mod unification;
+pub mod unification;
 pub use unification::*;

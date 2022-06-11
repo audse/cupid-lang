@@ -45,7 +45,7 @@ impl From<Field> for Declaration {
 	fn from(f: Field) -> Self {
 		let attr = f.name.attributes.to_owned();
 		Declaration::build()
-			.type_hint(f.type_hint.unwrap_or_else(|| IsTyped(type_type().into_ident(), type_type())))
+			.type_hint(f.type_hint.unwrap_or_else(|| IsTyped(Type::type_ty().into_ident(), Type::type_ty())))
 			.name(f.name)
 			.attributes(attr)
 			.build()

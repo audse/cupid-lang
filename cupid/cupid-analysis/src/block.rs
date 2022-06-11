@@ -39,7 +39,7 @@ impl TypeOf for Block {
         if let Some(exp) = (*self.body).last() {
             exp.type_of(scope)
         } else {
-            Ok((nothing_type()).into())
+            Ok((Type::none()).into())
         }
     }
 }

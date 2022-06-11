@@ -13,7 +13,7 @@ impl PreAnalyze for TypeDef {
 				
 		let symbol_value = SymbolValue {
 			value: Some(VType(self.to_owned().into())),
-			type_hint: type_type().to_ident(),
+			type_hint: Type::type_ty().to_ident(),
 			mutable: false
 		};
 

@@ -25,13 +25,13 @@ impl Analyze for Exp {
 impl TypeOf for Exp {
 	fn type_of(&self, scope: &mut Env) -> ASTResult<Cow<Type>> { 
 		if let Self::Empty = self {
-            return Ok(nothing_type().into())
+            return Ok(Type::none().into())
 		}
 		for_each_exp!(self, type_of, scope)
 	}
 	fn type_of_hint(&self, scope: &mut Env) -> ASTResult<Cow<Type>> { 
 		if let Self::Empty = self {
-            return Ok(nothing_type().into())
+            return Ok(Type::none().into())
 		}
 		for_each_exp!(self, type_of_hint, scope)
 	}

@@ -1,12 +1,6 @@
 use colored::Colorize;
 use crate::*;
 
-impl ToError for Block {
-	fn as_err(&self, code: usize) -> crate::ASTErr {
-		(Exp::Block(self.to_owned()), code)
-	}
-}
-
 impl ErrorContext for Block {
 	fn context(&self, node: &ParseNode, source: &str) -> String {
 		let (open_token, close_token) = (node.token(0), node.token(1));
@@ -47,22 +41,10 @@ impl ErrorContext for Block {
 	}
 }
 
-impl ToError for Declaration {
-	fn as_err(&self, code: usize) -> crate::ASTErr {
-		(Exp::Declaration(self.to_owned()), code)
-	}
-}
-
 #[allow(unused_variables)]
 impl ErrorContext for Declaration {
 	fn context(&self, node: &ParseNode, source: &str) -> String {
 		self.fmt_node()
-	}
-}
-
-impl ToError for Exp {
-	fn as_err(&self, code: usize) -> crate::ASTErr {
-		(self.to_owned(), code)
 	}
 }
 
@@ -77,25 +59,6 @@ impl ErrorContext for Exp {
 	}
 }
 
-impl ToError for FunctionCall {
-	fn as_err(&self, code: usize) -> crate::ASTErr {
-		(Exp::FunctionCall(Box::new(self.to_owned())), code)
-	}
-}
-
-#[allow(unused_variables)]
-impl ErrorContext for FunctionCall {
-	fn context(&self, node: &ParseNode, source: &str) -> String {
-		self.fmt_node()
-	}
-}
-
-impl ToError for Function {
-	fn as_err(&self, code: usize) -> crate::ASTErr {
-		(Exp::Function(self.to_owned()), code)
-	}
-}
-
 #[allow(unused_variables)]
 impl ErrorContext for Function {
 	fn context(&self, node: &ParseNode, source: &str) -> String {
@@ -103,9 +66,10 @@ impl ErrorContext for Function {
 	}
 }
 
-impl ToError for Ident {
-	fn as_err(&self, code: usize) -> crate::ASTErr {
-		(Exp::Ident(self.to_owned()), code)
+#[allow(unused_variables)]
+impl ErrorContext for FunctionCall {
+	fn context(&self, node: &ParseNode, source: &str) -> String {
+		self.fmt_node()
 	}
 }
 
@@ -135,22 +99,10 @@ impl ErrorContext for Ident {
 	}
 }
 
-impl ToError for Implement {
-	fn as_err(&self, code: usize) -> crate::ASTErr {
-		(Exp::Implement(self.to_owned()), code)
-	}
-}
-
 #[allow(unused_variables)]
 impl ErrorContext for Implement {
 	fn context(&self, node: &ParseNode, source: &str) -> String {
 		self.fmt_node()
-	}
-}
-
-impl ToError for Property {
-	fn as_err(&self, code: usize) -> crate::ASTErr {
-		(Exp::Property(Box::new(self.to_owned())), code)
 	}
 }
 
@@ -161,22 +113,10 @@ impl ErrorContext for Property {
 	}
 }
 
-impl ToError for PropertyTerm {
-	fn as_err(&self, code: usize) -> crate::ASTErr {
-		(self.to_owned().into(), code)
-	}
-}
-
 #[allow(unused_variables)]
 impl ErrorContext for PropertyTerm {
 	fn context(&self, node: &ParseNode, source: &str) -> String {
 		self.fmt_node()
-	}
-}
-
-impl ToError for Method {
-	fn as_err(&self, code: usize) -> crate::ASTErr {
-		(Exp::Function(self.to_owned().value), code)
 	}
 }
 
@@ -187,22 +127,10 @@ impl ErrorContext for Method {
 	}
 }
 
-impl ToError for SymbolValue {
-	fn as_err(&self, code: usize) -> crate::ASTErr {
-		(Exp::Value(self.value.to_owned().unwrap_or_default()), code)
-	}
-}
-
 #[allow(unused_variables)]
 impl ErrorContext for SymbolValue {
 	fn context(&self, node: &ParseNode, source: &str) -> String {
 		self.fmt_node()
-	}
-}
-
-impl ToError for Trait {
-	fn as_err(&self, code: usize) -> crate::ASTErr {
-		(Exp::Value(VTrait(self.to_owned())), code)
 	}
 }
 
@@ -213,22 +141,10 @@ impl ErrorContext for Trait {
 	}
 }
 
-impl ToError for TraitDef {
-	fn as_err(&self, code: usize) -> crate::ASTErr {
-		(Exp::TraitDef(self.to_owned()), code)
-	}
-}
-
 #[allow(unused_variables)]
 impl ErrorContext for TraitDef {
 	fn context(&self, node: &ParseNode, source: &str) -> String {
 		self.fmt_node()
-	}
-}
-
-impl ToError for Type {
-	fn as_err(&self, code: usize) -> crate::ASTErr {
-		(Exp::Value(VType(self.to_owned())), code)
 	}
 }
 
@@ -239,12 +155,6 @@ impl ErrorContext for Type {
 	}
 }
 
-impl ToError for TypeDef {
-	fn as_err(&self, code: usize) -> crate::ASTErr {
-		(Exp::TypeDef(self.to_owned()), code)
-	}
-}
-
 #[allow(unused_variables)]
 impl ErrorContext for TypeDef {
 	fn context(&self, node: &ParseNode, source: &str) -> String {
@@ -252,22 +162,10 @@ impl ErrorContext for TypeDef {
 	}
 }
 
-impl ToError for Value {
-	fn as_err(&self, code: usize) -> crate::ASTErr {
-		(Exp::Value(self.to_owned()), code)
-	}
-}
-
 #[allow(unused_variables)]
 impl ErrorContext for Value {
 	fn context(&self, node: &ParseNode, source: &str) -> String {
 		self.fmt_node()
-	}
-}
-
-impl<T: ToError + Default + std::fmt::Debug> ToError for Typed<T> {
-	fn as_err(&self, code: usize) -> crate::ASTErr {
-		self.inner().as_err(code)
 	}
 }
 

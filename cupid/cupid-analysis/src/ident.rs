@@ -41,7 +41,9 @@ impl TypeOf for Ident {
 		match symbol_value.value {
 			Some(value) => match value {
 				VType(mut type_val) => {
-					type_val.unify_with(&self.attributes.generics)?;
+					type_val
+						.unify_with(&self.attributes.generics)
+						.map_err(|e| e.to_ast(self))?;
 					Ok(type_val.into())
 				},
 				x => x.to_err(ERR_EXPECTED_TYPE)
@@ -80,7 +82,7 @@ impl SetGenerics for Ident {
 							.name(generic.to_owned().into_inner())
 							.build()
 						)),
-					type_hint: type_type().into_ident(), 
+					type_hint: Type::type_ty().into_ident(), 
 					mutable: false 
 				})
 			}

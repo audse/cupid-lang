@@ -8,6 +8,9 @@ pub use context::*;
 pub mod display;
 pub use display::*;
 
+pub mod to_err;
+pub use to_err::*;
+
 pub fn err_from_code(code: ErrCode) -> String {
 	match code {
 		ERR_CANNOT_INFER => format!("{code}: Cannot infer type"),
@@ -19,14 +22,4 @@ pub fn err_from_code(code: ErrCode) -> String {
 		ERR_EXPECTED_FUNCTION => format!("{code}: Expected function"),
 		_ => format!("{code}")
 	}
-}
-
-pub trait ToError: UseAttributes {
-	fn to_err<T>(&self, code: usize) -> ASTResult<T> {
-		Err(self.as_err(code))
-	}
-	fn to_err_mut<T>(&mut self, code: usize) -> ASTResult<T> {
-		Err(self.as_err(code))
-	}
-	fn as_err(&self, code: usize) -> crate::ASTErr;
 }

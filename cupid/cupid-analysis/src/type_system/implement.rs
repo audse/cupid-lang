@@ -81,6 +81,6 @@ impl Analyze for Implement {
 #[allow(unused_variables)]
 impl TypeOf for Implement {
 	fn type_of(&self, scope: &mut Env) -> ASTResult<Cow<Type>> { 
-		Ok(nothing_type().into())
+		Ok(Type::none().into())
 	}
 }

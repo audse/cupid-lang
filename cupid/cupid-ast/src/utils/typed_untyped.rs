@@ -71,10 +71,10 @@ impl<T: Default + std::fmt::Debug> Typed<T> {
 }
 
 impl Typed<Ident> {
-	pub fn nothing() -> Self {
-		let nothing = nothing_type();
-		let nothing_ident = nothing_type().into_ident();
-		Self::Typed(nothing_ident, nothing)
+	pub fn none() -> Self {
+		let none = Type::none();
+		let none_ident = Type::none().into_ident();
+		Self::Typed(none_ident, none)
 	}
 }
 

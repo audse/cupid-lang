@@ -18,7 +18,7 @@ impl PreAnalyze for Method {
 	fn pre_analyze_names(&mut self, scope: &mut Env) -> ASTResult<()> {
 		scope.set_symbol(&self.name, SymbolValue {
 			value: Some(VFunction(Box::new(self.value.to_owned()))),
-			type_hint: type_type().to_ident(), 
+			type_hint: Type::type_ty().to_ident(), 
 			mutable: false,
 		});
 		Ok(())

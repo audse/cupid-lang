@@ -70,12 +70,6 @@ impl ToIdent for Type {
 	}
 }
 
-impl From<Type> for Value{
-	fn from(t: Type) -> Self {
-		VType(t)
-	}
-}
-
 impl UseAttributes for Type {
 	fn attributes(&self) -> &Attributes { 
 		self.name.attributes() 
@@ -100,5 +94,17 @@ impl<'t> From<&'t Type> for std::borrow::Cow<'t, Type> {
 impl<'t> From<&'t mut Type> for std::borrow::Cow<'t, Type> {
 	fn from(t: &'t mut Type) -> Self {
 		std::borrow::Cow::Borrowed(t)
+	}
+}
+
+impl Type {
+	pub fn type_ty() -> Self {
+		Self::build().primitive("type!").build()
+	}
+	pub fn trait_ty() -> Self {
+		Self::build().primitive("trait!").build()
+	}
+	pub fn none() -> Self {
+		Self::build().primitive("none").build()
 	}
 }

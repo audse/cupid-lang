@@ -11,7 +11,9 @@ fn get_primitive(primitive: &'static str, scope: &mut Env) -> ASTResult<Type> {
 
 fn get_type_and_unify(ident: Ident, scope: &mut Env) -> ASTResult<Type> {
 	let mut type_value = scope.get_type(&ident)?;
-	type_value.unify_with(&*ident.attributes.generics)?;
+	type_value
+		.unify_with(&*ident.attributes.generics)
+		.map_err(|e| e.to_ast(&ident))?;
 	Ok(type_value)
 }
 

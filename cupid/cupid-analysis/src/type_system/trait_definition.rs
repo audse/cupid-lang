@@ -13,7 +13,7 @@ impl PreAnalyze for TraitDef {
 		
 		let symbol_value = SymbolValue {
 			value: Some(VTrait(self.to_owned().into())),
-			type_hint: trait_type().to_ident(),
+			type_hint: Type::trait_ty().to_ident(),
 			mutable: false
 		};
 

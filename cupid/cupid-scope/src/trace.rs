@@ -25,7 +25,11 @@ impl Trace for Declaration {
 			self.type_hint.get_type().unwrap(), 
 			self.value.get_type().unwrap()
 		);
-		scope.trace(format!("Expected type\n{}, found type\n{}", expected as &dyn Fmt, found as &dyn Fmt));
+		scope.trace(format!(
+			"Expected type\n{}, found type\n{}", 
+			expected as &dyn Fmt, 
+			found as &dyn Fmt
+		));
 	}
 }
 
