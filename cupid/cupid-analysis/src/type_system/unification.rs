@@ -23,7 +23,22 @@ impl UnifyErr {
 	}
 }
 
-/// Unifies types
+/// Mutates types by replacing type variables with concrete types
+/// 
+/// ## Example
+/// ```
+/// use cupid_ast::IsTyped;
+/// use cupid_analysis::Unify;
+/// 
+/// let mut generic_array_type = cupid_builder::array!();
+/// let expected_array_type = cupid_builder::array!(IsTyped(
+///     "int".into(), 
+///     cupid_builder::primitive!("int")
+/// ));
+/// 
+/// _ = generic_array_type.unify(&expected_array_type);
+/// assert_eq!(generic_array_type, expected_array_type);
+/// ```
 #[allow(unused_variables)]
 pub trait Unify {
 	fn unify(&mut self, other: &Self) -> UnifyResult { Ok(()) }

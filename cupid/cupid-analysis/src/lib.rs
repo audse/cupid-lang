@@ -1,8 +1,9 @@
-pub use cupid_ast::*;
-pub use cupid_debug::*;
-pub use cupid_scope::*;
-pub use cupid_trace::trace;
-pub use cupid_util::*;
+pub(crate) use std::borrow::Cow;
+use cupid_ast::*;
+use cupid_debug::*;
+use cupid_scope::*;
+use cupid_trace::trace;
+use cupid_util::*;
 
 pub mod ast;
 pub use ast::*;

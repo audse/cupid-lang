@@ -25,6 +25,12 @@ impl<T: Default + std::fmt::Debug> Typed<T> {
 			Self::Typed(t, _) => t
 		}
 	}
+	pub fn split(self) -> (T, Option<Type>) {
+		match self {
+			Self::Untyped(t) => (t, None),
+			Self::Typed(t, ty) => (t, Some(ty))
+		}
+	}
 	pub fn into_inner(self) -> T {
 		match self {
 			Self::Untyped(t) => t,

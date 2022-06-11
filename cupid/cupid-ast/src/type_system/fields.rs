@@ -9,9 +9,7 @@ build_struct! {
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
-pub struct FieldSet (
-	pub Vec<Field>
-);
+pub struct FieldSet(pub Vec<Field>);
 
 impl FieldSet {
 	pub fn find(&self, name: &Ident) -> Option<&Field> {

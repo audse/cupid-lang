@@ -43,6 +43,12 @@ impl Hash for Ident {
 	}
 }
 
+impl From<&'static str> for Ident {
+	fn from(name: &'static str) -> Self {
+		Self::build().name(name.into()).build()
+	}
+}
+
 impl From<Str> for Ident {
 	fn from(name: Str) -> Self {
 		Self::build().name(name).build()

@@ -1,5 +1,4 @@
-pub use std::collections::HashMap;
-pub use std::borrow::Cow;
+pub(crate) use std::borrow::Cow;
 use std::hash::{
 	Hash,
 	Hasher,

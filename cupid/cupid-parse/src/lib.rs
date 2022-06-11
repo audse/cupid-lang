@@ -1,3 +1,4 @@
+pub(crate) use std::borrow::Cow;
 use cupid_ast::*;
 use cupid_lex::*;
 use cupid_scope::*;

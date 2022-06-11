@@ -89,6 +89,7 @@ dependencies = [
  "colored",
  "cupid_analysis",
  "cupid_ast",
+ "cupid_builder",
  "cupid_debug",
  "cupid_lex",
  "cupid_parse",
@@ -102,6 +103,7 @@ name = "cupid_analysis"
 version = "0.1.0"
 dependencies = [
  "cupid_ast",
+ "cupid_builder",
  "cupid_debug",
  "cupid_scope",
  "cupid_trace",
@@ -115,6 +117,13 @@ dependencies = [
  "cupid_lex",
  "cupid_util",
  "derive_more",
+]
+
+[[package]]
+name = "cupid_builder"
+version = "0.1.0"
+dependencies = [
+ "cupid_ast",
 ]
 
 [[package]]

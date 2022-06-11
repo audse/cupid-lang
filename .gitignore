@@ -11,3 +11,4 @@ playground/node_modules/
 **/target/
 **/Cargo.lock
 **/pkg/
+**/.cargo/

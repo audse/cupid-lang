@@ -103,7 +103,7 @@ pub fn trace(_: TokenStream, input: TokenStream) -> TokenStream {
 
 	let item: ImplItem = syn::parse2(input).expect("failed to parse input");
 	
-	if option_env!("RUST_DEBUG") != Some("true") {
+	if option_env!("CUPID_DEBUG") != Some("true") {
 		return quote::quote!(#item).into();
 	}
 	

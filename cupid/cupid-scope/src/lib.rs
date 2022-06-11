@@ -1,3 +1,4 @@
+pub(crate) use std::collections::HashMap;
 use cupid_ast::*;
 use cupid_debug::*;
 use cupid_lex::{

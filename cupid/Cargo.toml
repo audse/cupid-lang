@@ -1,8 +1,13 @@
-[workspace]
+[package]
+name = "cupid"
+version = "0.1.0"
+edition = "2021"
 
+[workspace]
 members = [
 	"cupid-analysis",
 	"cupid-ast",
+	"cupid-builder",
 	"cupid-lex",
 	"cupid-parse",
 	"cupid-scope",
@@ -10,17 +15,13 @@ members = [
 	"cupid-util"
 ]
 
-[package]
-name = "cupid"
-version = "0.1.0"
-edition = "2021"
-
 [dependencies]
 colored = "2.0.0"
 clap = { version = "3.1.18", features = ["derive"] }
 
 cupid_analysis = { path = 'cupid-analysis' }
 cupid_ast = { path = 'cupid-ast' }
+cupid_builder = { path = 'cupid-builder' }
 cupid_debug = { path = 'cupid-debug' }
 cupid_lex = { path = 'cupid-lex' }
 cupid_parse = { path = 'cupid-parse' }

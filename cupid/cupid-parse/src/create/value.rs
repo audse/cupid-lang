@@ -6,6 +6,7 @@ use cupid_util::{ErrCode, Str};
 use crate::{
 	create::CreateAST,
 	Env,
+	Cow,
 };
 use cupid_ast::*;
 use super::attributes;
