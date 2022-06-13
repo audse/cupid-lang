@@ -15,14 +15,14 @@ const VARIANTS: [&str; 9] =  [
     "Linted"
 ];
 
-fn to_snake_case<S: Into<String>>(s: S) -> String {
-    let upper_chars: Vec<char> = ('A'..='Z').collect();
-    s.into()
-        .split_inclusive(&*upper_chars)
-        .map(|i| i.to_lowercase())
-        .collect::<Vec<String>>()
-        .join("_")
-}
+// fn to_snake_case<S: Into<String>>(s: S) -> String {
+//     let upper_chars: Vec<char> = ('A'..='Z').collect();
+//     s.into()
+//         .split_inclusive(&*upper_chars)
+//         .map(|i| i.to_lowercase())
+//         .collect::<Vec<String>>()
+//         .join("_")
+// }
 
 fn to_pascal_case<S: Into<String>>(s: S) -> String {
     let lower_chars: Vec<char> = ('a'..='z').collect();
@@ -84,6 +84,18 @@ pub fn semantic_states(_: TokenStream, input: TokenStream) -> TokenStream {
                     })
                     .collect::<Vec<syn::Type>>();
 
+                let [
+                    pre_analysis,
+                    package_resolved,
+                    type_names_resolved,
+                    scopes_analyzed,
+                    names_resolved,
+                    types_inferred,
+                    types_checked,
+                    flow_checked,
+                    linted
+                ] = &new_fields[0..] else { todo!() };
+
                 let pass_generics = quote::quote!(#(#new_fields),*);
                 let new_type = quote::quote!(NodeState<#pass_generics>);
                 // Constructs a newtype wrapper for `NodeState<A, B, ..>`
@@ -91,10 +103,35 @@ pub fn semantic_states(_: TokenStream, input: TokenStream) -> TokenStream {
                     #(#attrs)*
                     #vis struct #ident #generics(#new_type);
 
-                   impl #generics GetNode <#pass_generics> for #ident #generics {
-                        fn node(self) -> #new_type { self.0 }
+                    impl #generics #ident #generics {
+                        pub fn get_pre_analysis(self) -> Result<#pre_analysis, ErrCode> {
+                            self.0.get_pre_analysis()
+                        }
+                        pub fn get_package_resolved(self) -> Result<#package_resolved, ErrCode> {
+                            self.0.get_package_resolved()
+                        }
+                        pub fn get_type_names_resolved(self) -> Result<#type_names_resolved, ErrCode> {
+                            self.0.get_type_names_resolved()
+                        }
+                        pub fn get_scopes_analyzed(self) -> Result<#scopes_analyzed, ErrCode> {
+                            self.0.get_scopes_analyzed()
+                        }
+                        pub fn get_names_resolved(self) -> Result<#names_resolved, ErrCode> {
+                            self.0.get_names_resolved()
+                        }
+                        pub fn get_types_inferred(self) -> Result<#types_inferred, ErrCode> {
+                            self.0.get_types_inferred()
+                        }
+                        pub fn get_types_checked(self) -> Result<#types_checked, ErrCode> {
+                            self.0.get_types_checked()
+                        }
+                        pub fn get_flow_checked(self) -> Result<#flow_checked, ErrCode> {
+                            self.0.get_flow_checked()
+                        }
+                        pub fn get_linted(self) -> Result<#linted, ErrCode> {
+                            self.0.get_linted()
+                        }
                     }
-
                 };
                 output.into()
             } else {

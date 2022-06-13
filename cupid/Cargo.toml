@@ -10,6 +10,7 @@ members = [
 	"cupid-builder",
 	"cupid-lex",
 	"cupid-parse",
+	"cupid-passes",
 	"cupid-scope",
 	"cupid-semantics",
 	"cupid-trace",
@@ -26,6 +27,7 @@ cupid_builder = { path = 'cupid-builder' }
 cupid_debug = { path = 'cupid-debug' }
 cupid_lex = { path = 'cupid-lex' }
 cupid_parse = { path = 'cupid-parse' }
+cupid_passes = { path = 'cupid-passes' }
 cupid_scope = { path = 'cupid-scope' }
 cupid_semantics = { path = 'cupid-semantics' }
 cupid_trace = { path = 'cupid-trace' }

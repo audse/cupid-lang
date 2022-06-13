@@ -1,3 +1,4 @@
+#![feature(derive_default_enum)]
 pub(crate) use std::borrow::Cow;
 use cupid_ast::*;
 use cupid_debug::*;
@@ -13,6 +14,8 @@ pub use block::*;
 
 pub mod declaration;
 pub use declaration::*;
+
+pub mod decl;
 
 pub mod expression;
 pub use expression::*;

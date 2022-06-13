@@ -93,6 +93,7 @@ dependencies = [
  "cupid_debug",
  "cupid_lex",
  "cupid_parse",
+ "cupid_passes",
  "cupid_scope",
  "cupid_semantics",
  "cupid_trace",
@@ -153,6 +154,14 @@ version = "0.1.0"
 dependencies = [
  "cupid_ast",
  "cupid_lex",
+ "cupid_scope",
+ "cupid_util",
+]
+
+[[package]]
+name = "cupid_passes"
+version = "0.1.0"
+dependencies = [
  "cupid_scope",
  "cupid_util",
 ]

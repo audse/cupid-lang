@@ -42,6 +42,9 @@ macro_rules! build_struct {
 					$( $field: self.$field ),*
 				}
 			}
+			pub fn builder(self) -> $builder_name $(< $( $lt ),+ >)? {
+				$builder_name$(::< $( $lt ),+ >)?::from(self)
+			}
 			$(
 				$bv fn $field(mut self, val: $t) -> Self {
 					self.$field = val;

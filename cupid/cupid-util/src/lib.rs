@@ -10,8 +10,17 @@ pub use error_codes::*;
 pub mod fmt;
 pub use fmt::*;
 
+pub mod node_builder;
+pub use node_builder::*;
+
 pub mod strings;
 pub use strings::*;
+
+pub trait Bx where Self: Sized {
+	fn bx(self) -> Box<Self> { Box::new(self) }
+}
+
+impl<T: Sized> Bx for T {}
 
 pub fn invert<T, E>(x: Option<Result<T, E>>) -> Result<Option<T>, E> {
     x.map_or(Ok(None), |v| v.map(Some))
