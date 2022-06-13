@@ -3,29 +3,35 @@
 /// present on all AST nodes.
 /// ## Example
 /// ```
+/// use crate::{Attributes};
+/// use pre_analysis::Expr;
 /// cupid_util::node_builder! {
 ///     #[derive(Debug)]
-///     PersonABuilder => PersonA {
-///         name: &'static str,
-///         age: usize,
+///     OperationBuilder => Operation {
+///         left: Expr,
+///         right: Expr,
+///         operator: &'static str,
 ///     }
 /// }
 /// // is equivalent to
-/// struct PersonB {
-///     name: &'static str,
-///     age: usize,
-///     source: usize,
-///     closure: usize,
-///     typ: usize,
+/// struct Operation {
+///     left: Expr,
+///     right: Expr,
+///     operator: &'static str,
+///     attr: Attributes,
 /// }
-/// struct PersonBBuilder {
-///     name: &'static str,
-///     age: usize,
-///     source: usize,
-///     closure: usize,
-///     typ: usize,
+/// struct OperationBuilder {
+///     left: Expr,
+///     right: Expr,
+///     operator: &'static str,
+///     attr: Attributes,
 /// }
-/// // plus a few `impl` blocks
+/// // and some impl blocks...
+/// // impl From<OperationBuilder> for Operation { ... }
+/// // impl From<Operation> for OperationBuilder { ... }
+/// // impl AsNode for Operation { ... }
+/// // impl Operation { ... }
+/// // impl OperationBuilder { ... }
 /// ```
 /// ### Notes
 /// 1. Generic inline trait bounds work, `where` clauses do not
