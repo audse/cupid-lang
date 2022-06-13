@@ -10,3 +10,4 @@ cupid_debug = { path = '../cupid-debug' }
 cupid_scope = { path = '../cupid-scope' }
 cupid_trace = { path = '../cupid-trace' }
 cupid_util = { path = '../cupid-util' }
+cupid_semantics = { path = '../cupid-semantics' }

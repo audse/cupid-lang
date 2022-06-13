@@ -25,18 +25,24 @@ impl UnifyErr {
 	}
 }
 
+pub trait ToASTResult {
+	fn ast_result(self, exp: &impl ToError) -> ASTResult<()>;
+}
+
+impl ToASTResult for UnifyResult {
+	fn ast_result(self, exp: &impl ToError) -> ASTResult<()> {
+		self.map_err(|e| e.to_ast(exp))
+	}
+}
+
 /// Mutates types by replacing type variables with concrete types
 /// 
 /// ## Example
 /// ```
-/// use cupid_ast::IsTyped;
 /// use cupid_analysis::Unify;
 /// 
 /// let mut generic_array_type = cupid_builder::array!();
-/// let expected_array_type = cupid_builder::array!(IsTyped(
-///     "int".into(), 
-///     cupid_builder::primitive!("int")
-/// ));
+/// let expected_array_type = cupid_builder::array!(cupid_builder::primitive!("int").into());
 /// 
 /// generic_array_type.unify(&expected_array_type);
 /// assert_eq!(generic_array_type, expected_array_type);
@@ -44,10 +50,36 @@ impl UnifyErr {
 #[allow(unused_variables)]
 pub trait Unify {
 	fn unify(&mut self, other: &Self) -> UnifyResult;
+
+	/// Similar to `unify`, `unify_with` recursively mutates a type.
+	/// Instead of trying to equate two types, this function just searches for a specified
+	/// list of generics and replaces anything that matches an item in that list.
 	fn unify_with(&mut self, other: &[Typed<Ident>]) -> UnifyResult;
+
+	fn partial_unify(&mut self, other: &Self) -> UnifyResult { todo!() }
+	fn partial_unify_with(&mut self, other: &[Typed<Ident>]) -> UnifyResult { todo!() }
 }
 
-fn unify_option<T: Unify>(param: &mut T, arg: Option<&T>) -> UnifyResult {
+/// Unifies an item, if a matching argument exists
+/// ## Example
+/// ```
+/// use cupid_analysis::unify_option;
+/// 
+/// let mut generics = cupid_builder::generics!("a", "b", "c");
+/// let args = cupid_builder::generics!(cupid_builder::primitive("int").into());
+/// let expected_output = cupid_builder::generics!(
+///     cupid_builder::primitive("int").into(), 
+///     "b".into(), 
+///     "c".into()
+/// );
+/// 
+/// let mut args = args.iter();
+/// for generic in generics.iter_mut() {
+///     unify_option(generic, args.next());
+/// }
+/// assert_eq!(generics, expected_output);
+/// ```
+pub fn unify_option<T: Unify>(param: &mut T, arg: Option<&T>) -> UnifyResult {
 	if let Some(arg) = arg {
 		param.unify(arg)
 	} else {
@@ -90,10 +122,7 @@ fn unify_option<T: Unify>(param: &mut T, arg: Option<&T>) -> UnifyResult {
 /// generic_types.unify(&concrete_types);
 /// assert_eq!(generic_types, concrete_types);
 /// ```
-fn unify_match<T: Unify>(list: &mut [T], other: &[T], mut find_fn: impl FnMut(&mut T, &T) -> bool) -> UnifyResult {
-	if list.len() != other.len() {
-		return Err(ERR_CANNOT_UNIFY.into());
-	}
+pub fn unify_match<T: Unify>(list: &mut [T], other: &[T], mut find_fn: impl FnMut(&mut T, &T) -> bool) -> UnifyResult {
 	let mut other_iter = other.iter();
 	for item in list.iter_mut() {
 		let other_item = match other.iter().find(|i| find_fn(item, i)) {
@@ -138,12 +167,8 @@ impl Unify for Typed<Ident> {
 		Ok(())
 	}
 	fn unify_with(&mut self, other: &[Typed<Ident>]) -> UnifyResult {
-		for generic in other {
-			if generic.name == self.name {
-				self.unify(generic)?;
-			}
-		}
-		Ok(())
+		let other = other.iter().find(|generic| generic.name == self.name);
+		unify_option(self, other)
 	}
 }
 
@@ -168,21 +193,25 @@ impl Unify for Type {
 		self.fields
 			.unify(&other.fields)
 			.map_err(|e| e.to_ast(self))?;
-		for method in &mut self.methods {
-			method.name.unify(&other.name)?;
-		}
-		for trait_ident in &mut self.traits {
-			trait_ident.unify(&other.name)?;
-		}
+		self.methods
+			.unify(&other.methods)
+			.map_err(|e| e.to_ast(self))?;
+		self.traits
+			.unify(&other.traits)
+			.map_err(|e| e.to_ast(self))?;
 		Ok(())
 	}
 	fn unify_with(&mut self, other: &[Typed<Ident>]) -> UnifyResult {
 		self.name.unify_with(other)?;
-		self.fields.unify_with(other)?;
-		self.methods.unify_with(other)?;
-		for trait_ident in self.traits.iter_mut() {
-			trait_ident.unify_with(other)?;
-		}
+		self.fields
+			.unify_with(other)
+			.map_err(|e| e.to_ast(self))?;
+		self.methods
+			.unify_with(other)
+			.map_err(|e| e.to_ast(self))?;
+		self.traits
+			.unify_with(other)
+			.map_err(|e| e.to_ast(self))?;
 		Ok(())
 	}
 }
@@ -213,17 +242,42 @@ impl Unify for Function {
 		self.return_type.unify(&other.return_type)?;
 		Ok(())
 	}
-	fn unify_with(&mut self, _other: &[Typed<Ident>]) -> UnifyResult {
-		todo!()
+	fn unify_with(&mut self, other: &[Typed<Ident>]) -> UnifyResult {
+		for param in self.params.iter_mut() {
+			param.type_hint.unify_with(other)?;
+		}
+		self.return_type.unify_with(other)?;
+		Ok(())
 	}
 }
 
 impl Unify for Vec<Method> {
 	fn unify(&mut self, other: &Self) -> UnifyResult {
+		if self.len() != other.len() {
+			return Err(ERR_CANNOT_UNIFY.into());
+		}
 		unify_match(self, other, |current, other| current.name == other.name)
 	}
-	fn unify_with(&mut self, _other: &[Typed<Ident>]) -> UnifyResult {
-		todo!()
+	fn unify_with(&mut self, other: &[Typed<Ident>]) -> UnifyResult {
+		for method in self.iter_mut() {
+			method.unify_with(other)?;
+		}
+		Ok(())
+	}
+}
+
+impl Unify for Vec<Ident> {
+	fn unify(&mut self, other: &Self) -> UnifyResult {
+		if self.len() != other.len() {
+			return Err(ERR_CANNOT_UNIFY.into());
+		}
+		unify_match(self, other, |current, other| current.name == other.name)
+	}
+	fn unify_with(&mut self, other: &[Typed<Ident>]) -> UnifyResult {
+		for ident in self.iter_mut() {
+			ident.unify_with(other)?;
+		}
+		Ok(())
 	}
 }
 
@@ -237,39 +291,48 @@ impl Unify for Field {
 		}?;
 		Ok(())
 	}
-	fn unify_with(&mut self, _other: &[Typed<Ident>]) -> UnifyResult {
-		todo!()
+	fn unify_with(&mut self, other: &[Typed<Ident>]) -> UnifyResult {
+		self.name.unify_with(other)?;
+		self.type_hint.map_mut(|t| t.unify_with(other)).invert()?;
+		Ok(())
 	}
 }
 
 impl Unify for FieldSet {
 	fn unify(&mut self, other: &Self) -> UnifyResult {
+		if self.len() != other.len() {
+			return Err(ERR_CANNOT_UNIFY.into());
+		}
 		unify_match(self, other, |current, other_field| current.name == other_field.name)?;
 		Ok(())
 	}
-	fn unify_with(&mut self, _other: &[Typed<Ident>]) -> UnifyResult {
-		todo!()
+	fn unify_with(&mut self, other: &[Typed<Ident>]) -> UnifyResult {
+		for field in self.iter_mut() {
+			field.unify_with(other)?;
+		}
+		Ok(())
 	}
 }
 
 impl Unify for Trait {
 	fn unify(&mut self, other: &Self) -> UnifyResult {
-		let generics = &**other.attributes().generics;
-		self.methods.unify(&other.methods)?;
-		for bound in self.bounds.iter_mut() {
-			bound.unify_with(generics)?;
-		}
-
+		self.name.unify(&other.name)?;
+		self.methods
+			.unify(&other.methods)
+			.map_err(|e| e.to_ast(self))?;
+		self.bounds
+			.unify(&other.bounds)
+			.map_err(|e| e.to_ast(self))?;
 		Ok(())
 	}
 	fn unify_with(&mut self, other: &[Typed<Ident>]) -> UnifyResult {
 		self.name.unify_with(other)?;
-		self.methods.unify_with(other)?;
-
-		for bound in self.bounds.iter_mut() {
-			bound.unify_with(other)?;
-		}
-
+		self.methods
+			.unify_with(other)
+			.map_err(|e| e.to_ast(self))?;
+		self.bounds
+			.unify_with(other)
+			.map_err(|e| e.to_ast(self))?;
 		Ok(())
 	}
 }

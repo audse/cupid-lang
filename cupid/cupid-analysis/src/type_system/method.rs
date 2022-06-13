@@ -7,11 +7,6 @@ impl PreAnalyze for Method {
 			Some(self.name.to_owned()), 
 			Context::Method
 		));
-		self.use_closure(scope);
-
-		self.value.analyze_scope(scope)?;
-
-		scope.reset_closure();
 		Ok(())
 	}
     #[trace]
@@ -20,7 +15,7 @@ impl PreAnalyze for Method {
 			value: Some(VFunction(Box::new(self.value.to_owned()))),
 			type_hint: Type::type_ty().to_ident(), 
 			mutable: false,
-		});
+		})?;
 		Ok(())
 	}
 }
@@ -29,6 +24,7 @@ impl Analyze for Method {
     #[trace]
 	fn analyze_scope(&mut self, scope: &mut Env) -> ASTResult<()> {
 		self.name.analyze_scope(scope)?;
+		self.value.analyze_scope(scope)?;
 		Ok(())
 	}
     #[trace]

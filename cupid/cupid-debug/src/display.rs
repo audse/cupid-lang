@@ -1,3 +1,4 @@
+use colored::Colorize;
 use cupid_ast::*;
 use cupid_util::*;
 use std::fmt::{Display, Formatter, Result};
@@ -39,9 +40,10 @@ impl Fmt for Block {
 impl Fmt for Declaration {
     fn fmt_node(&self) -> String {
         quick_fmt!(
-            format!("type_hint: {}", self.type_hint.fmt_node()),
-            format!("name: {}", self.name.fmt_node()),
-            format!("value: {}", (&**self.value).fmt_node())
+            "\nDeclaration:",
+            format!("\n  type_hint: {}", self.type_hint.fmt_node()),
+            format!("\n       name: {}", self.name.fmt_node()),
+            format!("\n      value: {}\n", (&**self.value).fmt_node())
         )
     }
 }
@@ -74,9 +76,9 @@ impl Fmt for FieldSet {
 impl Fmt for Function {
     fn fmt_node(&self) -> String {
         quick_fmt!(
-            "(",
+            "Function".bold(),
             fmt_list!(self.params, ", " => |p| p.fmt_node()),
-            ")",
+            "=> ",
             self.return_type.fmt_node()
         )
     }

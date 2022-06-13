@@ -9,7 +9,7 @@ impl PreAnalyze for TypeDef {
 	}
     #[trace]
 	fn pre_analyze_names(&mut self, scope: &mut Env) -> ASTResult<()> {
-		scope.no_symbol(&self.name)?;
+		scope.no_address(&self.name)?;
 				
 		let symbol_value = SymbolValue {
 			value: Some(VType(self.to_owned().into())),
@@ -18,7 +18,7 @@ impl PreAnalyze for TypeDef {
 		};
 
 		self.trace_define_type(scope);
-		scope.set_symbol(&self.name, symbol_value);
+		scope.set_symbol(&self.name, symbol_value)?;
 
 		self.use_closure(scope);
 

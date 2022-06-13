@@ -6,26 +6,25 @@ impl Analyze for Ident {
     #[trace]
 	fn analyze_names(&mut self, scope: &mut Env) -> ASTResult<()> {
 		let value = scope.get_symbol(self)?;
-		scope.trace(&value.attributes().closure);
 		self.set_closure_to(value.attributes().closure);
 		self.use_closure(scope);
-		
-		self.set_symbols(scope);
-
+		self.set_generic_symbols(scope)?;
 		scope.reset_closure();
 		Ok(())
 	}
     #[trace]
 	fn analyze_types(&mut self, scope: &mut Env) -> ASTResult<()> {
-		// self.use_closure(scope);
+		self.use_closure(scope);
 
+		// find concrete types for each generic
 		for generic in self.attributes.generics.iter_mut() {
 			generic.trace_find_generic_type(scope);
+			// if there is a concrete type, unify the generic with the resolved type
 			if let Ok(type_val) = scope.get_type(generic) {
 				generic.to_typed(type_val);
 			}
 		}
-		// scope.reset_closure();
+		scope.reset_closure();
 		Ok(())
 	}
 }
@@ -37,19 +36,9 @@ impl TypeOf for Ident {
 		Ok(scope.get_type(&symbol_value.type_hint)?.into())
 	}
 	fn type_of_hint(&self, scope: &mut Env) -> ASTResult<Cow<Type>> {
-		let symbol_value = scope.get_symbol(self)?;
-		match symbol_value.value {
-			Some(value) => match value {
-				VType(mut type_val) => {
-					type_val
-						.unify_with(&self.attributes.generics)
-						.map_err(|e| e.to_ast(self))?;
-					Ok(type_val.into())
-				},
-				x => x.to_err(ERR_EXPECTED_TYPE)
-			},
-			None => symbol_value.to_err(ERR_EXPECTED_TYPE)
-		}
+		let mut type_value = scope.get_type(self)?;
+		type_value.unify_with(&self.attributes.generics).ast_result(self)?;
+		Ok(type_value.into())
 	}
 }
 
@@ -68,24 +57,30 @@ impl TypeOf for Typed<Ident> {
 	}
 }
 
-trait SetGenerics {
-	 fn set_symbols(&self, scope: &mut Env);
+trait SetGenericSymbols {
+	 fn set_generic_symbols(&self, scope: &mut Env) -> ASTResult<()>;
 }
 
-impl SetGenerics for Ident {
-	fn set_symbols(&self, scope: &mut Env) {
-		for generic in self.attributes.generics.iter() {
+impl<T: UseAttributes> SetGenericSymbols for T {
+	fn set_generic_symbols(&self, scope: &mut Env) -> ASTResult<()> {
+		self.attributes().generics.iter().try_for_each(|generic| {
 			if scope.get_type(generic).is_err() {
-				// TODO is this right
-				scope.set_symbol(generic, SymbolValue { 
-					value: Some(VType(Type::build()
-							.name(generic.to_owned().into_inner())
-							.build()
-						)),
-					type_hint: Type::type_ty().into_ident(), 
-					mutable: false 
-				})
+				scope.set_symbol(generic, generic_symbol_value(generic))?;
 			}
-		}
+			Ok(())
+		})?;
+		Ok(())
+	}
+}
+
+fn generic_symbol_value(generic: &Typed<Ident>) -> SymbolValue {
+	SymbolValue { 
+		value: Some(VType(
+			Type::build()
+				.name(generic.to_owned().into_inner())
+				.build()
+		)),
+		type_hint: Type::type_ty().into_ident(),
+		mutable: false,
 	}
 }

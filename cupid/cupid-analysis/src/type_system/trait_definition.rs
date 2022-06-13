@@ -9,7 +9,7 @@ impl PreAnalyze for TraitDef {
 	}
     #[trace]
 	fn pre_analyze_names(&mut self, scope: &mut Env) -> ASTResult<()> {
-		scope.no_symbol(&self.name)?;
+		scope.no_address(&self.name)?;
 		
 		let symbol_value = SymbolValue {
 			value: Some(VTrait(self.to_owned().into())),
@@ -18,7 +18,7 @@ impl PreAnalyze for TraitDef {
 		};
 
 		self.trace_define_trait(scope);
-		scope.set_symbol(&self.name, symbol_value);
+		scope.set_symbol(&self.name, symbol_value)?;
 		Ok(())
 	}
 }

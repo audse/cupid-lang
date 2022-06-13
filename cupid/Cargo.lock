@@ -94,6 +94,7 @@ dependencies = [
  "cupid_lex",
  "cupid_parse",
  "cupid_scope",
+ "cupid_semantics",
  "cupid_trace",
  "cupid_util",
 ]
@@ -106,6 +107,7 @@ dependencies = [
  "cupid_builder",
  "cupid_debug",
  "cupid_scope",
+ "cupid_semantics",
  "cupid_trace",
  "cupid_util",
 ]
@@ -164,6 +166,15 @@ dependencies = [
  "cupid_lex",
  "cupid_trace",
  "cupid_util",
+]
+
+[[package]]
+name = "cupid_semantics"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

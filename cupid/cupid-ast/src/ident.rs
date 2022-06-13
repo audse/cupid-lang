@@ -17,6 +17,7 @@ impl Ident {
 				generics,
 				source: None,
 				closure: 0,
+				typ: None
 			}
 		}
 	}

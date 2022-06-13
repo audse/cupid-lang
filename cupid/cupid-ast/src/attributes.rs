@@ -6,6 +6,7 @@ build_struct! {
 		pub closure: usize,
 		pub source: Option<usize>,
 		pub generics: GenericList,
+		pub typ: Option<Box<Type>>
 	}
 }
 
@@ -26,6 +27,7 @@ impl Attributes {
 			closure: 0,
 			source: Some(source),
 			generics: GenericList::default(),
+			typ: None
 		}
 	}
 }

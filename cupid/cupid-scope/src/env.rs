@@ -1,9 +1,11 @@
+use crate::symbol_table::*;
 use crate::*;
 
 #[derive(Debug, Clone)]
 pub struct Env {
 	pub global: Scope,
 	pub closures: Vec<Closure>,
+	pub symbols: SymbolTable,
 	pub current_closure: usize,
 	pub prev_closures: Vec<usize>,
 	pub source_data: Vec<ParseNode>,
@@ -14,12 +16,14 @@ pub struct Env {
 impl Default for Env {
 	fn default() -> Self {
     	Self {
-			global: Scope::new(Context::Global),
+			global: Scope::new(0, Context::Global),
 			closures: vec![Closure {
+				id: 1,
 				name: None,
 				parent: None, 
-				scopes: vec![Scope::new(Context::Block)] 
+				scopes: vec![Scope::new(2, Context::Block)] 
 			}],
+			symbols: SymbolTable::default(),
 			current_closure: 0,
 			prev_closures: vec![0],
 			source_data: vec![],
@@ -51,69 +55,50 @@ impl Env {
 	pub fn add_closure(&mut self, ident: Option<Ident>, context: Context) -> usize {
 		self.trace_add(&ident, context);
 		if let Some(closure_index) = self.prev_closures.last() {
-			self.closures.push(Closure::new_child(ident, *closure_index, context));
+			self.closures.push(Closure::new_child(
+				self.closures.len(),
+				ident,
+				*closure_index,
+				context
+			));
 		} else {
-			self.closures.push(Closure::new(ident, context));
+			self.closures.push(Closure::new(self.closures.len(), ident, context));
 		}
 		self.closures.len() - 1
 	}
 	pub fn add_isolated_closure(&mut self, ident: Option<Ident>, context: Context) -> usize {
 		self.trace_add_isolated(&ident, context);
 		// always has access to top-level scope
-		self.closures.push(Closure::new_child(ident, 0, context));
+		self.closures.push(Closure::new_child(self.closures.len(), ident, 0, context));
 		self.closures.len() - 1
 	}
-	pub fn has_symbol(&mut self, symbol: &Ident) -> ASTResult<()> {
-		self.trace_check_has_symbol(symbol);
-		if self.get_symbol(symbol).is_ok() {
-			Ok(())
-		} else {
-			self.trace_no_symbol(symbol);
-			symbol.to_err(ERR_NOT_FOUND)
-		}
+	pub fn current_context(&self) -> Context {
+		self.closures[self.current_closure].scopes.last().unwrap().context
 	}
-	pub fn no_symbol(&mut self, symbol: &Ident) -> ASTResult<()> {
-		self.trace_check_no_symbol(symbol);
-		if self.get_symbol(symbol).is_ok() {
-			symbol.to_err(ERR_ALREADY_DEFINED)
-		} else {
-			Ok(())
-		}
-	}
-	pub fn get_symbol_from(&mut self, symbol: &Ident, closure_index: usize) -> ASTResult<SymbolValue> {
-		let closure = &mut self.closures[closure_index];
-		let parent = closure.parent();
-		if let Ok(value) = closure.get_symbol(symbol) {
-			return Ok(value);
-		}
-		if let Some(parent_index) = parent {
-			self.get_symbol_from(symbol, parent_index)
-		} else {
-			self.trace_no_symbol(symbol);
-			symbol.to_err(ERR_NOT_FOUND)
-		}
-	}
-	pub fn update_closure(&mut self, symbol: &Ident, closure: usize) -> ASTResult<()> {
-		// TODO why does this infinite loop?
-		// self.modify_symbol(symbol, |val| {
-		// 	val.attributes_mut().closure = closure;
-		// 	Ok(())
-		// })
-		self.trace_update_closure(symbol, closure);
-		let mut value = self.get_symbol(symbol)?;
-		value.value.map_mut(|a| a.attributes_mut().closure = closure);
-		self.set_symbol(symbol, value);
+	pub fn has_address(&mut self, symbol: &Ident) -> ASTResult<()> {
+		self.trace("Has address for {symbol:?}?");
+		self.get_address(symbol)?;
 		Ok(())
 	}
-	pub fn get_source_node(&self, source: usize) -> &ParseNode {
-		&self.source_data[source]
-	}
-	pub fn get_type(&mut self, symbol: &Ident) -> ASTResult<Type> {
-		let val = self.get_symbol(symbol)?;
-		if let Some(VType(val)) = val.value {
-			Ok(val)
+	pub fn no_address(&mut self, symbol: &Ident) -> ASTResult<()> {
+		if self.get_address(symbol).is_err() {
+			Ok(())
 		} else {
-			val.to_err(ERR_EXPECTED_TYPE)
+			symbol.to_err(ERR_ALREADY_DEFINED)
 		}
+	}
+	pub fn get_address_from(&mut self, symbol: &Ident, closure_index: usize) -> ASTResult<Address> {
+		let closure = &mut self.closures[closure_index];
+		let parent = closure.parent;
+		if let Ok(value) = closure.get_address(symbol) {
+			Ok(value)
+		} else if let Some(parent_index) = parent {
+			self.get_address_from(symbol, parent_index)
+		} else {
+			symbol.to_err(ERR_NOT_FOUND)
+		}
+	}
+	pub fn get_source_node(&mut self, source: usize) -> &ParseNode {
+		&mut self.source_data[source]
 	}
 }

@@ -13,14 +13,14 @@ impl Analyze for Declaration {
     #[trace]
 	fn analyze_names(&mut self, scope: &mut Env) -> ASTResult<()> {
 		self.trace_declare(scope);
-		scope.no_symbol(&self.name)?;
+		scope.no_address(&self.name)?;
 		
 		let value = SymbolValue {
 			value: None,
 			type_hint: (*self.type_hint).to_owned(),
 			mutable: self.mutable
 		};
-		scope.set_symbol(&self.name, value);
+		scope.set_symbol(&self.name, value)?;
 		self.value.analyze_names(scope)?;
 
 		Ok(())

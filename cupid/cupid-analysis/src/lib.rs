@@ -29,6 +29,8 @@ pub use ident::*;
 pub mod property;
 pub use property::*;
 
+pub mod semantic_state;
+
 pub mod symbol_value;
 pub use symbol_value::*;
 
@@ -37,3 +39,5 @@ pub use type_system::*;
 
 pub mod value;
 pub use value::*;
+
+pub mod tests;

@@ -1,81 +1,74 @@
+use crate::symbol_table::Address;
 use crate::*;
 
-pub trait UseScope {
-	fn get_symbol(&mut self, symbol: &Ident) -> ASTResult<SymbolValue>;
-	fn set_symbol(&mut self, symbol: &Ident, value: SymbolValue);
-	fn modify_symbol(&mut self, symbol: &Ident, function: impl FnMut(&mut SymbolValue) -> ASTResult<()>) -> ASTResult<()>;
-}
-
-impl UseScope for Env {
-	fn get_symbol(&mut self, symbol: &Ident) -> ASTResult<SymbolValue> {
-		self.trace_get_symbol(symbol);
-		if let Ok(value) = self.get_symbol_from(symbol, self.current_closure) {
+impl Env {
+	pub fn get_symbol(&mut self, symbol: &Ident) -> ASTResult<SymbolValue> {
+		let address = self.get_address(symbol)?;
+		self.symbols
+			.get_symbol(address)
+			.map(|v| v.to_owned())
+			.ok_or_else(|| symbol.as_err(ERR_NOT_FOUND))
+	}
+	pub fn get_type(&mut self, symbol: &Ident) -> ASTResult<Type> {
+		self.trace(format!("getting type {symbol:?}"));
+		let address = self.get_address(symbol)?;
+		let value = self.symbols
+			.get_symbol(address)
+			.ok_or_else(|| symbol.as_err(ERR_NOT_FOUND))?
+			.to_owned();
+		self.trace(format!("Found {value:?}"));
+		if let Some(VType(typ)) = value.value {
+			return Ok(typ)
+		}
+		value.to_err(ERR_EXPECTED_TYPE)
+	}
+	pub fn set_symbol(&mut self, symbol: &Ident, value: SymbolValue) -> ASTResult<Address> {
+		let address = self.set_address(symbol)?;
+		self.symbols.set_symbol(address, value);
+		Ok(address)
+	}
+	pub fn get_address(&mut self, symbol: &Ident) -> ASTResult<Address> {
+		if let Ok(value) = self.get_address_from(symbol, self.current_closure) {
 			return Ok(value);
 		}
-		self.global.get_symbol(symbol)
+		self.global.get_address(symbol)
 	}
-	fn set_symbol(&mut self, symbol: &Ident, value: SymbolValue) {
-		self.trace_set_symbol(symbol, &value);
+	pub fn set_address(&mut self, symbol: &Ident) -> ASTResult<Address> {
 		if let Some(closure) = self.closures.get_mut(self.current_closure) {
-			closure.set_symbol(symbol, value);
+			closure.set_address(symbol)
 		} else {
-			self.global.set_symbol(symbol, value);
-		}
-	}
-	fn modify_symbol(&mut self, symbol: &Ident, function: impl FnMut(&mut SymbolValue) -> ASTResult<()>) -> ASTResult<()> {
-		self.trace_modify_symbol(symbol);
-		if let Some(closure) = self.closures.get_mut(self.current_closure) {
-			closure.modify_symbol(symbol, function)
-		} else {
-			self.global.modify_symbol(symbol, function)
+			Ok(self.global.set_address(symbol))
 		}
 	}
 }
 
-impl UseScope for Closure {
-	fn get_symbol(&mut self, symbol: &Ident) -> ASTResult<SymbolValue> {
+impl Closure {
+	pub fn get_address(&mut self, symbol: &Ident) -> ASTResult<Address> {
 		for scope in self.scopes.iter_mut() {
-			if let Ok(value) = scope.get_symbol(symbol) {
+			if let Ok(value) = scope.get_address(symbol) {
 				return Ok(value);
 			}
 		}
-		
 		symbol.to_err(ERR_NOT_FOUND)
 	}
-	fn set_symbol(&mut self, symbol: &Ident, value: SymbolValue) {
-		self.scopes.last_mut().unwrap().set_symbol(symbol, value);
-	}
-	fn modify_symbol(&mut self, symbol: &Ident, function: impl FnMut(&mut SymbolValue) -> ASTResult<()>) -> ASTResult<()> {
-		let mut container: Option<&mut Scope> = None;
-		for scope in self.scopes.iter_mut() {
-			if scope.get_symbol(symbol).is_ok() {
-				container = Some(scope);
-			}
-		}
-		if let Some(container) = container {
-			container.modify_symbol(symbol, function)
-		} else {
-			symbol.to_err(ERR_NOT_FOUND)
+	pub fn set_address(&mut self, symbol: &Ident) -> ASTResult<Address> {
+		match self.scopes.last_mut() {
+			Some(scope) => Ok(scope.set_address(symbol)),
+			None => symbol.to_err(ERR_UNREACHABLE)
 		}
 	}
 }
 
-impl UseScope for Scope {
-	fn get_symbol(&mut self, symbol: &Ident) -> ASTResult<SymbolValue> {
-		if let Some(value) = self.symbols.get(symbol) {
-			Ok(value.to_owned())
-		} else {
-			symbol.to_err(ERR_NOT_FOUND)
+impl Scope {
+	pub fn get_address(&mut self, symbol: &Ident) -> ASTResult<Address> {
+		match self.symbols.get(symbol) {
+			Some(address) => Ok(*address),
+			None => symbol.to_err(ERR_NOT_FOUND)
 		}
 	}
-	fn set_symbol(&mut self, symbol: &Ident, value: SymbolValue) {
-		self.symbols.insert(symbol.to_owned(), value);
-	}
-	fn modify_symbol(&mut self, symbol: &Ident, mut function: impl FnMut(&mut SymbolValue) -> ASTResult<()>) -> ASTResult<()> {
-		let entry = self.symbols.get_mut(symbol);
-		if let Some(entry) = entry {
-			function(entry)?;
-		}
-		Ok(())
+	pub fn set_address(&mut self, symbol: &Ident) -> Address {
+		let address = self.symbols.len() + self.id;
+		self.symbols.insert(symbol.to_owned(), address);
+		address
 	}
 }

@@ -24,5 +24,3 @@ pub use types::*;
 
 pub mod unification;
 pub use unification::*;
-
-mod unification_test;

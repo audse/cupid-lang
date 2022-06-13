@@ -11,6 +11,7 @@ members = [
 	"cupid-lex",
 	"cupid-parse",
 	"cupid-scope",
+	"cupid-semantics",
 	"cupid-trace",
 	"cupid-util"
 ]
@@ -26,5 +27,6 @@ cupid_debug = { path = 'cupid-debug' }
 cupid_lex = { path = 'cupid-lex' }
 cupid_parse = { path = 'cupid-parse' }
 cupid_scope = { path = 'cupid-scope' }
+cupid_semantics = { path = 'cupid-semantics' }
 cupid_trace = { path = 'cupid-trace' }
 cupid_util = { path = 'cupid-util' }

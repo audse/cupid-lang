@@ -3,16 +3,21 @@ use crate::*;
 impl PreAnalyze for Implement {
     #[trace]
 	fn pre_analyze_names(&mut self, scope: &mut Env) -> ASTResult<()> {
+		scope.trace(format!(
+			"Implementing {} {}", 
+			self.for_type.name, 
+			fmt_option!(&self.for_trait => |t| format!("+ {}", t.name))
+		));
 		let for_type = scope.get_type(&self.for_type)?;
 		self.set_closure_to(for_type.closure());
 
 		if let Some(for_trait) = &self.for_trait {
-			scope.has_symbol(for_trait)?;
+			scope.has_address(for_trait)?;
 		}
 		self.use_closure(scope);
 
 		for method in self.methods.iter_mut() {
-			scope.no_symbol(&method.name)?;
+			scope.no_address(&method.name)?;
 			
 			method.pre_analyze_scope(scope)?;
 			method.pre_analyze_names(scope)?;

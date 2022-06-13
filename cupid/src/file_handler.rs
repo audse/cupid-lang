@@ -49,7 +49,7 @@ impl FileHandler {
 			}
 			let node = self.scope.get_source_node(src.source());
 			eprintln!("{}", src.context(node, &self.contents));
-			// eprintln!("{}", self.scope);
+			eprintln!("{:#?}", self.scope.symbols);
 			panic!("{}", src.message(code));
 		}
 

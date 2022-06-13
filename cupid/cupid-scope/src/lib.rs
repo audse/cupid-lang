@@ -20,6 +20,8 @@ pub use env::*;
 pub mod single_scope;
 pub use single_scope::*;
 
+pub mod symbol_table;
+
 pub mod trace;
 pub use trace::*;
 
