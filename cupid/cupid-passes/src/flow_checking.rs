@@ -3,11 +3,11 @@ use cupid_util::InvertOption;
 use crate::PassResult;
 use cupid_util::node_builder;
 
-use crate::name_resolution as prev_pass;
+use crate::type_checking as prev_pass;
 
 #[cupid_semantics::auto_implement(Vec, Option)]
-pub trait InferTypes<T> where Self: Sized {
-    fn infer_types(self, env: &mut Env) -> PassResult<T>;
+pub trait CheckFlow<T> where Self: Sized {
+    fn check_flow(self, env: &mut Env) -> PassResult<T>;
 }
 
 crate::ast_pass_nodes! {
@@ -26,27 +26,27 @@ crate::ast_pass_nodes! {
 }
 
 crate::impl_expr_ast_pass! {
-    impl InferTypes<Expr> for prev_pass::Expr { infer_types }
+    impl CheckFlow<Expr> for prev_pass::Expr { check_flow }
 }
 
 crate::impl_block_ast_pass! {
-    impl InferTypes<crate::Block<Expr>> for crate::Block<prev_pass::Expr> { infer_types }
+    impl CheckFlow<crate::Block<Expr>> for crate::Block<prev_pass::Expr> { check_flow }
 }
 
-impl InferTypes<Decl> for prev_pass::Decl {
-    fn infer_types(self, env: &mut Env) -> PassResult<Decl> {
+impl CheckFlow<Decl> for prev_pass::Decl {
+    fn check_flow(self, env: &mut Env) -> PassResult<Decl> {
         todo!()
     }
 }
 
-impl InferTypes<Function> for prev_pass::Function {
-    fn infer_types(self, env: &mut Env) -> PassResult<Function> {
+impl CheckFlow<Function> for prev_pass::Function {
+    fn check_flow(self, env: &mut Env) -> PassResult<Function> {
         todo!()
     }
 }
 
-impl InferTypes<Ident> for prev_pass::Ident {
-    fn infer_types(self, env: &mut Env) -> PassResult<Ident> {
+impl CheckFlow<Ident> for prev_pass::Ident {
+    fn check_flow(self, env: &mut Env) -> PassResult<Ident> {
         todo!()
     }
 }

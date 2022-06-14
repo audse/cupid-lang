@@ -1,6 +1,6 @@
 use cupid_util::{InvertOption, Bx, Str, node_builder};
 use cupid_scope::Env;
-use crate::{pre_analysis, PassResult, ast_pass_nodes};
+use crate::{type_name_resolution as prev_pass, PassResult, ast_pass_nodes};
 
 #[cupid_semantics::auto_implement(Vec, Option)]
 pub trait AnalyzeScope<T> where Self: Sized {
@@ -34,11 +34,11 @@ ast_pass_nodes! {
 }
 
 crate::impl_expr_ast_pass! {
-    impl AnalyzeScope<Expr> for pre_analysis::Expr { analyze_scope }
+    impl AnalyzeScope<Expr> for prev_pass::Expr { analyze_scope }
 }
 
 crate::impl_block_ast_pass! {
-    impl AnalyzeScope<crate::Block<Expr>> for crate::Block<pre_analysis::Expr> {
+    impl AnalyzeScope<crate::Block<Expr>> for crate::Block<prev_pass::Expr> {
         fn analyze_scope(self, env: &mut Env) -> PassResult<crate::Block<Expr>> {
             let Self { expressions, attr, ..} = self;
             Ok(crate::Block::build()
@@ -50,7 +50,7 @@ crate::impl_block_ast_pass! {
     }
 }
 
-impl AnalyzeScope<Decl> for pre_analysis::Decl {
+impl AnalyzeScope<Decl> for prev_pass::Decl {
     fn analyze_scope(self, env: &mut Env) -> PassResult<Decl> {
         let Self { ident, value, type_annotation, attr, ..} = self;
         Ok(Decl::build()
@@ -63,7 +63,7 @@ impl AnalyzeScope<Decl> for pre_analysis::Decl {
     }
 }
 
-impl AnalyzeScope<Function> for pre_analysis::Function {
+impl AnalyzeScope<Function> for prev_pass::Function {
     fn analyze_scope(self, env: &mut Env) -> PassResult<Function> {
         let Self { params, return_type_annotation, body, attr, ..} = self;
         Ok(Function::build()
@@ -76,7 +76,7 @@ impl AnalyzeScope<Function> for pre_analysis::Function {
     }
 }
 
-impl AnalyzeScope<Ident> for pre_analysis::Ident {
+impl AnalyzeScope<Ident> for prev_pass::Ident {
     fn analyze_scope(self, env: &mut Env) -> PassResult<Ident> {
         let Self { name, generics, attr, ..} = self;
         Ok(Ident::build()

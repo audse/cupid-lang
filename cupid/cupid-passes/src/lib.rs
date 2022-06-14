@@ -2,6 +2,7 @@
 
 pub mod pass;
 
+pub mod flow_checking;
 pub mod linting;
 pub mod name_resolution;
 pub mod package_resolution;
@@ -84,4 +85,26 @@ impl AsNode for Value {
 	fn source(&self) -> Source { self.attr().source() }
 	fn scope(&self) -> Scope { self.attr().scope() }
 	fn typ(&self) -> Address { self.attr().typ() }
+}
+
+#[macro_export]
+macro_rules! skip_node {
+	($name:ident) => {
+        #[derive(Debug, Default, Clone)]
+        pub struct $name(pub prev_pass::$name);
+	}
+}
+
+#[macro_export]
+macro_rules! skip_pass {
+	($name:ident = $prev_pass:ident + $pass:ident<$_:ident> $fun:ident) => {
+        #[derive(Debug, Default, Clone)]
+        pub struct $name(pub $prev_pass::$name);
+
+		impl $pass<$name> for prev_pass::$name {
+			fn $fun(self, env: &mut Env) -> PassResult<$name> {
+				Ok($name(self))
+			}
+		}
+	}
 }

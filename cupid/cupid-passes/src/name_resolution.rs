@@ -1,6 +1,6 @@
 use cupid_util::{node_builder, InvertOption};
 use cupid_scope::Env;
-use crate::{PassResult, scope_analysis};
+use crate::{PassResult, scope_analysis as prev_pass};
 
 #[cupid_semantics::auto_implement(Vec, Option)]
 pub trait ResolveNames<T> where Self: Sized {
@@ -35,30 +35,30 @@ crate::ast_pass_nodes! {
 }
 
 crate::impl_expr_ast_pass! {
-    impl ResolveNames<Expr> for scope_analysis::Expr { 
+    impl ResolveNames<Expr> for prev_pass::Expr { 
         resolve_names
     }
 }
 
 crate::impl_block_ast_pass! {
-    impl ResolveNames<crate::Block<Expr>> for crate::Block<scope_analysis::Expr> { 
+    impl ResolveNames<crate::Block<Expr>> for crate::Block<prev_pass::Expr> { 
         resolve_names 
     }
 }
 
-impl ResolveNames<Decl> for scope_analysis::Decl {
+impl ResolveNames<Decl> for prev_pass::Decl {
     fn resolve_names(self, env: &mut Env) -> PassResult<Decl> {
         todo!()
     }
 }
 
-impl ResolveNames<Function> for scope_analysis::Function {
+impl ResolveNames<Function> for prev_pass::Function {
     fn resolve_names(self, env: &mut Env) -> PassResult<Function> {
         todo!()
     }
 }
 
-impl ResolveNames<Ident> for scope_analysis::Ident {
+impl ResolveNames<Ident> for prev_pass::Ident {
     fn resolve_names(self, env: &mut Env) -> PassResult<Ident> {
         todo!()
     }
