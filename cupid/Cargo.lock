@@ -163,6 +163,7 @@ name = "cupid_passes"
 version = "0.1.0"
 dependencies = [
  "cupid_scope",
+ "cupid_semantics",
  "cupid_util",
 ]
 

@@ -1,37 +1,42 @@
 
 /// Constructs a struct and a builder struct with additional fields
 /// present on all AST nodes.
-/// ## Example
-/// ```
-/// use crate::{Attributes};
-/// use pre_analysis::Expr;
-/// cupid_util::node_builder! {
+/// # Examples
+/// ```no_run
+/// use crate::{node_builder, placeholder};
+/// use cupid_passes::{pre_analysis::Expr, AsNode, Attributes};
+/// 
+/// // Creating a struct + builder like this:
+/// 
+/// node_builder! {
 ///     #[derive(Debug)]
 ///     OperationBuilder => Operation {
 ///         left: Expr,
 ///         right: Expr,
-///         operator: &'static str,
+///         operator: String,
 ///     }
 /// }
-/// // is equivalent to
+/// 
+/// // Outputs this:
+/// 
 /// struct Operation {
 ///     left: Expr,
 ///     right: Expr,
-///     operator: &'static str,
+///     operator: String,
 ///     attr: Attributes,
 /// }
 /// struct OperationBuilder {
 ///     left: Expr,
 ///     right: Expr,
-///     operator: &'static str,
+///     operator: String,
 ///     attr: Attributes,
 /// }
-/// // and some impl blocks...
-/// // impl From<OperationBuilder> for Operation { ... }
-/// // impl From<Operation> for OperationBuilder { ... }
-/// // impl AsNode for Operation { ... }
-/// // impl Operation { ... }
-/// // impl OperationBuilder { ... }
+/// 
+/// impl From<OperationBuilder> for Operation { placeholder!(...) }
+/// impl From<Operation> for OperationBuilder { placeholder!(...) }
+/// impl AsNode for Operation { placeholder!(...) }
+/// impl Operation { placeholder!(...) }
+/// impl OperationBuilder { placeholder!(...) }
 /// ```
 /// ### Notes
 /// 1. Generic inline trait bounds work, `where` clauses do not
@@ -53,9 +58,7 @@ macro_rules! node_builder {
 	) => {
 		$(#[$derive])?
 		$v struct $struct_name $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? {
-            $v source: usize,
-            $v closure: usize,
-            $v typ: usize,
+			$v attr: crate::Attributes,
 			$( 
 				$(#[$fderive])?
 				$fv $field: $t 
@@ -63,9 +66,7 @@ macro_rules! node_builder {
 		}
 		$(#[$derive])?
 		$bv struct $builder_name $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)?  {
-            $v source: usize,
-            $v closure: usize,
-            $v typ: usize,
+			$v attr: crate::Attributes,
 			$( 
 				$(#[$fderive])?
 				$fv $field: $t 
@@ -87,9 +88,7 @@ macro_rules! node_builder {
 			}
 			$v fn build(self) -> $struct_name $(< $( $lt ),+ >)? {
 				$struct_name {
-					source: self.source,
-					closure: self.closure,
-					typ: self.typ,
+					attr: self.attr,
 					$( $field: self.$field ),*
 				}
 			}
@@ -99,31 +98,28 @@ macro_rules! node_builder {
 					self
 				}
 			)*
-            $v fn source(mut self, src: usize) -> Self {
-                self.source = src;
+            $v fn attr(mut self, attr: crate::Attributes) -> Self {
+                self.attr = attr;
                 self
             }
-            $v fn closure(mut self, closure: usize) -> Self {
-                self.closure = closure;
+            $v fn source(mut self, src: usize) -> Self {
+                self.attr.source = src;
+                self
+            }
+            $v fn scope(mut self, scope: usize) -> Self {
+                self.attr.scope = scope;
                 self
             }
             $v fn typ(mut self, typ: usize) -> Self {
-                self.typ = typ;
+                self.attr.typ = typ;
                 self
             }
-			$v fn meta(self, src: usize, closure: usize, typ: usize) -> Self {
-				self.source(src)
-					.closure(closure)
-					.typ(typ)
-			}
 		}
 			
 		impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? From<$struct_name$(< $( $lt ),+ >)?> for $builder_name $(< $( $lt ),+ >)? {
 			fn from(s: $struct_name $(< $( $lt ),+ >)? ) -> Self {
 				$builder_name$(::< $( $lt ),+ >)?  {
-					source: s.source,
-					closure: s.closure,
-					typ: s.typ,
+					attr: s.attr,
 					$( $field: s.$field ),*
 				}
 			}
@@ -132,18 +128,16 @@ macro_rules! node_builder {
 		impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? From<&$builder_name$(< $( $lt ),+ >)?> for $struct_name $(< $( $lt ),+ >)? {
 			fn from(s: &$builder_name $(< $( $lt ),+ >)? ) -> Self {
 				$struct_name$(::< $( $lt ),+ >)? {
-					source: s.source,
-					closure: s.closure,
-					typ: s.typ,
+					attr: s.attr,
 					$( $field: s.$field.to_owned() ),*
 				}
 			}
 		}
 
 		impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? crate::AsNode for $struct_name$(< $( $lt ),+ >)? {
-			fn source(&self) -> usize { self.source }
-			fn closure(&self) -> usize { self.closure }
-			fn typ(&self) -> usize { self.typ }
+			fn source(&self) -> usize { self.attr.source }
+			fn scope(&self) -> usize { self.attr.scope }
+			fn typ(&self) -> usize { self.attr.typ }
 		}
 	};
 }

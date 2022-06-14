@@ -37,7 +37,7 @@ impl ToASTResult for UnifyResult {
 
 /// Mutates types by replacing type variables with concrete types
 /// 
-/// ## Example
+/// # Examples
 /// ```
 /// use cupid_analysis::Unify;
 /// 
@@ -61,7 +61,7 @@ pub trait Unify {
 }
 
 /// Unifies an item, if a matching argument exists
-/// ## Example
+/// # Examples
 /// ```
 /// use cupid_analysis::unify_option;
 /// 

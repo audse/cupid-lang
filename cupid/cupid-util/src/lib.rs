@@ -10,38 +10,43 @@ pub use error_codes::*;
 pub mod fmt;
 pub use fmt::*;
 
+pub mod invert_option;
+pub use invert_option::*;
+
+pub mod map_mut;
+pub use map_mut::*;
+
 pub mod node_builder;
 pub use node_builder::*;
 
 pub mod strings;
 pub use strings::*;
 
+/// Shorthand `Box::new(...)` as an associated trait. Implemented
+/// for any type that can be boxed.
+/// 
+/// # Examples
+/// ```
+/// use cupid_util::Bx;
+/// 
+/// let word = "hello";
+/// assert_eq!(word.bx(), Box::new(word));
+/// ```
 pub trait Bx where Self: Sized {
 	fn bx(self) -> Box<Self> { Box::new(self) }
 }
 
 impl<T: Sized> Bx for T {}
 
-pub fn invert<T, E>(x: Option<Result<T, E>>) -> Result<Option<T>, E> {
-    x.map_or(Ok(None), |v| v.map(Some))
+/// Suppresses compiler warnings inside the given block. Works similar
+/// to `todo!()` macro, but for items rather than expressions.
+#[macro_export]
+macro_rules! ignore_errors {
+    ($($_:item)*) => {}
 }
 
-pub trait InvertOption<T, E> {
-	fn invert(self) -> Result<Option<T>, E>;
-}
-
-impl<T, E> InvertOption<T, E> for Option<Result<T, E>> {
-	fn invert(self) -> Result<Option<T>, E> {
-		self.map_or(Ok(None), |v| v.map(Some))
-	}
-}
-
-pub trait MapMut<'a, T: 'a, R: 'a> {
-	fn map_mut<F: FnOnce(&'a mut T) -> R>(&'a mut self, f: F) -> Option<R>;
-}
-
-impl<'a, T: 'a, R: 'a> MapMut<'a, T, R> for Option<T> {
-	fn map_mut<F: FnOnce(&'a mut T) -> R>(&'a mut self, f: F) -> Option<R> {
-		self.as_mut().map(f)
-	}
+/// Does literally nothing, a more semantic version of `todo!()` for some cases
+#[macro_export]
+macro_rules! placeholder {
+	(...) => {}
 }

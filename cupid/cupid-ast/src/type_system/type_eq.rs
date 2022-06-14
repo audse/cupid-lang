@@ -2,7 +2,7 @@ use crate::*;
 
 /// Checks equality between types; either identical, or structurally equivalent
 /// 
-/// ## Example
+/// # Examples
 /// ```
 /// use cupid_analysis::TypeEq;
 /// 

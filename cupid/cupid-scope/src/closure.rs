@@ -25,12 +25,13 @@ impl Closure {
 			scopes: vec![Scope::new(id + 1, context)]
 		}
 	}
-	pub fn add(&mut self, context: Context) {
+	pub fn add(&mut self, context: Context) -> usize {
 		self.scopes.push(Scope { 
 			id: self.id + self.scopes.len(), 
 			symbols: HashMap::default(),
 			context, 
-		})
+		});
+		self.id + self.scopes.len() - 1
 	}
 	pub fn pop(&mut self) -> Option<Scope> {
 		self.scopes.pop()

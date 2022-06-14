@@ -1,45 +1,54 @@
 #![feature(derive_default_enum)]
 
+pub mod pass;
+
 pub mod linting;
 pub mod name_resolution;
 pub mod package_resolution;
 pub mod pre_analysis;
 pub mod scope_analysis;
-pub mod states;
 pub mod type_checking;
 pub mod type_inference;
 pub mod type_name_resolution;
 
 pub(crate) use Value::*;
 
-pub type Closure = usize;
+pub type Scope = usize;
 pub type Address = usize;
 pub type Source = usize;
 pub type ErrCode = usize;
 
 pub type PassResult<T> = Result<T, (Source, ErrCode)>;
 
-#[derive(Debug, Default, Clone)]
-pub struct SemanticNode<T> {
-	pub data: T,
-	pub source: crate::Source,
-	pub closure: crate::Closure,
-    pub type_address: crate::Address,
-}
-
 pub trait AsNode {
 	fn source(&self) -> Source;
-	fn closure(&self) -> Closure;
+	fn scope(&self) -> Scope;
 	fn typ(&self) -> Address;
 }
 
 #[derive(Debug, Default, Copy, Clone)]
-pub struct Attributes(Source, Closure, Address);
-impl AsNode for Attributes {
-	fn source(&self) -> Source { self.0 }
-	fn closure(&self) -> Closure { self.1 }
-	fn typ(&self) -> Address { self.2 }
+pub struct Attributes {
+	pub source: Source, 
+	pub scope: Scope, 
+	pub typ: Address
 }
+
+impl AsNode for Attributes {
+	fn source(&self) -> Source { self.source }
+	fn scope(&self) -> Scope { self.scope }
+	fn typ(&self) -> Address { self.typ }
+}
+
+
+// `Block` is always the same shape, so it does not need
+// separate definitions in each pass
+cupid_util::node_builder! {
+    #[derive(Debug, Default, Clone)]
+    pub BlockBuilder => pub Block<E: Default + Clone> {
+        pub expressions: Vec<E>,
+    }
+}
+
 
 #[derive(Debug, Clone)]
 pub enum Value {
@@ -50,6 +59,7 @@ pub enum Value {
 	VString(cupid_util::Str, Attributes),
 	VNone(Attributes),
 }
+
 
 impl Default for Value {
 	fn default() -> Self {
@@ -72,27 +82,6 @@ impl Value {
 
 impl AsNode for Value {
 	fn source(&self) -> Source { self.attr().source() }
-	fn closure(&self) -> Closure { self.attr().closure() }
+	fn scope(&self) -> Scope { self.attr().scope() }
 	fn typ(&self) -> Address { self.attr().typ() }
-}
-
-#[macro_export]
-macro_rules! ast_pass_nodes {
-    (
-        Decl: $decl:item
-        Ident: $ident:item
-    ) => {
-        #[derive(Debug, Default, Clone)]
-        pub enum Expr {
-            Decl(Decl),
-            Ident(Ident),
-			Value(crate::Value),
-
-            #[default]
-            Empty,
-        }
-
-        $decl
-        $ident
-    }
 }

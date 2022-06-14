@@ -5,4 +5,5 @@ edition = "2021"
 
 [dependencies]
 cupid_scope = { path = '../cupid-scope' }
+cupid_semantics = { path = '../cupid-semantics' }
 cupid_util = { path = '../cupid-util' }

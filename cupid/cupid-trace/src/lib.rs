@@ -15,7 +15,7 @@ use proc_macro::TokenStream;
 /// trait behind the scenes. This kind of defeats the purpose of traits, but
 /// really it's just allow better semantic separation of code.
 /// 
-/// ## Example
+/// # Examples
 /// ```
 /// use cupid_trace::trace_this;
 /// 
@@ -91,7 +91,7 @@ pub fn trace_this(_: TokenStream, input: TokenStream) -> TokenStream {
 
 /// Adds a trace message to the scope when entering and exiting a function call
 /// 
-/// ## Example ouput
+/// # Examples ouput
 /// ```no_run
 /// --> Declaration::analyze_scope
 /// ...

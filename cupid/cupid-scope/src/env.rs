@@ -66,6 +66,9 @@ impl Env {
 		}
 		self.closures.len() - 1
 	}
+	pub fn add_scope(&mut self, context: Context) -> usize {
+		self.closures.last_mut().map_mut(|closure| closure.add(context)).unwrap_or_default()
+	}
 	pub fn add_isolated_closure(&mut self, ident: Option<Ident>, context: Context) -> usize {
 		self.trace_add_isolated(&ident, context);
 		// always has access to top-level scope

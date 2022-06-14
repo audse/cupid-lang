@@ -141,3 +141,78 @@ pub fn semantic_states(_: TokenStream, input: TokenStream) -> TokenStream {
         _ => todo!()
     }
 }
+
+// TODO 
+// this whole thing is terrible, only works in specific cases
+// needs to be rewritten soon
+#[proc_macro_attribute]
+pub fn auto_implement(args: TokenStream, input: TokenStream) -> TokenStream {
+    let input = TokenStream2::from(input);
+
+    let trait_block: syn::ItemTrait = syn::parse2(input).expect("expected trait def");
+    let trait_name = &trait_block.ident;
+    let trait_generics = &trait_block.generics;
+    let trait_generic_params = &trait_block.generics.params.iter().collect::<Vec<&syn::GenericParam>>();
+    let trait_functions = &trait_block.items
+        .iter()
+        .filter_map(|item| if let syn::TraitItem::Method(syn::TraitItemMethod { attrs, sig, ..}) = item {
+            let args = sig.inputs
+                .iter()
+                .filter_map(|param| match param {
+                    syn::FnArg::Typed(p) => {
+                        match &*p.pat {
+                            syn::Pat::Ident(i) => Some(&i.ident),
+                            _ => None
+                        }
+                    },
+                    _ => None
+                })
+                .collect::<Vec<&syn::Ident>>();
+            Some((attrs, sig, args))
+        } else {
+            None
+        })
+        .collect::<Vec<(&Vec<syn::Attribute>, &syn::Signature, Vec<&syn::Ident>)>>();
+
+    let args: syn::AttributeArgs = syn::parse_macro_input!(args as syn::AttributeArgs);
+    let mut args = args.iter();
+
+    let mut outputs = vec![quote::quote! {
+        #trait_block
+    }];
+
+    while let Some(syn::NestedMeta::Meta(syn::Meta::Path(p))) = args.next() {
+        
+        let arg_name = &p.segments.last().unwrap().ident.to_string();
+
+        let functions = trait_functions
+            .iter()
+            .map(|(attrs, sig, args)| {
+                let syn::Signature { ident, generics, inputs, .. } = sig;
+                
+                let inner = match arg_name.as_str() {
+                    "Vec" => quote::quote! { self.into_iter().map(|i| i.#ident(#(#args)*) ).collect() },
+                    "Option" => quote::quote! { self.map(|i| i.#ident(#(#args)*) ).invert() },
+                    _ => panic!("Expected either Vec or Option type")
+                };
+                quote::quote! {
+                    #(#attrs)*
+                    fn #ident #generics (#inputs) -> PassResult<#p<#(#trait_generic_params),*>> {
+                        #inner
+                    }
+                }
+
+            })
+            .collect::<Vec<TokenStream2>>();
+
+        outputs.push(quote::quote! {
+            impl<#(#trait_generic_params),* , AutoImpl: #trait_name #trait_generics> #trait_name <#p<#(#trait_generic_params),*>> for #p<AutoImpl> {
+                #(#functions)*
+            }
+        });
+    }
+    let output = quote::quote! {
+        #(#outputs)*
+    };
+    output.into()
+}
