@@ -1,36 +1,38 @@
-use cupid_scope::Env;
+
 use cupid_util::InvertOption;
-use crate::PassResult;
-use cupid_util::node_builder;
+use crate::{PassResult, type_checking as prev_pass, util, env::environment::Env};
 
-use crate::type_checking as prev_pass;
-
-#[cupid_semantics::auto_implement(Vec, Option)]
-pub trait CheckFlow<T> where Self: Sized {
-    fn check_flow(self, env: &mut Env) -> PassResult<T>;
+#[cupid_semantics::auto_implement(Vec, Option, Str)]
+pub trait CheckFlow<Output> where Self: Sized {
+    fn check_flow(self, env: &mut Env) -> PassResult<Output>;
 }
 
-crate::ast_pass_nodes! {
-    Decl: node_builder! {
+util::define_pass_nodes! {
+    Decl: cupid_util::node_builder! {
         #[derive(Debug, Default, Clone)]
         pub DeclBuilder => pub Decl {}
     }
-    Function: node_builder! {
+    Function: cupid_util::node_builder! {
         #[derive(Debug, Default, Clone)]
         pub FunctionBuilder => pub Function {}
     }
-    Ident: node_builder! {
+    Ident: cupid_util::node_builder! {
         #[derive(Debug, Default, Clone)]
         pub IdentBuilder => pub Ident {}
     }
+    TypeDef: cupid_util::node_builder! {
+        #[derive(Debug, Default, Clone)]
+        pub TypeDefBuilder => pub TypeDef {}
+    }
 }
 
-crate::impl_expr_ast_pass! {
-    impl CheckFlow<Expr> for prev_pass::Expr { check_flow }
-}
-
-crate::impl_block_ast_pass! {
-    impl CheckFlow<crate::Block<Expr>> for crate::Block<prev_pass::Expr> { check_flow }
+crate::util::impl_default_passes! {
+    impl CheckFlow + check_flow for {
+        Block<Expr> => prev_pass::Expr;
+        Expr => prev_pass::Expr;
+        Field<Ident> => prev_pass::Ident;
+        Value => crate::Value;
+    }
 }
 
 impl CheckFlow<Decl> for prev_pass::Decl {
@@ -47,6 +49,12 @@ impl CheckFlow<Function> for prev_pass::Function {
 
 impl CheckFlow<Ident> for prev_pass::Ident {
     fn check_flow(self, env: &mut Env) -> PassResult<Ident> {
+        todo!()
+    }
+}
+
+impl CheckFlow<TypeDef> for prev_pass::TypeDef {
+    fn check_flow(self, env: &mut Env) -> PassResult<TypeDef> {
         todo!()
     }
 }

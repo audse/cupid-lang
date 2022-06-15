@@ -1,6 +1,26 @@
+#![allow(unused_variables)]
 #![feature(derive_default_enum)]
 
-pub mod pass;
+pub mod env;
+
+pub mod util;
+pub(crate) use util::attributes::*;
+pub(crate) use util::static_nodes::*;
+
+pub type PassResult<T> = Result<T, (Source, ErrCode)>;
+pub type ErrCode = usize;
+
+/// Each AST pass takes a node from the previous pass and transforms it
+/// # Stages
+/// 1. `pre_analysis`
+/// 2. `package_resolution`
+/// 3. `type_name_resolution`
+/// 4. `scope_analysis`
+/// 5. `name_resolution`
+/// 6. `type_inference`
+/// 7. `type_checking`
+/// 8. `flow_checking`
+/// 9. `linting`
 
 pub mod flow_checking;
 pub mod linting;
@@ -12,99 +32,58 @@ pub mod type_checking;
 pub mod type_inference;
 pub mod type_name_resolution;
 
-pub(crate) use Value::*;
+use PassExpr::*;
 
-pub type Scope = usize;
-pub type Address = usize;
-pub type Source = usize;
-pub type ErrCode = usize;
-
-pub type PassResult<T> = Result<T, (Source, ErrCode)>;
-
-pub trait AsNode {
-	fn source(&self) -> Source;
-	fn scope(&self) -> Scope;
-	fn typ(&self) -> Address;
+#[derive(Debug, Default, Clone)]
+pub enum PassExpr {
+    PreAnalysis(pre_analysis::Expr),
+    PackageResolved(package_resolution::Expr),
+    TypeNameResolved(type_name_resolution::Expr),
+    ScopeAnalyzed(scope_analysis::Expr),
+    NameResolved(name_resolution::Expr),
+    TypeInferred(type_inference::Expr),
+    TypeChecked(type_checking::Expr),
+    FlowChecked(flow_checking::Expr),
+    Linted(linting::Expr),
+    
+    #[default]
+    Empty
 }
 
-#[derive(Debug, Default, Copy, Clone)]
-pub struct Attributes {
-	pub source: Source, 
-	pub scope: Scope, 
-	pub typ: Address
-}
-
-impl AsNode for Attributes {
-	fn source(&self) -> Source { self.source }
-	fn scope(&self) -> Scope { self.scope }
-	fn typ(&self) -> Address { self.typ }
-}
-
-
-// `Block` is always the same shape, so it does not need
-// separate definitions in each pass
-cupid_util::node_builder! {
-    #[derive(Debug, Default, Clone)]
-    pub BlockBuilder => pub Block<E: Default + Clone> {
-        pub expressions: Vec<E>,
+macro_rules! for_each_expr {
+    ($for:expr => $do:ident $args:tt) => {
+        match $for {
+            PreAnalysis(x) => x.$do $args,
+            PackageResolved(x) => x.$do $args,
+            TypeNameResolved(x) => x.$do $args,
+            ScopeAnalyzed(x) => x.$do $args,
+            NameResolved(x) => x.$do $args,
+            TypeInferred(x) => x.$do $args,
+            TypeChecked(x) => x.$do $args,
+            FlowChecked(x) => x.$do $args,
+            Linted(x) => x.$do $args,
+            _ => unreachable!()
+        }
     }
 }
 
-
-#[derive(Debug, Clone)]
-pub enum Value {
-	VBoolean(bool, Attributes),
-	VChar(char, Attributes),
-	VDecimal(i32, u32, Attributes),
-	VInteger(i32, Attributes),
-	VString(cupid_util::Str, Attributes),
-	VNone(Attributes),
-}
-
-
-impl Default for Value {
-	fn default() -> Self {
-		Self::VNone(Attributes::default())
-	}
-}
-
-impl Value {
-	pub fn attr(&self) -> Attributes {
-		match self {
-			VBoolean(_, attr)
-			| VChar(_, attr)
-			| VDecimal(_, _, attr)
-			| VInteger(_, attr)
-			| VString(_, attr)
-			| VNone(attr) => *attr
-		}
-	}
-}
-
-impl AsNode for Value {
-	fn source(&self) -> Source { self.attr().source() }
-	fn scope(&self) -> Scope { self.attr().scope() }
-	fn typ(&self) -> Address { self.attr().typ() }
-}
-
-#[macro_export]
-macro_rules! skip_node {
-	($name:ident) => {
-        #[derive(Debug, Default, Clone)]
-        pub struct $name(pub prev_pass::$name);
-	}
-}
-
-#[macro_export]
-macro_rules! skip_pass {
-	($name:ident = $prev_pass:ident + $pass:ident<$_:ident> $fun:ident) => {
-        #[derive(Debug, Default, Clone)]
-        pub struct $name(pub $prev_pass::$name);
-
-		impl $pass<$name> for prev_pass::$name {
-			fn $fun(self, env: &mut Env) -> PassResult<$name> {
-				Ok($name(self))
-			}
-		}
-	}
+impl AsNode for PassExpr {
+    fn scope(&self) -> Scope {
+        for_each_expr!(self => scope())
+    }
+    fn source(&self) -> Scope {
+        for_each_expr!(self => source())
+    }
+    fn typ(&self) -> Scope {
+        for_each_expr!(self => typ())
+    }
+	fn set_source(&mut self, source: Source) {
+        for_each_expr!(self => set_source(source));
+    }
+	fn set_scope(&mut self, scope: Scope) {
+        for_each_expr!(self => set_scope(scope));
+    }
+	fn set_typ(&mut self, typ: Address) {
+        for_each_expr!(self => set_typ(typ));
+    }
 }

@@ -1,24 +1,39 @@
-use cupid_scope::Env;
-use cupid_util::InvertOption;
-use crate::PassResult;
 
-use crate::pre_analysis as prev_pass;
+use cupid_util::{InvertOption, Bx};
+use crate::{
+    PassResult,
+    util::reuse_node,
+    pre_analysis as prev_pass,
+    env::environment::Env
+};
 
-#[cupid_semantics::auto_implement(Vec, Option)]
-pub trait ResolvePackages<T> where Self: Sized {
-    fn resolve_packages(self, env: &mut Env) -> PassResult<T>;
+#[cupid_semantics::auto_implement(Vec, Option, Str)]
+pub trait ResolvePackages<Output> where Self: Sized {
+    fn resolve_packages(self, env: &mut Env) -> PassResult<Output>;
 }
 
-crate::ast_pass_nodes! {
-    Decl: crate::skip_pass! { Decl = prev_pass + ResolvePackages<Decl> resolve_packages }
-    Function: crate::skip_pass! { Function = prev_pass + ResolvePackages<Function> resolve_packages }
-    Ident: crate::skip_pass! { Ident = prev_pass + ResolvePackages<Ident> resolve_packages }
+// TODO allow non-top-level package resolution
+crate::util::define_pass_nodes! {
+    Decl: reuse_node! { 
+        prev_pass::Decl => ResolvePackages<Decl, resolve_packages> 
+    }
+    Function: reuse_node! { 
+        prev_pass::Function => ResolvePackages<Function, resolve_packages> 
+    }
+    Ident: reuse_node! { 
+        prev_pass::Ident => ResolvePackages<Ident, resolve_packages> 
+    }
+    TypeDef: reuse_node! { 
+        prev_pass::TypeDef => ResolvePackages<TypeDef, resolve_packages> 
+    }
 }
 
-crate::impl_expr_ast_pass! {
-    impl ResolvePackages<Expr> for prev_pass::Expr { resolve_packages }
-}
 
-crate::impl_block_ast_pass! {
-    impl ResolvePackages<crate::Block<Expr>> for crate::Block<prev_pass::Expr> { resolve_packages }
+crate::util::impl_default_passes! {
+    impl ResolvePackages + resolve_packages for {
+        Block<Expr> => prev_pass::Expr;
+        Expr => prev_pass::Expr;
+        Field<Ident> => prev_pass::Ident;
+        Value => crate::Value;
+    }
 }

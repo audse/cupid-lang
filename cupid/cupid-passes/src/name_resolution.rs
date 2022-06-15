@@ -1,18 +1,18 @@
 use cupid_util::{node_builder, InvertOption};
-use cupid_scope::Env;
-use crate::{PassResult, scope_analysis as prev_pass};
 
-#[cupid_semantics::auto_implement(Vec, Option)]
-pub trait ResolveNames<T> where Self: Sized {
-    fn resolve_names(self, env: &mut Env) -> PassResult<T>;
+use crate::{PassResult, scope_analysis as prev_pass, Address, env::environment::Env};
+
+#[cupid_semantics::auto_implement(Vec, Option, Str)]
+pub trait ResolveNames<Output> where Self: Sized {
+    fn resolve_names(self, env: &mut Env) -> PassResult<Output>;
 }
 
-crate::ast_pass_nodes! {
+crate::util::define_pass_nodes! {
     Decl: node_builder! {
         #[derive(Debug, Default, Clone)]
         pub DeclBuilder => pub Decl {
-            pub ident_address: crate::Address,
-            pub type_annotation_address: Option<crate::Address>,
+            pub ident_address: Address,
+            pub type_annotation_address: Option<Address>,
             pub value: Box<Expr>,
         }
     }
@@ -20,29 +20,33 @@ crate::ast_pass_nodes! {
         #[derive(Debug, Default, Clone)]
         pub FunctionBuilder => pub Function {
             pub params: Vec<Decl>,
-            pub return_type_annotation: Option<crate::Address>,
+            pub return_type_annotation: Option<Address>,
             pub body: Vec<Expr>,
         }
     }
     Ident: node_builder! {
         #[derive(Debug, Default, Clone)]
         pub IdentBuilder => pub Ident {
-            pub namespace: crate::Address,
-            pub name: crate::Address,
-            pub generics: Vec<crate::Address>
+            pub namespace: Address,
+            pub name: Address,
+            pub generics: Vec<Address>
+        }
+    }
+    TypeDef: node_builder! {
+        #[derive(Debug, Default, Clone)]
+        pub TypeDefBuilder => pub TypeDef {
+            pub ident: Address,
+            pub fields: Vec<crate::Field<Address>>,
         }
     }
 }
 
-crate::impl_expr_ast_pass! {
-    impl ResolveNames<Expr> for prev_pass::Expr { 
-        resolve_names
-    }
-}
-
-crate::impl_block_ast_pass! {
-    impl ResolveNames<crate::Block<Expr>> for crate::Block<prev_pass::Expr> { 
-        resolve_names 
+crate::util::impl_default_passes! {
+    impl ResolveNames + resolve_names for {
+        Block<Expr> => prev_pass::Expr;
+        Expr => prev_pass::Expr;
+        Field<Ident> => prev_pass::Ident;
+        Value => crate::Value;
     }
 }
 
@@ -60,6 +64,12 @@ impl ResolveNames<Function> for prev_pass::Function {
 
 impl ResolveNames<Ident> for prev_pass::Ident {
     fn resolve_names(self, env: &mut Env) -> PassResult<Ident> {
+        todo!()
+    }
+}
+
+impl ResolveNames<TypeDef> for prev_pass::TypeDef {
+    fn resolve_names(self, env: &mut Env) -> PassResult<TypeDef> {
         todo!()
     }
 }

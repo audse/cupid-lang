@@ -1,48 +1,40 @@
-use cupid_scope::Env;
-use cupid_util::InvertOption;
-use crate::PassResult;
 
-use crate::package_resolution as prev_pass;
+use cupid_util::{InvertOption, Bx};
 
-#[cupid_semantics::auto_implement(Vec, Option)]
-pub trait ResolveTypeNames<T> where Self: Sized {
-    fn resolve_type_names(self, env: &mut Env) -> PassResult<T>;
+use crate::{package_resolution as prev_pass, PassResult, env::environment::Env};
+
+#[cupid_semantics::auto_implement(Vec, Option, Str)]
+pub trait ResolveTypeNames<Output> where Self: Sized {
+    fn resolve_type_names(self, env: &mut Env) -> PassResult<Output>;
 }
 
-crate::ast_pass_nodes! {
-    Decl:
-        #[derive(Debug, Default, Clone)]
-        pub struct Decl(pub crate::pre_analysis::Decl);
-    Function:
-        #[derive(Debug, Default, Clone)]
-        pub struct Function(pub crate::pre_analysis::Function);
-    Ident: 
-        #[derive(Debug, Default, Clone)]
-        pub struct Ident(pub crate::pre_analysis::Ident);
-}
-
-crate::impl_expr_ast_pass! {
-    impl ResolveTypeNames<Expr> for prev_pass::Expr { resolve_type_names }
-}
-
-crate::impl_block_ast_pass! {
-    impl ResolveTypeNames<crate::Block<Expr>> for crate::Block<prev_pass::Expr> { resolve_type_names }
-}
-
-impl ResolveTypeNames<Decl> for prev_pass::Decl {
-    fn resolve_type_names(self, _: &mut Env) -> PassResult<Decl> {
-        Ok(Decl(self.0))
+crate::util::define_pass_nodes! {
+    Decl: crate::util::reuse_node! { 
+        prev_pass::Decl => ResolveTypeNames<Decl, resolve_type_names> 
+    }
+    Function: crate::util::reuse_node! { 
+        prev_pass::Function => ResolveTypeNames<Function, resolve_type_names> 
+    }
+    Ident: crate::util::reuse_node! { 
+        prev_pass::Ident => ResolveTypeNames<Ident, resolve_type_names> 
+    }
+    TypeDef: crate::util::reuse_node! { 
+        prev_pass::TypeDef => Pass<resolve_type_names> 
     }
 }
 
-impl ResolveTypeNames<Function> for prev_pass::Function {
-    fn resolve_type_names(self, _: &mut Env) -> PassResult<Function> {
-        Ok(Function(self.0))
+crate::util::impl_default_passes! {
+    impl ResolveTypeNames + resolve_type_names for {
+        Block<Expr> => prev_pass::Expr;
+        Expr => prev_pass::Expr;
+        Field<Ident> => prev_pass::Ident;
+        Value => crate::Value;
     }
 }
 
-impl ResolveTypeNames<Ident> for prev_pass::Ident {
-    fn resolve_type_names(self, _: &mut Env) -> PassResult<Ident> {
-        Ok(Ident(self.0))
+impl ResolveTypeNames<TypeDef> for prev_pass::TypeDef {
+    fn resolve_type_names(self, env: &mut Env) -> PassResult<TypeDef> {
+        let pass = self.pass(env)?;
+        Ok(pass)
     }
 }

@@ -14,7 +14,7 @@ use cupid_ast::{
 	UseAttributes,
 };
 use cupid_analysis::Analyze;
-use cupid_scope::Env;
+
 use cupid_debug::ErrorContext;
 
 #[derive(Parser)]

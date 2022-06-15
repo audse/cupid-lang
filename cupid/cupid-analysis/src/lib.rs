@@ -15,8 +15,6 @@ pub use block::*;
 pub mod declaration;
 pub use declaration::*;
 
-pub mod decl;
-
 pub mod expression;
 pub use expression::*;
 
@@ -31,8 +29,6 @@ pub use ident::*;
 
 pub mod property;
 pub use property::*;
-
-pub mod semantic_state;
 
 pub mod symbol_value;
 pub use symbol_value::*;

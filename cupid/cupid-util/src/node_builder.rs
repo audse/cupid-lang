@@ -80,6 +80,22 @@ macro_rules! node_builder {
 			$v fn builder(self) -> $builder_name $(< $( $lt ),+ >)? {
 				$builder_name$(::< $( $lt ),+ >)?::from(self)
 			}
+            $v fn build_attr(mut self, attr: crate::Attributes) -> Self {
+                self.attr = attr;
+                self
+            }
+            $v fn build_source(mut self, src: usize) -> Self {
+                self.attr.source = src;
+                self
+            }
+            $v fn build_scope(mut self, scope: (usize, usize)) -> Self {
+                self.attr.scope = scope;
+                self
+            }
+            $v fn build_typ(mut self, typ: usize) -> Self {
+                self.attr.typ = typ;
+                self
+            }
 		}
 		
 		impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? $builder_name $(< $( $lt ),+ >)? {
@@ -106,7 +122,7 @@ macro_rules! node_builder {
                 self.attr.source = src;
                 self
             }
-            $v fn scope(mut self, scope: usize) -> Self {
+            $v fn scope(mut self, scope: (usize, usize)) -> Self {
                 self.attr.scope = scope;
                 self
             }
@@ -136,8 +152,11 @@ macro_rules! node_builder {
 
 		impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? crate::AsNode for $struct_name$(< $( $lt ),+ >)? {
 			fn source(&self) -> usize { self.attr.source }
-			fn scope(&self) -> usize { self.attr.scope }
+			fn scope(&self) -> (usize, usize) { self.attr.scope }
 			fn typ(&self) -> usize { self.attr.typ }
+			fn set_source(&mut self, source: usize) { self.attr.source = source; }
+			fn set_scope(&mut self, scope: (usize, usize)) { self.attr.scope = scope; }
+			fn set_typ(&mut self, typ: usize) { self.attr.typ = typ; }
 		}
 	};
 }
