@@ -1,5 +1,5 @@
 use std::collections::BTreeMap;
-use crate::{Address, PassExpr, ErrCode, AsNode, Scope, Source};
+use crate::{Address, PassExpr, ErrCode, AsNode, ScopeId, Source};
 
 #[derive(Debug, Default, Clone)]
 pub enum Mut {
@@ -10,12 +10,12 @@ pub enum Mut {
 
 #[derive(Debug, Default, Clone)]
 pub struct SymbolValue {
-    value: Box<PassExpr>,
-    mutable: Mut,
+    pub value: Box<PassExpr>,
+    pub mutable: Mut,
 }
 
 impl AsNode for SymbolValue {
-    fn scope(&self) -> Scope {
+    fn scope(&self) -> ScopeId {
         self.value.scope()
     }
     fn source(&self) -> Source {
@@ -25,7 +25,7 @@ impl AsNode for SymbolValue {
         self.value.typ()
     }
 	fn set_source(&mut self, source: Source) { self.value.set_source(source); }
-	fn set_scope(&mut self, scope: Scope) { self.value.set_scope(scope); }
+	fn set_scope(&mut self, scope: ScopeId) { self.value.set_scope(scope); }
 	fn set_typ(&mut self, typ: Address) { self.value.set_typ(typ); }
 }
 

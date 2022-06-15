@@ -2,6 +2,7 @@
 #![feature(derive_default_enum)]
 
 pub mod env;
+pub(crate) use env::{Address, Source, ScopeId, Env};
 
 pub mod util;
 pub(crate) use util::attributes::*;
@@ -68,19 +69,19 @@ macro_rules! for_each_expr {
 }
 
 impl AsNode for PassExpr {
-    fn scope(&self) -> Scope {
+    fn scope(&self) -> ScopeId {
         for_each_expr!(self => scope())
     }
-    fn source(&self) -> Scope {
+    fn source(&self) -> ScopeId {
         for_each_expr!(self => source())
     }
-    fn typ(&self) -> Scope {
+    fn typ(&self) -> ScopeId {
         for_each_expr!(self => typ())
     }
 	fn set_source(&mut self, source: Source) {
         for_each_expr!(self => set_source(source));
     }
-	fn set_scope(&mut self, scope: Scope) {
+	fn set_scope(&mut self, scope: ScopeId) {
         for_each_expr!(self => set_scope(scope));
     }
 	fn set_typ(&mut self, typ: Address) {

@@ -1,6 +1,6 @@
 
 use cupid_util::InvertOption;
-use crate::{type_inference as prev_pass, util, PassResult, env::environment::Env};
+use crate::{type_inference as prev_pass, util, PassResult, Env};
 
 #[cupid_semantics::auto_implement(Vec, Option)]
 pub trait CheckTypes<Output> where Self: Sized {
@@ -16,10 +16,6 @@ util::define_pass_nodes! {
         #[derive(Debug, Default, Clone)]
         pub FunctionBuilder => pub Function {}
     }
-    Ident: cupid_util::node_builder! {
-        #[derive(Debug, Default, Clone)]
-        pub IdentBuilder => pub Ident {}
-    }
     TypeDef: cupid_util::node_builder! {
         #[derive(Debug, Default, Clone)]
         pub TypeDefBuilder => pub TypeDef {}
@@ -30,7 +26,8 @@ crate::util::impl_default_passes! {
     impl CheckTypes + check_types for {
         Block<Expr> => prev_pass::Expr;
         Expr => prev_pass::Expr;
-        Field<Ident> => prev_pass::Ident;
+        Field<Ident> => crate::Ident;
+        Ident => crate::Ident;
         Value => crate::Value;
     }
 }
@@ -43,12 +40,6 @@ impl CheckTypes<Decl> for prev_pass::Decl {
 
 impl CheckTypes<Function> for prev_pass::Function {
     fn check_types(self, env: &mut Env) -> PassResult<Function> {
-        todo!()
-    }
-}
-
-impl CheckTypes<Ident> for prev_pass::Ident {
-    fn check_types(self, env: &mut Env) -> PassResult<Ident> {
         todo!()
     }
 }

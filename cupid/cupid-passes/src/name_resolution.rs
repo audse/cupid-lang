@@ -1,6 +1,6 @@
 use cupid_util::{node_builder, InvertOption};
 
-use crate::{PassResult, scope_analysis as prev_pass, Address, env::environment::Env};
+use crate::{PassResult, scope_analysis as prev_pass, Address, Env};
 
 #[cupid_semantics::auto_implement(Vec, Option, Str)]
 pub trait ResolveNames<Output> where Self: Sized {
@@ -24,14 +24,6 @@ crate::util::define_pass_nodes! {
             pub body: Vec<Expr>,
         }
     }
-    Ident: node_builder! {
-        #[derive(Debug, Default, Clone)]
-        pub IdentBuilder => pub Ident {
-            pub namespace: Address,
-            pub name: Address,
-            pub generics: Vec<Address>
-        }
-    }
     TypeDef: node_builder! {
         #[derive(Debug, Default, Clone)]
         pub TypeDefBuilder => pub TypeDef {
@@ -45,7 +37,8 @@ crate::util::impl_default_passes! {
     impl ResolveNames + resolve_names for {
         Block<Expr> => prev_pass::Expr;
         Expr => prev_pass::Expr;
-        Field<Ident> => prev_pass::Ident;
+        Field<Ident> => crate::Ident;
+        Ident => crate::Ident;
         Value => crate::Value;
     }
 }
@@ -58,12 +51,6 @@ impl ResolveNames<Decl> for prev_pass::Decl {
 
 impl ResolveNames<Function> for prev_pass::Function {
     fn resolve_names(self, env: &mut Env) -> PassResult<Function> {
-        todo!()
-    }
-}
-
-impl ResolveNames<Ident> for prev_pass::Ident {
-    fn resolve_names(self, env: &mut Env) -> PassResult<Ident> {
         todo!()
     }
 }

@@ -6,8 +6,7 @@ macro_rules! for_each_node {
             Expr::Function(x) => x.$do $args,
             Expr::Ident(x) => x.$do $args,
             Expr::TypeDef(x) => x.$do $args,
-            Expr::Value(x) => x.$do $args,
-            _ => unreachable!()
+            Expr::Value(x) => x.$do $args
         }
     }
 }
@@ -17,7 +16,6 @@ macro_rules! define_pass_nodes {
     (
         Decl: $decl:item
 		Function: $function:item
-        Ident: $ident:item
         TypeDef: $type_def:item
     ) => {
         #[derive(Debug, Clone)]
@@ -25,7 +23,7 @@ macro_rules! define_pass_nodes {
             Block(crate::Block<Expr>),
             Decl(Decl),
 			Function(Function),
-            Ident(Ident),
+            Ident(crate::Ident),
             TypeDef(TypeDef),
 			Value(crate::Value),
         }
@@ -37,7 +35,7 @@ macro_rules! define_pass_nodes {
         }
 
         impl crate::AsNode for Expr {
-            fn scope(&self) -> crate::Scope {
+            fn scope(&self) -> crate::ScopeId {
                 crate::util::for_each_node!(self => scope())
             }
             fn source(&self) -> crate::Source {
@@ -49,7 +47,7 @@ macro_rules! define_pass_nodes {
             fn set_source(&mut self, source: crate::Source) { 
                 crate::util::for_each_node!(self => set_source(source));
             }
-            fn set_scope(&mut self, scope: crate::Scope) {
+            fn set_scope(&mut self, scope: crate::ScopeId) {
                 crate::util::for_each_node!(self => set_scope(scope));
             }
             fn set_typ(&mut self, typ: crate::Address) {
@@ -59,7 +57,6 @@ macro_rules! define_pass_nodes {
 
         $decl
 		$function
-        $ident
         $type_def
     }
 }

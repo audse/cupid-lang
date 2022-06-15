@@ -1,7 +1,7 @@
 
 use cupid_util::{InvertOption, Bx};
 
-use crate::{package_resolution as prev_pass, PassResult, env::environment::Env};
+use crate::{package_resolution as prev_pass, PassResult, Env};
 
 #[cupid_semantics::auto_implement(Vec, Option, Str)]
 pub trait ResolveTypeNames<Output> where Self: Sized {
@@ -15,9 +15,6 @@ crate::util::define_pass_nodes! {
     Function: crate::util::reuse_node! { 
         prev_pass::Function => ResolveTypeNames<Function, resolve_type_names> 
     }
-    Ident: crate::util::reuse_node! { 
-        prev_pass::Ident => ResolveTypeNames<Ident, resolve_type_names> 
-    }
     TypeDef: crate::util::reuse_node! { 
         prev_pass::TypeDef => Pass<resolve_type_names> 
     }
@@ -27,7 +24,8 @@ crate::util::impl_default_passes! {
     impl ResolveTypeNames + resolve_type_names for {
         Block<Expr> => prev_pass::Expr;
         Expr => prev_pass::Expr;
-        Field<Ident> => prev_pass::Ident;
+        Field<Ident> => crate::Ident;
+        Ident => crate::Ident;
         Value => crate::Value;
     }
 }

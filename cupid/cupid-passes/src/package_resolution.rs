@@ -4,7 +4,7 @@ use crate::{
     PassResult,
     util::reuse_node,
     pre_analysis as prev_pass,
-    env::environment::Env
+    Env
 };
 
 #[cupid_semantics::auto_implement(Vec, Option, Str)]
@@ -20,9 +20,6 @@ crate::util::define_pass_nodes! {
     Function: reuse_node! { 
         prev_pass::Function => ResolvePackages<Function, resolve_packages> 
     }
-    Ident: reuse_node! { 
-        prev_pass::Ident => ResolvePackages<Ident, resolve_packages> 
-    }
     TypeDef: reuse_node! { 
         prev_pass::TypeDef => ResolvePackages<TypeDef, resolve_packages> 
     }
@@ -33,7 +30,8 @@ crate::util::impl_default_passes! {
     impl ResolvePackages + resolve_packages for {
         Block<Expr> => prev_pass::Expr;
         Expr => prev_pass::Expr;
-        Field<Ident> => prev_pass::Ident;
+        Field<Ident> => crate::Ident;
+        Ident => crate::Ident;
         Value => crate::Value;
     }
 }

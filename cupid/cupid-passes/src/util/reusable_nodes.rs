@@ -6,8 +6,8 @@ macro_rules! make_pass_node {
         cupid_util::node_builder! {
             #[derive(Debug, Default, Clone)]
             pub DeclBuilder => pub Decl {
-                pub ident: Ident,
-                pub type_annotation: Option<Ident>,
+                pub ident: crate::Ident,
+                pub type_annotation: Option<crate::Ident>,
                 pub value: Box<Expr>,
             }
         }
@@ -17,18 +17,8 @@ macro_rules! make_pass_node {
             #[derive(Debug, Default, Clone)]
             pub FunctionBuilder => pub Function {
                 pub params: Vec<Decl>,
-                pub return_type_annotation: Option<Ident>,
+                pub return_type_annotation: Option<crate::Ident>,
                 pub body: Vec<Expr>,
-            }
-        }
-    };
-    (Ident) => {
-        cupid_util::node_builder! {
-            #[derive(Debug, Default, Clone)]
-            pub IdentBuilder => pub Ident {
-                pub namespace: Box<Ident>,
-                pub name: cupid_util::Str,
-                pub generics: Vec<Ident>
             }
         }
     };
@@ -36,8 +26,8 @@ macro_rules! make_pass_node {
         cupid_util::node_builder! {
             #[derive(Debug, Default, Clone)]
             pub TypeDefBuilder => pub TypeDef {
-                pub ident: Ident,
-                pub fields: Vec<crate::Field<Ident>>,
+                pub ident: crate::Ident,
+                pub fields: Vec<crate::Field<crate::Ident>>,
             }
         }
     };
@@ -46,7 +36,7 @@ macro_rules! make_pass_node {
 
 macro_rules! define_pass_method {
     ($node:ident::$pass_fn:ident + $_fn:ident { $( $field:ident $(.$methods:ident())* ),* } ) => {
-        fn $pass_fn(self, env: &mut crate::env::environment::Env) -> crate::PassResult<$node> {
+        fn $pass_fn(self, env: &mut crate::Env) -> crate::PassResult<$node> {
             let Self { $($field),*  , attr, ..} = self;
             Ok($node::build()
                 .attr(attr)
@@ -68,8 +58,8 @@ macro_rules! make_pass_method {
     (Function => $_fn:ident) => {
         crate::util::define_pass_method! { Function::pass + $_fn { params, body, return_type_annotation }}
     };
-    (Ident => $_fn:ident) => {
-        crate::util::define_pass_method! { Ident::pass + $_fn { name, namespace.bx(), generics }}
+    (crate::Ident => $_fn:ident) => {
+        crate::util::define_pass_method! { crate::Ident::pass + $_fn { name, namespace.bx(), generics }}
     };
     (TypeDef => $_fn:ident) => {
         crate::util::define_pass_method! { TypeDef::pass + $_fn { ident, fields }}
@@ -105,7 +95,7 @@ macro_rules! reuse_node {
             crate::util::make_pass_method! { $from$(::$tail)* => $_fn }
         }
         impl $_trait<$to> for $from$(::$tail)* {
-            fn $_fn(self, env: &mut crate::env::environment::Env) -> crate::PassResult<$to> {
+            fn $_fn(self, env: &mut crate::Env) -> crate::PassResult<$to> {
                 self.pass(env)
             }
         }
