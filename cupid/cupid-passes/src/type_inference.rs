@@ -2,7 +2,7 @@
 use cupid_util::InvertOption;
 use crate::{name_resolution as prev_pass, PassResult, util, Env};
 
-#[cupid_semantics::auto_implement(Vec, Option)]
+#[cupid_semantics::auto_implement(Vec, Option, Box)]
 pub trait InferTypes<Output> where Self: Sized {
     fn infer_types(self, env: &mut Env) -> PassResult<Output>;
 }

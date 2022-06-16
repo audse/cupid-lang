@@ -2,7 +2,7 @@
 use cupid_util::InvertOption;
 use crate::{flow_checking as prev_pass, PassResult, util, Env};
 
-#[cupid_semantics::auto_implement(Vec, Option, Str)]
+#[cupid_semantics::auto_implement(Vec, Option, Str, Box)]
 pub trait Lint<Output> where Self: Sized {
     fn lint(self, env: &mut Env) -> PassResult<Output>;
 }

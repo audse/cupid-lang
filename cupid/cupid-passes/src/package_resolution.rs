@@ -1,5 +1,5 @@
 
-use cupid_util::{InvertOption, Bx};
+use cupid_util::InvertOption;
 use crate::{
     PassResult,
     util::reuse_node,
@@ -7,7 +7,7 @@ use crate::{
     Env
 };
 
-#[cupid_semantics::auto_implement(Vec, Option, Str)]
+#[cupid_semantics::auto_implement(Vec, Option, Str, Box)]
 pub trait ResolvePackages<Output> where Self: Sized {
     fn resolve_packages(self, env: &mut Env) -> PassResult<Output>;
 }

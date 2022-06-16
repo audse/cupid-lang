@@ -1,9 +1,9 @@
 
-use cupid_util::{InvertOption, Bx};
+use cupid_util::InvertOption;
 
-use crate::{package_resolution as prev_pass, PassResult, Env};
+use crate::{type_scope_analysis as prev_pass, PassResult, Env};
 
-#[cupid_semantics::auto_implement(Vec, Option, Str)]
+#[cupid_semantics::auto_implement(Vec, Option, Str, Box)]
 pub trait ResolveTypeNames<Output> where Self: Sized {
     fn resolve_type_names(self, env: &mut Env) -> PassResult<Output>;
 }

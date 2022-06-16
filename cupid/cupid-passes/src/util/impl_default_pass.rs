@@ -52,6 +52,9 @@ macro_rules! impl_default_passes {
                 fn $_fn(self, _: &mut crate::Env) -> PassResult<$val> { Ok(self) }
             }
         )?
+        impl $_trait<crate::Mut> for crate::Mut {
+            fn $_fn(self, _: &mut crate::Env) -> PassResult<crate::Mut> { Ok(self) }
+        }
     };
 }
 

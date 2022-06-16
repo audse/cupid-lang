@@ -38,6 +38,16 @@ pub trait Bx where Self: Sized {
 
 impl<T: Sized> Bx for T {}
 
+pub trait BxOption<T> where Self: Sized {
+	fn bx_option(self) -> Option<Box<T>>;
+}
+
+impl<T: Sized> BxOption<T> for Option<T> {
+	fn bx_option(self) -> Option<Box<T>> {
+		self.map(|t| Box::new(t))
+	}
+}
+
 /// Suppresses compiler warnings inside the given block. Works similar
 /// to `todo!()` macro, but for items rather than expressions.
 #[macro_export]

@@ -1,7 +1,7 @@
 use std::{collections::HashMap, hash::Hash};
-use super::symbol_table::{SymbolTable, SymbolValue};
+use super::symbol_table::{SymbolTable};
 use cupid_util::ERR_NOT_FOUND;
-use crate::{Ident, AsNode};
+use crate::{Ident, AsNode, SymbolValue};
 
 pub type Source = usize;
 pub type Address = usize;
@@ -28,7 +28,7 @@ pub struct Env {
 
 impl Default for Env {
     fn default() -> Self {
-        Self { 
+        Self {
             current_id: 0,
             symbols: SymbolTable::default(),
             current_closure: 0, 
@@ -74,11 +74,12 @@ impl Env {
         let prev_closure = self.prev_closures.pop();
         self.current_closure = prev_closure.unwrap_or_default();
     }
-    pub fn set_symbol(&mut self, symbol: Ident, value: SymbolValue) {
+    pub fn set_symbol(&mut self, symbol: Ident, value: SymbolValue) -> Address {
         let current_closure = &mut self.closures[self.current_closure];
         let address = self.symbols.symbols.len();
         self.symbols.set_symbol(address, value);
         current_closure.set_symbol(symbol, address);
+        address
     }
     pub fn get_symbol(&mut self, symbol: &Ident) -> crate::PassResult<Address> {
         let current_closure = &mut self.closures[self.current_closure];

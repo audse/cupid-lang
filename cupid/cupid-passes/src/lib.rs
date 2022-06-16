@@ -1,8 +1,10 @@
 #![allow(unused_variables)]
-#![feature(derive_default_enum)]
+#![feature(derive_default_enum, is_some_with)]
 
 pub mod env;
-pub(crate) use env::{Address, Source, ScopeId, Env};
+pub(crate) use env::{Address, Source, ScopeId, Env, SymbolValue, Mut};
+
+pub mod tests;
 
 pub mod util;
 pub(crate) use util::attributes::*;
@@ -13,15 +15,16 @@ pub type ErrCode = usize;
 
 /// Each AST pass takes a node from the previous pass and transforms it
 /// # Stages
-/// 1. `pre_analysis`
-/// 2. `package_resolution`
-/// 3. `type_name_resolution`
-/// 4. `scope_analysis`
-/// 5. `name_resolution`
-/// 6. `type_inference`
-/// 7. `type_checking`
-/// 8. `flow_checking`
-/// 9. `linting`
+///  1. `pre_analysis`
+///  2. `package_resolution`
+///  3. `type_scope_analysis`
+///  4. `type_name_resolution`
+///  5. `scope_analysis`
+///  6. `name_resolution`
+///  7. `type_inference`
+///  8. `type_checking`
+///  9. `flow_checking`
+/// 10. `linting`
 
 pub mod flow_checking;
 pub mod linting;
@@ -32,6 +35,7 @@ pub mod scope_analysis;
 pub mod type_checking;
 pub mod type_inference;
 pub mod type_name_resolution;
+pub mod type_scope_analysis;
 
 use PassExpr::*;
 
@@ -39,6 +43,7 @@ use PassExpr::*;
 pub enum PassExpr {
     PreAnalysis(pre_analysis::Expr),
     PackageResolved(package_resolution::Expr),
+    TypeScopeAnalyzed(type_scope_analysis::Expr),
     TypeNameResolved(type_name_resolution::Expr),
     ScopeAnalyzed(scope_analysis::Expr),
     NameResolved(name_resolution::Expr),

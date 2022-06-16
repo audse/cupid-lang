@@ -1,6 +1,4 @@
 use cupid::*;
-
-
 use clap::Parser;
 
 use cupid_parse::{
@@ -14,7 +12,6 @@ use cupid_ast::{
 	UseAttributes,
 };
 use cupid_analysis::Analyze;
-
 use cupid_debug::ErrorContext;
 
 #[derive(Parser)]
@@ -39,7 +36,7 @@ fn main() -> Result<(), String> {
 	
 	if args.repl {
 		let mut parser = CupidParser::new(String::new(), 1);
-		let mut env = Env::default();
+		let mut env = cupid_scope::Env::default();
 		match run_repl(&mut parser, &mut env) {
 			Ok(()) => (),
 			Err((src, code)) => {
@@ -57,7 +54,7 @@ fn main() -> Result<(), String> {
 	Ok(())
 }
 
-fn run_repl(parser: &mut CupidParser, env: &mut Env) -> ASTResult<()> {
+fn run_repl(parser: &mut CupidParser, env: &mut cupid_scope::Env) -> ASTResult<()> {
 	loop {
 		let mut line = String::new();
 		std::io::stdin().read_line(&mut line).unwrap();

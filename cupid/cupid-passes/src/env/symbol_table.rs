@@ -12,6 +12,7 @@ pub enum Mut {
 pub struct SymbolValue {
     pub value: Box<PassExpr>,
     pub mutable: Mut,
+    pub attr: crate::Attributes,
 }
 
 impl AsNode for SymbolValue {

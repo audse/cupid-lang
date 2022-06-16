@@ -9,6 +9,7 @@ macro_rules! make_pass_node {
                 pub ident: crate::Ident,
                 pub type_annotation: Option<crate::Ident>,
                 pub value: Box<Expr>,
+                pub mutable: crate::Mut,
             }
         }
     };
@@ -35,8 +36,8 @@ macro_rules! make_pass_node {
 }
 
 macro_rules! define_pass_method {
-    ($node:ident::$pass_fn:ident + $_fn:ident { $( $field:ident $(.$methods:ident())* ),* } ) => {
-        fn $pass_fn(self, env: &mut crate::Env) -> crate::PassResult<$node> {
+    ($node:ident + $_fn:ident { $( $field:ident $(.$methods:ident())* ),* } ) => {
+        fn pass(self, env: &mut crate::Env) -> crate::PassResult<$node> {
             let Self { $($field),*  , attr, ..} = self;
             Ok($node::build()
                 .attr(attr)
@@ -53,16 +54,13 @@ macro_rules! make_pass_method {
         crate::util::make_pass_method! { $($tail)* }
     };
     (Decl => $_fn:ident) => {
-        crate::util::define_pass_method! { Decl::pass + $_fn { ident, type_annotation, value.bx() }}
+        crate::util::define_pass_method! { Decl + $_fn { ident, type_annotation, mutable, value }}
     };
     (Function => $_fn:ident) => {
-        crate::util::define_pass_method! { Function::pass + $_fn { params, body, return_type_annotation }}
-    };
-    (crate::Ident => $_fn:ident) => {
-        crate::util::define_pass_method! { crate::Ident::pass + $_fn { name, namespace.bx(), generics }}
+        crate::util::define_pass_method! { Function + $_fn { params, body, return_type_annotation }}
     };
     (TypeDef => $_fn:ident) => {
-        crate::util::define_pass_method! { TypeDef::pass + $_fn { ident, fields }}
+        crate::util::define_pass_method! { TypeDef + $_fn { ident, fields }}
     };
     () => {};
 }
@@ -78,17 +76,19 @@ macro_rules! make_pass_method {
 /// this struct, and an implementation of the current pass.
 /// TODO allow not just pre_analysis
 
-// reuse_node! { pre_analysis::Decl }
-// reuse_node! { pre_analysis::Decl => Pass<analyze_scope> }
-// reuse_node! { pre_analysis::Decl => AnalyzeScope<analyze_scope>  }
 macro_rules! reuse_node {
-    ($from:ty) => {crate::util::make_pass_node! { $from }};
+    // reuse_node! { pre_analysis::Decl }
+    ($from:ty) => { crate::util::make_pass_node! { $from } };
+
+    // reuse_node! { pre_analysis::Decl => Pass<analyze_scope> }
     ($from:ident$(::$tail:ident)* => Pass<$_fn:ident>) => {
         crate::util::make_pass_node! { $from$(::$tail)* }
         impl $from$(::$tail)* {
             crate::util::make_pass_method! { $from$(::$tail)* => $_fn }
         }
     };
+
+    // reuse_node! { pre_analysis::Decl => AnalyzeScope<analyze_scope>  }
     ($from:ident$(::$tail:ident)* => $_trait:ident<$to:ty, $_fn:ident>) => {
         crate::util::make_pass_node! { $from$(::$tail)* }
         impl $from$(::$tail)* {
