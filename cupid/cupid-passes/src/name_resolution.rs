@@ -1,13 +1,13 @@
 use cupid_util::{node_builder, InvertOption, Bx};
 
-use crate::{PassResult, scope_analysis as prev_pass, Address, Env, IsTyped, Ident, Field};
+use crate::{PassResult, scope_analysis as prev_pass, Address, Env, IsTyped, Ident, util};
 
 #[cupid_semantics::auto_implement(Vec, Option, Str, Box)]
 pub trait ResolveNames<Output> where Self: Sized {
     fn resolve_names(self, env: &mut Env) -> PassResult<Output>;
 }
 
-crate::util::define_pass_nodes! {
+util::define_pass_nodes! {
     Decl: node_builder! {
         #[derive(Debug, Default, Clone)]
         pub DeclBuilder => pub Decl {
@@ -24,16 +24,10 @@ crate::util::define_pass_nodes! {
             pub body: Vec<Expr>,
         }
     }
-    TypeDef: node_builder! {
-        #[derive(Debug, Default, Clone)]
-        pub TypeDefBuilder => pub TypeDef {
-            pub ident: Address,
-            pub fields: Vec<Field<Address>>,
-        }
-    }
+    TypeDef: util::completed_node! { prev_pass::TypeDef => ResolveNames<resolve_names> }
 }
 
-crate::util::impl_default_passes! {
+util::impl_default_passes! {
     impl ResolveNames + resolve_names for {
         Block<Expr> => prev_pass::Expr;
         Expr => prev_pass::Expr;
@@ -59,7 +53,7 @@ impl ResolveNames<Decl> for prev_pass::Decl {
                 let symbol_value = crate::SymbolValue { 
                     value: crate::PassExpr::default().bx(),
                     mutable,
-                    attr: ident.attr,
+                    attr,
                 };
 
                 Ok(Decl::build()
@@ -145,11 +139,5 @@ impl ResolveNames<IsTyped<Ident>> for IsTyped<Ident> {
             }
         };
         Ok(generic)
-    }
-}
-
-impl ResolveNames<TypeDef> for prev_pass::TypeDef {
-    fn resolve_names(self, env: &mut Env) -> PassResult<TypeDef> {
-        todo!()
     }
 }

@@ -13,7 +13,11 @@ fn test_decl() -> TestResult {
 
 #[test]
 fn test_ident() -> TestResult {
-    pass(ident("x"), &mut env())?;
+    let mut env = env();
+    ident("x").resolve_packages(&mut env)?
+        .analyze_type_scope(&mut env)?
+        .resolve_type_names(&mut env)?
+        .analyze_scope(&mut env)?;
     Ok(())
 }
 

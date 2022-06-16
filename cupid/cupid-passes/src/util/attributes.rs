@@ -16,6 +16,12 @@ pub struct Attributes {
 	pub typ: Address
 }
 
+impl Attributes {
+	pub fn new(source: Source, scope: ScopeId, typ: Address) -> Self {
+		Self { source, scope, typ }
+	}
+}
+
 impl AsNode for Attributes {
 	fn source(&self) -> Source { self.source }
 	fn scope(&self) -> ScopeId { self.scope }

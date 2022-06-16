@@ -17,9 +17,7 @@ util::define_pass_nodes! {
     Function: util::reuse_node! {
         prev_pass::Function => Pass<analyze_scope>
     }
-    TypeDef: util::reuse_node! {
-        prev_pass::TypeDef => Pass<analyze_scope>
-    }
+    TypeDef: util::completed_node! { prev_pass::TypeDef => AnalyzeScope<analyze_scope> }
 }
 
 crate::util::impl_default_passes! {
@@ -71,12 +69,5 @@ impl AnalyzeScope<Ident> for Ident {
 impl AnalyzeScope<IsTyped<Ident>> for IsTyped<Ident> {
     fn analyze_scope(self, env: &mut Env) -> PassResult<IsTyped<Ident>> {
         Ok(Untyped(self.into_inner().analyze_scope(env)?))
-    }
-}
-
-impl AnalyzeScope<TypeDef> for prev_pass::TypeDef {
-    fn analyze_scope(self, env: &mut Env) -> PassResult<TypeDef> {
-        let scope = env.add_toplevel_closure(Context::Type);
-        env.inside_scope(scope, |env| Ok(self.pass(env)?.build_scope(scope)))
     }
 }

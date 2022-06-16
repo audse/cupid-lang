@@ -6,6 +6,7 @@ macro_rules! impl_default_passes {
             $( Expr => $expr_prev:ty; )?
             $( Field<Ident> => $field_prev:ty; )?
             $( Ident => $id:ty; )?
+            $( IsTyped<Ident> => $typed_id:ty; )?
             $( Value => $val:ty; )?
         }
     ) => {
@@ -43,7 +44,17 @@ macro_rules! impl_default_passes {
         // implement ident
         $(
             impl $_trait<$id> for $id {
-                fn $_fn(self, _: &mut crate::Env) -> PassResult<$id> { Ok(self) }
+                fn $_fn(self, env: &mut crate::Env) -> PassResult<$id> { 
+                    self.pass(Vec::<crate::IsTyped<Self>>::$_fn, Self::$_fn, env)
+                }
+            }
+        )?
+        // implement IsTyped<Ident>
+        $(
+            impl $_trait<$typed_id> for $typed_id {
+                fn $_fn(self, env: &mut crate::Env) -> PassResult<$typed_id> { 
+                    self.pass(Vec::<Self>::$_fn, crate::Ident::$_fn, env)
+                 }
             }
         )?
         // implement value

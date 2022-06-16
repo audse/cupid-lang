@@ -16,10 +16,7 @@ util::define_pass_nodes! {
         #[derive(Debug, Default, Clone)]
         pub FunctionBuilder => pub Function {}
     }
-    TypeDef: cupid_util::node_builder! {
-        #[derive(Debug, Default, Clone)]
-        pub TypeDefBuilder => pub TypeDef {}
-    }
+    TypeDef: util::completed_node! { prev_pass::TypeDef => InferTypes<infer_types> }
 }
 
 crate::util::impl_default_passes! {
@@ -28,6 +25,7 @@ crate::util::impl_default_passes! {
         Expr => prev_pass::Expr;
         Field<Ident> => crate::Ident;
         Ident => crate::Ident;
+        IsTyped<Ident> => crate::IsTyped<crate::Ident>;
         Value => crate::Value;
     }
 }
@@ -40,12 +38,6 @@ impl InferTypes<Decl> for prev_pass::Decl {
 
 impl InferTypes<Function> for prev_pass::Function {
     fn infer_types(self, env: &mut Env) -> PassResult<Function> {
-        todo!()
-    }
-}
-
-impl InferTypes<TypeDef> for prev_pass::TypeDef {
-    fn infer_types(self, env: &mut Env) -> PassResult<TypeDef> {
         todo!()
     }
 }

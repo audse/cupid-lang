@@ -35,6 +35,30 @@ macro_rules! make_pass_node {
     () => {};
 }
 
+/// After a node has been completely resolved, it's replaced with a placeholder 
+/// instead of being deleted entirely.
+macro_rules! completed_node {
+    ($prev:ident::$name:ident => $_trait:ident<$_fn:ident>) => {
+        #[derive(Debug, Default, Clone)]
+        pub struct $name(pub crate::Attributes);
+        impl crate::AsNode for $name {
+            fn source(&self) -> usize { self.0.source }
+            fn scope(&self) -> usize { self.0.scope }
+            fn typ(&self) -> usize { self.0.typ }
+            fn set_source(&mut self, source: usize) { self.0.source = source; }
+            fn set_scope(&mut self, scope: usize) { self.0.scope = scope; }
+            fn set_typ(&mut self, typ: usize) { self.0.typ = typ; }
+        }
+        impl $_trait<$name> for $prev::$name {
+            fn $_fn(self, _: &mut crate::Env) -> crate::PassResult<$name> {
+                use crate::AsNode;
+                let attr = crate::Attributes::new(self.source(), self.scope(), self.typ());
+                Ok($name(attr))
+            }
+        }
+    };
+}
+
 macro_rules! define_pass_method {
     ($node:ident + $_fn:ident { $( $field:ident $(.$methods:ident())* ),* } ) => {
         fn pass(self, env: &mut crate::Env) -> crate::PassResult<$node> {
@@ -104,6 +128,7 @@ macro_rules! reuse_node {
 
 pub (crate) use { 
     make_pass_node, 
+    completed_node,
     make_pass_method, 
     define_pass_method,
     reuse_node,

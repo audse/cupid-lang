@@ -16,10 +16,7 @@ util::define_pass_nodes! {
         #[derive(Debug, Default, Clone)]
         pub FunctionBuilder => pub Function {}
     }
-    TypeDef: cupid_util::node_builder! {
-        #[derive(Debug, Default, Clone)]
-        pub TypeDefBuilder => pub TypeDef {}
-    }
+    TypeDef: util::completed_node! { prev_pass::TypeDef => CheckFlow<check_flow> }
 }
 
 crate::util::impl_default_passes! {
@@ -28,6 +25,7 @@ crate::util::impl_default_passes! {
         Expr => prev_pass::Expr;
         Field<Ident> => crate::Ident;
         Ident => crate::Ident;
+        IsTyped<Ident> => crate::IsTyped<crate::Ident>;
         Value => crate::Value;
     }
 }
@@ -40,12 +38,6 @@ impl CheckFlow<Decl> for prev_pass::Decl {
 
 impl CheckFlow<Function> for prev_pass::Function {
     fn check_flow(self, env: &mut Env) -> PassResult<Function> {
-        todo!()
-    }
-}
-
-impl CheckFlow<TypeDef> for prev_pass::TypeDef {
-    fn check_flow(self, env: &mut Env) -> PassResult<TypeDef> {
         todo!()
     }
 }
