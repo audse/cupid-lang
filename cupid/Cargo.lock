@@ -97,6 +97,7 @@ dependencies = [
  "cupid_scope",
  "cupid_semantics",
  "cupid_trace",
+ "cupid_types",
  "cupid_util",
 ]
 
@@ -163,6 +164,7 @@ name = "cupid_passes"
 version = "0.1.0"
 dependencies = [
  "cupid_semantics",
+ "cupid_types",
  "cupid_util",
 ]
 
@@ -194,6 +196,10 @@ dependencies = [
  "quote",
  "syn",
 ]
+
+[[package]]
+name = "cupid_types"
+version = "0.1.0"
 
 [[package]]
 name = "cupid_util"

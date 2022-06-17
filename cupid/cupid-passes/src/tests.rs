@@ -6,6 +6,7 @@ pub mod test_utils;
 
 #[allow(unused_imports)]
 pub(super) use test_utils::*;
+pub(super) use cupid_util::*;
 
 pub(super) use crate::{
     package_resolution::*,
@@ -17,5 +18,6 @@ pub(super) use crate::{
     // type_checking::*,
     // flow_checking::*,
     // linting::*,
+    Value::*,
     *
 };

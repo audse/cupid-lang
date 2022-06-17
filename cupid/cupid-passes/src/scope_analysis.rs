@@ -1,6 +1,6 @@
 use cupid_util::InvertOption;
 
-use crate::{env::environment::Context, type_name_resolution as prev_pass, util, Env, Ident, IsTyped, PassResult, Untyped};
+use crate::{env::environment::Context, type_name_resolution as prev_pass, util, Env, Ident, IsTyped, PassResult, Untyped, AsNode};
 
 #[cupid_semantics::auto_implement(Vec, Option, Str, Box)]
 pub trait AnalyzeScope<Output>
@@ -23,8 +23,8 @@ util::define_pass_nodes! {
 crate::util::impl_default_passes! {
     impl AnalyzeScope + analyze_scope for {
         Expr => prev_pass::Expr;
-        Field<Ident> => Ident;
-        Value => crate::Value;
+        crate::Field<Address>;
+        crate::Mut;
     }
 }
 
@@ -69,5 +69,12 @@ impl AnalyzeScope<Ident> for Ident {
 impl AnalyzeScope<IsTyped<Ident>> for IsTyped<Ident> {
     fn analyze_scope(self, env: &mut Env) -> PassResult<IsTyped<Ident>> {
         Ok(Untyped(self.into_inner().analyze_scope(env)?))
+    }
+}
+
+impl AnalyzeScope<crate::Value> for crate::Value {
+    fn analyze_scope(mut self, env: &mut Env) -> PassResult<crate::Value> {
+        self.attr_mut().set_scope(env.current_closure);
+        Ok(self)
     }
 }

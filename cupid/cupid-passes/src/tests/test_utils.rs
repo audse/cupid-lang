@@ -1,8 +1,8 @@
 use super::*;
 
-pub type TestResult = crate::PassResult<()>;
+pub(super)type TestResult = crate::PassResult<()>;
 
-pub trait IsErrCode {
+pub(super)trait IsErrCode {
     fn is(self, code: cupid_util::ErrCode) -> bool;
 }
 
@@ -12,23 +12,35 @@ impl<T> IsErrCode for crate::PassResult<T> {
     }
 }
 
-pub fn env() -> crate::Env {
+pub(super)fn env() -> crate::Env {
     crate::Env::default()
 }
 
-pub fn ident(name: &'static str) -> crate::Ident {
+pub(super)fn ident(name: &'static str) -> crate::Ident {
 	crate::Ident { name: name.into(), ..Default::default() }
 }
 
-pub fn decl(name: &'static str) -> pre_analysis::Decl {
+pub(super)fn decl(name: &'static str) -> pre_analysis::Decl {
     pre_analysis::Decl { ident: ident(name), ..Default::default() }
 }
 
-pub fn typed_decl(name: &'static str, type_annotation: &'static str) -> pre_analysis::Decl {
+pub(super)fn decl_val(name: &'static str, value: Value) -> pre_analysis::Decl {
+    pre_analysis::Decl { 
+        ident: ident(name),
+        value: pre_analysis::Expr::Value(value).bx(),
+        ..Default::default()
+    }
+}
+
+pub(super)fn typed_decl(name: &'static str, type_annotation: &'static str) -> pre_analysis::Decl {
     pre_analysis::Decl { ident: ident(name), type_annotation: Some(ident(type_annotation)), ..Default::default() }
 }
 
-pub fn pass<A, B, C, D, E, F>(node: A, env: &mut Env) -> crate::PassResult<F> 
+pub(super)fn int(i: i32) -> Value {
+    VInteger(i, Attributes::default())
+}
+
+pub(super)fn pass<A, B, C, D, E, F>(node: A, env: &mut Env) -> crate::PassResult<F> 
 where 
     A: ResolvePackages<B>, 
     B: AnalyzeTypeScope<C>, 
@@ -43,7 +55,7 @@ where
         .resolve_names(env)
 }
 
-pub fn pass_all<A, B, C, D, E, F>(nodes: impl Into<Vec<A>>, env: &mut Env) -> crate::PassResult<Vec<F>> 
+pub(super)fn pass_all<A, B, C, D, E, F>(nodes: impl Into<Vec<A>>, env: &mut Env) -> crate::PassResult<Vec<F>> 
 where 
     A: ResolvePackages<B>, 
     B: AnalyzeTypeScope<C>, 

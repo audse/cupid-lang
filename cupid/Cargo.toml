@@ -14,6 +14,7 @@ members = [
 	"cupid-scope",
 	"cupid-semantics",
 	"cupid-trace",
+	"cupid-types",
 	"cupid-util"
 ]
 
@@ -31,4 +32,5 @@ cupid_passes = { path = 'cupid-passes' }
 cupid_scope = { path = 'cupid-scope' }
 cupid_semantics = { path = 'cupid-semantics' }
 cupid_trace = { path = 'cupid-trace' }
+cupid_types = { path = 'cupid-types' }
 cupid_util = { path = 'cupid-util' }

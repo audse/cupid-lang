@@ -42,7 +42,6 @@
 /// 1. Generic inline trait bounds work, `where` clauses do not
 /// 2. The visibility of the struct is applied to all extra generated functions
 /// 3. Only works with named fields, no tuple structs
-#[macro_export]
 macro_rules! node_builder {
 	( 
 		$(#[$derive:meta])?
@@ -92,10 +91,6 @@ macro_rules! node_builder {
                 self.attr.scope = scope;
                 self
             }
-            $v fn build_typ(mut self, typ: usize) -> Self {
-                self.attr.typ = typ;
-                self
-            }
 		}
 		
 		impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? $builder_name $(< $( $lt ),+ >)? {
@@ -126,10 +121,6 @@ macro_rules! node_builder {
                 self.attr.scope = scope;
                 self
             }
-            $v fn typ(mut self, typ: usize) -> Self {
-                self.attr.typ = typ;
-                self
-            }
 		}
 			
 		impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? From<$struct_name$(< $( $lt ),+ >)?> for $builder_name $(< $( $lt ),+ >)? {
@@ -153,10 +144,10 @@ macro_rules! node_builder {
 		impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? crate::AsNode for $struct_name$(< $( $lt ),+ >)? {
 			fn source(&self) -> usize { self.attr.source }
 			fn scope(&self) -> usize { self.attr.scope }
-			fn typ(&self) -> usize { self.attr.typ }
 			fn set_source(&mut self, source: usize) { self.attr.source = source; }
 			fn set_scope(&mut self, scope: usize) { self.attr.scope = scope; }
-			fn set_typ(&mut self, typ: usize) { self.attr.typ = typ; }
 		}
 	};
 }
+
+pub(crate) use node_builder;

@@ -22,10 +22,10 @@ util::define_pass_nodes! {
 
 util::impl_default_passes! {
     impl AnalyzeTypeScope + analyze_type_scope for {
-        Block<Expr> => prev_pass::Expr;
+        Block<Expr> => Block<prev_pass::Expr>;
         Expr => prev_pass::Expr;
-        Field<Ident> => Ident;
-        Value => crate::Value;
+        crate::Field<Ident>;
+        crate::Value;
     }
 }
 

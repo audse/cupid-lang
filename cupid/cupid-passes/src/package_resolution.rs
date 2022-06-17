@@ -28,11 +28,11 @@ crate::util::define_pass_nodes! {
 
 crate::util::impl_default_passes! {
     impl ResolvePackages + resolve_packages for {
-        Block<Expr> => prev_pass::Expr;
+        Block<Expr> => Block<prev_pass::Expr>;
         Expr => prev_pass::Expr;
-        Field<Ident> => crate::Ident;
-        Ident => crate::Ident;
-        IsTyped<Ident> => crate::IsTyped<crate::Ident>;
-        Value => crate::Value;
+        crate::Field<Ident>;
+        crate::Ident;
+        crate::IsTyped<Ident>;
+        crate::Value;
     }
 }

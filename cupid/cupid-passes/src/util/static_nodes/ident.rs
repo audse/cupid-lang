@@ -1,13 +1,31 @@
-use cupid_util::{Bx, InvertOption};
+use cupid_util::{Bx, InvertOption, Str};
 use IsTyped::*;
 
-cupid_util::node_builder! {
+crate::util::node_builder! {
 	#[derive(Debug, Default, Clone)]
 	pub IdentBuilder => pub Ident {
 		pub generics: Vec<IsTyped<Ident>>,
-		pub name: cupid_util::Str,
+		pub name: Str,
 		pub namespace: Option<Box<Ident>>,
 		pub address: Option<crate::Address>
+	}
+}
+
+impl Ident {
+	pub fn new<C: Into<Str>>(name: C, attr: crate::Attributes) -> Self {
+		Self { name: name.into(), attr, ..Default::default() }
+	}
+}
+
+impl From<&'static str> for Ident {
+	fn from(i: &'static str) -> Self {
+		Self { name: i.into(), ..Default::default() }
+	}
+}
+
+impl From<Str> for Ident {
+	fn from(i: Str) -> Self {
+		Self { name: i, ..Default::default() }
 	}
 }
 
@@ -89,10 +107,8 @@ impl IsTyped<Ident> {
 }
 
 impl crate::AsNode for IsTyped<Ident> {
-	fn source(&self) -> usize { self.inner().attr.source }
-	fn scope(&self) -> usize { self.inner().attr.scope }
-	fn typ(&self) -> usize { self.inner().attr.typ }
-	fn set_source(&mut self, source: usize) { self.inner_mut().attr.source = source; }
-	fn set_scope(&mut self, scope: usize) { self.inner_mut().attr.scope = scope; }
-	fn set_typ(&mut self, typ: usize) { self.inner_mut().attr.typ = typ; }
+	fn source(&self) -> crate::Source { self.inner().attr.source }
+	fn scope(&self) -> crate::ScopeId { self.inner().attr.scope }
+	fn set_source(&mut self, source: crate::Source) { self.inner_mut().attr.source = source; }
+	fn set_scope(&mut self, scope: crate::ScopeId) { self.inner_mut().attr.scope = scope; }
 }

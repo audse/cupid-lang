@@ -1,6 +1,5 @@
-use cupid_util::{node_builder, InvertOption, Bx};
-
-use crate::{PassResult, scope_analysis as prev_pass, Address, Env, IsTyped, Ident, util};
+use cupid_util::{InvertOption, Bx};
+use crate::{PassResult, scope_analysis as prev_pass, Env, Address, IsTyped, Ident, util, AsNode};
 
 #[cupid_semantics::auto_implement(Vec, Option, Str, Box)]
 pub trait ResolveNames<Output> where Self: Sized {
@@ -8,15 +7,14 @@ pub trait ResolveNames<Output> where Self: Sized {
 }
 
 util::define_pass_nodes! {
-    Decl: node_builder! {
+    Decl: util::node_builder! {
         #[derive(Debug, Default, Clone)]
         pub DeclBuilder => pub Decl {
             pub ident_address: Address,
             pub type_annotation_address: Option<Address>,
-            pub value: Box<Expr>,
         }
     }
-    Function: node_builder! {
+    Function: util::node_builder! {
         #[derive(Debug, Default, Clone)]
         pub FunctionBuilder => pub Function {
             pub params: Vec<Decl>,
@@ -29,10 +27,10 @@ util::define_pass_nodes! {
 
 util::impl_default_passes! {
     impl ResolveNames + resolve_names for {
-        Block<Expr> => prev_pass::Expr;
+        Block<Expr> => Block<prev_pass::Expr>;
         Expr => prev_pass::Expr;
-        Field<Ident> => Ident;
-        Value => crate::Value;
+        crate::Field<Address>;
+        crate::Value;
     }
 }
 
@@ -50,16 +48,14 @@ impl ResolveNames<Decl> for prev_pass::Decl {
                     .invert()?;
 
                 let value = value.resolve_names(env)?;
-                let symbol_value = crate::SymbolValue { 
-                    value: crate::PassExpr::default().bx(),
+                let symbol_value = crate::SymbolValue {
+                    value: crate::PassExpr::NameResolved(*value).bx(),
                     mutable,
-                    attr,
                 };
 
                 Ok(Decl::build()
                     .ident_address(env.set_symbol(ident, symbol_value))
                     .type_annotation_address(type_annotation_address)
-                    .value(value)
                     .attr(attr)
                     .build())
             } else {
@@ -96,7 +92,7 @@ impl ResolveNames<Ident> for Ident {
                 let namespace_address = env.get_symbol(&namespace)?;
 
                 // use the namespace's scope
-                let name_scope = env.symbols.get_symbol(namespace_address).unwrap().attr.scope;
+                let name_scope = env.symbols.get_symbol(namespace_address).unwrap().scope();
                 env.inside_scope(name_scope, |env| {
                     resolve_ident_names(self, env)
                 })
@@ -108,6 +104,7 @@ impl ResolveNames<Ident> for Ident {
 }
 
 fn resolve_ident_names(ident: Ident, env: &mut Env) -> PassResult<Ident> {
+    use crate::{SymbolValue, Value::VType, Typ, Untyped, PassExpr};
     // make sure symbol exists in scope
     let address = env.get_symbol(&ident)?; 
     
@@ -116,9 +113,10 @@ fn resolve_ident_names(ident: Ident, env: &mut Env) -> PassResult<Ident> {
 
     // create symbols for provided generics
     for generic in generics.iter() {
-        if let crate::Untyped(ident) = generic {
-            let value = crate::SymbolValue { 
-                attr: ident.attr,
+        if let Untyped(ident) = generic {
+            let typ: Expr = VType(Typ::generic(ident.clone())).into();
+            let value = SymbolValue {
+                value: PassExpr::from(typ).bx(),
                 ..Default::default()
             };
             env.set_symbol(ident.clone(), value);

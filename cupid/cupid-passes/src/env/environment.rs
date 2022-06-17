@@ -7,6 +7,8 @@ pub type Source = usize;
 pub type Address = usize;
 pub type ScopeId = usize;
 
+type ModifyFn = fn(&mut Env, SymbolValue) -> crate::PassResult<SymbolValue>;
+
 #[derive(Debug, Default, Copy, Clone)]
 pub enum Context {
     #[default]
@@ -89,6 +91,24 @@ impl Env {
             Err((symbol.source(), ERR_NOT_FOUND))
         }
     }
+    pub fn modify_symbol(&mut self, address: Address, modify: ModifyFn) -> crate::PassResult<()> {
+        let value = if let Some(symbol) = self.symbols.symbols.get_mut(&address) {
+            std::mem::take(symbol)
+        } else {
+            return Err((0, cupid_util::ERR_NOT_FOUND)) // TODO
+        };
+        let value = modify(self, value)?;
+        self.symbols.set_symbol(address, value);
+        Ok(())
+    }
+    pub fn get_ident(&mut self, address: Address) -> crate::PassResult<&Ident> {
+        for closure in self.closures.iter_mut() {
+            if let Some(ident) = closure.get_ident(address) {
+                return Ok(ident)
+            }
+        }
+        return Err((0, cupid_util::ERR_NOT_FOUND)) // TODO
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -138,6 +158,14 @@ impl<K: Default + Hash + Eq> Closure<K> {
         }
         None
     }
+    fn get_ident(&mut self, address: Address) -> Option<&K> {
+        for scope in self.scopes.iter_mut() {
+            if let Some(ident) = scope.get_ident(address) {
+                return Some(ident)
+            }
+        }
+        None
+    }
 }
 
 #[derive(Debug, Default, Clone)]
@@ -153,5 +181,14 @@ impl<K: Default + Hash + Eq> BlockScope<K> {
     }
     fn get_symbol(&mut self, symbol: &K) -> Option<Address> {
         self.symbols.get(symbol).copied()
+    }
+    fn get_ident(&mut self, address: Address) -> Option<&K> {
+        self.symbols
+            .iter()
+            .find_map(|(ident, symbol_address)| if *symbol_address == address { 
+                Some(ident) 
+            } else { 
+                None 
+            })
     }
 }

@@ -2,12 +2,9 @@
 macro_rules! impl_default_passes {
     (   
         impl $_trait:ident + $_fn:ident for {
-            $( Block<Expr> => $block_prev:ty; )?
+            $( Block<Expr> => Block<$block_prev:ty>; )?
             $( Expr => $expr_prev:ty; )?
-            $( Field<Ident> => $field_prev:ty; )?
-            $( Ident => $id:ty; )?
-            $( IsTyped<Ident> => $typed_id:ty; )?
-            $( Value => $val:ty; )?
+            $( crate::$t:tt $(<$g:tt>)? ; )*
         }
     ) => {
         // implement block
@@ -33,40 +30,50 @@ macro_rules! impl_default_passes {
                 }
             }
         )?
-        // implement field
-        $(
-            impl $_trait<crate::Field<crate::Ident>> for crate::Field<$field_prev> {
-                fn $_fn(self, env: &mut crate::Env) -> PassResult<crate::Field<crate::Ident>> {
-                    self.pass(<$field_prev>::$_fn, Option::<$field_prev>::$_fn, env)
-                }
+        $( crate::util::impl_default_passes! { $t $(<$g>)?, $_trait, $_fn } )*
+    };
+    (Field<Address>, $_trait:ident, $_fn:ident) => {
+        impl $_trait<crate::Field<crate::Address>> for crate::Field<crate::Address> {
+            fn $_fn(self, env: &mut crate::Env) -> PassResult<crate::Field<crate::Address>> {
+                Ok(self)
             }
-        )?
-        // implement ident
-        $(
-            impl $_trait<$id> for $id {
-                fn $_fn(self, env: &mut crate::Env) -> PassResult<$id> { 
-                    self.pass(Vec::<crate::IsTyped<Self>>::$_fn, Self::$_fn, env)
-                }
+        }
+    };
+    (Field<Ident>, $_trait:ident, $_fn:ident) => {
+        impl $_trait<crate::Field<crate::Ident>> for crate::Field<crate::Ident> {
+            fn $_fn(self, env: &mut crate::Env) -> PassResult<crate::Field<crate::Ident>> {
+                self.pass(<crate::Ident>::$_fn, Option::<crate::Ident>::$_fn, env)
             }
-        )?
-        // implement IsTyped<Ident>
-        $(
-            impl $_trait<$typed_id> for $typed_id {
-                fn $_fn(self, env: &mut crate::Env) -> PassResult<$typed_id> { 
-                    self.pass(Vec::<Self>::$_fn, crate::Ident::$_fn, env)
-                 }
+        }
+    };
+    (Ident, $_trait:ident, $_fn:ident) => {
+        impl $_trait<crate::Ident> for crate::Ident {
+            fn $_fn(self, env: &mut crate::Env) -> PassResult<crate::Ident> { 
+                self.pass(Vec::<crate::IsTyped<Self>>::$_fn, Self::$_fn, env)
             }
-        )?
-        // implement value
-        $(
-            impl $_trait<$val> for $val {
-                fn $_fn(self, _: &mut crate::Env) -> PassResult<$val> { Ok(self) }
+        }
+    };
+    (IsTyped<Ident>, $_trait:ident, $_fn:ident) => {
+        impl $_trait<crate::IsTyped<crate::Ident>> for crate::IsTyped<crate::Ident> {
+            fn $_fn(self, env: &mut crate::Env) -> PassResult<crate::IsTyped<crate::Ident>> { 
+                self.pass(Vec::<Self>::$_fn, crate::Ident::$_fn, env)
             }
-        )?
+        }
+    };
+    (Value, $_trait:ident, $_fn:ident) => {
+        impl $_trait<crate::Value> for crate::Value {
+            fn $_fn(self, _: &mut crate::Env) -> PassResult<crate::Value> { Ok(self) }
+        }
         impl $_trait<crate::Mut> for crate::Mut {
             fn $_fn(self, _: &mut crate::Env) -> PassResult<crate::Mut> { Ok(self) }
         }
     };
+    (Mut, $_trait:ident, $_fn:ident) => {
+        impl $_trait<crate::Mut> for crate::Mut {
+            fn $_fn(self, _: &mut crate::Env) -> PassResult<crate::Mut> { Ok(self) }
+        }
+    };
+    () => {};
 }
 
 pub(crate) use impl_default_passes;

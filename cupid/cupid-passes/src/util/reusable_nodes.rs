@@ -3,7 +3,7 @@ macro_rules! make_pass_node {
         crate::util::make_pass_node! { $($tail)* }
     };
     (Decl) => {
-        cupid_util::node_builder! {
+        crate::util::node_builder! {
             #[derive(Debug, Default, Clone)]
             pub DeclBuilder => pub Decl {
                 pub ident: crate::Ident,
@@ -14,7 +14,7 @@ macro_rules! make_pass_node {
         }
     };
     (Function) => {
-        cupid_util::node_builder! {
+        crate::util::node_builder! {
             #[derive(Debug, Default, Clone)]
             pub FunctionBuilder => pub Function {
                 pub params: Vec<Decl>,
@@ -24,7 +24,7 @@ macro_rules! make_pass_node {
         }
     };
     (TypeDef) => {
-        cupid_util::node_builder! {
+        crate::util::node_builder! {
             #[derive(Debug, Default, Clone)]
             pub TypeDefBuilder => pub TypeDef {
                 pub ident: crate::Ident,
@@ -42,17 +42,15 @@ macro_rules! completed_node {
         #[derive(Debug, Default, Clone)]
         pub struct $name(pub crate::Attributes);
         impl crate::AsNode for $name {
-            fn source(&self) -> usize { self.0.source }
-            fn scope(&self) -> usize { self.0.scope }
-            fn typ(&self) -> usize { self.0.typ }
-            fn set_source(&mut self, source: usize) { self.0.source = source; }
-            fn set_scope(&mut self, scope: usize) { self.0.scope = scope; }
-            fn set_typ(&mut self, typ: usize) { self.0.typ = typ; }
+            fn source(&self) -> crate::Source { self.0.source }
+            fn scope(&self) -> crate::ScopeId { self.0.scope }
+            fn set_source(&mut self, source: crate::Source) { self.0.source = source; }
+            fn set_scope(&mut self, scope: crate::ScopeId) { self.0.scope = scope; }
         }
         impl $_trait<$name> for $prev::$name {
             fn $_fn(self, _: &mut crate::Env) -> crate::PassResult<$name> {
                 use crate::AsNode;
-                let attr = crate::Attributes::new(self.source(), self.scope(), self.typ());
+                let attr = crate::Attributes::new(self.source(), self.scope());
                 Ok($name(attr))
             }
         }

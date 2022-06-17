@@ -10,6 +10,7 @@ pub const ERR_EXPECTED_TYPE: ErrCode = 417;
 pub const ERR_UNEXPECTED_TYPE: ErrCode = 418;
 pub const ERR_EXPECTED_FUNCTION: ErrCode = 419;
 pub const ERR_EXPECTED_TRAIT: ErrCode = 420;
+pub const ERR_EXPECTED_EXPRESSION: ErrCode = 421;
 pub const ERR_UNCLOSED_DELIMITER: ErrCode = 422;
 
 pub const ERR_UNREACHABLE: ErrCode = 500;

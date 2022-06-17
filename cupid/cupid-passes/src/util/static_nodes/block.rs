@@ -1,4 +1,4 @@
-cupid_util::node_builder! {
+crate::util::node_builder! {
     #[derive(Debug, Default, Clone)]
     pub BlockBuilder => pub Block<E: Default + Clone> {
         pub expressions: Vec<E>,

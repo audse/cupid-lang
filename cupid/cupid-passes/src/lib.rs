@@ -1,5 +1,5 @@
 #![allow(unused_variables)]
-#![feature(derive_default_enum, is_some_with)]
+#![feature(derive_default_enum, is_some_with, trait_alias)]
 
 pub mod env;
 pub(crate) use env::{Address, Source, ScopeId, Env, SymbolValue, Mut};
@@ -57,39 +57,67 @@ pub enum PassExpr {
 }
 
 macro_rules! for_each_expr {
-    ($for:expr => $do:ident $args:tt) => {
+    ($for:expr => $do:expr) => {
         match $for {
-            PreAnalysis(x) => x.$do $args,
-            PackageResolved(x) => x.$do $args,
-            TypeNameResolved(x) => x.$do $args,
-            ScopeAnalyzed(x) => x.$do $args,
-            NameResolved(x) => x.$do $args,
-            TypeInferred(x) => x.$do $args,
-            TypeChecked(x) => x.$do $args,
-            FlowChecked(x) => x.$do $args,
-            Linted(x) => x.$do $args,
+            PreAnalysis(x) => $do(x),
+            PackageResolved(x) => $do(x),
+            TypeNameResolved(x) => $do(x),
+            ScopeAnalyzed(x) => $do(x),
+            NameResolved(x) => $do(x),
+            TypeInferred(x) => $do(x),
+            TypeChecked(x) => $do(x),
+            FlowChecked(x) => $do(x),
+            Linted(x) => $do(x),
             _ => unreachable!()
         }
     }
 }
 
+pub trait AsExpr<T> {
+    fn as_expr(self) -> PassResult<T>;
+}
+
+impl PassExpr {
+    pub fn unwrap_value(self) -> PassResult<Value> {
+        for_each_expr!(self => |x| AsExpr::as_expr(x))
+    }
+}
+
 impl AsNode for PassExpr {
     fn scope(&self) -> ScopeId {
-        for_each_expr!(self => scope())
+        for_each_expr!(self => |x: &dyn AsNode| x.scope())
     }
     fn source(&self) -> ScopeId {
-        for_each_expr!(self => source())
-    }
-    fn typ(&self) -> ScopeId {
-        for_each_expr!(self => typ())
+        for_each_expr!(self => |x: &dyn AsNode| x.source())
     }
 	fn set_source(&mut self, source: Source) {
-        for_each_expr!(self => set_source(source));
+        for_each_expr!(self => |x: &mut dyn AsNode| x.set_source(source));
     }
 	fn set_scope(&mut self, scope: ScopeId) {
-        for_each_expr!(self => set_scope(scope));
+        for_each_expr!(self => |x: &mut dyn AsNode| x.set_scope(scope));
     }
-	fn set_typ(&mut self, typ: Address) {
-        for_each_expr!(self => set_typ(typ));
-    }
+}
+
+/// Creates `From<T> for PassExpr` impl block for every provided `Expr`
+macro_rules! impl_pass_expr_from_expr {
+    ($($pass:ident => $into:ident;)*) => { $(
+        impl From<$pass::Expr> for PassExpr {
+            fn from(expr: $pass::Expr) -> Self {
+                Self::$into(expr)
+            }
+        }
+    )* };
+}
+
+impl_pass_expr_from_expr! {
+    pre_analysis => PreAnalysis;
+    package_resolution => PackageResolved;
+    type_scope_analysis => TypeScopeAnalyzed;
+    type_name_resolution => TypeNameResolved;
+    scope_analysis => ScopeAnalyzed;
+    name_resolution => NameResolved;
+    type_inference => TypeInferred;
+    type_checking => TypeChecked;
+    flow_checking => FlowChecked;
+    linting => Linted;
 }

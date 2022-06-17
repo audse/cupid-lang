@@ -34,3 +34,27 @@ fn test_already_declared() -> TestResult {
     assert!(decl.is(ERR_ALREADY_DEFINED));
     Ok(())
 }
+
+#[test]
+fn test_outside_scope() -> TestResult {
+    let mut env = env();
+    env.add_closure(env::Context::Block);
+    env.inside_scope(1, |env| {
+        let decl = decl_val("x", int(1));
+        let decl = pass(decl, env)?;
+        Ok(())
+    })?;
+    env.inside_scope(0, |env| {
+        assert!(env.get_symbol(&ident("x")).is(ERR_NOT_FOUND));
+        Ok(())
+    })
+}
+
+#[test]
+fn test_undefined_typ() -> TestResult {
+    let mut env = env();
+    let decl = decl_val("x", int(1));
+    assert!(pass(decl, &mut env).is(ERR_NOT_FOUND));
+    Ok(())
+}
+

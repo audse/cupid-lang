@@ -8,11 +8,11 @@ pub trait Lint<Output> where Self: Sized {
 }
 
 util::define_pass_nodes! {
-    Decl: cupid_util::node_builder! {
+    Decl: crate::util::node_builder! {
         #[derive(Debug, Default, Clone)]
         pub DeclBuilder => pub Decl {}
     }
-    Function: cupid_util::node_builder! {
+    Function: crate::util::node_builder! {
         #[derive(Debug, Default, Clone)]
         pub FunctionBuilder => pub Function {}
     }
@@ -21,12 +21,12 @@ util::define_pass_nodes! {
 
 crate::util::impl_default_passes! {
     impl Lint + lint for {
-        Block<Expr> => prev_pass::Expr;
+        Block<Expr> => Block<prev_pass::Expr>;
         Expr => prev_pass::Expr;
-        Field<Ident> => crate::Ident;
-        Ident => crate::Ident;
-        IsTyped<Ident> => crate::IsTyped<crate::Ident>;
-        Value => crate::Value;
+        crate::Field<Address>;
+        crate::Ident;
+        crate::IsTyped<Ident>;
+        crate::Value;
     }
 }
 

@@ -1,5 +1,6 @@
-use crate::Attributes;
+use crate::{Attributes, AsNode};
 use Value::*;
+use cupid_util::ERR_NOT_FOUND;
 
 #[derive(Debug, Clone)]
 pub enum Value {
@@ -11,7 +12,6 @@ pub enum Value {
 	VType(crate::Typ),
 	VNone(Attributes),
 }
-
 
 impl Default for Value {
 	fn default() -> Self {
@@ -42,13 +42,17 @@ impl Value {
 			VType(t) => &mut t.attr,
 		}
 	}
+	pub fn as_typ(self) -> crate::PassResult<crate::Typ> {
+		match self {
+			VType(typ) => Ok(typ),
+			_ => Err((self.source(), ERR_NOT_FOUND))
+		}
+	}
 }
 
 impl crate::AsNode for Value {
 	fn source(&self) -> crate::Source { self.attr().source() }
 	fn scope(&self) -> crate::ScopeId { self.attr().scope() }
-	fn typ(&self) -> crate::Address { self.attr().typ() }
 	fn set_source(&mut self, source: crate::Source) { self.attr_mut().source = source }
 	fn set_scope(&mut self, scope: crate::ScopeId) { self.attr_mut().scope = scope }
-	fn set_typ(&mut self, typ: crate::Address) { self.attr_mut().typ = typ }
 }
