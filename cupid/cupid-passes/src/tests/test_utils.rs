@@ -1,3 +1,5 @@
+#![allow(unused_imports, unused)]
+
 use super::*;
 
 pub(super)type TestResult = crate::PassResult<()>;
@@ -12,19 +14,19 @@ impl<T> IsErrCode for crate::PassResult<T> {
     }
 }
 
-pub(super)fn env() -> crate::Env {
+pub(super) fn env() -> crate::Env {
     crate::Env::default()
 }
 
-pub(super)fn ident(name: &'static str) -> crate::Ident {
+pub(super) fn ident(name: &'static str) -> crate::Ident {
 	crate::Ident { name: name.into(), ..Default::default() }
 }
 
-pub(super)fn decl(name: &'static str) -> pre_analysis::Decl {
+pub(super) fn decl(name: &'static str) -> pre_analysis::Decl {
     pre_analysis::Decl { ident: ident(name), ..Default::default() }
 }
 
-pub(super)fn decl_val(name: &'static str, value: Value) -> pre_analysis::Decl {
+pub(super) fn decl_val(name: &'static str, value: Value) -> pre_analysis::Decl {
     pre_analysis::Decl { 
         ident: ident(name),
         value: pre_analysis::Expr::Value(value).bx(),
@@ -32,41 +34,62 @@ pub(super)fn decl_val(name: &'static str, value: Value) -> pre_analysis::Decl {
     }
 }
 
-pub(super)fn typed_decl(name: &'static str, type_annotation: &'static str) -> pre_analysis::Decl {
+pub(super) fn typed_decl(name: &'static str, type_annotation: &'static str) -> pre_analysis::Decl {
     pre_analysis::Decl { ident: ident(name), type_annotation: Some(ident(type_annotation)), ..Default::default() }
 }
 
-pub(super)fn int(i: i32) -> Value {
+pub(super) fn int(i: i32) -> Value {
     VInteger(i, Attributes::default())
 }
 
-pub(super)fn pass<A, B, C, D, E, F>(node: A, env: &mut Env) -> crate::PassResult<F> 
+pub(super) fn typ(name: &'static str) -> Type {
+    Type::from(ident(name))
+}
+
+pub(super) fn int_typ() -> Type {
+    Type::from(ident("int"))
+}
+
+pub(super) fn add_typ(env: &mut Env, t: Type) -> PassResult<()> {
+    env.set_symbol(
+        t.name.clone(), 
+        PassExpr::from(NameResolved(VType(t).into())), 
+        Mut::Immutable
+    );
+    Ok(())
+}
+
+pub(super) fn pass<A, B, C, D, E, F, G>(node: A, env: &mut Env) -> crate::PassResult<G> 
 where 
     A: ResolvePackages<B>, 
     B: AnalyzeTypeScope<C>, 
     C: ResolveTypeNames<D>, 
     D: AnalyzeScope<E>, 
-    E: ResolveNames<F> 
+    E: ResolveNames<F>,
+    F: InferTypes<G>,
 {
     node.resolve_packages(env)?
         .analyze_type_scope(env)?
         .resolve_type_names(env)?
         .analyze_scope(env)?
-        .resolve_names(env)
+        .resolve_names(env)?
+        .infer_types(env)
 }
 
-pub(super)fn pass_all<A, B, C, D, E, F>(nodes: impl Into<Vec<A>>, env: &mut Env) -> crate::PassResult<Vec<F>> 
+pub(super) fn pass_all<A, B, C, D, E, F, G>(nodes: impl Into<Vec<A>>, env: &mut Env) -> crate::PassResult<Vec<G>> 
 where 
     A: ResolvePackages<B>, 
     B: AnalyzeTypeScope<C>, 
     C: ResolveTypeNames<D>, 
     D: AnalyzeScope<E>, 
-    E: ResolveNames<F>
+    E: ResolveNames<F>,
+    F: InferTypes<G>,
 {
     let nodes: Vec<B> = nodes.into().resolve_packages(env)?;
     let nodes: Vec<C> = nodes.analyze_type_scope(env)?;
     let nodes: Vec<D> = nodes.resolve_type_names(env)?;
     let nodes: Vec<E> = nodes.analyze_scope(env)?;
     let nodes: Vec<F> = nodes.resolve_names(env)?;
+    let nodes: Vec<G> = nodes.infer_types(env)?;
     Ok(nodes)
 }

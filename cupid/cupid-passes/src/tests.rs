@@ -14,7 +14,7 @@ pub(super) use crate::{
     type_name_resolution::*,
     scope_analysis::*,
     name_resolution::*,
-    // type_inference::*,
+    type_inference::*,
     // type_checking::*,
     // flow_checking::*,
     // linting::*,

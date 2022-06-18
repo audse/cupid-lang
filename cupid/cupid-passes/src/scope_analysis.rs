@@ -1,6 +1,6 @@
 use cupid_util::InvertOption;
 
-use crate::{env::environment::Context, type_name_resolution as prev_pass, util, Env, Ident, IsTyped, PassResult, Untyped, AsNode};
+use crate::{env::environment::Context, type_name_resolution as prev_pass, util, Env, Ident, PassResult, AsNode};
 
 #[cupid_semantics::auto_implement(Vec, Option, Str, Box)]
 pub trait AnalyzeScope<Output>
@@ -31,7 +31,7 @@ crate::util::impl_default_passes! {
 impl AnalyzeScope<crate::Block<Expr>> for crate::Block<prev_pass::Expr> {
     fn analyze_scope(self, env: &mut Env) -> PassResult<crate::Block<Expr>> {
         let scope = env.add_scope(Context::Block);
-        env.inside_scope(scope, |env| {
+        env.inside_closure(scope, |env| {
             Ok(self
                 .pass(Vec::<prev_pass::Expr>::analyze_scope, env)?
                 .build_scope(scope))
@@ -41,14 +41,14 @@ impl AnalyzeScope<crate::Block<Expr>> for crate::Block<prev_pass::Expr> {
 
 impl AnalyzeScope<Decl> for prev_pass::Decl {
     fn analyze_scope(self, env: &mut Env) -> PassResult<Decl> {
-        Ok(self.pass(env)?.build_scope(env.current_closure))
+        Ok(self.pass(env)?.build_scope(env.state.closure()))
     }
 }
 
 impl AnalyzeScope<Function> for prev_pass::Function {
     fn analyze_scope(self, env: &mut Env) -> PassResult<Function> {
         let scope = env.add_closure(Context::Function);
-        env.inside_scope(scope, |env| Ok(self.pass(env)?.build_scope(scope)))
+        env.inside_closure(scope, |env| Ok(self.pass(env)?.build_scope(scope)))
     }
 }
 
@@ -58,23 +58,17 @@ impl AnalyzeScope<Ident> for Ident {
         self.attr.scope = self.namespace
             .as_ref()
             .map(|n| n.attr.scope)
-            .unwrap_or(env.current_closure);
-        env.inside_scope(self.attr.scope, |env| {
+            .unwrap_or(env.state.closure());
+        env.inside_closure(self.attr.scope, |env| {
             self.generics = self.generics.analyze_scope(env)?;
             Ok(self)
         })
     }
 }
 
-impl AnalyzeScope<IsTyped<Ident>> for IsTyped<Ident> {
-    fn analyze_scope(self, env: &mut Env) -> PassResult<IsTyped<Ident>> {
-        Ok(Untyped(self.into_inner().analyze_scope(env)?))
-    }
-}
-
 impl AnalyzeScope<crate::Value> for crate::Value {
     fn analyze_scope(mut self, env: &mut Env) -> PassResult<crate::Value> {
-        self.attr_mut().set_scope(env.current_closure);
+        self.attr_mut().set_scope(env.state.closure());
         Ok(self)
     }
 }

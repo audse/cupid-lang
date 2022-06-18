@@ -2,7 +2,7 @@
 #![feature(derive_default_enum, is_some_with, trait_alias)]
 
 pub mod env;
-pub(crate) use env::{Address, Source, ScopeId, Env, SymbolValue, Mut};
+pub(crate) use env::{Address, Source, ScopeId, Env, Mut};
 
 pub mod tests;
 
@@ -10,7 +10,8 @@ pub mod util;
 pub(crate) use util::attributes::*;
 pub(crate) use util::static_nodes::*;
 
-pub type PassResult<T> = Result<T, (Source, ErrCode)>;
+pub type PassErr = (Source, ErrCode);
+pub type PassResult<T> = Result<T, PassErr>;
 pub type ErrCode = usize;
 
 /// Each AST pass takes a node from the previous pass and transforms it
@@ -73,14 +74,10 @@ macro_rules! for_each_expr {
     }
 }
 
+pub(crate) use for_each_expr;
+
 pub trait AsExpr<T> {
     fn as_expr(self) -> PassResult<T>;
-}
-
-impl PassExpr {
-    pub fn unwrap_value(self) -> PassResult<Value> {
-        for_each_expr!(self => |x| AsExpr::as_expr(x))
-    }
 }
 
 impl AsNode for PassExpr {
@@ -96,28 +93,4 @@ impl AsNode for PassExpr {
 	fn set_scope(&mut self, scope: ScopeId) {
         for_each_expr!(self => |x: &mut dyn AsNode| x.set_scope(scope));
     }
-}
-
-/// Creates `From<T> for PassExpr` impl block for every provided `Expr`
-macro_rules! impl_pass_expr_from_expr {
-    ($($pass:ident => $into:ident;)*) => { $(
-        impl From<$pass::Expr> for PassExpr {
-            fn from(expr: $pass::Expr) -> Self {
-                Self::$into(expr)
-            }
-        }
-    )* };
-}
-
-impl_pass_expr_from_expr! {
-    pre_analysis => PreAnalysis;
-    package_resolution => PackageResolved;
-    type_scope_analysis => TypeScopeAnalyzed;
-    type_name_resolution => TypeNameResolved;
-    scope_analysis => ScopeAnalyzed;
-    name_resolution => NameResolved;
-    type_inference => TypeInferred;
-    type_checking => TypeChecked;
-    flow_checking => FlowChecked;
-    linting => Linted;
 }

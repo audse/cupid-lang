@@ -1,5 +1,5 @@
-use cupid_util::{InvertOption, Bx};
-use crate::{PassResult, scope_analysis as prev_pass, Env, Address, IsTyped, Ident, util, AsNode};
+use cupid_util::InvertOption;
+use crate::{PassResult, scope_analysis as prev_pass, Env, Address, Ident, util, AsNode};
 
 #[cupid_semantics::auto_implement(Vec, Option, Str, Box)]
 pub trait ResolveNames<Output> where Self: Sized {
@@ -36,7 +36,7 @@ util::impl_default_passes! {
 
 impl ResolveNames<Decl> for prev_pass::Decl {
     fn resolve_names(self, env: &mut Env) -> PassResult<Decl> {
-        env.inside_scope(self.attr.scope, |env| {
+        env.inside_closure(self.attr.scope, |env| {
             let Self { ident, type_annotation, mutable, value, attr } = self;
 
             // Make sure the current symbol does not already exist
@@ -47,15 +47,11 @@ impl ResolveNames<Decl> for prev_pass::Decl {
                     .map(|t| env.get_symbol(&t))
                     .invert()?;
 
-                let value = value.resolve_names(env)?;
-                let symbol_value = crate::SymbolValue {
-                    value: crate::PassExpr::NameResolved(*value).bx(),
-                    mutable,
-                };
+                let value: crate::PassExpr = (*value.resolve_names(env)?).into();
 
                 Ok(Decl::build()
-                    .ident_address(env.set_symbol(ident, symbol_value))
-                    .type_annotation_address(type_annotation_address)
+                    .ident_address(env.set_symbol(ident, value, mutable))
+                    .type_annotation_address(type_annotation_address.map(|x| x.0))
                     .attr(attr)
                     .build())
             } else {
@@ -67,7 +63,7 @@ impl ResolveNames<Decl> for prev_pass::Decl {
 
 impl ResolveNames<Function> for prev_pass::Function {
     fn resolve_names(self, env: &mut Env) -> PassResult<Function> {
-        env.inside_scope(self.attr.scope, |env| {
+        env.inside_closure(self.attr.scope, |env| {
             let Self { params, body, return_type_annotation, attr } = self;
             let return_type_annotation = return_type_annotation
                 .resolve_names(env)?
@@ -85,15 +81,15 @@ impl ResolveNames<Function> for prev_pass::Function {
 
 impl ResolveNames<Ident> for Ident {
     fn resolve_names(self, env: &mut Env) -> PassResult<Ident> {
-        env.inside_scope(self.attr.scope, |env| {
+        env.inside_closure(self.attr.scope, |env| {
             // if there is a namespace
             if let Some(namespace) = &self.namespace {
                 // make sure the namespaced symbol exists
                 let namespace_address = env.get_symbol(&namespace)?;
 
                 // use the namespace's scope
-                let name_scope = env.symbols.get_symbol(namespace_address).unwrap().scope();
-                env.inside_scope(name_scope, |env| {
+                let name_scope = env.symbols.get_symbol(namespace_address.0).unwrap().scope();
+                env.inside_closure(name_scope, |env| {
                     resolve_ident_names(self, env)
                 })
             } else {
@@ -104,7 +100,7 @@ impl ResolveNames<Ident> for Ident {
 }
 
 fn resolve_ident_names(ident: Ident, env: &mut Env) -> PassResult<Ident> {
-    use crate::{SymbolValue, Value::VType, Typ, Untyped, PassExpr};
+    use crate::{Value::VType, Type};
     // make sure symbol exists in scope
     let address = env.get_symbol(&ident)?; 
     
@@ -113,29 +109,9 @@ fn resolve_ident_names(ident: Ident, env: &mut Env) -> PassResult<Ident> {
 
     // create symbols for provided generics
     for generic in generics.iter() {
-        if let Untyped(ident) = generic {
-            let typ: Expr = VType(Typ::generic(ident.clone())).into();
-            let value = SymbolValue {
-                value: PassExpr::from(typ).bx(),
-                ..Default::default()
-            };
-            env.set_symbol(ident.clone(), value);
-        }
+        // TODO see if generic exists
+        let typ: Expr = VType(Type::generic(generic.clone())).into();
+        env.set_symbol(generic.clone(), typ.into(), crate::Mut::Immutable);
     }
-    Ok(Ident { generics, address: Some(address), attr, ..ident })
-}
-
-impl ResolveNames<IsTyped<Ident>> for IsTyped<Ident> {
-    fn resolve_names(self, env: &mut Env) -> PassResult<IsTyped<Ident>> {
-        use crate::{Typed, Untyped};
-        let generic = match self {
-            Typed(ident, type_address) => Typed(ident.resolve_names(env)?, type_address),
-            Untyped(ident) => match env.get_symbol(&ident) {
-                Ok(type_address) => Typed(ident, type_address),
-                Err(_) => Untyped(ident) // assumed to be generic type
-                // TODO this should probably still fail- are generics in scope?
-            }
-        };
-        Ok(generic)
-    }
+    Ok(Ident { generics, address: Some(address.0), attr, ..ident })
 }

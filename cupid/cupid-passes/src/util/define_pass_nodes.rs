@@ -11,44 +11,21 @@ macro_rules! for_each_node {
     }
 }
 
-macro_rules! as_expr {
-    (fn(self) -> $expr:ident) => {
-        fn as_expr(self) -> crate::PassResult<crate::$expr> {
-            use crate::AsNode;
-            crate::util::as_expr!($expr, self)
-        }
+macro_rules! try_from_expr {
+    ( $( Expr::$variant:ident => $result:ty; )* ) => {
+        $( crate::util::try_from_expr! { $variant, $result } )*
     };
-    ($expr:ident, $self:ident) => {
-        match $self {
-            Self::$expr(x) => Ok(x),
-            _ => Err(($self.source(), cupid_util::ERR_EXPECTED_EXPRESSION))
-        }
-    }
-}
-
-/// Creates `From<T> for Expr` impl block for every provided node
-macro_rules! impl_expr_from_node {
-    ($node:ident;) => {
-        impl From<$node> for Expr {
-            fn from(node: $node) -> Self {
-                Self::$node(node)
+    ($variant:ident, $result:ty) => {
+        impl TryFrom<Expr> for $result {
+            type Error = crate::PassErr;
+            fn try_from(expr: Expr) -> crate::PassResult<$result> {
+                use crate::AsNode;
+                match expr {
+                    Expr::$variant(v) => Ok(v),
+                    _ => Err(expr.err(cupid_util::ERR_EXPECTED_EXPRESSION))
+                }
             }
         }
-        impl From<$node> for crate::PassExpr {
-            fn from(node: $node) -> Self {
-                Self::from(Expr::from(node))
-            }
-        }
-    };
-    ($variant:ident($node:ty);) => {
-        impl From<$node> for Expr {
-            fn from(node: $node) -> Self {
-                Self::$variant(node)
-            }
-        }
-    };
-    ( $( $variant:ident $(($node:ty))? ;)* ) => { 
-        $( crate::util::impl_expr_from_node! { $variant $(($node))?; } )* 
     };
     () => {};
 }
@@ -70,34 +47,14 @@ macro_rules! define_pass_nodes {
 			Value(crate::Value),
         }
 
-        crate::util::impl_expr_from_node! { 
-            Block(crate::Block<Expr>);
-            Decl;
-            Function;
-            Ident(crate::Ident);
-            TypeDef;
-            Value(crate::Value);
-        }
-
         impl Default for Expr {
             fn default() -> Self {
                 Self::Value(crate::Value::default())
             }
         }
-
-        impl crate::AsExpr<crate::Value> for Expr {
-            crate::util::as_expr! { fn(self) -> Value }
-        }
-
-        impl crate::AsExpr<crate::Block<Expr>> for Expr {
-            fn as_expr(self) -> crate::PassResult<crate::Block<Expr>> {
-                use crate::AsNode;
-                crate::util::as_expr!(Block, self)
-            }
-        }
-
-        impl crate::AsExpr<crate::Ident> for Expr {
-            crate::util::as_expr! { fn(self) -> Ident }
+        
+        crate::util::try_from_expr! {
+            Expr::Value => crate::Value;
         }
 
         impl crate::AsNode for Expr {
@@ -121,4 +78,4 @@ macro_rules! define_pass_nodes {
     }
 }
 
-pub (crate) use {for_each_node, as_expr, define_pass_nodes, impl_expr_from_node};
+pub (crate) use {for_each_node, try_from_expr, define_pass_nodes};

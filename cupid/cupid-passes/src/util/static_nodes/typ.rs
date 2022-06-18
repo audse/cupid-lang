@@ -1,7 +1,7 @@
 use crate::{Ident, Field, tests::Attributes};
 
 #[derive(Debug, Default, Copy, Clone)]
-pub enum BaseTyp {
+pub enum BaseType {
     Primitive,
     #[default]
     Struct,
@@ -11,14 +11,14 @@ pub enum BaseTyp {
 
 crate::util::node_builder! {
     #[derive(Debug, Clone)]
-    pub TypBuilder => pub Typ {
+    pub TypBuilder => pub Type {
         pub name: Ident,
         pub fields: Vec<Field<Ident>>,
-        pub base: BaseTyp,
+        pub base: BaseType,
     }
 }
 
-impl Typ {
+impl Type {
     pub fn none() -> Self {
         Self {
             name: "none".into(),
@@ -26,19 +26,21 @@ impl Typ {
         }
     }
     pub fn generic<S: Into<Ident>>(name: S) -> Self {
+        let name = name.into();
         Self {
-            name: name.into(),
+            attr: name.attr,
+            name,
             ..Default::default()
         }
     }
 }
 
-impl Default for Typ {
+impl Default for Type {
     fn default() -> Self {
         Self {
             name: "none".into(),
             fields: vec![],
-            base: BaseTyp::Primitive,
+            base: BaseType::Primitive,
             attr: Attributes::default()
         }
     }
@@ -46,17 +48,6 @@ impl Default for Typ {
 
 impl Default for TypBuilder {
     fn default() -> Self {
-        Typ::default().builder()
-    }
-}
-
-impl From<Ident> for Typ {
-    fn from(name: Ident) -> Self {
-        Self {
-            attr: name.attr,
-            name,
-            base: BaseTyp::Primitive,
-            fields: vec![],
-        }
+        Type::default().builder()
     }
 }

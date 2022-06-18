@@ -39,12 +39,12 @@ fn test_already_declared() -> TestResult {
 fn test_outside_scope() -> TestResult {
     let mut env = env();
     env.add_closure(env::Context::Block);
-    env.inside_scope(1, |env| {
+    env.inside_closure(1, |env| {
         let decl = decl_val("x", int(1));
         let decl = pass(decl, env)?;
         Ok(())
     })?;
-    env.inside_scope(0, |env| {
+    env.inside_closure(0, |env| {
         assert!(env.get_symbol(&ident("x")).is(ERR_NOT_FOUND));
         Ok(())
     })
@@ -58,3 +58,17 @@ fn test_undefined_typ() -> TestResult {
     Ok(())
 }
 
+#[test]
+fn test_decl_none_typ() -> TestResult {
+    let mut env = env();
+    add_typ(&mut env, int_typ());
+
+    let mut decl = decl_val("x", int(1));
+    decl.attr.source = 10;
+    decl.value.as_mut().set_source(20);
+
+    let mut decl = pass(decl, &mut env)?;
+    let decl_type: Type = env.symbols.get_type(decl.source()).unwrap().clone().try_into()?;
+    assert_eq!(decl_type.name.name.to_string(), "none".to_string());
+    Ok(())
+}

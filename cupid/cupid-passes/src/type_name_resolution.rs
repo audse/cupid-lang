@@ -29,7 +29,6 @@ util::impl_default_passes! {
         Block<Expr> => Block<prev_pass::Expr>;
         Expr => prev_pass::Expr;
         crate::Ident;
-        crate::IsTyped<Ident>;
         crate::Value;
     }
 }

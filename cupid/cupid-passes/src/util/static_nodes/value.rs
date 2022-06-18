@@ -1,6 +1,5 @@
-use crate::{Attributes, AsNode};
+use crate::Attributes;
 use Value::*;
-use cupid_util::ERR_NOT_FOUND;
 
 #[derive(Debug, Clone)]
 pub enum Value {
@@ -9,7 +8,7 @@ pub enum Value {
 	VDecimal(i32, u32, Attributes),
 	VInteger(i32, Attributes),
 	VString(cupid_util::Str, Attributes),
-	VType(crate::Typ),
+	VType(crate::Type),
 	VNone(Attributes),
 }
 
@@ -40,12 +39,6 @@ impl Value {
 			| VString(_, attr)
 			| VNone(attr) => attr,
 			VType(t) => &mut t.attr,
-		}
-	}
-	pub fn as_typ(self) -> crate::PassResult<crate::Typ> {
-		match self {
-			VType(typ) => Ok(typ),
-			_ => Err((self.source(), ERR_NOT_FOUND))
 		}
 	}
 }

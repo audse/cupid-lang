@@ -49,14 +49,7 @@ macro_rules! impl_default_passes {
     (Ident, $_trait:ident, $_fn:ident) => {
         impl $_trait<crate::Ident> for crate::Ident {
             fn $_fn(self, env: &mut crate::Env) -> PassResult<crate::Ident> { 
-                self.pass(Vec::<crate::IsTyped<Self>>::$_fn, Self::$_fn, env)
-            }
-        }
-    };
-    (IsTyped<Ident>, $_trait:ident, $_fn:ident) => {
-        impl $_trait<crate::IsTyped<crate::Ident>> for crate::IsTyped<crate::Ident> {
-            fn $_fn(self, env: &mut crate::Env) -> PassResult<crate::IsTyped<crate::Ident>> { 
-                self.pass(Vec::<Self>::$_fn, crate::Ident::$_fn, env)
+                self.pass(Vec::<Self>::$_fn, Self::$_fn, env)
             }
         }
     };

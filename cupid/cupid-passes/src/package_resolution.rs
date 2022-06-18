@@ -32,7 +32,6 @@ crate::util::impl_default_passes! {
         Expr => prev_pass::Expr;
         crate::Field<Ident>;
         crate::Ident;
-        crate::IsTyped<Ident>;
         crate::Value;
     }
 }

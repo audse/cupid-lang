@@ -1,13 +1,20 @@
-use std::{collections::HashMap, hash::Hash};
-use super::symbol_table::{SymbolTable};
+use super::{symbol_table::{SymbolTable, SymbolType}, state::EnvState};
 use cupid_util::ERR_NOT_FOUND;
-use crate::{Ident, AsNode, SymbolValue};
+use crate::{Ident, AsNode, PassExpr, PassResult, Type, Value};
+use super::closure::*;
 
 pub type Source = usize;
 pub type Address = usize;
 pub type ScopeId = usize;
 
-type ModifyFn = fn(&mut Env, SymbolValue) -> crate::PassResult<SymbolValue>;
+type ModifyFn = fn(&mut Env, PassExpr) -> PassResult<PassExpr>;
+
+#[derive(Debug, Default, Copy, Clone)]
+pub enum Mut {
+    Mutable,
+    #[default]
+    Immutable,
+}
 
 #[derive(Debug, Default, Copy, Clone)]
 pub enum Context {
@@ -21,174 +28,101 @@ pub enum Context {
 
 #[derive(Debug, Clone)]
 pub struct Env {
-    current_id: ScopeId,
+    pub state: EnvState,
     pub symbols: SymbolTable,
-    pub current_closure: ScopeId,
-    prev_closures: Vec<ScopeId>,
     pub closures: Vec<Closure<Ident>>,
 }
 
 impl Default for Env {
     fn default() -> Self {
         Self {
-            current_id: 0,
+            state: EnvState::default(),
             symbols: SymbolTable::default(),
-            current_closure: 0, 
-            prev_closures: vec![0],
             closures: vec![Closure::default()] 
         }
     }
 }
 
 impl Env {
+    fn current_closure(&mut self) -> &mut Closure<Ident> {
+        &mut self.closures[self.state.current_closure]
+    }
     pub fn add_toplevel_closure(&mut self, context: Context) -> ScopeId {
-        self.current_id += 1;
-        self.closures.push(Closure { parent: 0, id: self.current_id, context, ..Default::default() });
-        self.current_id
+        increment_id(self, |env| {
+            env.closures.push(Closure::new(0, env.state.id(), context))
+        })
     }
     pub fn add_closure(&mut self, context: Context) -> ScopeId {
-        self.current_id += 1;
-        let parent = self.current_closure;
-        self.closures.push(Closure { parent, id: self.current_id, context, ..Default::default() });
-        self.current_id
+        increment_id(self, |env| {
+            env.closures.push(Closure::new(env.state.closure(), env.state.id(), context))
+        })
     }
     pub fn add_scope(&mut self, context: Context) -> ScopeId {
-        self.current_id += 1;
-        let current_closure = &mut self.closures[self.current_closure];
-        self.closures.last_mut().unwrap().add(self.current_id, context);
-        self.current_id
+        increment_id(self, |env| {
+            let id = env.state.id();
+            env.current_closure().add(id, context);
+        })
     }
     pub fn pop_scope(&mut self) {
-        let current_closure = &mut self.closures[self.current_closure];
-        self.closures.last_mut().unwrap().pop();
+        self.current_closure().pop();
     }
-    pub fn use_scope(&mut self, closure: ScopeId) {
-        self.prev_closures.push(self.current_closure);
-        self.current_closure = closure;
-    }
-    pub fn inside_scope<R, F: FnOnce(&mut Self) -> crate::PassResult<R>>(&mut self, closure: ScopeId, fun: F) -> crate::PassResult<R> {
-        self.use_scope(closure);
+    pub fn inside_closure<R>(&mut self, closure: ScopeId, fun: impl FnOnce(&mut Env) -> PassResult<R>) -> PassResult<R> {
+        self.state.use_closure(closure);
         let result = fun(self)?;
-        self.reset_scope();
+        self.state.reset_closure();
         Ok(result)
     }
-    pub fn reset_scope(&mut self) {
-        let prev_closure = self.prev_closures.pop();
-        self.current_closure = prev_closure.unwrap_or_default();
-    }
-    pub fn set_symbol(&mut self, symbol: Ident, value: SymbolValue) -> Address {
-        let current_closure = &mut self.closures[self.current_closure];
+    pub fn set_symbol(&mut self, symbol: Ident, mut value: PassExpr, mutable: Mut) -> Address {
         let address = self.symbols.symbols.len();
+
+        // FOR TESTING ONLY, type indices are messed up when nodes don't have sourced data
+        if value.source() == 0 { value.set_source(address) }
+
         self.symbols.set_symbol(address, value);
-        current_closure.set_symbol(symbol, address);
+        self.current_closure().set_symbol(symbol, address, mutable);
         address
     }
-    pub fn get_symbol(&mut self, symbol: &Ident) -> crate::PassResult<Address> {
-        let current_closure = &mut self.closures[self.current_closure];
-        if let Some(address) = current_closure.get_symbol(symbol) {
+    pub fn get_symbol(&mut self, symbol: &Ident) -> PassResult<(Address, Mut)> {
+        if let Some(address) = self.current_closure().get_symbol(symbol) {
             Ok(address)
         } else {
-            Err((symbol.source(), ERR_NOT_FOUND))
+            Err(symbol.err(ERR_NOT_FOUND))
         }
     }
-    pub fn modify_symbol(&mut self, address: Address, modify: ModifyFn) -> crate::PassResult<()> {
+    pub fn modify_symbol(&mut self, address: Address, modify: ModifyFn) -> PassResult<()> {
         let value = if let Some(symbol) = self.symbols.symbols.get_mut(&address) {
             std::mem::take(symbol)
         } else {
-            return Err((0, cupid_util::ERR_NOT_FOUND)) // TODO
+            return Err((0, ERR_NOT_FOUND))
         };
         let value = modify(self, value)?;
         self.symbols.set_symbol(address, value);
         Ok(())
     }
-    pub fn get_ident(&mut self, address: Address) -> crate::PassResult<&Ident> {
-        for closure in self.closures.iter_mut() {
-            if let Some(ident) = closure.get_ident(address) {
-                return Ok(ident)
-            }
+    pub fn get_ident(&mut self, address: Address) -> PassResult<&Ident> {
+        self.closures
+            .iter_mut()
+            .find_map(|closure| closure.get_ident(address))
+            .ok_or((0, ERR_NOT_FOUND))
+    }
+    pub fn stored_type(&mut self, node: impl AsNode) -> PassResult<Type> {
+        match self.symbols.get_type(node.source()) {
+            Some(SymbolType::Type(t)) => return Ok(t.to_owned()),
+            Some(SymbolType::Address(a)) => {
+                let symbol = self.symbols.get_symbol(*a);
+                if let Some(value) = symbol {
+                    let val: Value = value.to_owned().try_into()?;
+                    return val.try_into()
+                }
+            },
+            _ => ()
         }
-        return Err((0, cupid_util::ERR_NOT_FOUND)) // TODO
+        Err(node.err(ERR_NOT_FOUND))
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct Closure<K: Default + Hash + Eq> {
-    pub parent: ScopeId,
-    pub id: ScopeId,
-    pub context: Context,
-    pub scopes: Vec<BlockScope<K>>,
-}
-
-impl<K: Default + Hash + Eq> Default for Closure<K> {
-    fn default() -> Self {
-        Self { 
-            parent: 0, 
-            id: 0, 
-            context: Context::Block, 
-            scopes: vec![BlockScope::default()] 
-        }
-    }
-}
-
-impl<K: Default + Hash + Eq> Closure<K> {
-    fn add(&mut self, id: ScopeId, context: Context) {
-        self.scopes.push(BlockScope { id, context, ..Default::default() });
-    }
-    fn pop(&mut self) {
-        self.scopes.pop();
-    }
-    fn set_symbol(&mut self, symbol: K, address: Address) {
-        let mut current_scope = None;
-        for scope in self.scopes.iter_mut() {
-            if scope.get_symbol(&symbol).is_some() {
-                current_scope = Some(scope);
-            }
-        }
-        if let Some(scope) = current_scope {
-            scope.set_symbol(symbol, address);
-        } else {
-            self.scopes.last_mut().unwrap().set_symbol(symbol, address);
-        }
-    }
-    fn get_symbol(&mut self, symbol: &K) -> Option<Address> {
-        for scope in self.scopes.iter_mut() {
-            if let Some(address) = scope.get_symbol(symbol) {
-                return Some(address)
-            }
-        }
-        None
-    }
-    fn get_ident(&mut self, address: Address) -> Option<&K> {
-        for scope in self.scopes.iter_mut() {
-            if let Some(ident) = scope.get_ident(address) {
-                return Some(ident)
-            }
-        }
-        None
-    }
-}
-
-#[derive(Debug, Default, Clone)]
-pub struct BlockScope<K: Default + Hash + Eq> {
-    pub id: ScopeId,
-    pub context: Context,
-    pub symbols: HashMap<K, Address>
-}
-
-impl<K: Default + Hash + Eq> BlockScope<K> {
-    fn set_symbol(&mut self, symbol: K, address: Address) {
-        self.symbols.insert(symbol, address);
-    }
-    fn get_symbol(&mut self, symbol: &K) -> Option<Address> {
-        self.symbols.get(symbol).copied()
-    }
-    fn get_ident(&mut self, address: Address) -> Option<&K> {
-        self.symbols
-            .iter()
-            .find_map(|(ident, symbol_address)| if *symbol_address == address { 
-                Some(ident) 
-            } else { 
-                None 
-            })
-    }
+fn increment_id(env: &mut Env, closure: impl FnOnce(&mut Env)) -> ScopeId {
+    env.state.current_id += 1;
+    closure(env);
+    env.state.current_id
 }
