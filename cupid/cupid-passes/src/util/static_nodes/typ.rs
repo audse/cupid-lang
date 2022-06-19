@@ -1,4 +1,4 @@
-use crate::{Ident, Field, tests::Attributes};
+use crate::{Ident, Field, Attributes};
 
 #[derive(Debug, Default, Copy, Clone)]
 pub enum BaseType {
@@ -22,6 +22,12 @@ impl Type {
     pub fn none() -> Self {
         Self {
             name: "none".into(),
+            ..Default::default()
+        }
+    }
+    pub fn typ() -> Self {
+        Self {
+            name: "type!".into(),
             ..Default::default()
         }
     }

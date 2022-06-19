@@ -2,6 +2,7 @@ pub type ErrCode = usize;
 
 pub const ERR_CANNOT_INFER: ErrCode = 100;
 pub const ERR_TYPE_MISMATCH: ErrCode = 400;
+pub const ERR_NOT_IN_SCOPE: ErrCode = 403;
 pub const ERR_NOT_FOUND: ErrCode = 404;
 pub const ERR_BAD_ACCESS: ErrCode = 405;
 pub const ERR_ALREADY_DEFINED: ErrCode = 406;

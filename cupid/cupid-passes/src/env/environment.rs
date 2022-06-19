@@ -1,13 +1,12 @@
-use super::{symbol_table::{SymbolTable, SymbolType}, state::EnvState};
-use cupid_util::ERR_NOT_FOUND;
-use crate::{Ident, AsNode, PassExpr, PassResult, Type, Value};
-use super::closure::*;
+use cupid_util::{ERR_NOT_FOUND, ERR_NOT_IN_SCOPE};
+
+use super::state::EnvState;
+use crate::PassResult;
+use super::{closure::*, database::{Database, Row, RowExpr, Selector, WriteRowExpr}, query::Query};
 
 pub type Source = usize;
 pub type Address = usize;
 pub type ScopeId = usize;
-
-type ModifyFn = fn(&mut Env, PassExpr) -> PassResult<PassExpr>;
 
 #[derive(Debug, Default, Copy, Clone)]
 pub enum Mut {
@@ -29,22 +28,22 @@ pub enum Context {
 #[derive(Debug, Clone)]
 pub struct Env {
     pub state: EnvState,
-    pub symbols: SymbolTable,
-    pub closures: Vec<Closure<Ident>>,
+    pub database: Database,
+    pub closures: Vec<Closure>,
 }
 
 impl Default for Env {
     fn default() -> Self {
         Self {
             state: EnvState::default(),
-            symbols: SymbolTable::default(),
+            database: Database::default(),
             closures: vec![Closure::default()] 
         }
     }
 }
 
 impl Env {
-    fn current_closure(&mut self) -> &mut Closure<Ident> {
+    fn current_closure(&mut self) -> &mut Closure {
         &mut self.closures[self.state.current_closure]
     }
     pub fn add_toplevel_closure(&mut self, context: Context) -> ScopeId {
@@ -72,55 +71,50 @@ impl Env {
         self.state.reset_closure();
         Ok(result)
     }
-    pub fn set_symbol(&mut self, symbol: Ident, mut value: PassExpr, mutable: Mut) -> Address {
-        let address = self.symbols.symbols.len();
 
-        // FOR TESTING ONLY, type indices are messed up when nodes don't have sourced data
-        if value.source() == 0 { value.set_source(address) }
-
-        self.symbols.set_symbol(address, value);
-        self.current_closure().set_symbol(symbol, address, mutable);
+    pub fn insert<V: Default>(&mut self, query: Query<V>) -> Address where RowExpr: WriteRowExpr<V> {
+        let address = self.database.insert(query);
+        self.current_closure().set_symbol(address);
         address
     }
-    pub fn get_symbol(&mut self, symbol: &Ident) -> PassResult<(Address, Mut)> {
-        if let Some(address) = self.current_closure().get_symbol(symbol) {
-            Ok(address)
+
+    pub fn read<Col: Selector>(&self, query: &Query<()>) -> Option<&Col> { 
+        let row = self.database.read::<Row>(query)?;
+        if self.is_in_scope(row.address) {
+            Some(Col::select(row))
         } else {
-            Err(symbol.err(ERR_NOT_FOUND))
+            None
         }
     }
-    pub fn modify_symbol(&mut self, address: Address, modify: ModifyFn) -> PassResult<()> {
-        let value = if let Some(symbol) = self.symbols.symbols.get_mut(&address) {
-            std::mem::take(symbol)
+
+    pub fn write<V: Default>(&mut self, query: Query<V>) -> Option<()> where RowExpr: WriteRowExpr<V> { 
+        let address = *self.database.read::<Address>(&query.to_read_only())?;
+        if self.is_in_scope(address) {
+            self.database.write(query)
         } else {
-            return Err((0, ERR_NOT_FOUND))
-        };
-        let value = modify(self, value)?;
-        self.symbols.set_symbol(address, value);
-        Ok(())
-    }
-    pub fn get_ident(&mut self, address: Address) -> PassResult<&Ident> {
-        self.closures
-            .iter_mut()
-            .find_map(|closure| closure.get_ident(address))
-            .ok_or((0, ERR_NOT_FOUND))
-    }
-    pub fn stored_type(&mut self, node: impl AsNode) -> PassResult<Type> {
-        match self.symbols.get_type(node.source()) {
-            Some(SymbolType::Type(t)) => return Ok(t.to_owned()),
-            Some(SymbolType::Address(a)) => {
-                let symbol = self.symbols.get_symbol(*a);
-                if let Some(value) = symbol {
-                    let val: Value = value.to_owned().try_into()?;
-                    return val.try_into()
-                }
-            },
-            _ => ()
+            None
         }
-        Err(node.err(ERR_NOT_FOUND))
+    }
+
+    pub fn write_pass<V: Default, F: FnOnce(&mut Env, RowExpr) -> crate::PassResult<RowExpr>>(&mut self, query: Query<V>, closure: F) -> crate::PassResult<()> where RowExpr: WriteRowExpr<V> {
+        let address = *self.database.read::<Address>(&query.to_read_only()).ok_or((0, ERR_NOT_FOUND))?;
+        if self.is_in_scope(address) {
+            let expr = self.database.take::<RowExpr>(&query.to_read_only()).unwrap();
+            let new_expr = closure(self, expr)?;
+            self.database.write::<RowExpr>(Query::<RowExpr>::build().address(address).expr(new_expr));            
+            Ok(())
+        } else {
+            Err((0, ERR_NOT_IN_SCOPE))
+        }
+    }
+
+    fn is_in_scope(&self, address: Address) -> bool {
+        self.closures[self.state.current_closure].is_in_scope(address)
     }
 }
 
+/// Increases the current `ScopeId`, performs the given closure, and 
+/// returns the incremented `ScopeId`
 fn increment_id(env: &mut Env, closure: impl FnOnce(&mut Env)) -> ScopeId {
     env.state.current_id += 1;
     closure(env);

@@ -7,7 +7,6 @@ crate::util::node_builder! {
 		pub generics: Vec<Ident>,
 		pub name: Str,
 		pub namespace: Option<Box<Ident>>,
-		pub address: Option<crate::Address>
 	}
 }
 
@@ -39,12 +38,11 @@ impl Ident {
 		fun: impl FnOnce(Self, &mut crate::Env) -> crate::PassResult<Self>,
 		env: &mut crate::Env
 	) -> crate::PassResult<Self> {
-        let Self { generics, name, namespace, address, attr } = self;
+        let Self { generics, name, namespace, attr } = self;
         Ok(Ident::build()
 			.generics(generic_fun(generics, env)?)
 			.name(name)
 			.namespace(namespace.map(|n| Ok(fun(*n, env)?.bx())).invert()?)
-			.address(address)
             .attr(attr)
             .build())
     }

@@ -1,15 +1,14 @@
-use std::{hash::Hash, collections::HashMap};
-use crate::{Address, env::Context, ScopeId, Mut};
+use crate::{Address, env::Context, ScopeId};
 
 #[derive(Debug, Clone)]
-pub struct Closure<K: Default + Hash + Eq> {
+pub struct Closure {
     pub parent: ScopeId,
     pub id: ScopeId,
     pub context: Context,
-    pub scopes: Vec<BlockScope<K>>,
+    pub scopes: Vec<BlockScope>,
 }
 
-impl<K: Default + Hash + Eq> Default for Closure<K> {
+impl Default for Closure {
     fn default() -> Self {
         Self { 
             parent: 0, 
@@ -20,68 +19,53 @@ impl<K: Default + Hash + Eq> Default for Closure<K> {
     }
 }
 
-impl<K: Default + Hash + Eq> Closure<K> {
+impl Closure {
+
     pub(super) fn new(parent: ScopeId, id: ScopeId, context: Context) -> Self {
         Self { parent, id, context, ..Default::default() }
     }
+
     pub(super) fn add(&mut self, id: ScopeId, context: Context) {
         self.scopes.push(BlockScope { id, context, ..Default::default() });
     }
+
     pub(super) fn pop(&mut self) {
         self.scopes.pop();
     }
-    pub(super) fn set_symbol(&mut self, symbol: K, address: Address, mutable: Mut) {
-        let mut current_scope = None;
-        for scope in self.scopes.iter_mut() {
-            if scope.get_symbol(&symbol).is_some() {
-                current_scope = Some(scope);
-            }
-        }
-        if let Some(scope) = current_scope {
-            scope.set_symbol(symbol, address, mutable);
+
+    pub(super) fn set_symbol(&mut self, address: Address) {
+        let scope = if let Some(scope) = self.in_scope(address) {
+            scope
         } else {
-            self.scopes.last_mut().unwrap().set_symbol(symbol, address, mutable);
-        }
+            self.scopes.last_mut().unwrap()
+        };
+        scope.set_symbol(address)
     }
-    pub(super) fn get_symbol(&mut self, symbol: &K) -> Option<(Address, Mut)> {
-        for scope in self.scopes.iter_mut() {
-            if let Some(address) = scope.get_symbol(symbol) {
-                return Some(address)
-            }
-        }
-        None
+
+    fn in_scope(&mut self, address: Address) -> Option<&mut BlockScope> {
+        self.scopes.iter_mut().find(|scope| scope.in_scope(address))
     }
-    pub(super) fn get_ident(&mut self, address: Address) -> Option<&K> {
-        for scope in self.scopes.iter_mut() {
-            if let Some(ident) = scope.get_ident(address) {
-                return Some(ident)
-            }
-        }
-        None
+
+    pub(super) fn is_in_scope(&self, address: Address) -> bool {
+        self.scopes.iter().any(|scope| scope.in_scope(address))
     }
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct BlockScope<K: Default + Hash + Eq> {
+pub struct BlockScope {
     pub id: ScopeId,
     pub context: Context,
-    pub symbols: HashMap<K, (Address, Mut)>
+    pub symbols: Vec<Address>
 }
 
-impl<K: Default + Hash + Eq> BlockScope<K> {
-    fn set_symbol(&mut self, symbol: K, address: Address, mutable: Mut) {
-        self.symbols.insert(symbol, (address, mutable));
+impl BlockScope {
+
+    fn set_symbol(&mut self, address: Address) {
+        self.symbols.push(address);
     }
-    fn get_symbol(&mut self, symbol: &K) -> Option<(Address, Mut)> {
-        self.symbols.get(symbol).copied()
+
+    fn in_scope(&self, address: Address) -> bool {
+        self.symbols.iter().any(|a| *a == address)
     }
-    fn get_ident(&mut self, address: Address) -> Option<&K> {
-        self.symbols
-            .iter()
-            .find_map(|(ident, symbol_address)| if symbol_address.0 == address { 
-                Some(ident) 
-            } else { 
-                None 
-            })
-    }
+    
 }

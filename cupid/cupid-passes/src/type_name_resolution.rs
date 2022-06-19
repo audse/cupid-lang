@@ -35,14 +35,19 @@ util::impl_default_passes! {
 
 impl ResolveTypeNames<TypeDef> for prev_pass::TypeDef {
     fn resolve_type_names(self, env: &mut Env) -> PassResult<TypeDef> {
-        Ok(TypeDef::build()
-            .ident(self.ident.resolve_type_names(env)?.address.unwrap())
-            .fields(self.fields
-                .resolve_type_names(env)?
-                .into_iter()
-                .map(|f: Field<Ident>| Field(f.0.address.unwrap(), f.1.map(|f| f.address.unwrap())))
-                .collect())
-            .build())
+        let ident = self.ident.resolve_type_names(env)?;
+
+        todo!("insert type")
+        // let ident_address = env.insert(Query::from(&ident));
+
+        // Ok(TypeDef::build()
+        //     .ident(self.ident.resolve_type_names(env)?)
+        //     .fields(self.fields
+        //         .resolve_type_names(env)?
+        //         .into_iter()
+        //         .map(|f: Field<Ident>| Field(f.0.address.unwrap(), f.1.map(|f| f.address.unwrap())))
+        //         .collect())
+        //     .build())
     }
 }
 

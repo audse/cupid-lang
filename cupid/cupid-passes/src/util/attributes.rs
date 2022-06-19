@@ -1,30 +1,28 @@
-use crate::{Source, ScopeId};
+use crate::{Address, ScopeId};
 
 pub trait AsNode {
-	fn source(&self) -> Source;
+	fn address(&self) -> Address;
 	fn scope(&self) -> ScopeId;
-	fn set_source(&mut self, source: Source);
 	fn set_scope(&mut self, scope: ScopeId);
-	fn err(&self, code: crate::ErrCode) -> (Source, crate::ErrCode) {
-		(self.source(), code)
+	fn err(&self, code: crate::ErrCode) -> (Address, crate::ErrCode) {
+		(self.address(), code)
 	}
 }
 
 #[derive(Debug, Default, Copy, Clone)]
 pub struct Attributes {
-	pub source: Source, 
+	pub address: Address, 
 	pub scope: ScopeId,
 }
 
 impl Attributes {
-	pub fn new(source: Source, scope: ScopeId) -> Self {
-		Self { source, scope }
+	pub fn new(address: Address, scope: ScopeId) -> Self {
+		Self { address, scope }
 	}
 }
 
 impl AsNode for Attributes {
-	fn source(&self) -> Source { self.source }
+	fn address(&self) -> Address { self.address }
 	fn scope(&self) -> ScopeId { self.scope }
-	fn set_source(&mut self, source: Source) { self.source = source; }
 	fn set_scope(&mut self, scope: ScopeId) { self.scope = scope; }
 }

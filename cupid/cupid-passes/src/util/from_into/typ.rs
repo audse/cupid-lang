@@ -17,7 +17,7 @@ impl TryFrom<Value> for Type {
 	fn try_from(value: Value) -> PassResult<Type> {
 		match value {
 			Value::VType(typ) => Ok(typ),
-			_ => Err((value.source(), ERR_EXPECTED_TYPE))
+			_ => Err((value.address(), ERR_EXPECTED_TYPE))
 		}
 	}
 }
@@ -27,7 +27,7 @@ impl<'val> TryFrom<&'val Value> for &'val Type {
 	fn try_from(value: &'val Value) -> PassResult<&'val Type> {
 		match &value {
 			Value::VType(typ) => Ok(typ),
-			_ => Err((value.source(), ERR_EXPECTED_TYPE))
+			_ => Err((value.address(), ERR_EXPECTED_TYPE))
 		}
 	}
 }

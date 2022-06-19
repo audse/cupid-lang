@@ -1,5 +1,5 @@
-use cupid_util::InvertOption;
-use crate::{PassResult, scope_analysis as prev_pass, Env, Address, Ident, util, AsNode};
+use cupid_util::{InvertOption, ERR_NOT_FOUND};
+use crate::{PassResult, scope_analysis as prev_pass, Env, Address, Ident, util, AsNode, env::query::Query};
 
 #[cupid_semantics::auto_implement(Vec, Option, Str, Box)]
 pub trait ResolveNames<Output> where Self: Sized {
@@ -40,22 +40,26 @@ impl ResolveNames<Decl> for prev_pass::Decl {
             let Self { ident, type_annotation, mutable, value, attr } = self;
 
             // Make sure the current symbol does not already exist
-            if env.get_symbol(&ident).is_err() {
+            if env.read::<Address>(&Query::from(&ident)).is_none() {
 
                 // If a type annotation is provided, make sure it exists
                 let type_annotation_address = type_annotation
-                    .map(|t| env.get_symbol(&t))
-                    .invert()?;
+                    .map(|t| env.read::<Address>(&Query::from(&t)).ok_or_else(|| t.err(ERR_NOT_FOUND)))
+                    .invert()?
+                    .map(|a| *a);
 
-                let value: crate::PassExpr = (*value.resolve_names(env)?).into();
-
+                let query = Query::<Expr>::build()
+                    .ident(ident)
+                    .expr(*value.resolve_names(env)?)
+                    .mutable(mutable);
+                
                 Ok(Decl::build()
-                    .ident_address(env.set_symbol(ident, value, mutable))
-                    .type_annotation_address(type_annotation_address.map(|x| x.0))
+                    .ident_address(env.insert(query))
+                    .type_annotation_address(type_annotation_address)
                     .attr(attr)
                     .build())
             } else {
-                Err((attr.source, cupid_util::ERR_ALREADY_DEFINED))
+                Err((attr.address, cupid_util::ERR_ALREADY_DEFINED))
             }
         })
     }
@@ -65,10 +69,13 @@ impl ResolveNames<Function> for prev_pass::Function {
     fn resolve_names(self, env: &mut Env) -> PassResult<Function> {
         env.inside_closure(self.attr.scope, |env| {
             let Self { params, body, return_type_annotation, attr } = self;
+
             let return_type_annotation = return_type_annotation
                 .resolve_names(env)?
-                .map(|t| t.address)
-                .flatten();
+                .map(|ident| env.read::<Address>(&Query::from(&ident)).ok_or(ident.err(ERR_NOT_FOUND)))
+                .invert()?
+                .map(|address| *address);
+
             Ok(Function::build()
                 .params(params.resolve_names(env)?)
                 .body(body.resolve_names(env)?)
@@ -85,10 +92,12 @@ impl ResolveNames<Ident> for Ident {
             // if there is a namespace
             if let Some(namespace) = &self.namespace {
                 // make sure the namespaced symbol exists
-                let namespace_address = env.get_symbol(&namespace)?;
+
+                let query = Query::build().ident_ref(&namespace);
+                let namespace_address = env.read::<Address>(&query).ok_or(namespace.err(ERR_NOT_FOUND))?;
 
                 // use the namespace's scope
-                let name_scope = env.symbols.get_symbol(namespace_address.0).unwrap().scope();
+                let name_scope = env.database.read::<Ident>(&Query::from(*namespace_address)).unwrap().scope();
                 env.inside_closure(name_scope, |env| {
                     resolve_ident_names(self, env)
                 })
@@ -101,8 +110,11 @@ impl ResolveNames<Ident> for Ident {
 
 fn resolve_ident_names(ident: Ident, env: &mut Env) -> PassResult<Ident> {
     use crate::{Value::VType, Type};
+
     // make sure symbol exists in scope
-    let address = env.get_symbol(&ident)?; 
+    let address = env
+        .read::<Address>(&Query::from(&ident))
+        .ok_or(ident.err(ERR_NOT_FOUND))?;
     
     let Ident { generics, attr, ..} = ident;
     let generics = generics.resolve_names(env)?;
@@ -110,8 +122,10 @@ fn resolve_ident_names(ident: Ident, env: &mut Env) -> PassResult<Ident> {
     // create symbols for provided generics
     for generic in generics.iter() {
         // TODO see if generic exists
-        let typ: Expr = VType(Type::generic(generic.clone())).into();
-        env.set_symbol(generic.clone(), typ.into(), crate::Mut::Immutable);
+        let expr: Expr = VType(Type::generic(generic.clone())).into();
+        let typ: Type = Type::typ();
+        let query = Query::<Expr>::build().ident(generic.clone()).expr(expr).typ(typ);
+        env.insert(query);
     }
-    Ok(Ident { generics, address: Some(address.0), attr, ..ident })
+    Ok(Ident { generics, attr, ..ident })
 }

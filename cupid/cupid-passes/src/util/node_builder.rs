@@ -83,11 +83,11 @@ macro_rules! node_builder {
                 self.attr = attr;
                 self
             }
-            $v fn build_source(mut self, src: usize) -> Self {
-                self.attr.source = src;
+            $v fn build_address(mut self, address: crate::Address) -> Self {
+                self.attr.address = address;
                 self
             }
-            $v fn build_scope(mut self, scope: usize) -> Self {
+            $v fn build_scope(mut self, scope: crate::ScopeId) -> Self {
                 self.attr.scope = scope;
                 self
             }
@@ -113,14 +113,6 @@ macro_rules! node_builder {
                 self.attr = attr;
                 self
             }
-            $v fn source(mut self, src: usize) -> Self {
-                self.attr.source = src;
-                self
-            }
-            $v fn scope(mut self, scope: usize) -> Self {
-                self.attr.scope = scope;
-                self
-            }
 		}
 			
 		impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? From<$struct_name$(< $( $lt ),+ >)?> for $builder_name $(< $( $lt ),+ >)? {
@@ -142,10 +134,9 @@ macro_rules! node_builder {
 		}
 
 		impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? crate::AsNode for $struct_name$(< $( $lt ),+ >)? {
-			fn source(&self) -> usize { self.attr.source }
-			fn scope(&self) -> usize { self.attr.scope }
-			fn set_source(&mut self, source: usize) { self.attr.source = source; }
-			fn set_scope(&mut self, scope: usize) { self.attr.scope = scope; }
+			fn address(&self) -> crate::Address { self.attr.address }
+			fn scope(&self) -> crate::ScopeId { self.attr.scope }
+			fn set_scope(&mut self, scope: crate::ScopeId) { self.attr.scope = scope; }
 		}
 	};
 }

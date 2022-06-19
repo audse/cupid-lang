@@ -1,5 +1,6 @@
 #![allow(unused_imports, unused)]
 
+use super::env::{*, database::*, query::*};
 use super::*;
 
 pub(super)type TestResult = crate::PassResult<()>;
@@ -51,11 +52,11 @@ pub(super) fn int_typ() -> Type {
 }
 
 pub(super) fn add_typ(env: &mut Env, t: Type) -> PassResult<()> {
-    env.set_symbol(
-        t.name.clone(), 
-        PassExpr::from(NameResolved(VType(t).into())), 
-        Mut::Immutable
-    );
+    let query = Query::<name_resolution::Expr>::build()
+        .ident(t.name.clone())
+        .expr(name_resolution::Expr::from(VType(t)));
+        
+    env.insert(query);
     Ok(())
 }
 

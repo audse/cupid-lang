@@ -42,15 +42,14 @@ macro_rules! completed_node {
         #[derive(Debug, Default, Clone)]
         pub struct $name(pub crate::Attributes);
         impl crate::AsNode for $name {
-            fn source(&self) -> crate::Source { self.0.source }
+            fn address(&self) -> crate::Address { self.0.address }
             fn scope(&self) -> crate::ScopeId { self.0.scope }
-            fn set_source(&mut self, source: crate::Source) { self.0.source = source; }
             fn set_scope(&mut self, scope: crate::ScopeId) { self.0.scope = scope; }
         }
         impl $_trait<$name> for $prev::$name {
             fn $_fn(self, _: &mut crate::Env) -> crate::PassResult<$name> {
                 use crate::AsNode;
-                let attr = crate::Attributes::new(self.source(), self.scope());
+                let attr = crate::Attributes::new(self.address(), self.scope());
                 Ok($name(attr))
             }
         }

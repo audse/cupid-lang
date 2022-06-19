@@ -1,5 +1,5 @@
 use cupid_util::ERR_EXPECTED_TYPE;
-use crate::{env::symbol_table::SymbolType, Type, Address, PassErr, PassResult};
+use crate::{env::SymbolType, Type, Address, PassErr, PassResult};
 
 impl TryFrom<SymbolType> for Type {
     type Error = PassErr;

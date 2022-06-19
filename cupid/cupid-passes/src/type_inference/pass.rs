@@ -1,6 +1,6 @@
 use cupid_types::infer::Infer;
-use cupid_util::InvertOption;
-use crate::{name_resolution as prev_pass, PassResult, util, Env, Value, Address, AsNode, Ident};
+use cupid_util::{InvertOption, ERR_NOT_FOUND};
+use crate::{name_resolution as prev_pass, PassResult, util, Env, Value, Address, AsNode, Ident, env::{query::Query, SymbolType}, env::database::WriteRowExpr};
 
 /// Stores the inferred type of a node in the environment, accessible by the node's `source` attribute
 #[cupid_semantics::auto_implement(Vec, Option, Box)]
@@ -34,18 +34,26 @@ crate::util::impl_default_passes! {
 impl InferTypes<Decl> for prev_pass::Decl {
     fn infer_types(self, env: &mut Env) -> PassResult<Decl> {
         // set type of decl node
-        env.symbols.set_type(self.source(), self.infer());
+
+        let query = Query::build()
+            .address(self.address())
+            .typ(self.infer());
+        env.write::<Expr>(query).ok_or(self.err(ERR_NOT_FOUND))?;
 
         // create new decl
         let Self { ident_address, type_annotation_address, attr } = self;
         let decl = Decl { ident_address, type_annotation_address, attr };
 
+
         // do pass on stored value
-        env.modify_symbol(ident_address, |env, value: crate::PassExpr| {
-            let expr: prev_pass::Expr = value.try_into()?;
-            let new_value = expr.infer_types(env)?;
-            Ok(crate::PassExpr::TypeInferred(new_value))
-        })?;
+        env.write_pass::<Expr, _>(
+            Query::<Expr>::build().address(ident_address), 
+            |env, mut row_expr| {
+                let prev_pass = std::mem::take(&mut row_expr.name_resolution).ok_or(self.err(ERR_NOT_FOUND))?;
+                WriteRowExpr::<Expr>::write(&mut row_expr, prev_pass.infer_types(env)?);
+                Ok(row_expr)
+            }
+        )?;
 
         Ok(decl)
     }
@@ -59,17 +67,31 @@ impl InferTypes<Function> for prev_pass::Function {
 
 impl InferTypes<Ident> for Ident {
     fn infer_types(self, env: &mut Env) -> PassResult<Ident> {
-        let Self { generics, address, attr, ..} = self;
-        let value = env.symbols.get_symbol(address.unwrap()).unwrap();
-        let typ = env.symbols.get_type(value.source()).unwrap().clone();
-        env.symbols.set_type(attr.source, typ);
-        Ok(Self { generics: generics.infer_types(env)?, address, attr, ..self})
+
+        // get the value corresponding to the current identifier
+        let value = env
+            .read::<Option<Expr>>(&Query::from(&self))
+            .ok_or(self.err(ERR_NOT_FOUND))? // make sure `read` worked
+            .as_ref() 
+            .ok_or(self.err(ERR_NOT_FOUND))?; // unwrap `Expr`
+        
+        // find the value's row and get its type
+        let value_type = env
+            .read::<SymbolType>(&Query::from(value.address()))
+            .ok_or(self.err(ERR_NOT_FOUND))?;
+        
+        // write the type to the current identifier's row
+        let query = Query::from(self.attr.address).typ(value_type.clone());
+        env.write(query).ok_or(self.err(ERR_NOT_FOUND))?;
+
+        Ok(Self { generics: self.generics.infer_types(env)?, attr: self.attr, ..self})
     }
 }
 
 impl InferTypes<Value> for Value {
     fn infer_types(self, env: &mut Env) -> PassResult<Value> {
-        env.symbols.set_type(self.source(), self.infer());
+        let query = Query::from(self.address()).typ(self.infer());
+        env.write(query).ok_or(self.err(ERR_NOT_FOUND))?;
         Ok(self)
     }
 }

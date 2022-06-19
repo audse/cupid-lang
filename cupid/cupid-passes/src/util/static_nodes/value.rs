@@ -44,8 +44,7 @@ impl Value {
 }
 
 impl crate::AsNode for Value {
-	fn source(&self) -> crate::Source { self.attr().source() }
+	fn address(&self) -> crate::Address { self.attr().address() }
 	fn scope(&self) -> crate::ScopeId { self.attr().scope() }
-	fn set_source(&mut self, source: crate::Source) { self.attr_mut().source = source }
 	fn set_scope(&mut self, scope: crate::ScopeId) { self.attr_mut().scope = scope }
 }
