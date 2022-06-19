@@ -1,18 +1,19 @@
 #![allow(unused_variables)]
-#![feature(derive_default_enum, is_some_with, trait_alias)]
+#![feature(derive_default_enum, is_some_with)]
+
+pub(self) use cupid_util::ErrCode;
 
 pub mod env;
-pub(crate) use env::{Address, Source, ScopeId, Env, Mut};
+pub(self) use env::{Address, ScopeId, Env, Mut, database::Query};
 
 pub mod tests;
 
-pub mod util;
-pub(crate) use util::attributes::*;
-pub(crate) use util::static_nodes::*;
+pub(self) mod util;
+pub(self) use util::attributes::*;
+pub(self) use util::static_nodes::*;
 
-pub type PassErr = (Source, ErrCode);
+pub type PassErr = (Address, ErrCode);
 pub type PassResult<T> = Result<T, PassErr>;
-pub type ErrCode = usize;
 
 /// Each AST pass takes a node from the previous pass and transforms it
 /// # Stages

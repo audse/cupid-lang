@@ -33,13 +33,13 @@ impl AnalyzeTypeScope<Ident> for Ident {
     fn analyze_type_scope(self, env: &mut Env) -> PassResult<Ident> {
         Ok(self
             .pass(AnalyzeTypeScope::analyze_type_scope, Self::analyze_type_scope, env)?
-            .build_scope(env.state.closure()))
+            .build_scope(env.scope.state.closure()))
     }
 }
 
 impl AnalyzeTypeScope<TypeDef> for prev_pass::TypeDef {
     fn analyze_type_scope(self, env: &mut Env) -> PassResult<TypeDef> {
-        let scope = env.add_toplevel_closure(Context::Type);
+        let scope = env.scope.add_toplevel_closure(Context::Type);
         env.inside_closure(scope, |env| {
             Ok(self.pass(env)?.build_scope(scope))
         })

@@ -1,32 +1,4 @@
-use crate::{AsNode, pre_analysis, package_resolution, type_scope_analysis, type_name_resolution, scope_analysis, name_resolution, type_inference, type_checking, flow_checking, linting};
-
-macro_rules! impl_try_from_expr_for_node {
-    ( $( $pass:ident ),* ) => {
-        $(
-            crate::util::from_into::expr::impl_try_from_expr_for_node! {
-                impl TryFrom<$pass::Expr> for crate::Block <$pass::Expr>;
-                impl TryFrom<$pass::Expr> for $pass::Decl;
-                impl TryFrom<$pass::Expr> for $pass::Function;
-                impl TryFrom<$pass::Expr> for crate::Ident;
-                impl TryFrom<$pass::Expr> for $pass::TypeDef;
-                impl TryFrom<$pass::Expr> for crate::Value;
-            }
-        )*
-    };
-    ( $( impl TryFrom<$pass:ident :: Expr> for $node_pass:ident :: $node:ident $( <$($generics:ty),*> )?; )* ) => {
-        $(
-            impl TryFrom<crate::$pass::Expr> for $node_pass::$node  $( <$($generics),*> )? {
-                type Error = crate::PassErr;
-                fn try_from(value: crate::$pass::Expr) -> crate::PassResult<$node_pass::$node $( <$($generics),*> )?> {
-                    match value {
-                        crate::$pass::Expr::$node(x) => Ok(x),
-                        _ => Err(value.err(cupid_util::ERR_EXPECTED_EXPRESSION))
-                    }
-                }
-            }
-        )*
-    };
-}
+use crate::{pre_analysis, package_resolution, type_scope_analysis, type_name_resolution, scope_analysis, name_resolution, type_inference, type_checking, flow_checking, linting};
 
 macro_rules! impl_from_node_for_expr {
     ( $( $pass:ident ),* ) => {
@@ -57,20 +29,7 @@ macro_rules! impl_from_node_for_expr {
     () => {};
 }
 
-pub(crate) use {impl_try_from_expr_for_node, impl_from_node_for_expr};
-
-impl_try_from_expr_for_node! {
-    pre_analysis, 
-    package_resolution,
-    type_scope_analysis,
-    type_name_resolution,
-    scope_analysis,
-    name_resolution,
-    type_inference,
-    type_checking,
-    flow_checking,
-    linting
-}
+pub(crate) use impl_from_node_for_expr;
 
 impl_from_node_for_expr! { 
     pre_analysis, 

@@ -1,5 +1,5 @@
 use crate::{Address, Ident, Mut, env::SymbolType};
-use super::database::{RowExpr, WriteRowExpr};
+use super::row::*;
 
 #[derive(Debug, Default, Clone)]
 pub struct Query<'q, V: Default> where RowExpr: WriteRowExpr<V> {
@@ -43,13 +43,7 @@ impl<'q, V: Default> Query<'q, V> where RowExpr: WriteRowExpr<V> {
     pub fn to_read_only(&self) -> Query<()> {
         Query::<()> { 
             address: self.address, 
-            ident_ref: if let Some(ident_ref) = self.ident_ref { 
-                Some(ident_ref) 
-            } else if let Some(ident) = &self.ident {
-                Some(ident)
-            } else {
-                None
-            }, 
+            ident_ref: self.ident_ref.or(self.ident.as_ref()),
             ..Default::default() 
         }
     }
@@ -70,5 +64,22 @@ impl<'q> From<&'q Ident> for Query<'q, ()> {
 impl From<Address> for Query<'_, ()> {
     fn from(address: Address) -> Self {
         Self::build().address(address)
+    }
+}
+
+impl<V: Default> crate::AsNode for Query<'_, V> where RowExpr: WriteRowExpr<V> {
+    fn address(&self) -> Address { 
+        self.address
+            .or(self.ident.as_ref().map(|i| i.address()))
+            .or(self.ident_ref.map(|i| i.address()))
+            .unwrap_or_default()
+    }
+    fn scope(&self) -> crate::ScopeId {
+        self.ident.as_ref().map(|i| i.scope())
+            .or(self.ident_ref.map(|i| i.address()))
+            .unwrap_or_default()
+    }
+    fn set_scope(&mut self, scope: crate::ScopeId) {
+        unreachable!()
     }
 }

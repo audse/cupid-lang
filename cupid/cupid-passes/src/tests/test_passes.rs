@@ -38,7 +38,7 @@ fn test_already_declared() -> TestResult {
 #[test]
 fn test_outside_scope() -> TestResult {
     let mut env = env();
-    env.add_closure(env::Context::Block);
+    env.scope.add_closure(env::Context::Block);
     env.inside_closure(1, |env| {
         let decl = decl_val("x", int(1));
         let decl = pass(decl, env)?;

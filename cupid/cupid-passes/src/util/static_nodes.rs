@@ -6,7 +6,6 @@ pub(crate) use field::*;
 
 pub mod ident;
 pub(crate) use ident::*;
-// pub(crate) use ident::IsTyped::*;
 
 pub mod typ;
 pub(crate) use typ::*;

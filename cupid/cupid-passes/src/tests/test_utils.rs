@@ -1,6 +1,6 @@
 #![allow(unused_imports, unused)]
 
-use super::env::{*, database::*, query::*};
+use super::env::{*, database::*};
 use super::*;
 
 pub(super)type TestResult = crate::PassResult<()>;

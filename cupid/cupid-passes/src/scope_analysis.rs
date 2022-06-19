@@ -30,7 +30,7 @@ crate::util::impl_default_passes! {
 
 impl AnalyzeScope<crate::Block<Expr>> for crate::Block<prev_pass::Expr> {
     fn analyze_scope(self, env: &mut Env) -> PassResult<crate::Block<Expr>> {
-        let scope = env.add_scope(Context::Block);
+        let scope = env.scope.add_scope(Context::Block);
         env.inside_closure(scope, |env| {
             Ok(self
                 .pass(Vec::<prev_pass::Expr>::analyze_scope, env)?
@@ -41,13 +41,13 @@ impl AnalyzeScope<crate::Block<Expr>> for crate::Block<prev_pass::Expr> {
 
 impl AnalyzeScope<Decl> for prev_pass::Decl {
     fn analyze_scope(self, env: &mut Env) -> PassResult<Decl> {
-        Ok(self.pass(env)?.build_scope(env.state.closure()))
+        Ok(self.pass(env)?.build_scope(env.scope.state.closure()))
     }
 }
 
 impl AnalyzeScope<Function> for prev_pass::Function {
     fn analyze_scope(self, env: &mut Env) -> PassResult<Function> {
-        let scope = env.add_closure(Context::Function);
+        let scope = env.scope.add_closure(Context::Function);
         env.inside_closure(scope, |env| Ok(self.pass(env)?.build_scope(scope)))
     }
 }
@@ -58,7 +58,7 @@ impl AnalyzeScope<Ident> for Ident {
         self.attr.scope = self.namespace
             .as_ref()
             .map(|n| n.attr.scope)
-            .unwrap_or(env.state.closure());
+            .unwrap_or(env.scope.state.closure());
         env.inside_closure(self.attr.scope, |env| {
             self.generics = self.generics.analyze_scope(env)?;
             Ok(self)
@@ -68,7 +68,7 @@ impl AnalyzeScope<Ident> for Ident {
 
 impl AnalyzeScope<crate::Value> for crate::Value {
     fn analyze_scope(mut self, env: &mut Env) -> PassResult<crate::Value> {
-        self.attr_mut().set_scope(env.state.closure());
+        self.attr_mut().set_scope(env.scope.state.closure());
         Ok(self)
     }
 }

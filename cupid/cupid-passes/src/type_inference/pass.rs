@@ -1,8 +1,8 @@
 use cupid_types::infer::Infer;
 use cupid_util::{InvertOption, ERR_NOT_FOUND};
-use crate::{name_resolution as prev_pass, PassResult, util, Env, Value, Address, AsNode, Ident, env::{query::Query, SymbolType}, env::database::WriteRowExpr};
+use crate::{name_resolution as prev_pass, PassResult, util, Env, Value, Address, AsNode, Ident, env::SymbolType, Query};
 
-/// Stores the inferred type of a node in the environment, accessible by the node's `source` attribute
+/// Stores the inferred type of a node in the environment database
 #[cupid_semantics::auto_implement(Vec, Option, Box)]
 pub trait InferTypes<Output> where Self: Sized {
     fn infer_types(self, env: &mut Env) -> PassResult<Output>;
@@ -33,12 +33,11 @@ crate::util::impl_default_passes! {
 
 impl InferTypes<Decl> for prev_pass::Decl {
     fn infer_types(self, env: &mut Env) -> PassResult<Decl> {
-        // set type of decl node
 
-        let query = Query::build()
+        // set type of decl node
+        env.write::<Expr>(Query::build()
             .address(self.address())
-            .typ(self.infer());
-        env.write::<Expr>(query).ok_or(self.err(ERR_NOT_FOUND))?;
+            .typ(self.infer()))?;
 
         // create new decl
         let Self { ident_address, type_annotation_address, attr } = self;
@@ -46,12 +45,10 @@ impl InferTypes<Decl> for prev_pass::Decl {
 
 
         // do pass on stored value
-        env.write_pass::<Expr, _>(
+        env.write_pass::<Expr, _, prev_pass::Expr>(
             Query::<Expr>::build().address(ident_address), 
-            |env, mut row_expr| {
-                let prev_pass = std::mem::take(&mut row_expr.name_resolution).ok_or(self.err(ERR_NOT_FOUND))?;
-                WriteRowExpr::<Expr>::write(&mut row_expr, prev_pass.infer_types(env)?);
-                Ok(row_expr)
+            |env, prev_expr| {
+                prev_expr.infer_types(env)
             }
         )?;
 
@@ -70,19 +67,17 @@ impl InferTypes<Ident> for Ident {
 
         // get the value corresponding to the current identifier
         let value = env
-            .read::<Option<Expr>>(&Query::from(&self))
-            .ok_or(self.err(ERR_NOT_FOUND))? // make sure `read` worked
+            .read::<Option<Expr>>(&Query::from(&self))? // make sure `read` worked
             .as_ref() 
             .ok_or(self.err(ERR_NOT_FOUND))?; // unwrap `Expr`
         
         // find the value's row and get its type
         let value_type = env
-            .read::<SymbolType>(&Query::from(value.address()))
-            .ok_or(self.err(ERR_NOT_FOUND))?;
+            .read::<SymbolType>(&Query::from(value.address()))?;
         
         // write the type to the current identifier's row
         let query = Query::from(self.attr.address).typ(value_type.clone());
-        env.write(query).ok_or(self.err(ERR_NOT_FOUND))?;
+        env.write(query)?;
 
         Ok(Self { generics: self.generics.infer_types(env)?, attr: self.attr, ..self})
     }
@@ -91,7 +86,7 @@ impl InferTypes<Ident> for Ident {
 impl InferTypes<Value> for Value {
     fn infer_types(self, env: &mut Env) -> PassResult<Value> {
         let query = Query::from(self.address()).typ(self.infer());
-        env.write(query).ok_or(self.err(ERR_NOT_FOUND))?;
+        env.write(query)?;
         Ok(self)
     }
 }

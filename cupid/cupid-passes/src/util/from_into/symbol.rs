@@ -6,7 +6,7 @@ impl TryFrom<SymbolType> for Type {
     fn try_from(value: SymbolType) -> PassResult<Type> {
         match value {
             SymbolType::Type(t) => Ok(t),
-            _ => Err((0, ERR_EXPECTED_TYPE))
+            SymbolType::Address(a) => Err((a, ERR_EXPECTED_TYPE))
         }
     }
 }

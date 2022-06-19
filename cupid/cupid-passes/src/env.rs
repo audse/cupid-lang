@@ -1,13 +1,9 @@
-pub(super) mod closure;
-
 pub mod database;
 
 pub mod environment;
 pub(crate) use environment::*;
 
-pub mod query;
-
-pub(super) mod state;
+pub mod scope;
 
 #[derive(Debug, Clone)]
 pub enum SymbolType {
