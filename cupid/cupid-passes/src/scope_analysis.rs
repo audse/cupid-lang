@@ -2,7 +2,7 @@ use cupid_util::InvertOption;
 
 use crate::{env::environment::Context, type_name_resolution as prev_pass, util, Env, Ident, PassResult, AsNode};
 
-#[cupid_semantics::auto_implement(Vec, Option, Str, Box)]
+#[auto_implement::auto_implement(Vec, Option, Str, Box)]
 pub trait AnalyzeScope<Output>
 where
     Self: Sized,

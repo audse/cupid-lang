@@ -7,7 +7,7 @@ use crate::{
     Env
 };
 
-#[cupid_semantics::auto_implement(Vec, Option, Str, Box)]
+#[auto_implement::auto_implement(Vec, Option, Str, Box)]
 pub trait ResolvePackages<Output> where Self: Sized {
     fn resolve_packages(self, env: &mut Env) -> PassResult<Output>;
 }

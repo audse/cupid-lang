@@ -8,5 +8,6 @@ edition = "2021"
 [dependencies]
 cupid_ast = { path = '../cupid-ast' }
 cupid_lex = { path = '../cupid-lex' }
+cupid_passes = { path = '../cupid-passes' }
 cupid_scope = { path = '../cupid-scope' }
 cupid_util = { path = '../cupid-util' }

@@ -3,7 +3,7 @@ use cupid_util::{InvertOption, ERR_NOT_FOUND};
 use crate::{name_resolution as prev_pass, PassResult, util, Env, Value, Address, AsNode, Ident, env::SymbolType, Query};
 
 /// Stores the inferred type of a node in the environment database
-#[cupid_semantics::auto_implement(Vec, Option, Box)]
+#[auto_implement::auto_implement(Vec, Option, Box)]
 pub trait InferTypes<Output> where Self: Sized {
     fn infer_types(self, env: &mut Env) -> PassResult<Output>;
 }

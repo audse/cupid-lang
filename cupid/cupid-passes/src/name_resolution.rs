@@ -1,7 +1,7 @@
 use cupid_util::InvertOption;
 use crate::{PassResult, scope_analysis as prev_pass, Env, Address, Ident, util, AsNode, Query};
 
-#[cupid_semantics::auto_implement(Vec, Option, Str, Box)]
+#[auto_implement::auto_implement(Vec, Option, Str, Box)]
 pub trait ResolveNames<Output> where Self: Sized {
     fn resolve_names(self, env: &mut Env) -> PassResult<Output>;
 }

@@ -14,6 +14,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "auto-implement"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -85,32 +94,17 @@ checksum = "6245d59a3e82a7fc217c5828a6692dbc6dfb63a0c8c90495621f7b9d79704a0e"
 name = "cupid"
 version = "0.1.0"
 dependencies = [
+ "auto-implement",
  "clap",
  "colored",
- "cupid_analysis",
- "cupid_ast",
  "cupid_builder",
  "cupid_debug",
  "cupid_lex",
  "cupid_parse",
  "cupid_passes",
  "cupid_scope",
- "cupid_semantics",
  "cupid_trace",
  "cupid_types",
- "cupid_util",
-]
-
-[[package]]
-name = "cupid_analysis"
-version = "0.1.0"
-dependencies = [
- "cupid_ast",
- "cupid_builder",
- "cupid_debug",
- "cupid_scope",
- "cupid_semantics",
- "cupid_trace",
  "cupid_util",
 ]
 
@@ -126,9 +120,6 @@ dependencies = [
 [[package]]
 name = "cupid_builder"
 version = "0.1.0"
-dependencies = [
- "cupid_ast",
-]
 
 [[package]]
 name = "cupid_debug"
@@ -155,6 +146,7 @@ version = "0.1.0"
 dependencies = [
  "cupid_ast",
  "cupid_lex",
+ "cupid_passes",
  "cupid_scope",
  "cupid_util",
 ]
@@ -163,7 +155,7 @@ dependencies = [
 name = "cupid_passes"
 version = "0.1.0"
 dependencies = [
- "cupid_semantics",
+ "auto-implement",
  "cupid_types",
  "cupid_util",
  "derive_more",
@@ -178,15 +170,6 @@ dependencies = [
  "cupid_lex",
  "cupid_trace",
  "cupid_util",
-]
-
-[[package]]
-name = "cupid_semantics"
-version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]

@@ -9,7 +9,7 @@ pub struct Tokenizer {
 	pub line: usize,
 	pub line_index: usize,
 	pub bracket_stack: Vec<char>,
-	pub file: usize
+	pub file: usize,
 }
 
 const OPEN: [char; 3] = ['[', '(', '{'];

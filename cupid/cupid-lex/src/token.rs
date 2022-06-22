@@ -74,14 +74,3 @@ impl Display for Token {
 		writeln!(f, "`{}`", self.source)
 	}
 }
-
-pub struct TokenList(Vec<Token>);
-
-impl Display for TokenList {
-	fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
-		_ = writeln!(f, "Tokens:");
-		self.0.iter().for_each(|t| { _ = write!(f, "{}", t); });
-		_ = writeln!(f);
-		Ok(())
-	}
-}

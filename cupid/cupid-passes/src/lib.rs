@@ -21,7 +21,7 @@ pub(self) use env::{Address, ScopeId, Env, Mut, database::{Query, ReadQuery, Wri
 
 mod tests;
 
-pub(self) mod util;
+pub mod util;
 pub(self) use util::attributes::*;
 pub(self) use util::static_nodes::*;
 

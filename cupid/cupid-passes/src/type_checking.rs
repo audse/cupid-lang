@@ -2,7 +2,7 @@
 use cupid_util::InvertOption;
 use crate::{type_inference as prev_pass, util, PassResult, Env};
 
-#[cupid_semantics::auto_implement(Vec, Option, Box)]
+#[auto_implement::auto_implement(Vec, Option, Box)]
 pub trait CheckTypes<Output> where Self: Sized {
     fn check_types(self, env: &mut Env) -> PassResult<Output>;
 }

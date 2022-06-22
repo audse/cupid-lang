@@ -56,31 +56,11 @@ pub trait Parser {
 	}
 	
 	#[inline]
-	fn expect_parse_word(&mut self) -> Option<Token> {
-		if let Some(next) = self.tokens().peek(0) {
-			if is_identifier(&next.source) {
-				return Some(self.tokens().next().unwrap())
-			}
-		}
-		None
-	}
-	
-	#[inline]
 	fn expect_string(&mut self) -> Option<(ParseNode, bool)> {
 		if let Some(next) = self.tokens().peek(0) {
 			if is_string(&next.source) {
 				let token = self.tokens().next().unwrap();
 				return Some(((token, "string").into(), true));
-			}
-		}
-		None
-	}
-	
-	#[inline]
-	fn expect_parse_string(&mut self) -> Option<Token> {
-		if let Some(next) = self.tokens().peek(0) {
-			if is_string(&next.source) {
-				return Some(self.tokens().next().unwrap())
 			}
 		}
 		None
@@ -98,31 +78,11 @@ pub trait Parser {
 	}
 	
 	#[inline]
-	fn expect_parse_letter(&mut self) -> Option<Token> {
-		if let Some(next) = self.tokens().peek(0) {
-			if next.source.len() == 1 {
-				return Some(self.tokens().next().unwrap());
-			}
-		}
-		None
-	}
-	
-	#[inline]
 	fn expect_number(&mut self) -> Option<(ParseNode, bool)> {
 		if let Some(next) = self.tokens().peek(0) {
 			if is_number(&next.source) {
 				let token = self.tokens().next().unwrap();
 				return Some(((token, "number").into(), true));
-			}
-		}
-		None
-	}
-	
-	#[inline]
-	fn expect_parse_number(&mut self) -> Option<Token> {
-		if let Some(next) = self.tokens().peek(0) {
-			if is_number(&next.source) {
-				return self.tokens().next()
 			}
 		}
 		None

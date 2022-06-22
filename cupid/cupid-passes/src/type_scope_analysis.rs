@@ -3,7 +3,7 @@ use cupid_util::InvertOption;
 
 use crate::{package_resolution as prev_pass, PassResult, Env, env::Context, util, Ident};
 
-#[cupid_semantics::auto_implement(Vec, Option, Str, Box)]
+#[auto_implement::auto_implement(Vec, Option, Str, Box)]
 pub trait AnalyzeTypeScope<Output> where Self: Sized {
     fn analyze_type_scope(self, env: &mut Env) -> PassResult<Output>;
 }

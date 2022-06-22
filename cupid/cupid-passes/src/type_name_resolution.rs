@@ -3,7 +3,7 @@ use cupid_util::{InvertOption, Bx, ERR_ALREADY_DEFINED};
 
 use crate::{type_scope_analysis as prev_pass, AsNode, PassResult, Env, Address, Field, util, Query, Type, env::SymbolType};
 
-#[cupid_semantics::auto_implement(Vec, Option, Str, Box)]
+#[auto_implement::auto_implement(Vec, Option, Str, Box)]
 pub trait ResolveTypeNames<Output> where Self: Sized {
     fn resolve_type_names(self, env: &mut Env) -> PassResult<Output>;
 }
