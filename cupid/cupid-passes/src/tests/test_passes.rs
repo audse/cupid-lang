@@ -45,8 +45,7 @@ fn test_outside_scope() -> TestResult {
         Ok(())
     })?;
     env.inside_closure(0, |env| {
-        // assert!(env.get_symbol(&ident("x")).is(ERR_NOT_FOUND));
-        todo!();
+        assert!(env.read::<Address>(&Query::select(ident("x"))).is(ERR_NOT_IN_SCOPE));
         Ok(())
     })
 }
@@ -54,7 +53,7 @@ fn test_outside_scope() -> TestResult {
 #[test]
 fn test_undefined_typ() -> TestResult {
     let mut env = env();
-    let decl = decl_val("x", int(1));
+    let decl = typed_decl("x", "newtype");
     assert!(pass(decl, &mut env).is(ERR_NOT_FOUND));
     Ok(())
 }
@@ -65,11 +64,11 @@ fn test_decl_none_typ() -> TestResult {
     add_typ(&mut env, int_typ());
 
     let mut decl = decl_val("x", int(1));
-    decl.attr.address = 10;
+    let address = env.insert::<pre_analysis::Expr>(Query::insert().write_expr(decl.clone()));
+    decl.attr.address = address;
 
     let mut decl = pass(decl, &mut env)?;
-    // let decl_type: Type = env.symbols.get_type(decl.address()).unwrap().clone().try_into()?;
-    // assert_eq!(decl_type.name.name.to_string(), "none".to_string());
-    todo!();
+    let decl_type: &Type = env.read::<env::SymbolType>(&Query::select(decl.address()))?.try_into()?;
+    assert_eq!(decl_type.name.name.to_string(), "none".to_string());
     Ok(())
 }

@@ -52,9 +52,7 @@ pub(super) fn int_typ() -> Type {
 }
 
 pub(super) fn add_typ(env: &mut Env, t: Type) -> PassResult<()> {
-    let query = Query::<name_resolution::Expr>::build()
-        .ident(t.name.clone())
-        .expr(name_resolution::Expr::from(VType(t)));
+    let query = Query::<name_resolution::Expr>::select(t.name.clone()).write_expr(VType(t));
         
     env.insert(query);
     Ok(())

@@ -1,5 +1,5 @@
 use super::row::*;
-use crate::{Address, Query};
+use crate::{Address, ReadQuery, WriteQuery, Query};
 
 #[derive(Debug, Default, Clone)]
 pub struct Database {
@@ -17,25 +17,25 @@ impl Database {
         self.rows.len() - 1
     }
 
-    pub fn read<Col: Selector>(&self, query: &Query<()>) -> Option<&Col> { 
-        let row = self.rows.iter().find(|row| row.matches_query(query))?;
+    pub fn read<'db: 'q, 'q, Col: Selector>(&'db self, query: &'q ReadQuery<'q>) -> Option<&'db Col> { 
+        let row = self.rows.iter().find(|row| row.matches_query(&query))?;
         Some(Col::select(row))
     }
 
-    pub fn write<V: Default>(&mut self, query: Query<V>) -> Option<()> 
+    pub fn index<'db>(&'db mut self, query: &'db ReadQuery<'db>) -> Option<usize> {
+        self.rows.iter_mut().position(|row| row.matches_query(query))
+    }
+
+    pub fn write<'db, V: Default>(&'db mut self, read_query: ReadQuery<'db>, write_query: WriteQuery<V>) -> Option<()> 
         where RowExpr: WriteRowExpr<V> 
     {
-        let row = self.rows.iter_mut().find(|row| row.matches_query(&query))?;
-        row.unify(query);
+        self.rows.iter_mut().find(|row| row.matches_query(&read_query))?.unify(write_query);
         Some(())
     }
 
-    pub fn take<Col: Selector + Default>(&mut self, query: &Query<()>) -> Option<Col> {
-        self.rows.iter_mut()
-            .find(|row| row.matches_query(&query))
-            .map(|row| {
-                let col = Col::select_mut(row);
-                std::mem::take(col)
-            })
+    pub fn take<'db, Col: Selector + Default>(&'db mut self, query: &'db ReadQuery<'db>) -> Option<Col> {
+        let row = self.rows.iter_mut().find(|row| row.matches_query(&query))?;
+        let col = Col::select_mut(row);
+        Some(std::mem::take(col))
     }
 }

@@ -35,9 +35,7 @@ impl InferTypes<Decl> for prev_pass::Decl {
     fn infer_types(self, env: &mut Env) -> PassResult<Decl> {
 
         // set type of decl node
-        env.write::<Expr>(Query::build()
-            .address(self.address())
-            .typ(self.infer()))?;
+        env.write::<Expr>(Query::<Expr>::select(self.address()).write(self.infer()))?;
 
         // create new decl
         let Self { ident_address, type_annotation_address, attr } = self;
@@ -46,7 +44,7 @@ impl InferTypes<Decl> for prev_pass::Decl {
 
         // do pass on stored value
         env.write_pass::<Expr, _, prev_pass::Expr>(
-            Query::<Expr>::build().address(ident_address), 
+            Query::<Expr>::select(ident_address), 
             |env, prev_expr| {
                 prev_expr.infer_types(env)
             }
@@ -67,16 +65,16 @@ impl InferTypes<Ident> for Ident {
 
         // get the value corresponding to the current identifier
         let value = env
-            .read::<Option<Expr>>(&Query::from(&self))? // make sure `read` worked
+            .read::<Option<Expr>>(&Query::select(&self))? // make sure `read` worked
             .as_ref() 
             .ok_or(self.err(ERR_NOT_FOUND))?; // unwrap `Expr`
         
         // find the value's row and get its type
         let value_type = env
-            .read::<SymbolType>(&Query::from(value.address()))?;
+            .read::<SymbolType>(&Query::select(value.address()))?;
         
         // write the type to the current identifier's row
-        let query = Query::from(self.attr.address).typ(value_type.clone());
+        let query = Query::<Expr>::select(self.attr.address).write(value_type.clone());
         env.write(query)?;
 
         Ok(Self { generics: self.generics.infer_types(env)?, attr: self.attr, ..self})
@@ -85,7 +83,7 @@ impl InferTypes<Ident> for Ident {
 
 impl InferTypes<Value> for Value {
     fn infer_types(self, env: &mut Env) -> PassResult<Value> {
-        let query = Query::from(self.address()).typ(self.infer());
+        let query = Query::<Expr>::select(self.address()).write(self.infer());
         env.write(query)?;
         Ok(self)
     }

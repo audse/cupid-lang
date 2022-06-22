@@ -5,7 +5,7 @@ use super::{
     database::{row::*, Database},
     scope::scope::Scope,
 };
-use crate::{AsNode, PassResult};
+use crate::{ReadQuery, AsNode, PassResult};
 
 pub type Address = usize;
 pub type ScopeId = usize;
@@ -63,11 +63,8 @@ impl Env {
         address
     }
 
-    pub fn read<Col: Selector>(&self, query: &Query<()>) -> PassResult<&Col> {
-        let row = self
-            .database
-            .read::<Row>(query)
-            .ok_or(query.err(ERR_NOT_FOUND))?;
+    pub fn read<'env: 'q, 'q, Col: Selector>(&'env self, query: &'q Query<'q, ()>) -> PassResult<&Col> {
+        let row = self.database.read::<Row>(&query.read).ok_or(query.err(ERR_NOT_FOUND))?;
         if self.scope.is_in_scope(row.address) {
             Ok(Col::select(row))
         } else {
@@ -75,35 +72,35 @@ impl Env {
         }
     }
 
-    pub fn write<V: Default>(&mut self, query: Query<V>) -> PassResult<()>
+    pub fn write<'env: 'q, 'q, V: Default>(&'env mut self, query: Query<'q, V>) -> PassResult<()>
     where
         RowExpr: WriteRowExpr<V>,
     {
-        let address = read_address(&mut self.database, &query.to_read_only())?;
+        let address = read_address(&mut self.database, &query.read)?;
         if self.scope.is_in_scope(address) {
-            self.database.write(query);
+            self.database.write(query.read, query.write);
             Ok(())
         } else {
             Err(query.err(ERR_NOT_IN_SCOPE))
         }
     }
 
-    pub fn write_pass<V: Default, F: FnOnce(&mut Env, Prev) -> PassResult<V>, Prev>(
-        &mut self,
-        query: Query<V>,
+    pub fn write_pass<'env: 'q, 'q, V: Default, F: FnOnce(&mut Env, Prev) -> PassResult<V>, Prev>(
+        &'env mut self,
+        query: Query<'q, V>,
         closure: F,
     ) -> PassResult<()>
     where
         RowExpr: WriteRowExpr<V> + WriteRowExpr<Prev>,
         RowExpr: TakeRowExpr<Prev>,
     {
-        let read_query = query.to_read_only();
-        let address = read_address(&mut self.database, &read_query)?;
+        let address = read_address(&mut self.database, &query.read)?;
         if self.scope.is_in_scope(address) {
-            let mut expr = self.database.take::<RowExpr>(&read_query).unwrap();
+            let mut expr = self.database.take::<RowExpr>(&query.read).unwrap();
             let col: Prev = expr.take().unwrap();
             expr.write(closure(self, col)?);
-            self.database.write::<RowExpr>(Query::<RowExpr>::build().address(address).expr(expr));
+            let query = Query::<RowExpr>::select(address).write_expr(expr);
+            self.database.write::<RowExpr>(query.read, query.write);
             Ok(())
         } else {
             Err(query.err(ERR_NOT_IN_SCOPE))
@@ -111,7 +108,7 @@ impl Env {
     }
 }
 
-fn read_address(database: &mut Database, query: &Query<()>) -> PassResult<Address> {
+fn read_address<'db: 'q, 'q>(database: &'db mut Database, query: &'q ReadQuery<'q>) -> PassResult<Address> {
     database
         .read::<Address>(query)
         .map(|address| *address)

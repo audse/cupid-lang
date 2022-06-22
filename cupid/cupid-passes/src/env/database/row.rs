@@ -1,4 +1,6 @@
-use crate::{Address, Ident, Mut, env::SymbolType, Query};
+use crate::{Address, Ident, Mut, env::SymbolType, Query, ReadQuery, WriteQuery};
+
+use super::FilterFn;
 
 #[derive(Debug, Default, Clone)]
 pub struct Row {
@@ -17,12 +19,18 @@ impl PartialEq for Row {
 }
 
 impl Row {
-    pub(super) fn matches_query<V: Default>(&self, query: &Query<V>) -> bool where RowExpr: WriteRowExpr<V> {
-        let Query { address, ident, ident_ref, ..} = query;
-        self.select_by(address.as_ref())
-            .or_else(|| self.select_by(ident.as_ref()))
-            .or_else(|| self.select_by(*ident_ref))
+    pub(super) fn matches_query<'row, 'q: 'row>(&'row self, query: &'q ReadQuery<'q>) -> bool {
+        self.select_by(query.address.as_ref())
+            .or_else(|| self.filter_by(&query.filter))
+            .or_else(|| self.select_by(query.ident.as_ref()))
+            .or_else(|| self.select_by(query.ident_ref))
             .is_some()
+    }
+    fn filter_by<'row, 'q>(&'row self, selector: &FilterFn) -> Option<&'row Row> { 
+        if let Some(selector) = selector.0 {
+            if selector(&self) { return Some(self) }
+        }
+        None
     }
     fn select_by<Col: Selector + PartialEq>(&self, selector: Option<&Col>) -> Option<&Row> { 
         if let Some(selector) = selector {
@@ -30,50 +38,38 @@ impl Row {
         }
         None
     }
-    pub(super) fn unify<V: Default>(&mut self, query: Query<V>) where RowExpr: WriteRowExpr<V> {
-        let Query { address, expr, ident, ident_ref, mutable, source, typ, ..} = query;
+    pub(super) fn unify<V: Default>(&mut self, query: WriteQuery<V>) where RowExpr: WriteRowExpr<V> {
+        let WriteQuery { expr, ident, ident_ref, mutable, source, typ, ..} = query;
 
-        address.map(|a| self.address = a);
         expr.map(|e| self.expr.write(e.into()));
         ident.map(|i| self.ident = i);
         ident_ref.map(|i| self.ident = i.to_owned());
         mutable.map(|m| self.mutable = m);
         typ.map(|t| self.typ = t);
-        // if let Some(source) = source { self.source = source; } // TODO
     }
 }
 
 impl<V: Default> From<Query<'_, V>> for Row where RowExpr: WriteRowExpr<V> {
     fn from(q: Query<V>) -> Self {
-        let Query { address, expr, ident, mutable, source, typ, ..} = q;
-        
+        let Query { read, write, ..} = q;
         let mut row_expr = RowExpr::default();
-        expr.map(|e| row_expr.write(e));
+        write.expr.map(|e| row_expr.write(e));
 
         Row {
-            address: address.unwrap_or_default(),
+            address: read.address.unwrap_or_default(),
             expr: row_expr,
-            ident: ident.unwrap_or_default(),
-            mutable: mutable.unwrap_or_default(),
-            source,
-            typ: typ.unwrap_or_default(),
+            ident: read.ident.or(read.ident_ref.cloned()).unwrap_or_default(),
+            mutable: write.mutable.unwrap_or_default(),
+            source: write.source,
+            typ: write.typ.unwrap_or_default(),
         }
     }
 }
 
+
 pub trait Selector: Clone {
     fn select(from: &Row) -> &Self;
     fn select_mut(from: &mut Row) -> &mut Self;
-}
-
-impl Selector for Address {
-    fn select(from: &Row) -> &Self { &from.address }
-    fn select_mut(from: &mut Row) -> &mut Self { &mut from.address }
-}
-
-impl Selector for Ident {
-    fn select(from: &Row) -> &Self { &from.ident }
-    fn select_mut(from: &mut Row) -> &mut Self { &mut from.ident }
 }
 
 impl Selector for Row {
@@ -81,14 +77,20 @@ impl Selector for Row {
     fn select_mut(from: &mut Row) -> &mut Self { from }
 }
 
-impl Selector for RowExpr {
-    fn select(from: &Row) -> &Self { &from.expr }
-    fn select_mut(from: &mut Row) -> &mut Self { &mut from.expr }
+macro_rules! row_selector {
+    ( $( $col:ty => |$row:ident| $field:expr ; )* ) => {
+        $( impl Selector for $col {
+            fn select($row: &Row) -> &Self { & $field }
+            fn select_mut($row: &mut Row) -> &mut Self { &mut $field }
+        } )*
+    }
 }
 
-impl Selector for SymbolType {
-    fn select(from: &Row) -> &Self { &from.typ }
-    fn select_mut(from: &mut Row) -> &mut Self { &mut from.typ }
+row_selector! {
+    Address => |row| row.address;
+    Ident => |row| row.ident;
+    RowExpr => |row| row.expr;
+    SymbolType => |row| row.typ;
 }
 
 #[derive(Debug, Default, Clone)]
@@ -114,38 +116,26 @@ pub trait TakeRowExpr<Expr> {
 }
 
 impl WriteRowExpr<RowExpr> for RowExpr {
-    fn write(&mut self, expr: RowExpr) {
-        *self = expr;
-    }
+    fn write(&mut self, expr: RowExpr) { *self = expr; }
 }
 
 impl TakeRowExpr<RowExpr> for RowExpr {
-    fn take(&mut self) -> Option<RowExpr> {
-        Some(std::mem::take(self))
-    }
+    fn take(&mut self) -> Option<RowExpr> { Some(std::mem::take(self)) }
 }
 
 macro_rules! impl_row_expr {
     ( $($pass:ident;)* ) => {
         $( 
             impl WriteRowExpr<crate::$pass::Expr> for RowExpr {
-                fn write(&mut self, expr: crate::$pass::Expr) {
-                    self.$pass = Some(expr);
-                }
+                fn write(&mut self, expr: crate::$pass::Expr) { self.$pass = Some(expr); }
             }
             impl TakeRowExpr<crate::$pass::Expr> for RowExpr {
-                fn take(&mut self) -> Option<crate::$pass::Expr> {
-                    std::mem::take(&mut self.$pass)
-                }
+                fn take(&mut self) -> Option<crate::$pass::Expr> { std::mem::take(&mut self.$pass) }
             }
             // also implements a way to read the selected expression's value
             impl Selector for Option<crate::$pass::Expr> {
-                fn select(from: &Row) -> &Self {
-                    &from.expr.$pass
-                }
-                fn select_mut(from: &mut Row) -> &mut Self {
-                    &mut from.expr.$pass
-                }
+                fn select(from: &Row) -> &Self { &from.expr.$pass }
+                fn select_mut(from: &mut Row) -> &mut Self { &mut from.expr.$pass }
             }
         )*
     }

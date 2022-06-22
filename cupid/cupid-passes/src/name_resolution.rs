@@ -40,18 +40,17 @@ impl ResolveNames<Decl> for prev_pass::Decl {
             let Self { ident, type_annotation, mutable, value, attr } = self;
 
             // Make sure the current symbol does not already exist
-            if env.read::<Address>(&Query::from(&ident)).is_err() {
+            if env.read::<Address>(&Query::select(&ident)).is_err() {
 
                 // If a type annotation is provided, make sure it exists
                 let type_annotation_address = type_annotation
-                    .map(|t| env.read::<Address>(&Query::from(&t)))
+                    .map(|t| env.read::<Address>(&Query::select(&t)))
                     .invert()?
                     .map(|a| *a);
 
-                let query = Query::<Expr>::build()
-                    .ident(ident)
-                    .expr(*value.resolve_names(env)?)
-                    .mutable(mutable);
+                let query = Query::<Expr>::select(ident)
+                    .write_expr(*value.resolve_names(env)?)
+                    .write(mutable);
                 
                 Ok(Decl::build()
                     .ident_address(env.insert(query))
@@ -72,7 +71,7 @@ impl ResolveNames<Function> for prev_pass::Function {
 
             let return_type_annotation = return_type_annotation
                 .resolve_names(env)?
-                .map(|ident| env.read::<Address>(&Query::from(&ident)))
+                .map(|ident| env.read::<Address>(&Query::select(&ident)))
                 .invert()?
                 .map(|address| *address);
 
@@ -93,11 +92,11 @@ impl ResolveNames<Ident> for Ident {
             if let Some(namespace) = &self.namespace {
                 // make sure the namespaced symbol exists
 
-                let query = Query::build().ident_ref(&namespace);
+                let query = Query::select(&**namespace);
                 let namespace_address = env.read::<Address>(&query)?;
 
                 // use the namespace's scope
-                let name_scope = env.database.read::<Ident>(&Query::from(*namespace_address)).unwrap().scope();
+                let name_scope = env.database.read::<Ident>(&Query::<()>::select(*namespace_address).read).unwrap().scope();
                 env.inside_closure(name_scope, |env| {
                     resolve_ident_names(self, env)
                 })
@@ -112,26 +111,27 @@ fn resolve_ident_names(ident: Ident, env: &mut Env) -> PassResult<Ident> {
     use crate::{Value::VType, Type};
 
     // make sure symbol exists in scope
-    let address = *env.read::<Address>(&Query::from(&ident))?;
+    let address = *env.read::<Address>(&Query::select(&ident))?;
+    eprintln!("{ident:?} exists");
     
     let Ident { generics, attr, ..} = ident;
 
     // create symbols for provided generics
     for generic in generics.iter() {
         // if generic exists, resolve it
-        if let Ok(generic_address) = env.read::<Address>(&Query::build().ident_ref(&generic)) {
+        if let Ok(generic_address) = env.read::<Address>(&Query::select(&*generic)) {
             let generic_address = *generic_address;
             env.write_pass::<Expr, _, prev_pass::Expr>(
-                Query::<Expr>::build().address(generic_address),
-                |env, prev_expr| {
-                    prev_expr.resolve_names(env)
-                }
+                Query::<Expr>::select(generic_address),
+                |env, prev_expr| prev_expr.resolve_names(env)
             )?;
 
-        // otherwise, create the generic
+        // otherwise, create it
         } else {
             let expr: Expr = VType(Type::generic(generic.clone())).into();
-            let query = Query::<Expr>::build().ident(generic.clone()).expr(expr).typ(Type::typ());
+            let query = Query::<Expr>::select(generic.clone())
+                .write(Type::typ())
+                .write_expr(expr);
             env.insert(query);
         }
     }

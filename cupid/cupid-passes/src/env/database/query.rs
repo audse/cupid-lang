@@ -1,9 +1,29 @@
-use crate::{Address, Ident, Mut, env::SymbolType};
+use crate::{Address, Ident, Mut, env::SymbolType, Type};
 use super::row::*;
+
+#[derive(Default, Clone)]
+pub struct FilterFn<'q>(pub Option<&'q dyn Fn(&Row) -> bool>);
 
 #[derive(Debug, Default, Clone)]
 pub struct Query<'q, V: Default> where RowExpr: WriteRowExpr<V> {
+    pub read: ReadQuery<'q>,
+    pub write: WriteQuery<'q, V>,
+} // TODO add flags e.g. `SelectAll`
+
+#[derive(Debug, Default, Clone)]
+pub struct ReadQuery<'q> {
     pub address: Option<Address>,
+    pub filter: FilterFn<'q>,
+    pub ident: Option<Ident>,
+    pub ident_ref: Option<&'q Ident>,
+}
+
+impl<'q> std::fmt::Debug for FilterFn<'q> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "filter function") }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct WriteQuery<'q, V: Default> where RowExpr: WriteRowExpr<V> {
     pub expr: Option<V>,
     pub ident: Option<Ident>,
     pub ident_ref: Option<&'q Ident>,
@@ -13,61 +33,47 @@ pub struct Query<'q, V: Default> where RowExpr: WriteRowExpr<V> {
 }
 
 impl<'q, V: Default> Query<'q, V> where RowExpr: WriteRowExpr<V> {
-    pub fn build() -> Self {
+    pub fn insert() -> Self {
         Self::default()
     }
-    pub fn address(mut self, address: Address) -> Self {
-        self.address = Some(address);
-        self
-    }
-    pub fn expr<E: Into<V>>(mut self, expr: E) -> Self {
-        self.expr = Some(expr.into());
-        self
-    }
-    pub fn ident(mut self, ident: Ident) -> Self {
-        self.ident = Some(ident);
-        self
-    }
-    pub fn ident_ref(mut self, ident: &'q Ident) -> Self {
-        self.ident_ref = Some(ident);
-        self
-    }
-    pub fn mutable(mut self, mutable: Mut) -> Self {
-        self.mutable = Some(mutable);
-        self
-    }
-    pub fn typ<T: Into<SymbolType>>(mut self, typ: T) -> Self {
-        self.typ = Some(typ.into());
-        self
-    }
-    pub fn to_read_only(&self) -> Query<()> {
-        Query::<()> { 
-            address: self.address, 
-            ident_ref: self.ident_ref.or(self.ident.as_ref()),
-            ..Default::default() 
+    pub fn select(selector: impl Into<QuerySelector<'q>>) -> Self where {
+        let mut query = Query::<'q, V>::default();
+        match selector.into() {
+            QuerySelector::Address(a) => query.read.address = Some(a),
+            QuerySelector::Filter(i) => query.read.filter = FilterFn(Some(i)),
+            QuerySelector::Ident(i) => query.read.ident = Some(i),
+            QuerySelector::IdentRef(i) => query.read.ident_ref = Some(i),
+            _ => ()
         }
+        query
+    }
+    pub fn write(mut self, selector: impl Into<QuerySelector<'q>>) -> Self where {
+        match selector.into() {
+            QuerySelector::Ident(i) => self.write.ident = Some(i),
+            QuerySelector::IdentRef(i) => self.write.ident_ref = Some(i),
+            QuerySelector::Mutable(m) => self.write.mutable = Some(m),
+            QuerySelector::Type(t) => self.write.typ = Some(t),
+            _ => ()
+        }
+        self
+    }
+    pub fn write_expr(mut self, selector: impl Into<V>) -> Self {
+        self.write.expr = Some(selector.into());
+        self
     }
 }
 
-impl From<Ident> for Query<'_, ()> {
-    fn from(ident: Ident) -> Self {
-        Self::build().ident(ident)
-    }
+#[derive(Clone, derive_more::From)]
+pub enum QuerySelector<'q> {
+    Address(Address),
+    Filter(&'q dyn Fn(&Row) -> bool),
+    Ident(Ident),
+    IdentRef(&'q Ident),
+    Mutable(Mut),
+    Type(SymbolType),
 }
 
-impl<'q> From<&'q Ident> for Query<'q, ()> {
-    fn from(ident: &'q Ident) -> Self {
-        Self::build().ident_ref(ident)
-    }
-}
-
-impl From<Address> for Query<'_, ()> {
-    fn from(address: Address) -> Self {
-        Self::build().address(address)
-    }
-}
-
-impl<V: Default> crate::AsNode for Query<'_, V> where RowExpr: WriteRowExpr<V> {
+impl crate::AsNode for ReadQuery<'_> {
     fn address(&self) -> Address { 
         self.address
             .or(self.ident.as_ref().map(|i| i.address()))
@@ -82,4 +88,14 @@ impl<V: Default> crate::AsNode for Query<'_, V> where RowExpr: WriteRowExpr<V> {
     fn set_scope(&mut self, scope: crate::ScopeId) {
         unreachable!()
     }
+}
+
+impl<V: Default> crate::AsNode for Query<'_, V> where RowExpr: WriteRowExpr<V> {
+    fn address(&self) -> Address { self.read.address() }
+    fn scope(&self) -> crate::ScopeId { self.read.scope() }
+    fn set_scope(&mut self, scope: crate::ScopeId) { unreachable!() }
+}
+
+impl<'q> From<Type> for QuerySelector<'q> {
+    fn from(typ: Type) -> Self { Self::Type(SymbolType::from(typ)) }
 }

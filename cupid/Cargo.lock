@@ -166,6 +166,7 @@ dependencies = [
  "cupid_semantics",
  "cupid_types",
  "cupid_util",
+ "derive_more",
 ]
 
 [[package]]
