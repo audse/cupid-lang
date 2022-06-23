@@ -1,9 +1,7 @@
 use std::borrow::Cow;
 
-use cupid_lex::lexer::{Token, TokenKind};
+use cupid_lex::{token::{Token, TokenKind}, token_iter::{IsOptional::*, TokenIterator, TokenListBuilder, EndTokenBuilder}};
 use cupid_util::{BiDirectionalIterator, Bx};
-
-use IsOptional::*;
 
 use cupid_passes::{
     env::environment::Mut,
@@ -13,77 +11,6 @@ use cupid_passes::{
         attributes::Attributes
     },
 };
-
-pub struct TokenList(BiDirectionalIterator<Token<'static>>);
-
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
-pub enum IsOptional {
-    Optional,
-    #[default]
-    Required,
-}
-
-impl TokenList {
-
-    fn index(&mut self) -> usize { self.0.index() }
-    fn goto(&mut self, index: usize) { self.0.goto(index) }
-
-    fn mark<T>(&mut self, mut closure: impl FnMut(&mut TokenList) -> Option<T>) -> Option<T> {
-        let start = self.index();
-        if let Some(val) = closure(self) {
-            Some(val)
-        } else {
-            self.goto(start);
-            None
-        }
-    }
-
-    fn advance(&mut self) -> Token<'static> {
-        self.0.next().expect("Expected token")
-    }
-
-    pub fn next_is_not(&mut self, source: &str) -> bool {
-        match self.0.peek(0) {
-            Some(token) if token.source != source => true,
-            _ => false
-        }
-    }
-
-    pub fn expect(&mut self, source: &str) -> Option<Token<'static>> {
-        match self.0.peek(0) {
-            Some(token) if token.source == source => Some(self.advance()),
-            _ => None
-        }
-    }
-
-    pub fn expect_kind(&mut self, kind: TokenKind) -> Option<Token<'static>> {
-        match self.0.peek(0) {
-            Some(token) if token.kind == kind => Some(self.advance()),
-            _ => None
-        }
-    }
-
-    pub fn expect_any(&mut self) -> Option<Token<'static>> {
-        self.0.next()
-    }
-
-    pub fn expect_sequence(
-        &mut self, 
-        sequence: Vec<(IsOptional, &dyn Fn(&mut TokenList) -> Option<Token<'static>>)>
-    ) -> Option<Vec<Token<'static>>> {
-        self.mark(|tokens| {
-            let mut all_tokens = vec![];
-            for (optional, fun) in &sequence {
-                if let Some(token) = fun(tokens) {
-                    all_tokens.push(token);
-                } else if *optional == Required {
-                    return None;
-                }
-            }
-            Some(all_tokens)
-        })
-    }
-}
 
 #[derive(Default)]
 pub struct Parser {
@@ -101,7 +28,7 @@ impl Parser {
 
     pub fn parse(&mut self, tokens: Vec<Token<'static>>) -> Option<Vec<Expr>> {
         let mut exprs = vec![];
-        let mut tokens = TokenList(BiDirectionalIterator::new(tokens));
+        let mut tokens = TokenIterator(BiDirectionalIterator::new(tokens));
         while tokens.0.peek(0).is_some() {
             exprs.push(Expr::parse(self, &mut tokens)?)
         }
@@ -123,11 +50,11 @@ impl Parser {
 
 #[allow(unused_variables)]
 pub trait Parse where Self: Sized + 'static {
-    fn parse(parser: &mut Parser, tokens: &mut TokenList) -> Option<Self> { None }
+    fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<Self> { None }
 }
 
 impl Parse for Expr {
-    fn parse(parser: &mut Parser, tokens: &mut TokenList) -> Option<Self> {
+    fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<Self> {
         TypeDef::parse(parser, tokens).map(|type_def| Expr::TypeDef(type_def))
             .or(Decl::parse(parser, tokens).map(|decl| Expr::Decl(decl)))
             .or(Value::parse(parser, tokens).map(|val| Expr::Value(val)))
@@ -136,83 +63,92 @@ impl Parse for Expr {
 }
 
 impl Parse for Decl {
-    fn parse(parser: &mut Parser, tokens: &mut TokenList) -> Option<Self> {
-        tokens.mark(|tokens| {
-            let mut decl_tokens = tokens.expect_sequence(vec![
-                (Required, &|t| t.expect("let")),
-                (Optional, &|t| t.expect("mut")),
-                (Required, &|t| t.expect_kind(TokenKind::Ident)),
-            ])?;
-            let (ident_token, mutable) = if decl_tokens.len() == 3 {
-                (decl_tokens.remove(2), Mut::Mutable)
-            } else {
-                (decl_tokens.remove(1), Mut::Immutable)
-            };
-            let type_annotation = TypeAnnotation::parse(parser, tokens).map(|t| t.0);
-            decl_tokens.push(tokens.expect("=")?);
-            Expr::parse(parser, tokens).map(|expr| {
-                Decl::build()
-                    .mutable(mutable)
-                    .type_annotation(type_annotation)
-                    .ident(Ident { 
-                        name: ident_token.source.to_owned(), 
-                        attr: parser.attr([ident_token]), 
-                        ..Default::default() 
-                    })
-                    .value(expr.bx())
-                    .attr(parser.attr(decl_tokens))
-                    .build()
+    fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<Self> {
+        let (mut token_let, mut token_mut, mut token_ident, mut type_annotation, mut token_equal, mut expr);
+
+        TokenListBuilder::new(tokens)
+            .source("let", Required)?.assign(&mut token_let)
+            .source("mut", Optional)?.assign_option(&mut token_mut)
+            .kind(TokenKind::Ident, Required)?.assign(&mut token_ident)
+            .then_assign(&mut type_annotation, TypeAnnotation::parse(parser, tokens).map(|t| t.0))
+            .source("=", Required)?.assign(&mut token_equal)
+            .then_assign(&mut expr, Expr::parse(parser, tokens)?);
+
+        Some(Decl::build()
+            .mutable(if token_mut.is_some() { Mut::Mutable } else { Mut::Immutable })
+            .ident(Ident { 
+                name: token_ident.source.to_owned(), 
+                attr: parser.attr([token_ident]), 
+                ..Default::default() 
             })
-        })
+            .type_annotation(type_annotation)
+            .value(expr.bx())
+            .attr(parser.attr(
+                [Some(token_let), token_mut, Some(token_equal)]
+                    .into_iter()
+                    .filter_map(|token| token)
+                    .collect::<Vec<Token>>()
+            ))
+            .build())
     }
 }
 
-fn bracket_list<T>(brackets: [&str; 2], parser: &mut Parser, tokens: &mut TokenList, mut closure: impl FnMut(&mut Parser, &mut TokenList) -> Option<T>) -> Option<(Vec<T>, Vec<Token<'static>>)> {
-    tokens.mark(|tokens| {
-        let mut token_list = vec![tokens.expect(brackets[0])?];
-        let mut items = vec![];
-        while tokens.next_is_not(brackets[1]) {
-            items.push(closure(parser, tokens)?);
-            if let Some(comma_token) = tokens.expect(",") {
-                token_list.push(comma_token);
-            }
-        }
-        token_list.push(tokens.expect(brackets[1])?);
-        Some((items, token_list))
-    })
-}
+// fn bracket_list<T>(brackets: [&str; 2], parser: &mut Parser, tokens: &mut TokenIterator, mut closure: impl FnMut(&mut Parser, &mut TokenIterator) -> Option<T>) -> Option<(Vec<T>, Vec<Token<'static>>)> {
+//     TokenListBuilder::new(tokens)
+//         .bracket_list(|builder| items.push(closure(parser, )), Some(","))?
+
+//     tokens.mark(|tokens| {
+//         let mut token_list = vec![tokens.expect(brackets[0])?];
+//         let mut items = vec![];
+//         while tokens.next_is_not(brackets[1]) {
+//             items.push(closure(parser, tokens)?);
+//             if let Some(comma_token) = tokens.expect(",") {
+//                 token_list.push(comma_token);
+//             }
+//         }
+//         token_list.push(tokens.expect(brackets[1])?);
+//         Some((items, token_list))
+//     })
+// }
+
 
 impl Parse for TypeDef {
-    fn parse(parser: &mut Parser, tokens: &mut TokenList) -> Option<Self> {
-        tokens.mark(|tokens| {
-            let mut def_tokens = vec![
-                tokens.expect("type")
-                    .or(tokens.expect("sum"))?
-            ];
-            let type_ident = TypeIdent::parse(parser, tokens)?.0;
-            def_tokens.push(tokens.expect("=")?);
+    fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<Self> {
+        let (mut token_type, mut ident, mut token_equal);
+        let mut fields = vec![];
 
-            let (fields, mut field_tokens) = bracket_list(["[", "]"], parser, tokens, |parser, tokens| {
-                let field_ident = TypeIdent::parse(parser, tokens)?.0;
-                let field_type = TypeAnnotation::parse(parser, tokens).map(|t| t.0);
-                Some(Field(field_ident, field_type))
-            })?;
-
-            def_tokens.append(&mut field_tokens);
-
-            Some(TypeDef::build()
-                .ident(type_ident)
-                .fields(fields)
-                .attr(parser.attr(def_tokens))
-                .build())
-        })
+        let mut bracket_tokens = TokenListBuilder::start(tokens, |builder: TokenListBuilder| {
+                Some(builder
+                    .one_of(["type", "sum"], Required)?.assign(&mut token_type)
+                    .then_assign(&mut ident, TypeIdent::parse(parser, tokens)?)
+                    .source("=", Required)?.assign(&mut token_equal)
+                    .bracket_list(|mut builder: TokenListBuilder| {
+                        let (mut field_ident, mut field_type);
+                        builder
+                            .then_assign(&mut field_ident, TypeIdent::parse(parser, tokens)?)
+                            .then_assign(&mut field_type, TypeAnnotation::parse(parser, tokens).map(|t| t.0))
+                            .then(|| Some(fields.push(Field(field_ident.0, field_type))), Required)
+                    }, Some(","))?
+                    .done())
+            })
+            .end(tokens)?;
+            
+        
+        let mut type_def_tokens: Vec<Token> = vec![token_type, token_equal];
+        type_def_tokens.append(&mut bracket_tokens);
+        
+        Some(TypeDef::build()
+            .ident(ident.0)
+            .fields(fields)
+            .attr(parser.attr(type_def_tokens))
+            .build())
     }
 }
 
 /// E.g. `let x : int = 1`
 pub struct TypeAnnotation(pub Ident);
 impl Parse for TypeAnnotation {
-    fn parse(parser: &mut Parser, tokens: &mut TokenList) -> Option<Self> {
+    fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<Self> {
         tokens.mark(|tokens| {
             tokens.expect(":")?;
             Some(TypeAnnotation(TypeIdent::parse(parser, tokens)?.0))
@@ -223,7 +159,7 @@ impl Parse for TypeAnnotation {
 /// E.g. `array (int)`
 pub struct TypeIdent(pub Ident);
 impl Parse for TypeIdent {
-    fn parse(parser: &mut Parser, tokens: &mut TokenList) -> Option<Self> {
+    fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<Self> {
         tokens.mark(|tokens| {
             let mut ident = Ident::parse(parser, tokens)?;
             if let Some(generics) = Generics::parse(parser, tokens) {
@@ -237,7 +173,7 @@ impl Parse for TypeIdent {
 /// E.g. `(int, array (int))`
 pub struct Generics(pub Vec<Ident>);
 impl Parse for Generics {
-    fn parse(parser: &mut Parser, tokens: &mut TokenList) -> Option<Self> {
+    fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<Self> {
         tokens.mark(|tokens| {
             tokens.expect("(")?;
             let mut idents = vec![Ident::parse(parser, tokens)?];
@@ -252,7 +188,7 @@ impl Parse for Generics {
 
 
 impl Parse for Ident {
-    fn parse(parser: &mut Parser, tokens: &mut TokenList) -> Option<Self> {
+    fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<Self> {
         tokens.expect_kind(TokenKind::Ident).map(|token| {
             Ident::build()
                 .name(token.source.to_owned())
@@ -263,7 +199,7 @@ impl Parse for Ident {
 }
 
 impl Parse for Value {
-    fn parse(parser: &mut Parser, tokens: &mut TokenList) -> Option<Self> {
+    fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<Self> {
         VString::parse(parser, tokens)
             .map(|(string, attr)| Value::VString(string, attr))
             .or(VInt::parse(parser, tokens).map(|(int, attr)| Value::VInteger(int, attr)))
@@ -275,7 +211,7 @@ impl Parse for Value {
 
 type VString = (Cow<'static, str>, Attributes);
 impl Parse for VString {
-    fn parse(parser: &mut Parser, tokens: &mut TokenList) -> Option<Self> {
+    fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<Self> {
         tokens.expect_kind(TokenKind::String).map(|token| {
             let (string, attr) = parser.parse_value::<String>(token);
             return (Cow::Owned(string), attr);
@@ -285,14 +221,14 @@ impl Parse for VString {
 
 type VInt = (i32, Attributes);
 impl Parse for VInt {
-    fn parse(parser: &mut Parser, tokens: &mut TokenList) -> Option<Self> {
+    fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<Self> {
         tokens.expect_kind(TokenKind::Number).map(|token| parser.parse_value(token))
     }
 }
 
 type VDec = (i32, u32, Attributes);
 impl Parse for VDec {
-    fn parse(parser: &mut Parser, tokens: &mut TokenList) -> Option<Self> {
+    fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<Self> {
         tokens.expect_kind(TokenKind::Decimal).map(|token| {
             let decimal: Vec<&str>  = token.source.split('.').collect();
             (parse(decimal[0]), parse(decimal[1]), parser.attr([token]))
@@ -302,7 +238,7 @@ impl Parse for VDec {
 
 type VBool = (bool, Attributes);
 impl Parse for VBool {
-    fn parse(parser: &mut Parser, tokens: &mut TokenList) -> Option<Self> {
+    fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<Self> {
         tokens.expect("true").or(tokens.expect("false")).map(|token| {
             parser.parse_value(token)
         })

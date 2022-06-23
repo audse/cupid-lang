@@ -1,40 +1,5 @@
-use std::{borrow::Cow, vec::IntoIter, iter::Peekable};
-
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
-pub struct Position {
-	pub line: usize,
-	pub character: usize,
-}
-
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
-pub struct Span {
-	pub start: Position,
-	pub end: Position,
-}
-
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct Token<'token> {
-    pub span: Span,
-    pub source: Cow<'token, str>,
-    pub document: usize,
-    pub kind: TokenKind,
-}
-
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
-pub enum TokenKind {
-    Ident,
-    Number,
-    Decimal,
-    String,
-    #[default]
-    Symbol,
-}
-
-impl Token<'_> {
-    fn new(start: Position, end: Position, source: String, kind: TokenKind) -> Self {
-        Self { span: Span { start, end}, source: Cow::Owned(source), document: 0, kind }
-    }
-}
+use std::{vec::IntoIter, iter::Peekable};
+use crate::{token::{Token, TokenKind}, span::Position};
 
 #[derive(Debug, Default, Clone)]
 pub struct Lexer {
