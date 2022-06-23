@@ -5,13 +5,10 @@ edition = "2021"
 
 [workspace]
 members = [
-	"cupid-builder",
 	"cupid-lex",
 	"cupid-parse",
 	"cupid-passes",
-	"cupid-scope",
 	"auto-implement",
-	"cupid-trace",
 	"cupid-types",
 	"cupid-util"
 ]
@@ -20,13 +17,9 @@ members = [
 colored = "2.0.0"
 clap = { version = "3.1.18", features = ["derive"] }
 
-cupid_builder = { path = 'cupid-builder' }
-cupid_debug = { path = 'cupid-debug' }
 cupid_lex = { path = 'cupid-lex' }
 cupid_parse = { path = 'cupid-parse' }
 cupid_passes = { path = 'cupid-passes' }
-cupid_scope = { path = 'cupid-scope' }
 auto-implement = { path = 'auto-implement' }
-cupid_trace = { path = 'cupid-trace' }
 cupid_types = { path = 'cupid-types' }
 cupid_util = { path = 'cupid-util' }

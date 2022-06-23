@@ -28,7 +28,7 @@ impl<T> Iterator for BiDirectionalIterator<T> where T: Clone + PartialEq + Defau
 
 impl<T> BiDirectionalIterator<T> where T: Clone + PartialEq + Default {
 	pub fn at_end(&self) -> bool {
-		self.index >= self.items.len() - 1
+		self.index >= self.items.len()
 	}
 	pub fn back(&mut self, amount: usize) -> Option<&T> {
 		self.index -= amount;

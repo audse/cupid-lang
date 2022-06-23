@@ -10,7 +10,7 @@ use crate::{ReadQuery, AsNode, PassResult};
 pub type Address = usize;
 pub type ScopeId = usize;
 
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub enum Mut {
     Mutable,
     #[default]

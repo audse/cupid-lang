@@ -1,0 +1,146 @@
+#![cfg(test)]
+
+use cupid_lex::lexer::Lexer;
+use crate::parse::Parser;
+
+use cupid_passes::{
+    env::environment::Mut,
+    pre_analysis::{Decl, Expr, TypeDef},
+    util::static_nodes::value::Value,
+};
+
+fn setup(string: &str) -> Option<Vec<Expr>> {
+    let mut lexer = Lexer::new();
+    let tokens = lexer.lex(string);
+    let mut parser = Parser::new();
+    parser.parse(tokens)
+}
+
+fn expr(string: &str) -> Expr {
+    let mut expr = setup(string).expect("expected expression");
+    expr.pop().expect("expected expression")
+}
+
+fn decl(string: &str) -> Decl {
+    let decl = expr(string);
+    if let Expr::Decl(decl) = decl {
+        decl 
+    } else {
+        panic!("expected declaration")
+    }
+}
+
+fn type_def(string: &str) -> TypeDef {
+    let def = expr(string);
+    if let Expr::TypeDef(def) = def {
+        def 
+    } else {
+        panic!("expected type definition")
+    }
+}
+
+fn val(string: &str) -> Value {
+    let val = expr(string);
+    if let Expr::Value(val) = val {
+        val 
+    } else {
+        panic!("expected value")
+    }
+}
+
+#[test]
+fn test_number() {
+    let val = val("1");
+    assert!(matches!(val, Value::VInteger(1, ..)));
+}
+
+#[test]
+fn test_decimal() {
+    let val = val("1.5");
+    assert!(matches!(val, Value::VDecimal(1, 5, ..)));
+}
+
+#[test]
+fn test_string() {
+    let val = val("'abc'");
+    assert!(matches!(val, Value::VString(..)))
+}
+
+#[test]
+fn test_bool_true() {
+    let val = val("true");
+    assert!(matches!(val, Value::VBoolean(true, ..)))
+}
+
+#[test]
+fn test_bool_false() {
+    let val = val("false");
+    assert!(matches!(val, Value::VBoolean(false, ..)))
+}
+
+#[test]
+fn test_none() {
+    let val = val("none");
+    assert!(matches!(val, Value::VNone(..)))
+}
+
+#[test]
+fn test_decl_immutable() {
+    let decl = decl("let x = false");
+    assert!(decl.mutable == Mut::Immutable);
+}
+
+#[test]
+fn test_decl_mutable() {
+    let decl = decl("let mut x = false");
+    assert!(decl.mutable == Mut::Mutable);
+}
+
+#[test]
+fn test_decl_typed() {
+    let decl = decl("let mut x : int = 1");
+    let typ = decl.type_annotation.expect("expected type");
+    assert!(&*typ.name == "int")
+}
+
+#[test]
+fn test_decl_typed_single_generic() {
+    let decl = decl("let mut x : array (int) = none");
+    let typ = decl.type_annotation.expect("expected type");
+    assert!(&*typ.name == "array" && &*typ.generics[0].name == "int")
+}
+
+#[test]
+fn test_decl_typed_generics() {
+    let decl = decl("let mut x : map (int, int) = none");
+    let typ = decl.type_annotation.expect("expected type");
+    assert!(
+        &*typ.name == "map" 
+            && &*typ.generics[0].name == "int" 
+            && &*typ.generics[1].name == "int"
+    )
+}
+
+#[test]
+fn test_type_def() {
+    let def = type_def("type int = []");
+    assert!(&*def.ident.name == "int" && def.fields.len() == 0);
+}
+
+#[test]
+fn test_type_def_field() {
+    let def = type_def("type array = [int]");
+    assert!(def.fields.len() == 1 && def.fields[0].1.is_none());
+}
+
+#[test]
+fn test_type_def_named_field() {
+    let def = type_def("type map = [key : int, val : int]");
+    assert!(def.fields.len() == 2 && def.fields[0].1.is_some());
+}
+
+#[test]
+fn test_type_def_sum() {
+    let def = type_def("sum bool = [true, false]");
+    assert!(def.fields.len() == 2);
+}

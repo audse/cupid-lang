@@ -37,26 +37,26 @@ impl Token<'_> {
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct Lexer<'lex> {
-    pub source: String,
-    pub tokens: Vec<Token<'lex>>,
+pub struct Lexer {
     pub prev_pos: Position,
     pub current_pos: Position,
 }
 
 type Chars<'c> = &'c mut Peekable<IntoIter<char>>;
 
-impl Lexer<'_> {
-    pub fn new(source: String) -> Self {
-        Self { source, ..Default::default() }
+impl Lexer {
+    pub fn new() -> Self {
+        Self::default()
     }
-    pub fn add_token(&mut self, source: String, kind: TokenKind) {
+    pub fn add_token(&mut self, tokens: &mut Vec<Token>, source: String, kind: TokenKind) {
         self.current_pos.character += source.len();
-        self.tokens.push(Token::new(self.prev_pos, self.current_pos, source, kind));
         self.prev_pos = self.current_pos;
+        tokens.push(Token::new(self.prev_pos, self.current_pos, source, kind));
     }
-    pub fn lex(&mut self) {
-        let mut chars = self.source
+    pub fn lex<S: Into<String>>(&mut self, source: S) -> Vec<Token<'static>> {
+        let mut tokens = vec![];
+        let mut chars = source
+            .into()
             .chars()
             .collect::<Vec<char>>()
             .into_iter()
@@ -66,15 +66,15 @@ impl Lexer<'_> {
             match c {
                 'A'..='Z' | 'a'..='z' | '_' | '!' => {
                     let ident = lex_ident(&mut chars);
-                    self.add_token(ident, TokenKind::Ident);
+                    self.add_token(&mut tokens, ident, TokenKind::Ident);
                 },
                 '0'..='9' => {
                     let (number, kind) = lex_number(&mut chars);
-                    self.add_token(number, kind);
+                    self.add_token(&mut tokens, number, kind);
                 }
                 '"' | '\'' => {
                     let string = lex_string(&mut chars);
-                    self.add_token(string, TokenKind::String);
+                    self.add_token(&mut tokens, string, TokenKind::String);
                 }
                 '#' => {
                     while let Some(c) = chars.next() {
@@ -91,11 +91,16 @@ impl Lexer<'_> {
                 '\n' => {
                     self.current_pos.line += 1;
                     self.current_pos.character = 0;
+                    chars.next();
                 },
-                ' ' | '\r' | '\t' => { self.current_pos.character += 1; },
-                _ => { self.add_token((&mut chars).next_string(), TokenKind::Symbol); }
+                ' ' | '\r' | '\t' => { 
+                    self.current_pos.character += 1; 
+                    chars.next();
+                },
+                _ => { self.add_token(&mut tokens, (&mut chars).next_string(), TokenKind::Symbol); }
             }
         }
+        tokens
     }
 }
 
@@ -117,7 +122,6 @@ fn lex_ident(mut chars: Chars) -> String {
     let mut ident = String::new();
     while let Some(c) = chars.peek() && is_ident(*c) {
         ident += &chars.next_string(); 
-        break;
     }
     ident
 }
