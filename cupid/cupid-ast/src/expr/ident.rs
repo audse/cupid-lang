@@ -14,7 +14,7 @@ cupid_util::build_struct! {
 
 impl PartialEq for Ident {
     fn eq(&self, other: &Self) -> bool {
-        self.address == other.address || (
+        self.address.is_some() && self.address == other.address || (
             self.name == other.name 
             && self.generics.len() == other.generics.len()
             && self.namespace == other.namespace

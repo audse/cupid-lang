@@ -5,9 +5,18 @@ pub mod infer_types;
 pub mod check_types;
 pub mod check_flow;
 pub mod lint;
-pub(self) mod utils;
 
-pub struct Error;
+pub(self) mod utils;
+mod tests;
+
+pub type Address = usize;
+
+#[derive(Debug, Default, Clone)]
+pub struct Error(String);
+
+pub fn error<S: Into<String>>(err: S) -> Error {
+    Error(err.into())
+}
 
 macro_rules! map_expr {
     ($to:ident => |$exp:ident| $inside:expr) => {{
@@ -17,6 +26,8 @@ macro_rules! map_expr {
             Function($exp) => Ok(Function($inside)),
             Ident($exp) => Ok(Ident($inside)),
             Value($exp) => Ok(Value($inside)),
+            Trait($exp) => Ok(Trait($inside)),
+            Type($exp) => Ok(Type($inside)),
             Empty => Ok(Empty),
         }
     }};

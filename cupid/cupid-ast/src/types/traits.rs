@@ -1,8 +1,8 @@
-use crate::{expr::{function::Function, ident::Ident}, attr::Attr};
+use crate::{expr::ident::Ident, attr::Attr, stmt::decl::Decl};
 
 #[derive(Debug, Default, Clone)]
 pub struct Trait {
-    pub name: Ident,
-    pub methods: Vec<(Ident, Function)>,
+    pub ident: Ident,
+    pub methods: Vec<Decl>,
     pub attr: Attr,
 }

@@ -10,6 +10,7 @@ pub enum Context {
     Block,
     Function,
     Loop,
+    Method,
     Trait,
     Type,
 }
@@ -40,5 +41,4 @@ impl Env {
         self.scope.state.reset_closure();
         Ok(result)
     }
-
 }

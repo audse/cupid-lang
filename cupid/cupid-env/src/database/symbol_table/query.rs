@@ -48,7 +48,7 @@ impl<'q> Query<'q> {
         match selector.into() {
             QuerySelector::Expr(e) => self.write.expr = Some(e),
             QuerySelector::Ident(i) => self.write.ident = Some(i),
-            QuerySelector::IdentRef(i) => self.write.ident_ref = Some(i),
+            QuerySelector::IdentRef(i) => self.write.ident = Some(i.clone()),
             QuerySelector::Mutable(m) => self.write.mutable = Some(m),
             _ => ()
         }
@@ -69,11 +69,10 @@ pub enum QuerySelector<'q> {
 impl From<Query<'_>> for SymbolRow {
     fn from(q: Query) -> Self {
         let Query { read, write, ..} = q;
-
         SymbolRow {
             address: read.address.unwrap_or_default(),
             expr: write.expr.unwrap_or_default(),
-            ident: read.ident.or(read.ident_ref.cloned()).unwrap_or_default(),
+            ident: write.ident.or_else(|| read.ident).or_else(|| read.ident_ref.cloned()).unwrap_or_default(),
             mutable: write.mutable.unwrap_or_default(),
         }
     }

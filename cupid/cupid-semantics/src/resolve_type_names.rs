@@ -1,9 +1,10 @@
-use crate::{map_expr, map_stmt, utils::is_undefined, Error};
-use cupid_ast::{expr, stmt};
-use cupid_env::{
-    database::{symbol_table::query::Query, table::QueryTable},
-    environment::Env,
+use crate::{
+    map_expr, map_stmt,
+    utils::insert_symbol,
+    Error,
 };
+use cupid_ast::{expr, stmt, types};
+use cupid_env::environment::Env;
 use cupid_util::InvertOption;
 
 #[allow(unused_variables)]
@@ -46,26 +47,54 @@ impl ResolveTypeNames for expr::value::Value {}
 
 impl ResolveTypeNames for stmt::decl::Decl {}
 
+impl ResolveTypeNames for types::traits::Trait {
+    fn resolve_type_names(self, env: &mut Env) -> Result<Self, Error> {
+        env.inside_closure(self.attr.scope, |env| {
+            Ok(Self {
+                methods: self.methods.resolve_type_names(env)?,
+                ..self
+            })
+        })
+    }
+}
+
+impl ResolveTypeNames for types::typ::Type {
+    fn resolve_type_names(self, env: &mut Env) -> Result<Self, Error> {
+        env.inside_closure(self.attr.scope, |env| {
+            Ok(Self {
+                fields: self.fields.resolve_type_names(env)?,
+                methods: self.methods.resolve_type_names(env)?,
+                ..self
+            })
+        })
+    }
+}
+
 impl ResolveTypeNames for stmt::trait_def::TraitDef {
     fn resolve_type_names(self, env: &mut Env) -> Result<Self, Error> {
-        is_undefined(&self.ident, env)?;
-
-        let query = Query::select(&self.ident).write(expr::Expr::Value(self.value.into()));
-        env.database.symbol_table.insert(query);
-
-        // after this, the trait def is discarded
-        Ok(Self::default())
+        insert_symbol(&self.ident, env, self.value.into(), |env, expr: expr::Expr| {
+            Ok(expr.resolve_type_names(env)?)
+        })?;
+        Ok(Self {
+            // value is moved into DB, so use a default
+            value: types::traits::Trait::default(),
+            ..self
+        })
     }
 }
 
 impl ResolveTypeNames for stmt::type_def::TypeDef {
     fn resolve_type_names(self, env: &mut Env) -> Result<Self, Error> {
-        is_undefined(&self.ident, env)?;
-
-        let query = Query::select(&self.ident).write(expr::Expr::Value(self.value.into()));
-        env.database.symbol_table.insert(query);
-
-        // after this, the type def is discarded
-        Ok(Self::default())
+        insert_symbol(
+            &self.ident,
+            env,
+            self.value.into(),
+            |env, expr: expr::Expr| Ok(expr.resolve_type_names(env)?),
+        )?;
+        Ok(Self {
+            // value is moved into DB, so use a default
+            value: types::typ::Type::default(),
+            ..self
+        })
     }
 }

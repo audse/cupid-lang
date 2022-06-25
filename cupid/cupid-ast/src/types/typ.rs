@@ -1,5 +1,4 @@
-use std::collections::BTreeMap;
-use crate::{expr::{ident::Ident, function::Function}, attr::Attr};
+use crate::{expr::ident::Ident, attr::Attr, stmt::decl::Decl};
 
 #[derive(Debug, Default, Copy, Clone, derive_more::Display)]
 pub enum BaseType {
@@ -13,32 +12,24 @@ pub enum BaseType {
 cupid_util::build_struct! {
     #[derive(Debug, Default, Clone)]
     pub TypeBuilder => pub Type {
-        pub name: Ident,
-        pub fields: Vec<Field>,
-        pub methods: BTreeMap<Ident, Function>,
+        pub ident: Ident,
+        pub fields: Vec<Decl>,
+        pub methods: Vec<Decl>,
         pub base: BaseType,
         pub attr: Attr,
     }
 }
 
-cupid_util::build_struct! {
-	#[derive(Debug, Default, Clone)]
-	pub FieldBuilder => pub Field {
-		pub name: Ident,
-		pub type_annotation: Option<Ident>,
-	}
-}
-
 impl Type {
     pub fn none() -> Self {
         Self {
-            name: "none".into(),
+            ident: "none".into(),
             ..Self::default()
         }
     }
     pub fn typ() -> Self {
         Self {
-            name: "type".into(),
+            ident: "type".into(),
             ..Self::default()
         }
     }

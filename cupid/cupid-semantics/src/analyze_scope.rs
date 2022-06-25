@@ -1,5 +1,5 @@
 use crate::{map_expr, map_stmt, Error};
-use cupid_ast::{attr::Attr, expr, stmt, types::traits::Trait};
+use cupid_ast::{attr::Attr, expr, stmt, types};
 use cupid_env::environment::{Context, Env};
 use cupid_util::InvertOption;
 
@@ -28,12 +28,15 @@ impl AnalyzeScope for stmt::Stmt {
 
 impl AnalyzeScope for expr::block::Block {
     fn analyze_scope(self, env: &mut Env) -> Result<Self, Error> {
-        Ok(Self {
-            expressions: self.expressions.analyze_scope(env)?,
-            attr: Attr {
-                scope: env.scope.current(),
-                ..self.attr
-            },
+        let scope = env.scope.add_scope(Context::Block);
+        env.inside_closure(scope, |env| {
+            Ok(Self {
+                expressions: self.expressions.analyze_scope(env)?,
+                attr: Attr {
+                    scope: env.scope.current(),
+                    ..self.attr
+                },
+            })
         })
     }
 }
@@ -85,23 +88,14 @@ impl AnalyzeScope for expr::ident::Ident {
     }
 }
 
-impl AnalyzeScope for stmt::trait_def::TraitDef {
+impl AnalyzeScope for types::traits::Trait {
     fn analyze_scope(self, env: &mut Env) -> Result<Self, Error> {
+        let ident = self.ident.analyze_scope(env)?;
         let scope = env.scope.add_toplevel_closure(Context::Trait);
         env.inside_closure(scope, |env| {
-            let methods: Result<Vec<(expr::ident::Ident, expr::function::Function)>, Error> = self
-                .value
-                .methods
-                .into_iter()
-                .map(|(ident, function)| {
-                    Ok((ident.analyze_scope(env)?, function.analyze_scope(env)?))
-                })
-                .collect();
             Ok(Self {
-                value: Trait {
-                    methods: methods?,
-                    ..self.value
-                },
+                ident,
+                methods: self.methods.analyze_scope(env)?,
                 attr: Attr { scope, ..self.attr },
                 ..self
             })
@@ -109,11 +103,43 @@ impl AnalyzeScope for stmt::trait_def::TraitDef {
     }
 }
 
+impl AnalyzeScope for types::typ::Type {
+    fn analyze_scope(self, env: &mut Env) -> Result<Self, Error> {
+        let ident = self.ident.analyze_scope(env)?;
+        let scope = env.scope.add_toplevel_closure(Context::Type);
+        env.inside_closure(scope, |env| {
+            Ok(Self {
+                ident,
+                fields: self.fields.analyze_scope(env)?,
+                methods: self.methods.analyze_scope(env)?,
+                attr: Attr { scope, ..self.attr },
+                ..self
+            })
+        })
+    }
+}
+
+impl AnalyzeScope for stmt::trait_def::TraitDef {
+    fn analyze_scope(self, env: &mut Env) -> Result<Self, Error> {
+        Ok(Self {
+            value: self.value.analyze_scope(env)?,
+            attr: Attr {
+                scope: env.scope.current(),
+                ..self.attr
+            },
+            ..self
+        })
+    }
+}
+
 impl AnalyzeScope for stmt::type_def::TypeDef {
     fn analyze_scope(self, env: &mut Env) -> Result<Self, Error> {
-        let scope = env.scope.add_toplevel_closure(Context::Type);
         Ok(Self {
-            attr: Attr { scope, ..self.attr },
+            value: self.value.analyze_scope(env)?,
+            attr: Attr {
+                scope: env.scope.current(),
+                ..self.attr
+            },
             ..self
         })
     }

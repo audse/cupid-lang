@@ -17,6 +17,18 @@ pub struct Query {
     pub write: WriteQuery,
 }
 
+impl Query {
+    pub fn insert() -> Self {
+        Self::default()
+    }
+    pub fn select(address: Address) -> Self {
+        Self {
+            read: address,
+            write: WriteQuery::default()
+        }
+    }
+}
+
 impl From<Query> for SourceRow {
     fn from(q: Query) -> Self {
         let Query { write, ..} = q;
