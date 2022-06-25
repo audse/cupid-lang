@@ -97,11 +97,33 @@ dependencies = [
  "auto-implement",
  "clap",
  "colored",
+ "cupid_ast",
+ "cupid_env",
  "cupid_lex",
  "cupid_parse",
  "cupid_passes",
+ "cupid_semantics",
  "cupid_types",
  "cupid_util",
+]
+
+[[package]]
+name = "cupid_ast"
+version = "0.1.0"
+dependencies = [
+ "cupid_lex",
+ "cupid_util",
+ "derive_more",
+]
+
+[[package]]
+name = "cupid_env"
+version = "0.1.0"
+dependencies = [
+ "cupid_ast",
+ "cupid_lex",
+ "cupid_util",
+ "derive_more",
 ]
 
 [[package]]
@@ -118,6 +140,7 @@ dependencies = [
  "cupid_lex",
  "cupid_passes",
  "cupid_util",
+ "trace",
 ]
 
 [[package]]
@@ -128,6 +151,17 @@ dependencies = [
  "cupid_types",
  "cupid_util",
  "derive_more",
+ "trace",
+]
+
+[[package]]
+name = "cupid_semantics"
+version = "0.1.0"
+dependencies = [
+ "auto-implement",
+ "cupid_ast",
+ "cupid_env",
+ "cupid_util",
 ]
 
 [[package]]
@@ -288,6 +322,15 @@ name = "textwrap"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b1141d4d61095b28419e22cb0bbf02755f5e54e0526f97f1e3d1d160e60885fb"
+
+[[package]]
+name = "trace"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
 
 [[package]]
 name = "unicode-ident"

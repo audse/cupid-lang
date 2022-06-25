@@ -32,6 +32,7 @@ crate::util::impl_default_passes! {
 }
 
 impl InferTypes<Decl> for prev_pass::Decl {
+    #[trace::trace]
     fn infer_types(self, env: &mut Env) -> PassResult<Decl> {
 
         // set type of decl node
@@ -61,6 +62,7 @@ impl InferTypes<Function> for prev_pass::Function {
 }
 
 impl InferTypes<Ident> for Ident {
+    #[trace::trace]
     fn infer_types(self, env: &mut Env) -> PassResult<Ident> {
 
         // get the value corresponding to the current identifier
@@ -82,6 +84,7 @@ impl InferTypes<Ident> for Ident {
 }
 
 impl InferTypes<Value> for Value {
+    #[trace::trace]
     fn infer_types(self, env: &mut Env) -> PassResult<Value> {
         let query = Query::<Expr>::select(self.address()).write(self.infer());
         env.write(query)?;

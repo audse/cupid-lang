@@ -10,6 +10,7 @@ macro_rules! impl_default_passes {
         // implement block
         $( 
             impl $_trait<crate::Block<Expr>> for crate::Block<$block_prev> {
+                #[trace::trace]
                 fn $_fn(self, env: &mut crate::Env) -> PassResult<crate::Block<Expr>> {
                     self.pass(Vec::<$block_prev>::$_fn, env)
                 }
@@ -18,6 +19,7 @@ macro_rules! impl_default_passes {
         // implement expression
         $( 
             impl $_trait<Expr> for $expr_prev {
+                #[trace::trace]
                 fn $_fn(self, env: &mut crate::Env) -> PassResult<Expr> {
                     match self {
                         Self::Block(block) => Ok(Expr::Block(block.$_fn(env)?)),
@@ -34,6 +36,7 @@ macro_rules! impl_default_passes {
     };
     (Field<Address>, $_trait:ident, $_fn:ident) => {
         impl $_trait<crate::Field<crate::Address>> for crate::Field<crate::Address> {
+            #[trace::trace]
             fn $_fn(self, env: &mut crate::Env) -> PassResult<crate::Field<crate::Address>> {
                 Ok(self)
             }
@@ -41,6 +44,7 @@ macro_rules! impl_default_passes {
     };
     (Field<Ident>, $_trait:ident, $_fn:ident) => {
         impl $_trait<crate::Field<crate::Ident>> for crate::Field<crate::Ident> {
+            #[trace::trace]
             fn $_fn(self, env: &mut crate::Env) -> PassResult<crate::Field<crate::Ident>> {
                 self.pass(<crate::Ident>::$_fn, Option::<crate::Ident>::$_fn, env)
             }
@@ -48,6 +52,7 @@ macro_rules! impl_default_passes {
     };
     (Ident, $_trait:ident, $_fn:ident) => {
         impl $_trait<crate::Ident> for crate::Ident {
+            #[trace::trace]
             fn $_fn(self, env: &mut crate::Env) -> PassResult<crate::Ident> { 
                 self.pass(Vec::<Self>::$_fn, Self::$_fn, env)
             }
@@ -55,6 +60,7 @@ macro_rules! impl_default_passes {
     };
     (Value, $_trait:ident, $_fn:ident) => {
         impl $_trait<crate::Value> for crate::Value {
+            #[trace::trace]
             fn $_fn(self, _: &mut crate::Env) -> PassResult<crate::Value> { Ok(self) }
         }
         impl $_trait<crate::Mut> for crate::Mut {

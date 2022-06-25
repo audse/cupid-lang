@@ -15,6 +15,7 @@ pub fn auto_implement(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let trait_block: syn::ItemTrait = syn::parse2(input).expect("expected trait def");
     let trait_name = &trait_block.ident;
+    let trait_generics = &trait_block.generics;
     
     let trait_functions = &trait_block.items
         .iter()
@@ -36,11 +37,12 @@ pub fn auto_implement(args: TokenStream, input: TokenStream) -> TokenStream {
         
         let arg_name = path_string(&p);
 
-        let generics = match &*arg_name {
-            "Vec" | "Option" | "Box" => q!( <Output, Input: #trait_name <Output>> ),
-            "Str" => q!(  ),
-            _ => return err_bad_type_args(trait_block)
+        let return_type_name = if trait_generics.params.len() >= 1 {
+            q!( Output )
+        } else {
+            q!( Input )
         };
+
         let input_type = match &*arg_name {
             "Vec" => q!( Vec<Input> ),
             "Option" => q!( Option<Input> ),
@@ -49,10 +51,33 @@ pub fn auto_implement(args: TokenStream, input: TokenStream) -> TokenStream {
             _ => return err_bad_type_args(trait_block)
         };
         let return_type = match &*arg_name {
-            "Vec" => q!( Vec<Output> ),
-            "Option" => q!( Option<Output> ),
-            "Box" => q!( Box<Output> ),
+            "Vec" => q!( Vec<#return_type_name> ),
+            "Option" => q!( Option<#return_type_name> ),
+            "Box" => q!( Box<#return_type_name> ),
             "Str" => q!( std::borrow::Cow<'static, str> ),
+            _ => return err_bad_type_args(trait_block)
+        };
+
+        let get_trait_generics = |new_type: &TokenStream2| -> Option<TokenStream2> {
+            let new_trait_generics: Vec<&syn::GenericParam> = trait_generics.params.iter().collect();
+            new_trait_generics.split_first().map(|(_, rest)| {
+                q!( <#new_type #(,#rest)*> )
+            })
+        };
+
+        let new_trait_generics = get_trait_generics(&return_type);
+        
+        let generics = match &*arg_name {
+            "Vec" | "Option" | "Box" => {
+                let inner_type_trait_bounds = get_trait_generics(&return_type_name);
+                
+                if trait_generics.params.len() >= 1 {
+                    q!( <#return_type_name, Input: #trait_name #inner_type_trait_bounds> )
+                } else {
+                    q!( <#return_type_name: #trait_name #inner_type_trait_bounds> )
+                }
+            },
+            "Str" => q!(  ),
             _ => return err_bad_type_args(trait_block)
         };
 
@@ -60,7 +85,16 @@ pub fn auto_implement(args: TokenStream, input: TokenStream) -> TokenStream {
             .iter()
             .map(|(method, args)| {
                 let attrs = &method.attrs;
-                let syn::Signature { ident, generics, inputs, .. } = &method.sig;
+                let syn::Signature { ident, generics, inputs, output, .. } = &method.sig;
+                let output = match output {
+                    syn::ReturnType::Type(_, t) => match &**t {
+                        syn::Type::Path(path) => {
+                            replace_first_generic_with_type(&path.path, &return_type)
+                        },
+                        _ => panic!("expected path, found {t:#?}")
+                    },
+                    _ => todo!()
+                };
                 
                 let inner = match &*arg_name {
                     "Vec" => q!( self.into_iter().map(|i| i.#ident(#(#args)*) ).collect() ),
@@ -74,16 +108,20 @@ pub fn auto_implement(args: TokenStream, input: TokenStream) -> TokenStream {
                 };
                 Ok(q! {
                     #(#attrs)*
-                    fn #ident #generics (#inputs) -> PassResult<#return_type> {
+                    fn #ident #generics (#inputs) -> #output {
                         #inner
                     }
                 })
             })
             .collect::<Result<Vec<TokenStream2>, TokenStream>>();
+        // let x = q! {
+        //     impl #generics #trait_name #new_trait_generics for #input_type
+        // }.to_string();
+        // panic!("{x:#?}");
         match functions {
             Err(e) => return e,
             Ok(functions) => outputs.push(q! {
-                impl #generics #trait_name<#return_type> for #input_type {
+                impl #generics #trait_name #new_trait_generics for #input_type {
                     #(#functions)*
                 }
             })
@@ -113,4 +151,22 @@ fn get_args_from_trait_method(method: &syn::TraitItemMethod) -> Vec<&syn::Ident>
 
 fn path_string(ident: &syn::Path) -> String {
     ident.segments.last().unwrap().ident.to_string()
+}
+
+fn replace_first_generic_with_type(path: &syn::Path, new_type: &TokenStream2) -> TokenStream2 {
+    let segments = &path.segments;
+    let segments = segments.iter()
+        .collect::<Vec<&syn::PathSegment>>();
+    let (last_segment, segments): (&&syn::PathSegment, &[&syn::PathSegment]) = segments
+        .split_last()
+        .unwrap();
+    let last_segment_ident = &last_segment.ident;
+    let last_segment_arguments: Vec<&syn::GenericArgument> = match &last_segment.arguments {
+        syn::PathArguments::AngleBracketed(syn::AngleBracketedGenericArguments { args, ..}) => args.iter().collect(),
+        _ => panic!("expected angle bracket generics"),
+    };
+    let new_last_args = last_segment_arguments.split_first().unwrap().1;
+    quote::quote! {
+        #(#segments::)*#last_segment_ident<#new_type #(,#new_last_args)*>
+    }
 }

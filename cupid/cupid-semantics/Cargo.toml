@@ -1,0 +1,10 @@
+[package]
+name = "cupid_semantics"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+auto-implement = { path = '../auto-implement' }
+cupid_ast = { path = '../cupid-ast' }
+cupid_env = { path = '../cupid-env' }
+cupid_util = { path = '../cupid-util' }

@@ -29,6 +29,7 @@ crate::util::impl_default_passes! {
 }
 
 impl AnalyzeScope<crate::Block<Expr>> for crate::Block<prev_pass::Expr> {
+    #[trace::trace]
     fn analyze_scope(self, env: &mut Env) -> PassResult<crate::Block<Expr>> {
         let scope = env.scope.add_scope(Context::Block);
         env.inside_closure(scope, |env| {
@@ -40,12 +41,14 @@ impl AnalyzeScope<crate::Block<Expr>> for crate::Block<prev_pass::Expr> {
 }
 
 impl AnalyzeScope<Decl> for prev_pass::Decl {
+    #[trace::trace]
     fn analyze_scope(self, env: &mut Env) -> PassResult<Decl> {
         Ok(self.pass(env)?.build_scope(env.scope.state.closure()))
     }
 }
 
 impl AnalyzeScope<Function> for prev_pass::Function {
+    #[trace::trace]
     fn analyze_scope(self, env: &mut Env) -> PassResult<Function> {
         let scope = env.scope.add_closure(Context::Function);
         env.inside_closure(scope, |env| Ok(self.pass(env)?.build_scope(scope)))
@@ -53,6 +56,7 @@ impl AnalyzeScope<Function> for prev_pass::Function {
 }
 
 impl AnalyzeScope<Ident> for Ident {
+    #[trace::trace]
     fn analyze_scope(mut self, env: &mut Env) -> PassResult<Ident> {
         self.namespace = self.namespace.analyze_scope(env)?;
         self.attr.scope = self.namespace
@@ -67,6 +71,7 @@ impl AnalyzeScope<Ident> for Ident {
 }
 
 impl AnalyzeScope<crate::Value> for crate::Value {
+    #[trace::trace]
     fn analyze_scope(mut self, env: &mut Env) -> PassResult<crate::Value> {
         self.attr_mut().set_scope(env.scope.state.closure());
         Ok(self)

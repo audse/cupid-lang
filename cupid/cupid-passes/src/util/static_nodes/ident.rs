@@ -1,5 +1,4 @@
 use cupid_util::{Bx, InvertOption, Str};
-// use IsTyped::*;
 
 crate::util::node_builder! {
 	#[derive(Debug, Default, Clone)]

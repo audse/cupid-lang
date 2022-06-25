@@ -30,6 +30,7 @@ util::impl_default_passes! {
 }
 
 impl AnalyzeTypeScope<Ident> for Ident {
+    #[trace::trace]
     fn analyze_type_scope(self, env: &mut Env) -> PassResult<Ident> {
         Ok(self
             .pass(AnalyzeTypeScope::analyze_type_scope, Self::analyze_type_scope, env)?
@@ -38,6 +39,7 @@ impl AnalyzeTypeScope<Ident> for Ident {
 }
 
 impl AnalyzeTypeScope<TypeDef> for prev_pass::TypeDef {
+    #[trace::trace]
     fn analyze_type_scope(self, env: &mut Env) -> PassResult<TypeDef> {
         let scope = env.scope.add_toplevel_closure(Context::Type);
         env.inside_closure(scope, |env| {

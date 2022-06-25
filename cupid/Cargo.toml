@@ -5,9 +5,12 @@ edition = "2021"
 
 [workspace]
 members = [
+	"cupid-ast",
+	"cupid-env",
 	"cupid-lex",
 	"cupid-parse",
 	"cupid-passes",
+	"cupid-semantics",
 	"auto-implement",
 	"cupid-types",
 	"cupid-util"
@@ -17,9 +20,12 @@ members = [
 colored = "2.0.0"
 clap = { version = "3.1.18", features = ["derive"] }
 
+cupid_ast = { path = 'cupid-ast' }
+cupid_env = { path = 'cupid-env' }
 cupid_lex = { path = 'cupid-lex' }
 cupid_parse = { path = 'cupid-parse' }
 cupid_passes = { path = 'cupid-passes' }
+cupid_semantics = { path = 'cupid-semantics' }
 auto-implement = { path = 'auto-implement' }
 cupid_types = { path = 'cupid-types' }
 cupid_util = { path = 'cupid-util' }

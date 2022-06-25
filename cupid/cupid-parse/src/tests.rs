@@ -63,7 +63,11 @@ fn test_decimal() {
 #[test]
 fn test_string() {
     let val = val("'abc'");
-    assert!(matches!(val, Value::VString(..)))
+    if let Value::VString(s, ..) = val {
+        assert!(&*s == "abc");
+    } else {
+        panic!("expected string")
+    }
 }
 
 #[test]
@@ -143,4 +147,10 @@ fn test_type_def_named_field() {
 fn test_type_def_sum() {
     let def = type_def("sum bool = [true, false]");
     assert!(def.fields.len() == 2);
+}
+
+#[test]
+fn test_multiple_expr() {
+    let exprs = setup("type int = [] let x : int = 1");
+    assert!(exprs.unwrap().len() == 2);
 }

@@ -35,6 +35,7 @@ util::impl_default_passes! {
 }
 
 impl ResolveNames<Decl> for prev_pass::Decl {
+    #[trace::trace]
     fn resolve_names(self, env: &mut Env) -> PassResult<Decl> {
         env.inside_closure(self.attr.scope, |env| {
             let Self { ident, type_annotation, mutable, value, attr } = self;
@@ -65,6 +66,7 @@ impl ResolveNames<Decl> for prev_pass::Decl {
 }
 
 impl ResolveNames<Function> for prev_pass::Function {
+    #[trace::trace]
     fn resolve_names(self, env: &mut Env) -> PassResult<Function> {
         env.inside_closure(self.attr.scope, |env| {
             let Self { params, body, return_type_annotation, attr } = self;
@@ -86,6 +88,7 @@ impl ResolveNames<Function> for prev_pass::Function {
 }
 
 impl ResolveNames<Ident> for Ident {
+    #[trace::trace]
     fn resolve_names(self, env: &mut Env) -> PassResult<Ident> {
         env.inside_closure(self.attr.scope, |env| {
             // if there is a namespace

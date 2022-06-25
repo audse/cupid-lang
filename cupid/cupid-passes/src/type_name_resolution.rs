@@ -34,6 +34,7 @@ util::impl_default_passes! {
 }
 
 impl ResolveTypeNames<TypeDef> for prev_pass::TypeDef {
+    #[trace::trace]
     fn resolve_type_names(self, env: &mut Env) -> PassResult<TypeDef> {
         env.inside_closure(self.scope(), |env| {
             let query = Query::<Expr>::select(&self.ident).write(Type::typ());
