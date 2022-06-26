@@ -11,6 +11,7 @@ impl Infer<Type> for expr::Expr {
             Trait(t) => t.infer(),
             Type(typ) => typ.infer(),
             Value(value) => value.infer(),
+            Stmt(stmt) => stmt.infer(),
             Empty => ().infer(),
         }
     }

@@ -7,6 +7,8 @@ use crate::{
     }
 };
 
+use super::row::Ref;
+
 #[derive(Debug, Default, Clone)]
 pub struct Query<'q> {
     pub read: ReadQuery<'q>,
@@ -27,6 +29,7 @@ pub struct WriteQuery<'q> {
     pub ident: Option<Ident>,
     pub ident_ref: Option<&'q Ident>,
     pub mutable: Option<Mut>,
+    pub refs: Ref,
 }
 
 impl<'q> Query<'q> {
@@ -50,6 +53,7 @@ impl<'q> Query<'q> {
             QuerySelector::Ident(i) => self.write.ident = Some(i),
             QuerySelector::IdentRef(i) => self.write.ident = Some(i.clone()),
             QuerySelector::Mutable(m) => self.write.mutable = Some(m),
+            QuerySelector::Ref(r) => self.write.refs = r,
             _ => ()
         }
         self
@@ -64,6 +68,7 @@ pub enum QuerySelector<'q> {
     Ident(Ident),
     IdentRef(&'q Ident),
     Mutable(Mut),
+    Ref(Ref)
 }
 
 impl From<Query<'_>> for SymbolRow {
@@ -74,6 +79,7 @@ impl From<Query<'_>> for SymbolRow {
             expr: write.expr.unwrap_or_default(),
             ident: write.ident.or_else(|| read.ident).or_else(|| read.ident_ref.cloned()).unwrap_or_default(),
             mutable: write.mutable.unwrap_or_default(),
+            refs: Ref(0)
         }
     }
 }

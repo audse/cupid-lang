@@ -57,12 +57,13 @@ impl AnalyzeScope for stmt::decl::Decl {
 
 impl AnalyzeScope for expr::function::Function {
     fn analyze_scope(self, env: &mut Env) -> Result<Self, Error> {
+        let return_type_annotation = self.return_type_annotation.analyze_scope(env)?;
         let closure = env.scope.add_closure(Context::Function);
         env.inside_closure(closure, |env| {
             Ok(Self {
                 params: self.params.analyze_scope(env)?,
                 body: self.body.analyze_scope(env)?,
-                return_type_annotation: self.return_type_annotation.analyze_scope(env)?,
+                return_type_annotation,
                 attr: Attr {
                     scope: env.scope.current(),
                     ..self.attr

@@ -1,5 +1,5 @@
 use crate::{Address, Error, error};
-use cupid_ast::{expr::{Expr, ident::Ident}, types::typ::Type};
+use cupid_ast::expr::{Expr, ident::Ident};
 use cupid_env::{
     database::{
         source_table::query::Query as SourceQuery, symbol_table::query::Query as SymbolQuery,
@@ -21,16 +21,16 @@ pub(super) fn is_undefined(ident: &Ident, env: &mut Env) -> Result<(), Error> {
     }
 }
 
-// pub(super) fn get_type_ident<'env>(
-//     source: Address,
-//     env: &'env mut Env,
-// ) -> Result<&'env Ident, Error> {
-//     if let Some(ident) = env.database.read::<Ident>(&SourceQuery::select(source)) {
-//         Ok(ident)
-//     } else {
-//         Err(error("could not get type"))
-//     }
-// }
+pub(super) fn get_type_ident<'env>(
+    source: Address,
+    env: &'env mut Env,
+) -> Result<&'env Ident, Error> {
+    if let Some(ident) = env.database.read::<Ident>(&SourceQuery::select(source)) {
+        Ok(ident)
+    } else {
+        Err(error("could not get type"))
+    }
+}
 
 pub(super) fn insert_symbol<T: Into<Expr>>(ident: &Ident, env: &mut Env, current_expr: T, mut transform_expr: impl FnMut(&mut Env, T) -> Result<T, Error>) -> Result<(), Error> {
     env.inside_closure(ident.attr.scope, |env| {

@@ -8,6 +8,8 @@ use crate::{
     },
 };
 
+use super::symbol_table::row::Ref;
+
 pub trait Selector<Row: ?Sized>: Clone {
     fn select(from: &Row) -> &Self;
     fn select_mut(from: &mut Row) -> &mut Self;
@@ -41,6 +43,7 @@ symbol_row_selector! {
     Address => |row| row.address;
     Ident => |row| row.ident;
     Expr => |row| row.expr;
+    Ref => |row| row.refs;
 }
 
 impl Selector<SymbolRow> for SymbolRow {

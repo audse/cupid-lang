@@ -1,3 +1,4 @@
+use derive_more::{Add, AddAssign};
 use cupid_ast::expr::{Expr, ident::Ident};
 use crate::{
     Address,
@@ -24,7 +25,11 @@ pub struct SymbolRow {
     pub ident: Ident,
     pub mutable: Mut,
     pub expr: Expr,
+    pub refs: Ref,
 }
+
+#[derive(Debug, Default, Clone, Copy, Add, AddAssign)]
+pub struct Ref(pub usize);
 
 impl<'row: 'q, 'q> TableRow<'row, 'q, Query<'q>> for SymbolRow {
     fn matches_query(&'row self, query: &'q Query<'q>) -> bool {
@@ -47,11 +52,12 @@ impl<'row: 'q, 'q> TableRow<'row, 'q, Query<'q>> for SymbolRow {
         None
     }
     fn unify(&mut self, query: Query) {
-        let WriteQuery { expr, ident, ident_ref, mutable, ..} = query.write;
+        let WriteQuery { expr, ident, ident_ref, mutable, refs, ..} = query.write;
 
         expr.map(|e| self.expr = e);
         ident.map(|i| self.ident = i);
         ident_ref.map(|i| self.ident = i.to_owned());
         mutable.map(|m| self.mutable = m);
+        self.refs += refs;
     }
 }

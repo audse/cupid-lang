@@ -1,3 +1,5 @@
+#![feature(let_chains)]
+
 pub mod analyze_scope;
 pub mod resolve_type_names;
 pub mod resolve_names;
@@ -28,6 +30,7 @@ macro_rules! map_expr {
             Value($exp) => Ok(Value($inside)),
             Trait($exp) => Ok(Trait($inside)),
             Type($exp) => Ok(Type($inside)),
+            Stmt($exp) => Ok(Stmt($inside)),
             Empty => Ok(Empty),
         }
     }};

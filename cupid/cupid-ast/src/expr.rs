@@ -1,5 +1,5 @@
 use derive_more::{From, TryInto, IsVariant, Unwrap};
-use crate::{types, attr::Attr};
+use crate::{stmt, types, attr::Attr};
 
 pub mod block;
 pub mod function;
@@ -14,6 +14,7 @@ pub enum Expr {
     Value(value::Value),
     Trait(types::traits::Trait),
     Type(types::typ::Type),
+    Stmt(stmt::Stmt),
     #[default]
     Empty
 }

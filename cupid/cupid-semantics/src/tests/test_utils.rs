@@ -1,6 +1,7 @@
 #![cfg(test)]
 use cupid_ast::{stmt::{decl::Decl, type_def::TypeDef}, types::{typ::Type, traits::Trait}, expr::{function::Function, ident::Ident, value::{Value, Val}, Expr}, attr::Attr};
 use cupid_env::{environment::Env, database::{table::QueryTable, symbol_table::query::Query, source_table::query::Query as SourceQuery}};
+use cupid_util::Bx;
 
 use crate::Address;
 
@@ -30,10 +31,10 @@ pub(super) fn decl(ident: &'static str) -> Decl {
     }
 }
 
-pub(super) fn decl_val<V: Into<Expr>>(ident: &'static str, val: V) -> Decl {
+pub(super) fn decl_val<V>(ident: &'static str, val: V) -> Decl where Expr: From<V> {
     Decl {
         ident: ident.into(),
-        value: val.into(),
+        value: Expr::from(val).bx(),
         ..Decl::default()
     }
 }

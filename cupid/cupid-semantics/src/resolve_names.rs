@@ -5,7 +5,7 @@ use crate::{
 };
 use cupid_ast::{expr, stmt, types};
 use cupid_env::{environment::Env, database::{table::QueryTable, symbol_table::query::Query}};
-use cupid_util::InvertOption;
+use cupid_util::{InvertOption, Bx};
 
 #[allow(unused_variables)]
 #[auto_implement::auto_implement(Vec, Box, Option)]
@@ -43,10 +43,11 @@ impl ResolveNames for expr::block::Block {
 
 impl ResolveNames for expr::function::Function {
     fn resolve_names(self, env: &mut Env) -> Result<Self, Error> {
+        let return_type_annotation = self.return_type_annotation.resolve_names(env)?;
         env.inside_closure(self.attr.scope, |env| {
             Ok(Self {
                 params: self.params.resolve_names(env)?,
-                return_type_annotation: self.return_type_annotation.resolve_names(env)?,
+                return_type_annotation,
                 body: self.body.resolve_names(env)?,
                 ..self
             })
@@ -100,12 +101,12 @@ impl ResolveNames for types::typ::Type {
 impl ResolveNames for stmt::decl::Decl {
     fn resolve_names(self, env: &mut Env) -> Result<Self, Error> {
         // TODO resolve ident generics + namespace
-        insert_symbol(&self.ident, env, self.value, |env, expr: expr::Expr| Ok(expr.resolve_names(env)?))?;
+        insert_symbol(&self.ident, env, *self.value, |env, expr: expr::Expr| Ok(expr.resolve_names(env)?))?;
         Ok(Self {
             ident: self.ident.resolve_names(env)?,
             type_annotation: self.type_annotation.resolve_names(env)?,
             // value is moved into DB, so use a default
-            value: expr::Expr::default(),
+            value: expr::Expr::default().bx(),
             ..self
         })
     }

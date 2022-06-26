@@ -5,6 +5,6 @@ use crate::{expr::{ident::Ident, Expr}, attr::Attr};
 pub struct Decl {
     pub ident: Ident,
     pub type_annotation: Option<Ident>,
-    pub value: Expr,
+    pub value: Box<Expr>,
     pub attr: Attr,
 }
