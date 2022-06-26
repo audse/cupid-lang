@@ -1,8 +1,8 @@
-use cupid_ast::expr::{Expr, ident::Ident};
+use cupid_ast::{expr::{Expr, ident::Ident}, stmt::decl::Mut};
 use crate::{
     Address,
     database::{
-        symbol_table::{Mut, row::SymbolRow},
+        symbol_table::row::SymbolRow,
         selector::FilterFn,
     }
 };

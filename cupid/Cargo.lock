@@ -137,8 +137,9 @@ dependencies = [
 name = "cupid_parse"
 version = "0.1.0"
 dependencies = [
+ "cupid_ast",
+ "cupid_env",
  "cupid_lex",
- "cupid_passes",
  "cupid_util",
  "trace",
 ]
@@ -161,6 +162,8 @@ dependencies = [
  "auto-implement",
  "cupid_ast",
  "cupid_env",
+ "cupid_lex",
+ "cupid_parse",
  "cupid_types",
  "cupid_util",
 ]

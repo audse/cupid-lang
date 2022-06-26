@@ -3,18 +3,13 @@ use std::borrow::Cow;
 use cupid_lex::{token::{Token, TokenKind}, token_iter::{IsOptional::*, TokenIterator, TokenListBuilder}};
 use cupid_util::{BiDirectionalIterator, Bx};
 
-use cupid_passes::{
-    env::environment::Mut,
-    pre_analysis::{Decl, Expr, TypeDef},
-    util::{
-        static_nodes::{value::Value, ident::Ident, field::Field}, 
-        attributes::Attributes
-    },
-};
+use cupid_ast::{attr::Attr, expr::Expr, expr::block::Block, expr::{function::Function, value::Val}, expr::ident::Ident, expr::value::Value, stmt::{Stmt, decl::Mut}, stmt::decl::Decl, stmt::trait_def::TraitDef, stmt::type_def::TypeDef, types::traits::Trait, types::typ::Type};
+use cupid_env::{environment::Env, database::{source_table::query::Query, table::QueryTable}};
 
 #[derive(Default)]
 pub struct Parser {
     pub source: Vec<Vec<Token<'static>>>,
+    pub env: Env,
     pub document: usize,
 }
 
@@ -35,15 +30,14 @@ impl Parser {
         Some(exprs)
     }
 
-    fn parse_value<T: std::str::FromStr>(&mut self, token: Token<'static>) -> (T, Attributes) {
+    fn parse_value<T: std::str::FromStr>(&mut self, token: Token<'static>) -> (T, Attr) {
         (parse(&token.source.to_string()), self.attr([token]))
     }
 
-    fn attr<T: Into<Vec<Token<'static>>>>(&mut self, tokens: T) -> Attributes {
-        self.source.push(tokens.into());
-        Attributes {
+    fn attr<T: Into<Vec<Token<'static>>>>(&mut self, tokens: T) -> Attr {
+        Attr {
+            source: self.env.database.source_table.insert(Query::insert().write(tokens.into())),
             scope: 0,
-            address: self.source.len() - 1
         }
     }
 }
@@ -60,8 +54,9 @@ pub trait ParseInto<T>: Parse {
 
 impl Parse for Expr {
     fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<Self> {
-        TypeDef::parse(parser, tokens).map(|type_def| Expr::TypeDef(type_def))
-            .or_else(|| Decl::parse(parser, tokens).map(|decl| Expr::Decl(decl)))
+        TypeDef::parse(parser, tokens).map(|type_def| Expr::Stmt(Stmt::TypeDef(type_def)))
+            .or_else(|| Decl::parse(parser, tokens).map(|decl| Expr::Stmt(Stmt::Decl(decl))))
+            .or_else(|| Block::parse(parser, tokens).map(|block| Expr::Block(block)))
             .or_else(|| Value::parse(parser, tokens).map(|val| Expr::Value(val)))
             .or_else(|| Ident::parse(parser, tokens).map(|ident| Expr::Ident(ident)))
     }
@@ -106,13 +101,42 @@ impl Parse for Decl {
     }
 }
 
+impl Parse for Function {
+    fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<Self> {
+        tokens.mark(|tokens| {
+            let mut params: Vec<Decl> = vec![];
+
+            TokenListBuilder::start(tokens)
+                .repeat(
+                    |token| token.source != "=" && token.source != "}", 
+                    |mut builder| {
+                        let ident = Ident::parse(parser, &mut builder.tokens)?;
+                        let type_annotation = TypeAnnotation::parse(parser, &mut builder.tokens).map(|t| t.0);
+                        params.push(Decl::build()
+                            .ident(ident)
+                            .type_annotation(type_annotation)
+                            .attr(parser.attr([]))
+                            .build());
+                        builder.string(",", Optional)
+                    }
+                )?;
+            let block = Block::parse(parser, tokens)?;
+            Some(Function::build()
+                .params(params)
+                .body(block)
+                .attr(parser.attr([]))
+                .build())
+        })
+    }
+}
+
 impl Parse for TypeDef {
     fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<Self> {
         tokens.mark(|tokens| {
             let (mut token_type, mut ident, mut token_equal) = (None, TypeIdent(Ident::default()), None);
             let mut fields = vec![];
 
-            let mut bracket_tokens = TokenListBuilder::start(tokens)
+            let bracket_tokens = TokenListBuilder::start(tokens)
                 .one_of(["type", "sum"], Required)?.assign(&mut token_type)
                 .and(|mut builder| {
                     ident = TypeIdent::parse(parser, &mut builder.tokens)?;
@@ -123,7 +147,11 @@ impl Parse for TypeDef {
                     |mut builder| {
                         let field_ident = TypeIdent::parse_into(parser, &mut builder.tokens)?;
                         let field_type = TypeAnnotation::parse_into(parser, &mut builder.tokens);
-                        fields.push(Field(field_ident, field_type));
+                        let decl = Decl::build()
+                            .ident(field_ident)
+                            .value(field_type.map(|f| Box::new(Expr::Ident(f))).unwrap_or_default())
+                            .attr(parser.attr([]));
+                        fields.push(decl.build());
                         Some(builder)
                     }, 
                     ","
@@ -131,14 +159,71 @@ impl Parse for TypeDef {
                 .done();
                 
             
-            let mut type_def_tokens: Vec<Token> = vec![token_type.unwrap(), token_equal.unwrap()];
-            type_def_tokens.append(&mut bracket_tokens);
+            let type_def_tokens: Vec<Token> = vec![token_type.unwrap(), token_equal.unwrap()];
             
+            let typ = Type::build()
+                .ident(ident.0.clone())
+                .fields(fields)
+                .attr(parser.attr(bracket_tokens))
+                .build();
+
             Some(TypeDef::build()
                 .ident(ident.0)
-                .fields(fields)
+                .value(typ)
                 .attr(parser.attr(type_def_tokens))
                 .build())
+        })
+    }
+}
+
+impl Parse for Block {
+    fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<Self> {
+        BraceBlock::parse(parser, tokens)
+            .map(|block| block.0)
+            .or_else(|| ArrowBlock::parse(parser, tokens).map(|block| block.0))
+    }
+}
+
+/// E.g. `{ ... }`
+pub struct BraceBlock(pub Block);
+impl Parse for BraceBlock {
+    fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<Self> {
+        tokens.mark(|tokens| {
+            let mut exprs: Vec<Expr> = vec![];
+            let block_tokens = TokenListBuilder::start(tokens)
+                .string("{", Required)?
+                .repeat(
+                    |token| token.source != "}", 
+                    |mut builder| {
+                        exprs.push(Expr::parse(parser, &mut builder.tokens)?);
+                        Some(builder)
+                    }
+                )?
+                .string("}", Required)?
+                .done();
+            Some(BraceBlock(Block::build()
+                .expressions(exprs)
+                .attr(parser.attr(block_tokens))
+                .build()))
+        })
+    }
+}
+
+/// E.g. `=> ...`
+#[derive(Debug, Default)]
+pub struct ArrowBlock(pub Block);
+impl Parse for ArrowBlock {
+    fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<Self> {
+        tokens.mark(|tokens| {
+            let block_tokens = TokenListBuilder::start(tokens)
+                .string("=", Required)?
+                .string(">", Required)?
+                .done();
+            let expr = Expr::parse(parser, tokens)?;
+            Some(ArrowBlock(Block::build()
+                .expressions(vec![expr])
+                .attr(parser.attr(block_tokens))
+                .build()))
         })
     }
 }
@@ -226,15 +311,16 @@ impl Parse for Ident {
 impl Parse for Value {
     fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<Self> {
         VString::parse(parser, tokens)
-            .map(|(string, attr)| Value::VString(string, attr))
-            .or_else(|| VInt::parse(parser, tokens).map(|(int, attr)| Value::VInteger(int, attr)))
-            .or_else(|| VDec::parse(parser, tokens).map(|(whole, fraction, attr)| Value::VDecimal(whole, fraction, attr)))
-            .or_else(|| VBool::parse(parser, tokens).map(|(boolean, attr)| Value::VBoolean(boolean, attr)))
-            .or_else(|| tokens.string("none").map(|token| Value::VNone(parser.attr([token]))))
+            .map(|(string, attr)| (Val::VString(string), attr))
+            .or_else(|| VInt::parse(parser, tokens).map(|(int, attr)| (Val::VInteger(int), attr)))
+            .or_else(|| VDec::parse(parser, tokens).map(|(whole, fraction, attr)| (Val::VDecimal(whole, fraction), attr)))
+            .or_else(|| VBool::parse(parser, tokens).map(|(boolean, attr)| (Val::VBoolean(boolean), attr)))
+            .or_else(|| tokens.string("none").map(|token| (Val::VNone, parser.attr([token]))))
+            .map(|(inner, attr)| Value { inner, attr })
     }
 }
 
-type VString = (Cow<'static, str>, Attributes);
+type VString = (Cow<'static, str>, Attr);
 impl Parse for VString {
     fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<Self> {
         tokens.kind(TokenKind::String).map(|token| {
@@ -246,14 +332,14 @@ impl Parse for VString {
     }
 }
 
-type VInt = (i32, Attributes);
+type VInt = (i32, Attr);
 impl Parse for VInt {
     fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<Self> {
         tokens.kind(TokenKind::Number).map(|token| parser.parse_value(token))
     }
 }
 
-type VDec = (i32, u32, Attributes);
+type VDec = (i32, u32, Attr);
 impl Parse for VDec {
     fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<Self> {
         tokens.kind(TokenKind::Decimal).map(|token| {
@@ -263,7 +349,7 @@ impl Parse for VDec {
     }
 }
 
-type VBool = (bool, Attributes);
+type VBool = (bool, Attr);
 impl Parse for VBool {
     fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<Self> {
         tokens.string("true").or(tokens.string("false")).map(|token| {

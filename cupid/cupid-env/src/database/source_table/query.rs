@@ -1,3 +1,4 @@
+use derive_more::{From, TryInto};
 use cupid_lex::token::Token;
 use cupid_ast::expr::ident::Ident;
 use crate::{
@@ -27,8 +28,11 @@ impl Query {
             write: WriteQuery::default()
         }
     }
-    pub fn write(mut self, typ: Ident) -> Self {
-        self.write.typ = Some(typ);
+    pub fn write(mut self, selector: impl Into<QuerySelector>) -> Self {
+        match selector.into() {
+            QuerySelector::Type(typ) => self.write.typ = Some(typ),
+            QuerySelector::Tokens(tokens) => self.write.source = Some(tokens),
+        }
         self
     }
 }
@@ -42,4 +46,10 @@ impl From<Query> for SourceRow {
             ..Self::default()
         }
     }
+}
+
+#[derive(Debug, Clone, From, TryInto)]
+pub enum QuerySelector {
+    Type(Ident),
+    Tokens(Vec<Token<'static>>),
 }

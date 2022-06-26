@@ -51,6 +51,7 @@ impl AnalyzeScope for stmt::decl::Decl {
                 scope: env.scope.current(),
                 ..self.attr
             },
+            ..self
         })
     }
 }

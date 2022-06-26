@@ -1,13 +1,8 @@
 #![cfg(test)]
 
+use cupid_ast::{expr::{Expr, value::{Value, Val}}, stmt::{decl::{Mut, Decl}, Stmt, type_def::TypeDef}};
 use cupid_lex::lexer::Lexer;
 use crate::parse::Parser;
-
-use cupid_passes::{
-    env::environment::Mut,
-    pre_analysis::{Decl, Expr, TypeDef},
-    util::static_nodes::value::Value,
-};
 
 fn setup(string: &str) -> Option<Vec<Expr>> {
     let mut lexer = Lexer::new();
@@ -23,7 +18,7 @@ fn expr(string: &str) -> Expr {
 
 fn decl(string: &str) -> Decl {
     let decl = expr(string);
-    if let Expr::Decl(decl) = decl {
+    if let Expr::Stmt(Stmt::Decl(decl)) = decl {
         decl 
     } else {
         panic!("expected declaration")
@@ -32,7 +27,7 @@ fn decl(string: &str) -> Decl {
 
 fn type_def(string: &str) -> TypeDef {
     let def = expr(string);
-    if let Expr::TypeDef(def) = def {
+    if let Expr::Stmt(Stmt::TypeDef(def)) = def {
         def 
     } else {
         panic!("expected type definition")
@@ -51,19 +46,19 @@ fn val(string: &str) -> Value {
 #[test]
 fn test_number() {
     let val = val("1");
-    assert!(matches!(val, Value::VInteger(1, ..)));
+    assert!(matches!(val, Value { inner: Val::VInteger(1, ..), .. }));
 }
 
 #[test]
 fn test_decimal() {
     let val = val("1.5");
-    assert!(matches!(val, Value::VDecimal(1, 5, ..)));
+    assert!(matches!(val, Value { inner: Val::VDecimal(1, 5, ..), .. }));
 }
 
 #[test]
 fn test_string() {
     let val = val("'abc'");
-    if let Value::VString(s, ..) = val {
+    if let Value { inner: Val::VString(s, ..), .. } = val {
         assert!(&*s == "abc");
     } else {
         panic!("expected string")
@@ -73,19 +68,19 @@ fn test_string() {
 #[test]
 fn test_bool_true() {
     let val = val("true");
-    assert!(matches!(val, Value::VBoolean(true, ..)))
+    assert!(matches!(val, Value { inner: Val::VBoolean(true, ..), .. }))
 }
 
 #[test]
 fn test_bool_false() {
     let val = val("false");
-    assert!(matches!(val, Value::VBoolean(false, ..)))
+    assert!(matches!(val, Value { inner: Val::VBoolean(false, ..), .. }))
 }
 
 #[test]
 fn test_none() {
     let val = val("none");
-    assert!(matches!(val, Value::VNone(..)))
+    assert!(matches!(val, Value { inner: Val::VNone, .. }))
 }
 
 #[test]
@@ -128,25 +123,25 @@ fn test_decl_typed_generics() {
 #[test]
 fn test_type_def() {
     let def = type_def("type int = []");
-    assert!(&*def.ident.name == "int" && def.fields.len() == 0);
+    assert!(&*def.ident.name == "int" && def.value.fields.len() == 0);
 }
 
 #[test]
 fn test_type_def_field() {
     let def = type_def("type array = [int]");
-    assert!(def.fields.len() == 1 && def.fields[0].1.is_none());
+    assert!(def.value.fields.len() == 1 && matches!(*def.value.fields[0].value, Expr::Empty));
 }
 
 #[test]
 fn test_type_def_named_field() {
     let def = type_def("type map = [key : int, val : int]");
-    assert!(def.fields.len() == 2 && def.fields[0].1.is_some());
+    assert!(def.value.fields.len() == 2 && matches!(*def.value.fields[0].value, Expr::Ident(_)));
 }
 
 #[test]
 fn test_type_def_sum() {
     let def = type_def("sum bool = [true, false]");
-    assert!(def.fields.len() == 2);
+    assert!(def.value.fields.len() == 2);
 }
 
 #[test]

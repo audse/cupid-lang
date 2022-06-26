@@ -62,10 +62,3 @@ impl QueryTable<Query<'_>, SymbolRow> for Database {
         self.symbol_table.take(query)
     }
 }
-
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
-pub enum Mut {
-    Mutable,
-    #[default]
-    Immutable,
-}

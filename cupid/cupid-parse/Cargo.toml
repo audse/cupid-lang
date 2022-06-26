@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 cupid_lex = { path = '../cupid-lex' }
-cupid_passes = { path = '../cupid-passes' }
+cupid_ast = { path = '../cupid-ast' }
+cupid_env = { path = '../cupid-env' }
 cupid_util = { path = '../cupid-util' }
 trace = { path = '../trace' }

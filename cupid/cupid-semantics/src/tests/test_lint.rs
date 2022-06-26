@@ -1,4 +1,5 @@
 #![cfg(test)]
+#![allow(unused)]
 use cupid_ast::expr::Expr;
 use cupid_env::environment::Env;
 use cupid_util::Bx;

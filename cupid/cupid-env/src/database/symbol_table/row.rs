@@ -1,5 +1,5 @@
 use derive_more::{Add, AddAssign};
-use cupid_ast::expr::{Expr, ident::Ident};
+use cupid_ast::{expr::{Expr, ident::Ident}, stmt::decl::Mut};
 use crate::{
     Address,
     database::{
@@ -7,12 +7,9 @@ use crate::{
             FilterFn,
             Selector
         },
-        symbol_table::{
-            Mut,
-            query::{
-                Query,
-                WriteQuery,
-            },
+        symbol_table::query::{
+            Query,
+            WriteQuery,
         },
         table::TableRow,
     }
