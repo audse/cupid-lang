@@ -17,13 +17,13 @@ fn test_is_defined() -> Result<(), Error> {
     type_def
         .analyze_scope(&mut env)?
         .resolve_type_names(&mut env)?;
-    assert!(get_ident("int", &mut env).is_some());
+    assert!(read_ident("int", &mut env).is_some());
     Ok(())
 }
 
 #[test]
 fn test_is_undefined() -> Result<(), Error> {
     let mut env = env();
-    assert!(get_ident("int", &mut env).is_none());
+    assert!(read_ident("int", &mut env).is_none());
     Ok(())
 }

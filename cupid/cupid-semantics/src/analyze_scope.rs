@@ -62,6 +62,7 @@ impl AnalyzeScope for expr::function::Function {
             Ok(Self {
                 params: self.params.analyze_scope(env)?,
                 body: self.body.analyze_scope(env)?,
+                return_type_annotation: self.return_type_annotation.analyze_scope(env)?,
                 attr: Attr {
                     scope: env.scope.current(),
                     ..self.attr

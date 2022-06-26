@@ -18,13 +18,14 @@ impl Infer<Type> for Value {
         use Value::*;
         let attr = self.attr();
 		match self {
-			VBoolean(x, ..) => Ident::new(x.infer(), attr),
-			VChar(x, ..) => Ident::new(x.infer(), attr),
-			VDecimal(x, y, ..) => Ident::new((*x, *y).infer(), attr),
-			VInteger(x, ..) => Ident::new(x.infer(), attr),
-			VString(x, ..) => Ident::new(x.infer(), attr),
-            VType(x, ..) => x.infer(),
-			_ => Ident::new(().infer(), attr),
+			// VBoolean(x, ..) => Ident::new(x.infer(), attr),
+			// VChar(x, ..) => Ident::new(x.infer(), attr),
+			// VDecimal(x, y, ..) => Ident::new((*x, *y).infer(), attr),
+			// VInteger(x, ..) => Ident::new(x.infer(), attr),
+			// VString(x, ..) => Ident::new(x.infer(), attr),
+            // VType(x, ..) => x.infer(),
+			// _ => Ident::new(().infer(), attr),
+            _ => Ident::default(),
 		}.into()
 	}
 }

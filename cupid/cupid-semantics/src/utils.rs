@@ -1,5 +1,5 @@
 use crate::{Address, Error, error};
-use cupid_ast::expr::{Expr, ident::Ident};
+use cupid_ast::{expr::{Expr, ident::Ident}, types::typ::Type};
 use cupid_env::{
     database::{
         source_table::query::Query as SourceQuery, symbol_table::query::Query as SymbolQuery,
@@ -9,17 +9,7 @@ use cupid_env::{
 };
 
 pub(super) fn read(ident: &Ident, env: &mut Env) -> Option<Address> {
-    env.database
-        .read::<Address>(&SymbolQuery::select(ident))
-        .map(|a| *a)
-}
-
-pub(super) fn is_defined(ident: &Ident, env: &mut Env) -> Result<(), Error> {
-    if read(ident, env).is_some() {
-        Ok(())
-    } else {
-        Err(error(format!("not defined: `{ident:?}`")))
-    }
+    env.read::<Address>(&SymbolQuery::select(ident)).map(|a| *a)
 }
 
 pub(super) fn is_undefined(ident: &Ident, env: &mut Env) -> Result<(), Error> {
@@ -38,7 +28,7 @@ pub(super) fn is_undefined(ident: &Ident, env: &mut Env) -> Result<(), Error> {
 //     if let Some(ident) = env.database.read::<Ident>(&SourceQuery::select(source)) {
 //         Ok(ident)
 //     } else {
-//         Err(Error)
+//         Err(error("could not get type"))
 //     }
 // }
 
@@ -46,10 +36,12 @@ pub(super) fn insert_symbol<T: Into<Expr>>(ident: &Ident, env: &mut Env, current
     env.inside_closure(ident.attr.scope, |env| {
         is_undefined(ident, env)?;
 
+        let value = transform_expr(env, current_expr)?.into();
         let query = SymbolQuery::insert()
             .write(ident)
-            .write(transform_expr(env, current_expr)?.into());
-        env.database.symbol_table.insert(query);
+            .write(value);
+
+        env.insert(query);
 
         Ok(())
     })
@@ -58,14 +50,26 @@ pub(super) fn insert_symbol<T: Into<Expr>>(ident: &Ident, env: &mut Env, current
 pub(super) fn rewrite_symbol(ident: &Ident, env: &mut Env, mut expr: impl FnMut(&mut Env, Expr) -> Result<Expr, Error>) -> Result<(), Error> {
     env.inside_closure(ident.attr.scope, |env| {
         let mut value = env
-            .database
-            .symbol_table
             .take::<Expr>(&SymbolQuery::select(ident))
             .unwrap();
         value = expr(env, value)?;
-        env.database
-            .symbol_table
-            .write(SymbolQuery::select(ident).write(value));
+        env.write(SymbolQuery::select(ident).write(value));
         Ok(())
     })
+}
+
+pub(super) fn update_type(source: Address, env: &mut Env, typ: Ident) -> Result<(), Error> {
+    env.database.source_table.write(SourceQuery::select(source).write(typ));
+    Ok(())
+}
+
+pub(super) fn rewrite_symbol_unscoped(ident: &Ident, env: &mut Env, mut expr: impl FnMut(&mut Env, Expr) -> Result<Expr, Error>) -> Result<(), Error> {
+    let mut value = env
+        .database
+        .symbol_table
+        .take::<Expr>(&SymbolQuery::select(ident))
+        .unwrap();
+    value = expr(env, value)?;
+    env.database.symbol_table.write(SymbolQuery::select(ident).write(value));
+    Ok(())
 }

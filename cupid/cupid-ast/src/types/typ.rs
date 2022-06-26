@@ -33,4 +33,10 @@ impl Type {
             ..Self::default()
         }
     }
+    pub fn traits() -> Self {
+        Self {
+            ident: "trait".into(),
+            ..Self::default()
+        }
+    }
 }

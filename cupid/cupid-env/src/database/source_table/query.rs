@@ -27,6 +27,10 @@ impl Query {
             write: WriteQuery::default()
         }
     }
+    pub fn write(mut self, typ: Ident) -> Self {
+        self.write.typ = Some(typ);
+        self
+    }
 }
 
 impl From<Query> for SourceRow {

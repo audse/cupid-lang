@@ -19,16 +19,16 @@ pub enum Expr {
 }
 
 impl Expr {
-    pub fn attr(&self) -> Attr {
+    pub fn attr(&self) -> Option<Attr> {
         use Expr::*;
         match self {
-            Block(b) => b.attr,
-            Function(f) => f.attr,
-            Ident(i) => i.attr,
-            Value(v) => v.attr,
-            Trait(t) => t.attr,
-            Type(t) => t.attr,
-            _ => panic!()
+            Block(b) => Some(b.attr),
+            Function(f) => Some(f.attr),
+            Ident(i) => Some(i.attr),
+            Value(v) => Some(v.attr),
+            Trait(t) => Some(t.attr),
+            Type(t) => Some(t.attr),
+            _ => None
         }
     }
 }

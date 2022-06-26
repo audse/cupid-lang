@@ -56,11 +56,11 @@ fn test_trait() -> Result<(), Error> {
 #[test]
 fn test_trait_method() -> Result<(), Error> {
     let (mut env, mut t) = (env(), traits("add"));
-    t.methods.push(fun_decl("add", fun(["left", "right"])));
+    t.methods.push(decl_val("add", fun(["left", "right"])));
     has_scope!(t.methods[0], 0);
-    assert!(t.methods[0].value.attr().scope == 0);
+    assert!(t.methods[0].value.attr().unwrap().scope == 0);
     t = t.analyze_scope(&mut env)?;
     has_scope!(t.methods[0], 1);
-    assert!(t.methods[0].value.attr().scope == 2);
+    assert!(t.methods[0].value.attr().unwrap().scope == 2);
     Ok(())
 }

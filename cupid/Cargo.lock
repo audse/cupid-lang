@@ -161,12 +161,16 @@ dependencies = [
  "auto-implement",
  "cupid_ast",
  "cupid_env",
+ "cupid_types",
  "cupid_util",
 ]
 
 [[package]]
 name = "cupid_types"
 version = "0.1.0"
+dependencies = [
+ "cupid_ast",
+]
 
 [[package]]
 name = "cupid_util"
