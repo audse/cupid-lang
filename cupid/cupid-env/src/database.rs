@@ -1,14 +1,13 @@
 use crate::{
     Address,
     database::{
-        db::Database,
         selector::Selector,
         table::QueryTable,
     },
     environment::Env,
 };
 
-use self::{symbol_table::{row::SymbolRow, query::Query}, source_table::{query::Query as SourceQuery, row::SourceRow}};
+use self::symbol_table::{row::SymbolRow, query::Query};
 
 pub mod db;
 pub mod selector;

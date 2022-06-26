@@ -13,11 +13,8 @@ pub use fmt::*;
 pub mod invert_option;
 pub use invert_option::*;
 
-pub mod map_mut;
-pub use map_mut::*;
+pub type Str = std::borrow::Cow<'static, str>;
 
-pub mod strings;
-pub use strings::*;
 
 /// Shorthand `Box::new(...)` as an associated trait. Implemented
 /// for any type that can be boxed.

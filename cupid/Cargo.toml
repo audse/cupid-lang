@@ -9,7 +9,6 @@ members = [
 	"cupid-env",
 	"cupid-lex",
 	"cupid-parse",
-	"cupid-passes",
 	"cupid-semantics",
 	"auto-implement",
 	"cupid-types",
@@ -24,7 +23,6 @@ cupid_ast = { path = 'cupid-ast' }
 cupid_env = { path = 'cupid-env' }
 cupid_lex = { path = 'cupid-lex' }
 cupid_parse = { path = 'cupid-parse' }
-cupid_passes = { path = 'cupid-passes' }
 cupid_semantics = { path = 'cupid-semantics' }
 auto-implement = { path = 'auto-implement' }
 cupid_types = { path = 'cupid-types' }

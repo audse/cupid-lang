@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use cupid_ast::{expr::{Expr, value::{Value, Val}}, stmt::{decl::{Mut, Decl}, Stmt, type_def::TypeDef}};
+use cupid_ast::{expr::{Expr, value::{Value, Val}}, stmt::{decl::{Mut, Decl}, Stmt, type_def::TypeDef, trait_def::TraitDef}};
 use cupid_lex::lexer::Lexer;
 use crate::parse::Parser;
 
@@ -31,6 +31,15 @@ fn type_def(string: &str) -> TypeDef {
         def 
     } else {
         panic!("expected type definition")
+    }
+}
+
+fn trait_def(string: &str) -> TraitDef {
+    let def = expr(string);
+    if let Expr::Stmt(Stmt::TraitDef(def)) = def {
+        def 
+    } else {
+        panic!("expected trait definition")
     }
 }
 
@@ -148,4 +157,41 @@ fn test_type_def_sum() {
 fn test_multiple_expr() {
     let exprs = setup("type int = [] let x : int = 1");
     assert!(exprs.unwrap().len() == 2);
+}
+
+#[test]
+fn test_trait_def() {
+    let def = trait_def("trait add = [
+        add: left : int, right : int => 1 # todo
+    ]");
+    assert!(def.value.methods[0].ident.name == "add");
+}
+
+#[test]
+fn test_trait_multiple_methods() {
+    let def = trait_def("trait equal (t) = [
+        equal: left : t, right : t => false, # todo
+        not_equal: left : t, right : t => true, # todo
+    ]");
+    assert!(def.value.methods.len() == 2);
+    assert!(def.value.methods[1].ident.name == "not_equal");
+}
+
+#[test]
+fn test_fun_decl() {
+    let fun = decl("let sq = num : int => 4 # todo");
+    assert!(matches!(*fun.value, Expr::Function(_)));
+}
+
+
+#[test]
+fn test_fun_decl_no_params() {
+    let fun = decl("let x = _ => {}");
+    assert!(matches!(*fun.value, Expr::Function(_)));
+}
+
+#[test]
+fn test_block() {
+    let block = expr("{ let x : int = 1 }");
+    assert!(matches!(block, Expr::Block(_)));
 }

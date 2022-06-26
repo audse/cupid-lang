@@ -2,11 +2,11 @@ use crate::{expr::ident::Ident, attr::Attr, stmt::decl::Decl};
 
 #[derive(Debug, Default, Copy, Clone, derive_more::Display)]
 pub enum BaseType {
-    #[default]
-    Primitive,
     Struct,
     Sum,
     Array,
+    #[default]
+    Variable,
 }
 
 cupid_util::build_struct! {
@@ -24,18 +24,21 @@ impl Type {
     pub fn none() -> Self {
         Self {
             ident: "none".into(),
+            base: BaseType::Struct,
             ..Self::default()
         }
     }
     pub fn typ() -> Self {
         Self {
             ident: "type".into(),
+            base: BaseType::Struct,
             ..Self::default()
         }
     }
     pub fn traits() -> Self {
         Self {
             ident: "trait".into(),
+            base: BaseType::Struct,
             ..Self::default()
         }
     }

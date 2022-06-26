@@ -154,7 +154,7 @@ impl Unify for Typed<Ident> {
 	fn unify(&mut self, other: &Self) -> UnifyResult {
 		match (&self, other) {
 			(Untyped(_), IsTyped(n, t)) => {
-				_ = std::mem::replace(self, IsTyped(n.to_owned(), t.to_owned()));
+				let _ = std::mem::replace(self, IsTyped(n.to_owned(), t.to_owned()));
 			},
 			(IsTyped(..), Untyped(..)) => (),
 			(Untyped(_), Untyped(_)) => (),

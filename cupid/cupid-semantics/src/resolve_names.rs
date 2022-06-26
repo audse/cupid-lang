@@ -3,7 +3,7 @@ use crate::{
     utils::{insert_symbol, read, rewrite_symbol},
     Error, error,
 };
-use cupid_ast::{expr, stmt, types};
+use cupid_ast::{expr, stmt, types::{self, typ::Type}};
 use cupid_env::{environment::Env, database::{table::QueryTable, symbol_table::query::Query}};
 use cupid_util::{InvertOption, Bx};
 
@@ -65,6 +65,19 @@ impl ResolveNames for expr::ident::Ident {
             .flatten();
         let scope = namespace.unwrap_or_else(|| self.attr).scope;
         env.inside_closure(scope, |env| {
+            // TODO is this right?
+            for generic in self.generics.iter_mut() {
+                generic.address = read(generic, env);
+                if generic.address.is_none() {
+                    env.insert(Query::insert()
+                        .write(expr::Expr::Type(Type { 
+                            ident: generic.clone(), 
+                            attr: generic.attr,
+                            ..Type::default()
+                        }))
+                    );
+                }
+            }
             self.address = Some(read(&self, env).ok_or_else(|| error(format!("not defined: {self:#?}")))?);
             Ok(self)
         })

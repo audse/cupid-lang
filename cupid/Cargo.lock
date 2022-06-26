@@ -101,7 +101,6 @@ dependencies = [
  "cupid_env",
  "cupid_lex",
  "cupid_parse",
- "cupid_passes",
  "cupid_semantics",
  "cupid_types",
  "cupid_util",
@@ -141,17 +140,6 @@ dependencies = [
  "cupid_env",
  "cupid_lex",
  "cupid_util",
- "trace",
-]
-
-[[package]]
-name = "cupid_passes"
-version = "0.1.0"
-dependencies = [
- "auto-implement",
- "cupid_types",
- "cupid_util",
- "derive_more",
  "trace",
 ]
 

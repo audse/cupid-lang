@@ -14,7 +14,7 @@ impl<Item: Infer<Ident>> Infer<Type> for Item {
     fn infer(&self) -> Type {
         Type {
             ident: self.infer(),
-            base: cupid_ast::types::typ::BaseType::Primitive,
+            base: cupid_ast::types::typ::BaseType::Struct,
             ..Default::default()
         }
     }

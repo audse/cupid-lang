@@ -98,12 +98,43 @@ impl<'tokens> TokenListBuilder<'tokens> {
         Some(self)
     }
 
+    pub fn repeat_collect<T>(self, condition: impl Fn(&Token<'static>) -> bool, mut inner: impl FnMut(Self) -> Option<(T, Self)>, with_result: impl FnOnce(Vec<T>), sep: Option<&'static str>) -> Option<Self> {
+        let mut items: Vec<T> = vec![];
+        let builder = self
+            .repeat(
+                condition,
+                |builder| {
+                    let (item, builder) = inner(builder)?;
+                    items.push(item);
+                    if let Some(sep) = sep {
+                        builder.string(sep, Optional)
+                    } else {
+                        Some(builder)
+                    }
+                }
+            )?;
+        with_result(items);
+        Some(builder)
+    }
+
     pub fn list(self, delim: [&'static str; 2], mut inner: impl FnMut(Self) -> Option<Self>, sep: &'static str) -> Option<Self> {
         self
             .string(delim[0], Required)?
             .repeat(
                 |token| token.source != delim[1], 
                 |builder| inner(builder)?.string(sep, Optional)
+            )?
+            .string(delim[1], Required)
+    }
+
+    pub fn list_collect<T>(self, delim: [&'static str; 2], inner: impl FnMut(Self) -> Option<(T, Self)>, with_result: impl FnOnce(Vec<T>), sep: Option<&'static str>) -> Option<Self> {
+        self
+            .string(delim[0], Required)?
+            .repeat_collect(
+                |token| token.source != delim[1],
+                inner,
+                with_result,
+                sep
             )?
             .string(delim[1], Required)
     }
@@ -116,8 +147,16 @@ impl<'tokens> TokenListBuilder<'tokens> {
         self.list(BRACKETS, inner, sep)
     }
 
+    pub fn bracket_list_collect<T>(self, inner: impl FnMut(Self) -> Option<(T, Self)>, with_result: impl FnOnce(Vec<T>), sep: Option<&'static str>) -> Option<Self> {
+        self.list_collect(BRACKETS, inner, with_result, sep)
+    }
+
     pub fn brace_list(self, inner: impl FnMut(Self) -> Option<Self>, sep: &'static str) -> Option<Self> {
         self.list(BRACES, inner, sep)
+    }
+
+    pub fn brace_list_collect<T>(self, inner: impl FnMut(Self) -> Option<(T, Self)>, with_result: impl FnOnce(Vec<T>), sep: Option<&'static str>) -> Option<Self> {
+        self.list_collect(BRACES, inner, with_result, sep)
     }
 }
 
