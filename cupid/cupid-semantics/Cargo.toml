@@ -5,9 +5,9 @@ edition = "2021"
 
 [dependencies]
 auto-implement = { path = '../auto-implement' }
-cupid_ast = { path = '../cupid-ast' }
-cupid_env = { path = '../cupid-env' }
-cupid_lex = { path = '../cupid-lex' }
-cupid_parse = { path = '../cupid-parse' }
-cupid_types = { path = '../cupid-types' }
-cupid_util = { path = '../cupid-util' }
+cupid-ast = { path = '../cupid-ast' }
+cupid-env = { path = '../cupid-env' }
+cupid-lex = { path = '../cupid-lex' }
+cupid-parse = { path = '../cupid-parse' }
+cupid-types = { path = '../cupid-types' }
+cupid-util = { path = '../cupid-util' }

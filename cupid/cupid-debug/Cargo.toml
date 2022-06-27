@@ -1,0 +1,12 @@
+[package]
+name = "cupid-debug"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+colored = "2.0.0"
+textwrap = "0.15"
+thiserror = "1.0"
+
+cupid-ast = { path = '../cupid-ast' }
+cupid-lex = { path = '../cupid-lex' }

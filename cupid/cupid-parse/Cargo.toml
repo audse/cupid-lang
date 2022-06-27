@@ -1,11 +1,11 @@
 [package]
-name = "cupid_parse"
+name = "cupid-parse"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-cupid_lex = { path = '../cupid-lex' }
-cupid_ast = { path = '../cupid-ast' }
-cupid_env = { path = '../cupid-env' }
-cupid_util = { path = '../cupid-util' }
+cupid-lex = { path = '../cupid-lex' }
+cupid-ast = { path = '../cupid-ast' }
+cupid-env = { path = '../cupid-env' }
+cupid-util = { path = '../cupid-util' }
 trace = { path = '../trace' }

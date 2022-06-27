@@ -1,7 +1,7 @@
 [package]
-name = "cupid_lex"
+name = "cupid-lex"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-cupid_util = { path = '../cupid-util' }
+cupid-util = { path = '../cupid-util' }

@@ -1,10 +1,10 @@
 [package]
-name = "cupid_ast"
+name = "cupid-ast"
 version = "0.1.0"
 edition = "2021"
 
 
 [dependencies]
 derive_more = "0.99.17"
-cupid_lex = { path = '../cupid-lex' }
-cupid_util = { path = '../cupid-util' }
+cupid-lex = { path = '../cupid-lex' }
+cupid-util = { path = '../cupid-util' }
