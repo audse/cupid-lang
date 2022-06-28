@@ -1,3 +1,5 @@
+use colored::Colorize;
+
 /// Creates a `&str` for a given type name (stripping away namespace info)
 /// # Examples
 /// ```
@@ -102,4 +104,52 @@ macro_rules! fmt_if_nonempty {
 	($list:expr => $closure:expr) => {
 		if $list.is_empty() { String::new() } else { $closure($list) }
 	}
+}
+
+pub fn draw_line(c: &str, len: usize) -> String {
+    (0..=len)
+        .collect::<Vec<usize>>()
+        .iter()
+        .map(|_| c)
+        .collect::<Vec<&str>>()
+        .join("")
+}
+
+pub fn draw_underline(len: usize) -> String {
+    draw_line("▔", len)
+}
+
+#[macro_export]
+macro_rules! lines {
+    ($string:expr) => {
+        $string.lines().collect::<Vec<&str>>()
+    };
+}
+
+pub fn bullet_list(m: &[String], point: &str) -> Vec<String> {
+    m.iter()
+        .map(|p| bullet_point(&p, point))
+        .collect()
+}
+
+pub fn bullet_point(m: &str, point: &str) -> String {
+    textwrap::wrap(m, 50)
+        .into_iter()
+        .enumerate()
+        .map(|(i, line)| if i == 0 {
+            format!(" {} {line}", point.dimmed())
+        } else {
+            format!("   {line}")
+        })
+        .collect::<Vec<String>>()
+        .join("\n")
+}
+
+pub fn wrap_indent(m: &str, wrap: usize, indent: usize) -> String {
+    let indent = draw_line(" ", indent);
+    textwrap::wrap(m, wrap)
+        .into_iter()
+        .map(|line| format!("{indent}{line}"))
+        .collect::<Vec<String>>()
+        .join("\n")
 }

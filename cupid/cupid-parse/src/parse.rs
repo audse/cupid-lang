@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use cupid_lex::{token::{Token, TokenKind}, token_iter::{IsOptional::*, TokenIterator, TokenListBuilder}};
-use cupid_util::{BiDirectionalIterator, Bx};
+use cupid_util::{BiDirectionalIterator, Bx, FilterSome};
 
 use cupid_ast::{attr::Attr, expr::Expr, expr::block::Block, expr::{function::Function, value::Val}, expr::ident::Ident, expr::value::Value, stmt::{Stmt, decl::Mut}, stmt::decl::Decl, stmt::trait_def::TraitDef, stmt::type_def::TypeDef, types::traits::Trait, types::typ::{Type, BaseType}};
 use cupid_env::{environment::Env, database::{source_table::query::Query, table::QueryTable}};
@@ -113,7 +113,7 @@ impl Parse for Decl {
                 .attr(parser.attr(
                     [token_let, token_mut, token_equal]
                         .into_iter()
-                        .filter_map(|token| token)
+                        .filter_some()
                         .collect::<Vec<Token>>()
                 ))
                 .build())

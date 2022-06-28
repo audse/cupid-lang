@@ -1,4 +1,6 @@
 pub mod bidirectional_iterator;
+use std::iter::FilterMap;
+
 pub use bidirectional_iterator::*;
 
 pub mod builder;
@@ -42,15 +44,44 @@ impl<T: Sized> BxOption<T> for Option<T> {
 	}
 }
 
-/// Suppresses compiler warnings inside the given block. Works similar
-/// to `todo!()` macro, but for items rather than expressions.
-#[macro_export]
-macro_rules! ignore_errors {
-    ($($_:item)*) => {}
+/// Filters a list of `Option` to include only `Some` values
+/// # Examples
+/// ```
+/// use cupid_util::FilterSome;
+/// 
+/// let nums: Vec<i32> = [Some(1), Some(2), None, Some(4)]
+///     .into_iter()
+///     .filter_some()
+///     .collect();
+/// assert!(nums == [1, 2, 4])
+/// ```
+pub trait FilterSome<T>: Iterator<Item = Option<T>> where Self: Sized {
+    fn filter_some(self) -> FilterMap<Self, fn(Self::Item) -> Option<T>>;
 }
 
-/// Does literally nothing, a more semantic version of `todo!()` for some cases
-#[macro_export]
-macro_rules! placeholder {
-	(...) => {}
+impl<I: Iterator<Item = Option<T>>, T> FilterSome<T> for I {
+	fn filter_some(self) -> FilterMap<Self, fn(Self::Item) -> Option<T>> {
+		let f = |i: Option<T>| -> Option<T> { i };
+		self.filter_map(f)
+	}
+}
+
+
+/// Allows chaining iterator `extend` method
+/// # Examples
+/// ```
+/// use cupid_util::Plus;
+/// 
+/// let mut nums = vec![1, 2, 3].plus([4, 5, 6]).plus([7, 8, 9]);
+/// assert!(nums == [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+/// ```
+pub trait Plus<A> {
+	fn plus<T: IntoIterator<Item = A>>(self, iter: T) -> Self;
+}
+
+impl<A, I: Extend<A>> Plus<A> for I {
+	fn plus<T: IntoIterator<Item = A>>(mut self, iter: T) -> Self {
+		self.extend(iter.into_iter());
+		self
+	}
 }

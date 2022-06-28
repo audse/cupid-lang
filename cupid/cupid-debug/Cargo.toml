@@ -10,3 +10,4 @@ thiserror = "1.0"
 
 cupid-ast = { path = '../cupid-ast' }
 cupid-lex = { path = '../cupid-lex' }
+cupid-util = { path = '../cupid-util' }
