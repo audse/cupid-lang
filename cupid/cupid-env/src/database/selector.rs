@@ -1,5 +1,7 @@
-use cupid_lex::token::Token;
+use std::rc::Rc;
+
 use cupid_ast::expr::{Expr, ident::Ident};
+use cupid_debug::source::ExprSource;
 use crate::{
     Address,
     database::{
@@ -59,7 +61,7 @@ impl Selector<SymbolRow> for SymbolRow {
 source_row_selector! {
     Address => |row| row.address;
     Ident => |row| row.typ;
-    Vec<Token<'static>> => |row| row.source;
+    Rc<ExprSource> => |row| row.source;
 }
 
 impl Selector<SourceRow> for SourceRow {

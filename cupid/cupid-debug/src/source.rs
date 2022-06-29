@@ -3,7 +3,7 @@ use cupid_lex::token::Token;
 use cupid_util::{FilterSome, Plus};
 use thiserror::Error;
 
-use crate::{error::Severity, highlight::HighlightedLineSet};
+use crate::{severity::Severity, highlight::HighlightedLineSet};
 
 #[derive(Debug, Error, Clone)]
 pub struct Source(pub Rc<String>);
@@ -18,10 +18,11 @@ pub trait CollectTokens {
     fn collect_tokens(&self) -> Vec<&Token<'static>>;
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, derive_more::From, derive_more::TryInto)]
 pub enum ExprSource {
-    Block(Box<BlockSource>),
-    Decl(Box<DeclSource>),
+    Block(BlockSource),
+    Decl(DeclSource),
+    Function(FunctionSource),
     Ident(IdentSource),
     Trait(TraitSource),
     TraitDef(TraitDefSource),
@@ -44,6 +45,7 @@ impl CollectTokens for ExprSource {
         match self {
             Block(x) => x.collect_tokens(),
             Decl(x) => x.collect_tokens(),
+            Function(x) => x.collect_tokens(),
             Ident(x) => x.collect_tokens(),
             Trait(x) => x.collect_tokens(),
             TraitDef(x) => x.collect_tokens(),
@@ -102,8 +104,8 @@ cupid_util::build_struct! {
         pub token_mut: Option<Token<'static>>,
         pub token_colon: Option<Token<'static>>,
         pub token_eq: Option<Token<'static>>,
-        pub ident: Rc<IdentSource>,
-        pub type_annotation: Option<Rc<IdentSource>>,
+        pub ident: Rc<ExprSource>,
+        pub type_annotation: Option<Rc<ExprSource>>,
         pub value: Option<Rc<ExprSource>>,
     }
 }
@@ -121,10 +123,30 @@ impl CollectTokens for DeclSource {
 
 cupid_util::build_struct! {
     #[derive(Debug, Default, Clone)]
+    pub FunctionSourceBuilder => pub FunctionSource {
+        pub token_empty: Option<Token<'static>>,
+        pub params: Vec<Rc<ExprSource>>,
+        pub body: Rc<ExprSource>,
+    }
+}
+
+impl CollectTokens for FunctionSource {
+    fn collect_tokens(&self) -> Vec<&Token<'static>> {
+        self.token_empty
+            .as_ref()
+            .map(|t| vec![t])
+            .unwrap_or_default()
+            .plus(self.params.collect_tokens())
+            .plus(self.body.collect_tokens())
+    }
+}
+
+cupid_util::build_struct! {
+    #[derive(Debug, Default, Clone)]
     pub IdentSourceBuilder => pub IdentSource {
         pub token_name: Token<'static>,
         pub token_namespace: Option<Token<'static>>,
-        pub generics: Vec<Rc<IdentSource>>,
+        pub generics: Vec<Rc<ExprSource>>,
     }
 }
 
@@ -142,8 +164,8 @@ cupid_util::build_struct! {
     #[derive(Debug, Default, Clone)]
     pub TraitSourceBuilder => pub TraitSource {
         pub token_brackets: (Token<'static>, Token<'static>),
-        pub ident: Rc<IdentSource>,
-        pub methods: Vec<Rc<DeclSource>>,
+        pub ident: Rc<ExprSource>,
+        pub methods: Vec<Rc<ExprSource>>,
     }
 }
 
@@ -160,8 +182,8 @@ cupid_util::build_struct! {
     pub TraitDefSourceBuilder => pub TraitDefSource {
         pub token_trait: Token<'static>,
         pub token_eq: Token<'static>,
-        pub ident: Rc<IdentSource>,
-        pub value: Rc<TraitSource>,
+        pub ident: Rc<ExprSource>,
+        pub value: Rc<ExprSource>,
     }
 }
 
@@ -177,8 +199,8 @@ cupid_util::build_struct! {
     #[derive(Debug, Default, Clone)]
     pub TypeSourceBuilder => pub TypeSource {
         pub token_brackets: (Token<'static>, Token<'static>),
-        pub ident: Rc<IdentSource>,
-        pub fields: Vec<Rc<DeclSource>>,
+        pub ident: Rc<ExprSource>,
+        pub fields: Vec<Rc<ExprSource>>,
     }
 }
 
@@ -195,8 +217,8 @@ cupid_util::build_struct! {
     pub TypeDefSourceBuilder => pub TypeDefSource {
         pub token_type: Token<'static>,
         pub token_eq: Token<'static>,
-        pub ident: Rc<IdentSource>,
-        pub value: Rc<TypeSource>,
+        pub ident: Rc<ExprSource>,
+        pub value: Rc<ExprSource>,
     }
 }
 

@@ -15,13 +15,14 @@ impl Lexer {
     }
     pub fn add_token(&mut self, tokens: &mut Vec<Token>, source: String, kind: TokenKind) {
         self.current_pos.character += source.len();
-        self.prev_pos = self.current_pos;
         tokens.push(Token::new(self.prev_pos, self.current_pos, source, kind));
+        self.prev_pos = self.current_pos;
     }
     pub fn lex<S: Into<String>>(&mut self, source: S) -> Vec<Token<'static>> {
         let mut tokens = vec![];
         let mut chars = source
             .into()
+            .replace("\t", "    ")
             .chars()
             .collect::<Vec<char>>()
             .into_iter()
@@ -58,7 +59,7 @@ impl Lexer {
                     self.current_pos.character = 0;
                     chars.next();
                 },
-                ' ' | '\r' | '\t' => { 
+                ' ' | '\r' => { 
                     self.current_pos.character += 1; 
                     chars.next();
                 },

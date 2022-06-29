@@ -1,4 +1,4 @@
-use crate::{expr::{ident::Ident, Expr}, attr::Attr};
+use crate::{expr::{ident::Ident, Expr}, attr::{Attr, GetAttr}};
 
 cupid_util::build_struct! {
     #[derive(Debug, Default, Clone)]
@@ -16,4 +16,13 @@ pub enum Mut {
     Mutable,
     #[default]
     Immutable,
+}
+
+impl GetAttr for Decl {
+    fn attr(&self) -> Attr {
+        self.attr
+    }
+    fn attr_mut(&mut self) -> &mut Attr {
+        &mut self.attr
+    }
 }

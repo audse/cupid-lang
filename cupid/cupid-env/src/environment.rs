@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::{
     database::db::Database,
     scope::scope::Scope,
@@ -17,6 +19,7 @@ pub enum Context {
 
 #[derive(Debug, Clone)]
 pub struct Env {
+    pub source: Rc<String>,
     pub database: Database,
     pub scope: Scope,
 }
@@ -26,6 +29,7 @@ impl Default for Env {
         Self {
             database: Database::default(),
             scope: Scope::default(),
+            source: Rc::new(String::new())
         }
     }
 }

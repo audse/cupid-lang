@@ -6,6 +6,6 @@ edition = "2021"
 [dependencies]
 cupid-lex = { path = '../cupid-lex' }
 cupid-ast = { path = '../cupid-ast' }
+cupid-debug = { path = '../cupid-debug' }
 cupid-env = { path = '../cupid-env' }
 cupid-util = { path = '../cupid-util' }
-trace = { path = '../trace' }

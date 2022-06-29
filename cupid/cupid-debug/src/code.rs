@@ -1,7 +1,7 @@
 use std::fmt;
 use thiserror::Error;
 use colored::*;
-use crate::error::Severity;
+use crate::severity::Severity;
 
 /// Error codes are where the bulk of the error reporting happens.
 /// Each error is associated with a code that corresponds to a specific error title and message.

@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 colored = "2.0.0"
+derive_more = "0.99.17"
 textwrap = "0.15"
 thiserror = "1.0"
 

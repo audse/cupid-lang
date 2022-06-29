@@ -1,5 +1,5 @@
 use std::borrow::Cow;
-use crate::{Address, attr::Attr};
+use crate::{Address, attr::{Attr, GetAttr}};
 
 cupid_util::build_struct! {
     #[derive(Debug, Default, Clone)]
@@ -27,5 +27,14 @@ impl Eq for Ident {}
 impl From<&'static str> for Ident {
     fn from(s: &'static str) -> Self {
         Self { name: s.into(), ..Self::default() }
+    }
+}
+
+impl GetAttr for Ident {
+    fn attr(&self) -> Attr {
+        self.attr
+    }
+    fn attr_mut(&mut self) -> &mut Attr {
+        &mut self.attr
     }
 }

@@ -2,7 +2,7 @@ use std::fmt;
 use colored::*;
 use cupid_lex::{span::Position, token::Token};
 use cupid_util::{lines, fmt::{draw_line, draw_underline}};
-use crate::error::Severity;
+use crate::severity::Severity;
 
 const PEEK: usize = 2;
 
@@ -77,7 +77,7 @@ impl HighlightedLineSet {
             if start_position.line > peek {
                 context.0.insert(0, context_line(start_position.line - peek))
             }
-            if source_lines.len() >= end_position.line + peek {
+            if source_lines.len() > end_position.line + peek {
                 context.1.push(context_line(end_position.line + peek))
             }
         }

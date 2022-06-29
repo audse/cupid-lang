@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 auto-implement = { path = '../auto-implement' }
 cupid-ast = { path = '../cupid-ast' }
+cupid-debug = { path = '../cupid-debug' }
 cupid-env = { path = '../cupid-env' }
 cupid-lex = { path = '../cupid-lex' }
 cupid-parse = { path = '../cupid-parse' }

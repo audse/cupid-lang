@@ -1,4 +1,4 @@
-use crate::{expr::ident::Ident, attr::Attr, stmt::decl::Decl};
+use crate::{expr::ident::Ident, attr::{Attr, GetAttr}, stmt::decl::Decl};
 
 #[derive(Debug, Default, Copy, Clone, derive_more::Display)]
 pub enum BaseType {
@@ -41,5 +41,14 @@ impl Type {
             base: BaseType::Struct,
             ..Self::default()
         }
+    }
+}
+
+impl GetAttr for Type {
+    fn attr(&self) -> Attr {
+        self.attr
+    }
+    fn attr_mut(&mut self) -> &mut Attr {
+        &mut self.attr
     }
 }

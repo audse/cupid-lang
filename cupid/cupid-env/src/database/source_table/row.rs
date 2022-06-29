@@ -1,5 +1,7 @@
-use cupid_lex::token::Token;
+use std::rc::Rc;
+
 use cupid_ast::expr::ident::Ident;
+use cupid_debug::source::ExprSource;
 
 use crate::{
     Address,
@@ -19,7 +21,7 @@ use crate::{
 #[derive(Debug, Default, Clone)]
 pub struct SourceRow {
     pub address: Address,
-    pub source: Vec<Token<'static>>,
+    pub source: Rc<ExprSource>,
     pub typ: Ident,
 }
 

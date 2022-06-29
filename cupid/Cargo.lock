@@ -132,6 +132,7 @@ dependencies = [
  "cupid-ast",
  "cupid-lex",
  "cupid-util",
+ "derive_more",
  "textwrap",
  "thiserror",
 ]
@@ -141,6 +142,7 @@ name = "cupid-env"
 version = "0.1.0"
 dependencies = [
  "cupid-ast",
+ "cupid-debug",
  "cupid-lex",
  "cupid-util",
  "derive_more",
@@ -158,10 +160,10 @@ name = "cupid-parse"
 version = "0.1.0"
 dependencies = [
  "cupid-ast",
+ "cupid-debug",
  "cupid-env",
  "cupid-lex",
  "cupid-util",
- "trace",
 ]
 
 [[package]]
@@ -185,6 +187,7 @@ version = "0.1.0"
 dependencies = [
  "auto-implement",
  "cupid-ast",
+ "cupid-debug",
  "cupid-env",
  "cupid-lex",
  "cupid-parse",
@@ -391,15 +394,6 @@ name = "thiserror-impl"
 version = "1.0.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0396bc89e626244658bef819e22d0cc459e795a5ebe878e6ec336d1674a8d79a"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "trace"
-version = "0.1.0"
 dependencies = [
  "proc-macro2",
  "quote",

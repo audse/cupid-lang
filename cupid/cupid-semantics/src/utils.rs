@@ -1,5 +1,6 @@
-use crate::{Address, Error, error};
+use crate::{Address, Error, ToError};
 use cupid_ast::expr::{Expr, ident::Ident};
+use cupid_debug::code::ErrorCode;
 use cupid_env::{
     database::{
         source_table::query::Query as SourceQuery, symbol_table::query::Query as SymbolQuery,
@@ -17,18 +18,18 @@ pub(super) fn is_undefined(ident: &Ident, env: &mut Env) -> Result<(), Error> {
     if val.is_none() {
         Ok(())
     } else {
-        Err(error(format!("already defined: `{ident:?}` is defined as `{val:?}`")))
+        Err(ident.err(ErrorCode::AlreadyDefined, env).with_hint(format!("`{ident:?}` is defined as `{val:?}`")))
     }
 }
 
 pub(super) fn get_type_ident<'env>(
     source: Address,
     env: &'env mut Env,
-) -> Result<&'env Ident, Error> {
+) -> Result<&'env Ident, &str> {
     if let Some(ident) = env.database.read::<Ident>(&SourceQuery::select(source)) {
         Ok(ident)
     } else {
-        Err(error("could not get type"))
+        Err("could not get type")
     }
 }
 

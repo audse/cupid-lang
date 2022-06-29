@@ -1,9 +1,10 @@
 use crate::{
     map_expr, map_stmt,
     utils::{insert_symbol, read, rewrite_symbol},
-    Error, error,
+    Error, ToError
 };
 use cupid_ast::{expr, stmt, types::{self, typ::Type}};
+use cupid_debug::code::ErrorCode;
 use cupid_env::{environment::Env, database::{table::QueryTable, symbol_table::query::Query}};
 use cupid_util::{InvertOption, Bx};
 
@@ -78,7 +79,7 @@ impl ResolveNames for expr::ident::Ident {
                     );
                 }
             }
-            self.address = Some(read(&self, env).ok_or_else(|| error(format!("not defined: {self:#?}")))?);
+            self.address = Some(read(&self, env).ok_or_else(|| self.err(ErrorCode::NotFound, env))?);
             Ok(self)
         })
     }

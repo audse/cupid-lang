@@ -1,8 +1,9 @@
-use crate::{error, map_expr, map_stmt,
+use crate::{map_expr, map_stmt,
     utils::{get_type_ident, rewrite_symbol_unscoped},
-    Error,
+    Error, ToError,
 };
 use cupid_ast::{expr, stmt, types};
+use cupid_debug::code::ErrorCode;
 use cupid_env::environment::Env;
 use cupid_util::InvertOption;
 
@@ -40,16 +41,21 @@ impl CheckTypes for expr::block::Block {
 
 impl CheckTypes for expr::function::Function {
     fn check_types(self, env: &mut Env) -> Result<Self, Error> {
-        let return_type = get_type_ident(self.body.attr.source, env)?;
+        let return_type = get_type_ident(self.body.attr.source, env);
+        let return_type = match return_type {
+            Ok(v) => v,
+            Err(_) => return Err(self.err(ErrorCode::ExpectedType, env))
+        };
         let return_type_annotation = self
             .return_type_annotation
             .clone()
             .unwrap_or_else(|| "none".into());
         if return_type != &return_type_annotation {
-            Err(error(format!(
-                "type mismatch: expected `{}`, found `{}`",
+            let hint = format!(
+                "expected `{}`, found `{}`",
                 return_type_annotation.name, return_type.name
-            )))
+            );
+            Err(self.err(ErrorCode::TypeMismatch, env).with_hint(hint))
         } else {
             Ok(Self {
                 body: self.body.check_types(env)?,
@@ -87,9 +93,16 @@ impl CheckTypes for stmt::decl::Decl {
             let val_type = expr
                 .attr()
                 .map(|a| get_type_ident(a.source, env).cloned())
-                .unwrap_or(Ok("none".into()))?;
+                .unwrap_or(Ok("none".into()));
+            let val_type = match val_type {
+                Ok(v) => v,
+                Err(_) => return Err(self.err(ErrorCode::ExpectedType, env))
+            };
             if let Some(type_annotation) = &self.type_annotation && type_annotation != &val_type {
-                return Err(error(format!("type mismatch: expected `{}`, found `{}`", type_annotation.name, val_type.name)))
+                return Err(
+                    self.err(ErrorCode::TypeMismatch, env)
+                        .with_hint(format!("expected `{}`, found `{}`", type_annotation.name, val_type.name))
+                );
             }
             expr.check_types(env)
         })?;

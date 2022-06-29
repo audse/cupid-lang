@@ -1,10 +1,12 @@
 #![cfg(test)]
 #![allow(unused)]
+use std::rc::Rc;
+
 use cupid_ast::expr::Expr;
 use cupid_env::environment::Env;
 use cupid_lex::lexer::Lexer;
 use cupid_parse::parse::Parser;
-use crate::{Error, analyze_scope::AnalyzeScope, resolve_type_names::ResolveTypeNames, resolve_names::ResolveNames, infer_types::InferTypes, check_types::CheckTypes, check_flow::CheckFlow, lint::Lint};
+use crate::{ToError, Error, analyze_scope::AnalyzeScope, resolve_type_names::ResolveTypeNames, resolve_names::ResolveNames, infer_types::InferTypes, check_types::CheckTypes, check_flow::CheckFlow, lint::Lint};
 
 macro_rules! do_passes {
     ($env:ident => $($x:ident),*) => {
@@ -22,7 +24,7 @@ macro_rules! do_passes {
 }
 
 fn parse(string: &str) -> (Option<Vec<Expr>>, Env) {
-    let mut parser = Parser::new();
+    let mut parser = Parser::new(Rc::new(string.to_string()));
     (parser.parse(Lexer::new().lex(string)), parser.env)
 }
 
@@ -33,18 +35,22 @@ fn test_type_def() -> Result<(), Error> {
         let x : int = 1 
         x
     ");
-    assert!(do_passes!(env => expr)().is_ok());
+    let val = do_passes!(env => expr)();
+    assert!(val.is_ok());
     Ok(())
 }
 
+const TEST_TYPE_DEF_UNDEFINED: &str = "
+type int = [] 
+let x : dec = 1.5
+x
+";
+
 #[test]
 fn test_type_def_undefined() -> Result<(), Error> {
-    let (mut expr, mut env) = parse("
-        type int = [] 
-        let x : dec = 1.5
-        x
-    ");
-    assert!(do_passes!(env => expr)().is_err());
+    let (mut expr, mut env) = parse(TEST_TYPE_DEF_UNDEFINED);
+    let val = do_passes!(env => expr)();
+    assert!(val.is_err());
     Ok(())
 }
 

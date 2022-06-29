@@ -1,6 +1,8 @@
+use std::rc::Rc;
+
 use derive_more::{From, TryInto};
-use cupid_lex::token::Token;
 use cupid_ast::expr::ident::Ident;
+use cupid_debug::source::ExprSource;
 use crate::{
     Address,
     database::source_table::row::SourceRow,
@@ -8,7 +10,7 @@ use crate::{
 
 #[derive(Debug, Default, Clone)]
 pub struct WriteQuery {
-    pub source: Option<Vec<Token<'static>>>,
+    pub source: Option<Rc<ExprSource>>,
     pub typ: Option<Ident>,
 }
 
@@ -31,7 +33,7 @@ impl Query {
     pub fn write(mut self, selector: impl Into<QuerySelector>) -> Self {
         match selector.into() {
             QuerySelector::Type(typ) => self.write.typ = Some(typ),
-            QuerySelector::Tokens(tokens) => self.write.source = Some(tokens),
+            QuerySelector::Source(source) => self.write.source = Some(source),
         }
         self
     }
@@ -51,5 +53,5 @@ impl From<Query> for SourceRow {
 #[derive(Debug, Clone, From, TryInto)]
 pub enum QuerySelector {
     Type(Ident),
-    Tokens(Vec<Token<'static>>),
+    Source(Rc<ExprSource>),
 }

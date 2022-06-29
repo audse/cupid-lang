@@ -1,5 +1,7 @@
 #![cfg(test)]
 
+use std::rc::Rc;
+
 use cupid_ast::{expr::{Expr, value::{Value, Val}}, stmt::{decl::{Mut, Decl}, Stmt, type_def::TypeDef, trait_def::TraitDef}};
 use cupid_lex::lexer::Lexer;
 use crate::parse::Parser;
@@ -7,7 +9,7 @@ use crate::parse::Parser;
 fn setup(string: &str) -> Option<Vec<Expr>> {
     let mut lexer = Lexer::new();
     let tokens = lexer.lex(string);
-    let mut parser = Parser::new();
+    let mut parser = Parser::new(Rc::new(string.to_string()));
     parser.parse(tokens)
 }
 

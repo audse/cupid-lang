@@ -1,8 +1,9 @@
 use crate::{
     map_expr, map_stmt,
-    Error, error,
+    Error, ToError,
 };
 use cupid_ast::{expr, stmt, types};
+use cupid_debug::code::ErrorCode;
 use cupid_env::{environment::Env, database::{symbol_table::{query::Query, row::Ref}, table::QueryTable}};
 use cupid_util::InvertOption;
 
@@ -49,7 +50,7 @@ impl Lint for expr::ident::Ident {
     fn lint(self, env: &mut Env) -> Result<Self, Error> {
         let num_refs = env.database.symbol_table.read::<Ref>(&Query::select(&self));
         if num_refs.unwrap().0 == 0 {
-            Err(error(format!("`{}` is unused", self.name)))
+            Err(self.err(ErrorCode::UnusedVariable, env))
         } else {
             Ok(self)
         }

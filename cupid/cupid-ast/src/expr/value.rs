@@ -1,5 +1,5 @@
 use derive_more::{From, TryInto};
-use crate::attr::Attr;
+use crate::attr::{Attr, GetAttr};
 
 #[derive(Debug, Default, Clone)]
 pub struct Value {
@@ -16,4 +16,13 @@ pub enum Val {
 	VString(cupid_util::Str),
 	#[default]
 	VNone,
+}
+
+impl GetAttr for Value {
+    fn attr(&self) -> Attr {
+        self.attr
+    }
+    fn attr_mut(&mut self) -> &mut Attr {
+        &mut self.attr
+    }
 }
