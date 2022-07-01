@@ -46,6 +46,16 @@ impl Lint for expr::function::Function {
     }
 }
 
+impl Lint for expr::function_call::FunctionCall {
+    fn lint(self, env: &mut Env) -> Result<Self, Error> {
+        Ok(Self {
+            args: self.args.lint(env)?,
+            function: self.function.lint(env)?,
+            ..self
+        })
+    }
+}
+
 impl Lint for expr::ident::Ident {
     fn lint(self, env: &mut Env) -> Result<Self, Error> {
         let num_refs = env.database.symbol_table.read::<Ref>(&Query::select(&self));
@@ -56,6 +66,8 @@ impl Lint for expr::ident::Ident {
         }
     }
 }
+
+impl Lint for expr::namespace::Namespace {}
 
 impl Lint for expr::value::Value {}
 

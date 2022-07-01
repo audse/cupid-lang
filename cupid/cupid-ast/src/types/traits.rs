@@ -1,7 +1,7 @@
 use crate::{expr::ident::Ident, attr::{Attr, GetAttr}, stmt::decl::Decl};
 
 cupid_util::build_struct! {
-    #[derive(Debug, Default, Clone)]
+    #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
     pub TraitBuilder => pub Trait {
         pub ident: Ident,
         pub methods: Vec<Decl>,

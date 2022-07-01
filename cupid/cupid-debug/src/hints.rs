@@ -2,7 +2,7 @@ use std::fmt;
 use colored::Colorize;
 use cupid_util::{fmt_if_nonempty, bullet_list};
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Hints(pub Vec<String>);
 
 impl fmt::Display for Hints {

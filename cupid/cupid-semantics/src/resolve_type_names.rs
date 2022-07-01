@@ -41,7 +41,10 @@ impl ResolveTypeNames for expr::block::Block {
 
 impl ResolveTypeNames for expr::function::Function {}
 
+impl ResolveTypeNames for expr::function_call::FunctionCall {}
+
 impl ResolveTypeNames for expr::ident::Ident {}
+impl ResolveTypeNames for expr::namespace::Namespace {}
 
 impl ResolveTypeNames for expr::value::Value {}
 

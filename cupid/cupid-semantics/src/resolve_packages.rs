@@ -29,8 +29,10 @@ impl ResolvePackages for stmt::Stmt {
 
 impl ResolvePackages for expr::block::Block {}
 impl ResolvePackages for expr::function::Function {}
+impl ResolvePackages for expr::function_call::FunctionCall {}
 
 impl ResolvePackages for expr::ident::Ident {}
+impl ResolvePackages for expr::namespace::Namespace {}
 
 impl ResolvePackages for expr::value::Value {}
 

@@ -1,13 +1,13 @@
 use derive_more::{From, TryInto};
 use crate::attr::{Attr, GetAttr};
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Value {
 	pub inner: Val,
 	pub attr: Attr
 }
 
-#[derive(Debug, Default, Clone, From, TryInto)]
+#[derive(Debug, Default, Clone, From, TryInto, serde::Serialize, serde::Deserialize)]
 pub enum Val {
 	VBoolean(bool),
 	VChar(char),

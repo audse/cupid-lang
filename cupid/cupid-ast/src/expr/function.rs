@@ -1,7 +1,7 @@
 use crate::{attr::{Attr, GetAttr}, expr::{block::Block, ident::Ident}, stmt::decl::Decl};
 
 cupid_util::build_struct! {
-    #[derive(Debug, Default, Clone)]
+    #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
     pub FunctionBuilder => pub Function {
         pub params: Vec<Decl>,
         pub body: Block,

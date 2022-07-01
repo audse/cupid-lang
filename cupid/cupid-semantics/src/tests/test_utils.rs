@@ -20,9 +20,9 @@ pub(super) fn id(ident: &'static str) -> Ident {
     ident.into()
 }
 
-pub(super) fn namespaced_id(ident: &'static str, namespace: &'static str) -> Ident {
-    Ident { name: ident.into(), namespace: Some(Box::new(namespace.into())), ..Ident::default() }
-}
+// pub(super) fn namespaced_id(ident: &'static str, namespace: &'static str) -> Ident {
+//     Ident { name: ident.into(), namespace: Some(Box::new(namespace.into())), ..Ident::default() }
+// }
 
 pub(super) fn decl(ident: &'static str) -> Decl {
     Decl {

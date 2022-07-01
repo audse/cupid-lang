@@ -29,6 +29,7 @@ impl CheckFlow for stmt::Stmt {
 
 impl CheckFlow for expr::block::Block {}
 impl CheckFlow for expr::function::Function {}
+impl CheckFlow for expr::function_call::FunctionCall {}
 
 impl CheckFlow for expr::ident::Ident {
     fn check_flow(self, env: &mut Env) -> Result<Self, Error> {
@@ -37,6 +38,8 @@ impl CheckFlow for expr::ident::Ident {
         Ok(self)
     }
 }
+
+impl CheckFlow for expr::namespace::Namespace {}
 
 impl CheckFlow for expr::value::Value {}
 

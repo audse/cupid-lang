@@ -143,6 +143,10 @@ impl<'tokens> TokenListBuilder<'tokens> {
         self.list(PARENS, inner, sep)
     }
 
+    pub fn paren_list_collect<T>(self, inner: impl FnMut(Self) -> Option<(T, Self)>, with_result: impl FnOnce(Vec<T>), sep: Option<&'static str>) -> Option<Self> {
+        self.list_collect(PARENS, inner, with_result, sep)
+    }
+
     pub fn bracket_list(self, inner: impl FnMut(Self) -> Option<Self>, sep: &'static str) -> Option<Self> {
         self.list(BRACKETS, inner, sep)
     }

@@ -1,7 +1,7 @@
 use crate::{attr::{Attr, GetAttr}, expr::Expr};
 
 cupid_util::build_struct! {
-    #[derive(Debug, Default, Clone)]
+    #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
     pub BlockBuilder => pub Block {
         pub expressions: Vec<Expr>,
         pub attr: Attr,

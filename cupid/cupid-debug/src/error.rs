@@ -1,16 +1,17 @@
-use std::{fmt, rc::Rc, backtrace::Backtrace};
+use std::{fmt, rc::Rc};
 use cupid_util::wrap_indent;
 use thiserror::Error;
 use crate::{code::*, source::*, hints::Hints};
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, serde::Serialize, serde::Deserialize)]
 pub struct Error {
     pub message: String,
     pub source: Source,
     pub context: Rc<ExprSource>,
     pub code: ErrorCode,
     pub hints: Hints,
-    pub backtrace: Backtrace,
+    // #[serde(skip)]
+    // pub backtrace: Backtrace,
 }
 
 impl Error {
@@ -39,7 +40,7 @@ impl Default for Error {
             message: String::new(),
             context: Rc::new(ExprSource::Empty),
             source: Source(Rc::new(String::from("could not find source"))),
-            backtrace: Backtrace::capture(),
+            // backtrace: Backtrace::capture(),
             code: ErrorCode::SomethingWentWrong,
             hints: Hints(vec![])
         }

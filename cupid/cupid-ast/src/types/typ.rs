@@ -1,6 +1,6 @@
 use crate::{expr::ident::Ident, attr::{Attr, GetAttr}, stmt::decl::Decl};
 
-#[derive(Debug, Default, Copy, Clone, derive_more::Display)]
+#[derive(Debug, Default, Copy, Clone, derive_more::Display, serde::Serialize, serde::Deserialize)]
 pub enum BaseType {
     Struct,
     Sum,
@@ -10,7 +10,7 @@ pub enum BaseType {
 }
 
 cupid_util::build_struct! {
-    #[derive(Debug, Default, Clone)]
+    #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
     pub TypeBuilder => pub Type {
         pub ident: Ident,
         pub fields: Vec<Decl>,
@@ -40,6 +40,12 @@ impl Type {
             ident: "trait".into(),
             base: BaseType::Struct,
             ..Self::default()
+        }
+    }
+    pub fn variable() -> Self {
+        Self {
+            ident: "1".into(),
+            ..Default::default()
         }
     }
 }

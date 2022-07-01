@@ -1,13 +1,13 @@
 use std::cmp::Ordering;
 
 
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Position {
 	pub line: usize,
 	pub character: usize,
 }
 
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Span {
 	pub start: Position,
 	pub end: Position,

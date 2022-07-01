@@ -21,20 +21,20 @@ fn test_is_undefined() -> Result<(), Error> {
     Ok(())
 }
 
-#[test]
-fn test_namespaced_id() -> Result<(), Error> {
-    let (mut env, mut type_def, mut ident) = (env(), type_def("int"), namespaced_id("add", "int"));
+// #[test]
+// fn test_namespaced_id() -> Result<(), Error> {
+//     let (mut env, mut type_def, mut ident) = (env(), type_def("int"), namespaced_id("add", "int"));
 
-    let mut method = decl_val("add", fun(["left", "right"]));
-    method.ident.namespace = Some(Box::new(id("int")));
-    type_def.value.methods.push(method);
+//     let mut method = decl_val("add", fun(["left", "right"]));
+//     method.ident.namespace = Some(Box::new(id("int")));
+//     type_def.value.methods.push(method);
 
-    type_def = type_def.analyze_scope(&mut env)?;
-    ident = ident.analyze_scope(&mut env)?;
-    type_def = type_def.resolve_type_names(&mut env)?;
-    ident = ident.resolve_type_names(&mut env)?;
-    type_def.resolve_names(&mut env)?;
-    ident.resolve_names(&mut env)?;
+//     type_def = type_def.analyze_scope(&mut env)?;
+//     ident = ident.analyze_scope(&mut env)?;
+//     type_def = type_def.resolve_type_names(&mut env)?;
+//     ident = ident.resolve_type_names(&mut env)?;
+//     type_def.resolve_names(&mut env)?;
+//     ident.resolve_names(&mut env)?;
     
-    Ok(())
-}
+//     Ok(())
+// }

@@ -8,7 +8,7 @@ use cupid_lex::{
 use cupid_ast::{
     attr::Attr,
     expr::block::Block,
-    expr::ident::Ident,
+    expr::{ident::Ident, function_call::FunctionCall},
     expr::value::Value,
     expr::Expr,
     expr::{function::Function, value::Val},
@@ -48,15 +48,7 @@ impl Parser {
         Some(exprs)
     }
 
-    fn parse_value<T: std::str::FromStr>(
-        &mut self,
-        tokens: impl Into<Vec<Token<'static>>>,
-    ) -> (T, (Attr, Rc<ExprSource>)) where <T as std::str::FromStr>::Err: std::fmt::Debug {
-        let tokens = tokens.into();
-        (tokens[0].source.to_string().parse::<T>().unwrap(), self.attr(tokens))
-    }
-
-    fn attr<T: Into<ExprSource>>(&mut self, source: T) -> (Attr, Rc<ExprSource>) {
+    pub fn attr<T: Into<ExprSource>>(&mut self, source: T) -> (Attr, Rc<ExprSource>) {
         let src = source.into();
         let src_ref = Rc::new(src);
         let source = self
@@ -94,6 +86,7 @@ impl Parse for Expr {
             .or_else(|| Decl::parse(parser, tokens).map(map_stmt_parse))
             .or_else(|| Function::parse(parser, tokens).map(map_expr_parse))
             .or_else(|| Block::parse(parser, tokens).map(map_expr_parse))
+            .or_else(|| FunctionCall::parse(parser, tokens).map(map_expr_parse))
             .or_else(|| Value::parse(parser, tokens).map(map_expr_parse))
             .or_else(|| Ident::parse(parser, tokens).map(map_expr_parse))
     }
@@ -101,36 +94,33 @@ impl Parse for Expr {
 
 /// Just an ident/type pair as a decl
 /// E.g. `x : int` or `square : fun (int)
-#[derive(Debug, Default)]
-struct TypedIdentDecl(Decl);
-impl Parse for TypedIdentDecl {
-    fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<(Self, Rc<ExprSource>)> {
-        tokens.mark(|tokens| {
-            let (ident, ident_source) = Ident::parse(parser, tokens)?;
-            let ((type_annotation, type_annot_src), token_colon) =
-                parse_type_annotation(parser, tokens)
-                    .map(|((t, src), token_colon)| ((Some(t), Some(src)), Some(token_colon)))
-                    .unwrap_or_else(|| ((None, None), None));
-            
-            let source = DeclSource::build()
-                .ident(ident_source)
-                .type_annotation(type_annot_src)
-                .token_colon(token_colon)
-                .build();
+fn parse_typed_ident_decl(
+    parser: &mut Parser,
+    tokens: &mut TokenIterator,
+) -> Option<(Decl, Rc<ExprSource>)> {
+    tokens.mark(|tokens| {
+        let (ident, ident_source) = Ident::parse(parser, tokens)?;
+        let ((type_annotation, type_annot_src), token_colon) =
+            parse_type_annotation(parser, tokens)
+                .map(|((t, src), token_colon)| ((Some(t), Some(src)), Some(token_colon)))
+                .unwrap_or_else(|| ((None, None), None));
 
-            let (attr, source) = parser.attr(source);
-            Some((
-                TypedIdentDecl(
-                    Decl::build()
-                        .ident(ident)
-                        .type_annotation(type_annotation.map(|t| t))
-                        .attr(attr)
-                        .build(),
-                ),
-                source,
-            ))
-        })
-    }
+        let source = DeclSource::build()
+            .ident(ident_source)
+            .type_annotation(type_annot_src)
+            .token_colon(token_colon)
+            .build();
+
+        let (attr, source) = parser.attr(source);
+        Some((
+            Decl::build()
+                .ident(ident)
+                .type_annotation(type_annotation.map(|t| t))
+                .attr(attr)
+                .build(),
+            source,
+        ))
+    })
 }
 
 impl Parse for Decl {
@@ -146,7 +136,7 @@ impl Parse for Decl {
                 .string("mut", Optional)?
                 .assign(&mut source.token_mut)
                 .and(|mut builder| {
-                    let (ident_val, ident_src) = parse_type_ident(parser, &mut builder.tokens)?;
+                    let (ident_val, ident_src) = Ident::parse(parser, &mut builder.tokens)?;
                     ident = ident_val;
                     source.ident = ident_src;
                     Some(builder)
@@ -197,12 +187,17 @@ impl Parse for Function {
             // TODO return type annotation
             TokenListBuilder::start(tokens).repeat_collect(
                 |token| token.source != "=" && token.source != "{",
-                |mut builder| Some((TypedIdentDecl::parse(parser, &mut builder.tokens)?, builder)),
+                |mut builder| {
+                    Some((
+                        parse_typed_ident_decl(parser, &mut builder.tokens)?,
+                        builder,
+                    ))
+                },
                 |decls| {
-                    let (param_list, src_list): (Vec<TypedIdentDecl>, Vec<Rc<ExprSource>>) =
+                    let (param_list, src_list): (Vec<Decl>, Vec<Rc<ExprSource>>) =
                         decls.into_iter().unzip();
                     source.params = src_list;
-                    params = param_list.into_iter().map(|d| d.0).collect();
+                    params = param_list.into_iter().collect();
                 },
                 Some(","),
             )?;
@@ -226,6 +221,44 @@ impl Parse for Function {
     }
 }
 
+impl Parse for FunctionCall {
+    fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<(Self, Rc<ExprSource>)> {
+        tokens.mark(|tokens| {
+            let mut source = FunctionCallSource::default();
+            let ident = tokens.kind(TokenKind::Ident).map(|token| {
+                let name = token.source.to_owned();
+                let ident_source = IdentSource::build().token_name(token).build();
+                let (attr, ident_source) = parser.attr(ident_source);
+                source.function = ident_source;
+                Ident::build().name(name).attr(attr).build()
+            })?;
+
+            let mut args = vec![];
+            TokenListBuilder::start(tokens).paren_list_collect(
+                |mut builder| {
+                    Some((
+                        Expr::parse(parser, &mut builder.tokens)?,
+                        builder,
+                    ))
+                },
+                |parsed_args| {
+                    let (arg_list, src_list): (Vec<Expr>, Vec<Rc<ExprSource>>) =
+                        parsed_args.into_iter().unzip();
+                    source.args = src_list;
+                    args = arg_list.into_iter().collect();
+                },
+                Some(","),
+            )?;
+            let (attr, source) = parser.attr(source);
+            Some((FunctionCall::build()
+                .function(ident)
+                .args(args)
+                .attr(attr)
+                .build(), source))
+        })
+    }
+}
+
 impl Parse for TraitDef {
     fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<(Self, Rc<ExprSource>)> {
         tokens.mark(|tokens| {
@@ -238,7 +271,7 @@ impl Parse for TraitDef {
                 .string("trait", Required)?
                 .assign(&mut token_trait)
                 .and(|mut builder| {
-                    let (ident_val, ident_src) = parse_type_ident(parser, &mut builder.tokens)?;
+                    let (ident_val, ident_src) = Ident::parse(parser, &mut builder.tokens)?;
                     source.ident = ident_src.clone();
                     trait_source.ident = ident_src;
                     ident = ident_val;
@@ -250,7 +283,7 @@ impl Parse for TraitDef {
                     |mut builder| {
                         let mut decl_src = DeclSource::default();
                         let (method_ident, method_ident_src) =
-                            parse_type_ident(parser, &mut builder.tokens)?;
+                            Ident::parse(parser, &mut builder.tokens)?;
                         decl_src.ident = method_ident_src;
 
                         builder = builder
@@ -320,7 +353,7 @@ impl Parse for TypeDef {
                 .one_of(["type", "sum"], Required)?
                 .assign(&mut token_type)
                 .and(|mut builder| {
-                    let (t_ident, t_ident_src) = parse_type_ident(parser, &mut builder.tokens)?;
+                    let (t_ident, t_ident_src) = Ident::parse(parser, &mut builder.tokens)?;
                     source.ident = t_ident_src.clone();
                     type_source.ident = t_ident_src;
                     ident = t_ident;
@@ -330,8 +363,8 @@ impl Parse for TypeDef {
                 .assign(&mut token_equal)
                 .bracket_list(
                     |mut builder| {
-                        let (TypedIdentDecl(mut decl), decl_src) =
-                            TypedIdentDecl::parse(parser, &mut builder.tokens)?;
+                        let (mut decl, decl_src) =
+                            parse_typed_ident_decl(parser, &mut builder.tokens)?;
                         decl.value = decl
                             .type_annotation
                             .take()
@@ -379,68 +412,60 @@ impl Parse for TypeDef {
 
 impl Parse for Block {
     fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<(Self, Rc<ExprSource>)> {
-        BraceBlock::parse(parser, tokens)
-            .map(|(block, src)| (block.0, src))
-            .or_else(|| ArrowBlock::parse(parser, tokens).map(|(block, src)| (block.0, src)))
+        parse_brace_block(parser, tokens).or_else(|| parse_arrow_block(parser, tokens))
     }
 }
 
 /// E.g. `{ ... }`
-pub struct BraceBlock(pub Block);
-impl Parse for BraceBlock {
-    fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<(Self, Rc<ExprSource>)> {
-        tokens.mark(|tokens| {
-            let mut exprs: Vec<(Expr, Rc<ExprSource>)> = vec![];
-            let mut block_tokens = TokenListBuilder::start(tokens)
-                .brace_list_collect(
-                    |mut builder| Some((Expr::parse(parser, &mut builder.tokens)?, builder)),
-                    |e| exprs = e,
-                    None,
-                )?
-                .done();
-            let (exprs, expr_srcs): (Vec<Expr>, Vec<Rc<ExprSource>>) = exprs.into_iter().unzip();
-            let (close_delim, open_delim) =
-                (block_tokens.pop().unwrap(), block_tokens.pop().unwrap());
-            let source = BlockSource::build()
-                .token_delimiters((open_delim, close_delim))
-                .expressions(expr_srcs)
-                .build();
-            let (attr, source) = parser.attr(source);
-            Some((
-                BraceBlock(Block::build().expressions(exprs).attr(attr).build()),
-                source,
-            ))
-        })
-    }
+fn parse_brace_block(
+    parser: &mut Parser,
+    tokens: &mut TokenIterator,
+) -> Option<(Block, Rc<ExprSource>)> {
+    tokens.mark(|tokens| {
+        let mut exprs: Vec<(Expr, Rc<ExprSource>)> = vec![];
+        let mut block_tokens = TokenListBuilder::start(tokens)
+            .brace_list_collect(
+                |mut builder| Some((Expr::parse(parser, &mut builder.tokens)?, builder)),
+                |e| exprs = e,
+                None,
+            )?
+            .done();
+        let (exprs, expr_srcs): (Vec<Expr>, Vec<Rc<ExprSource>>) = exprs.into_iter().unzip();
+        let (close_delim, open_delim) = (block_tokens.pop().unwrap(), block_tokens.pop().unwrap());
+        let source = BlockSource::build()
+            .token_delimiters((open_delim, close_delim))
+            .expressions(expr_srcs)
+            .build();
+        let (attr, source) = parser.attr(source);
+        Some((Block::build().expressions(exprs).attr(attr).build(), source))
+    })
 }
 
 /// E.g. `=> ...`
-#[derive(Debug, Default)]
-struct ArrowBlock(Block);
-impl Parse for ArrowBlock {
-    fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<(Self, Rc<ExprSource>)> {
-        tokens.mark(|tokens| {
-            let mut block_tokens = TokenListBuilder::start(tokens)
-                .string("=", Required)?
-                .string(">", Required)?
-                .done();
-            let (expr, expr_source) = Expr::parse(parser, tokens)?;
-            let (close_delim, open_delim) =
-                (block_tokens.pop().unwrap(), block_tokens.pop().unwrap());
-            let source = BlockSource::build()
-                .token_delimiters((open_delim, close_delim))
-                .expressions(vec![expr_source])
-                .build();
-            let (attr, source) = parser.attr(source);
-            Some((
-                ArrowBlock(Block::build().expressions(vec![expr]).attr(attr).build()),
-                source,
-            ))
-        })
-    }
+fn parse_arrow_block(
+    parser: &mut Parser,
+    tokens: &mut TokenIterator,
+) -> Option<(Block, Rc<ExprSource>)> {
+    tokens.mark(|tokens| {
+        let mut block_tokens = TokenListBuilder::start(tokens)
+            .string("=", Required)?
+            .string(">", Required)?
+            .done();
+        let (expr, expr_source) = Expr::parse(parser, tokens)?;
+        let (close_delim, open_delim) = (block_tokens.pop().unwrap(), block_tokens.pop().unwrap());
+        let source = BlockSource::build()
+            .token_delimiters((open_delim, close_delim))
+            .expressions(vec![expr_source])
+            .build();
+        let (attr, source) = parser.attr(source);
+        Some((
+            Block::build().expressions(vec![expr]).attr(attr).build(),
+            source,
+        ))
+    })
 }
 
-/// E.g. `let x : int = 1`
+/// E.g. `x : int`
 fn parse_type_annotation(
     parser: &mut Parser,
     tokens: &mut TokenIterator,
@@ -450,7 +475,7 @@ fn parse_type_annotation(
         let mut token_colon = TokenListBuilder::start(tokens)
             .string(":", Required)?
             .and(|mut builder| {
-                ident = parse_type_ident(parser, &mut builder.tokens)?;
+                ident = Ident::parse(parser, &mut builder.tokens)?;
                 Some(builder)
             })?
             .done();
@@ -458,24 +483,22 @@ fn parse_type_annotation(
     })
 }
 
-/// E.g. `array (int)`
-fn parse_type_ident(
-    parser: &mut Parser,
-    tokens: &mut TokenIterator,
-) -> Option<(Ident, Rc<ExprSource>)> {
-    tokens.mark(|tokens| {
-        let (mut ident, mut src) = tokens.kind(TokenKind::Ident).map(|token| {
-            let name = token.source.to_owned();
-            let src = IdentSource::build().token_name(token).build();
-            (Ident::build().name(name), src)
-        })?;
-        if let Some((generics, generics_src)) = parse_generics(parser, tokens) {
-            ident.generics = generics;
-            src.generics = generics_src;
-        }
-        let (attr, src) = parser.attr(src);
-        Some((ident.attr(attr).build(), src))
-    })
+impl Parse for Ident {
+    fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<(Self, Rc<ExprSource>)> {
+        tokens.mark(|tokens| {
+            let (mut ident, mut source) = tokens.kind(TokenKind::Ident).map(|token| {
+                let name = token.source.to_owned();
+                let source = IdentSource::build().token_name(token).build();
+                (Ident::build().name(name), source)
+            })?;
+            if let Some((generics, generics_source)) = parse_generics(parser, tokens) {
+                ident.generics = generics;
+                source.generics = generics_source;
+            }
+            let (attr, source) = parser.attr(source);
+            Some((ident.attr(attr).build(), source))
+        })
+    }
 }
 
 /// E.g. `(int, array (int))`
@@ -488,7 +511,7 @@ fn parse_generics(
         let mut generics = vec![];
         TokenListBuilder::start(tokens).paren_list(
             |builder: TokenListBuilder| {
-                let (generic, src) = parse_type_ident(parser, builder.tokens)?;
+                let (generic, src) = Ident::parse(parser, builder.tokens)?;
                 generics.push(generic);
                 src_list.push(src);
                 Some(builder)
@@ -499,18 +522,17 @@ fn parse_generics(
     })
 }
 
-impl Parse for Ident {
+impl Parse for Value {
     fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<(Self, Rc<ExprSource>)> {
-        tokens.kind(TokenKind::Ident).map(|token| {
-            let name = token.source.to_owned();
-            let (attr, src) = parser.attr(IdentSource::build().token_name(token).build());
-            (Ident::build().name(name).attr(attr).build(), src)
-        })
+        parse_value_string(parser, tokens)
+            .or_else(|| parse_value_int(parser, tokens))
+            .or_else(|| parse_value_dec(parser, tokens))
+            .or_else(|| parse_value_bool(parser, tokens))
+            .or_else(|| parse_value_none(parser, tokens))
     }
 }
 
-fn map_value_parse(args: ((impl Into<Val>, Attr), Rc<ExprSource>)) -> (Value, Rc<ExprSource>) {
-    let ((val, attr), src) = args;
+fn into_value(val: impl Into<Val>, attr: Attr, src: Rc<ExprSource>) -> (Value, Rc<ExprSource>) {
     (
         Value {
             inner: val.into(),
@@ -520,65 +542,80 @@ fn map_value_parse(args: ((impl Into<Val>, Attr), Rc<ExprSource>)) -> (Value, Rc
     )
 }
 
-impl Parse for Value {
-    fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<(Self, Rc<ExprSource>)> {
-        VString::parse(parser, tokens)
-            .map(map_value_parse)
-            .or_else(|| VInt::parse(parser, tokens).map(map_value_parse))
-            .or_else(|| VDec::parse(parser, tokens).map(map_value_parse))
-            .or_else(|| VBool::parse(parser, tokens).map(map_value_parse))
-            .or_else(|| {
-                tokens.string("none").map(|token| {
-                    let (attr, src) = parser.attr(vec![token]);
-                    map_value_parse(((Val::VNone, attr), src))
-                })
-            })
-    }
+fn parse_value<T: std::str::FromStr>(
+    parser: &mut Parser,
+    tokens: impl Into<Vec<Token<'static>>>,
+) -> (T, (Attr, Rc<ExprSource>))
+where
+    <T as std::str::FromStr>::Err: std::fmt::Debug,
+{
+    let tokens = tokens.into();
+    (
+        tokens[0].source.to_string().parse::<T>().unwrap(),
+        parser.attr(tokens),
+    )
 }
 
-type VString = (Cow<'static, str>, Attr);
-impl Parse for VString {
-    fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<(Self, Rc<ExprSource>)> {
-        tokens.kind(TokenKind::String).map(|token| {
-            let (mut string, (attr, src)) = parser.parse_value::<String>(vec![token]);
-            string.pop(); // remove quotes
-            string.remove(0);
-            ((Cow::Owned(string), attr), src)
+fn parse_value_string(
+    parser: &mut Parser,
+    tokens: &mut TokenIterator,
+) -> Option<(Value, Rc<ExprSource>)> {
+    tokens.kind(TokenKind::String).map(|token| {
+        let (mut string, (attr, src)) = parse_value::<String>(parser, vec![token]);
+        string.pop(); // remove quotes
+        string.remove(0);
+        into_value(Cow::Owned(string), attr, src)
+    })
+}
+
+fn parse_value_int(
+    parser: &mut Parser,
+    tokens: &mut TokenIterator,
+) -> Option<(Value, Rc<ExprSource>)> {
+    tokens.kind(TokenKind::Number).map(|token| {
+        let (val, (attr, src)) = parse_value::<i32>(parser, vec![token]);
+        into_value(val, attr, src)
+    })
+}
+
+fn parse_value_dec(
+    parser: &mut Parser,
+    tokens: &mut TokenIterator,
+) -> Option<(Value, Rc<ExprSource>)> {
+    tokens.kind(TokenKind::Decimal).map(|token| {
+        let token_src = token.source.to_owned();
+        let decimal: Vec<&str> = token_src.split('.').collect();
+        let (attr, src) = parser.attr(vec![token]);
+        into_value(
+            (
+                decimal[0].parse::<i32>().unwrap(),
+                decimal[1].parse::<u32>().unwrap(),
+            ),
+            attr,
+            src,
+        )
+    })
+}
+
+fn parse_value_bool(
+    parser: &mut Parser,
+    tokens: &mut TokenIterator,
+) -> Option<(Value, Rc<ExprSource>)> {
+    tokens
+        .string("true")
+        .or(tokens.string("false"))
+        .map(|token| {
+            let (val, (attr, src)) = parse_value::<bool>(parser, vec![token]);
+            into_value(val, attr, src)
         })
-    }
 }
 
-type VInt = (i32, Attr);
-impl Parse for VInt {
-    fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<(Self, Rc<ExprSource>)> {
-        tokens.kind(TokenKind::Number).map(|token| {
-            let (val, (attr, src)) = parser.parse_value(vec![token]);
-            ((val, attr), src)
-        })
-    }
-}
-
-type VDec = ((i32, u32), Attr);
-impl Parse for VDec {
-    fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<(Self, Rc<ExprSource>)> {
-        tokens.kind(TokenKind::Decimal).map(|token| {
-            let token_src = token.source.to_owned();
-            let decimal: Vec<&str> = token_src.split('.').collect();
-            let (attr, src) = parser.attr(vec![token]);
-            (((decimal[0].parse::<i32>().unwrap(), decimal[1].parse::<u32>().unwrap()), attr), src)
-        })
-    }
-}
-
-type VBool = (bool, Attr);
-impl Parse for VBool {
-    fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<(Self, Rc<ExprSource>)> {
-        tokens
-            .string("true")
-            .or(tokens.string("false"))
-            .map(|token| {
-                let (val, (attr, src)) = parser.parse_value(vec![token]);
-                ((val, attr), src)
-            })
-    }
+fn parse_value_none(
+    parser: &mut Parser,
+    tokens: &mut TokenIterator,
+) -> Option<(Value, Rc<ExprSource>)> {
+    tokens.string("none").map(|token| {
+        let (attr, src) = parser.attr(vec![token]);
+        into_value(Val::VNone, attr, src)
+    })
 }

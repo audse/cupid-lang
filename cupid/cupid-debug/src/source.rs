@@ -5,7 +5,7 @@ use thiserror::Error;
 
 use crate::{severity::Severity, highlight::HighlightedLineSet};
 
-#[derive(Debug, Error, Clone)]
+#[derive(Debug, Error, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Source(pub Rc<String>);
 impl fmt::Display for Source {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -18,11 +18,12 @@ pub trait CollectTokens {
     fn collect_tokens(&self) -> Vec<&Token<'static>>;
 }
 
-#[derive(Debug, Default, Clone, derive_more::From, derive_more::TryInto)]
+#[derive(Debug, Default, Clone, derive_more::From, derive_more::TryInto, serde::Serialize, serde::Deserialize)]
 pub enum ExprSource {
     Block(BlockSource),
     Decl(DeclSource),
     Function(FunctionSource),
+    FunctionCall(FunctionCallSource),
     Ident(IdentSource),
     Trait(TraitSource),
     TraitDef(TraitDefSource),
@@ -46,6 +47,7 @@ impl CollectTokens for ExprSource {
             Block(x) => x.collect_tokens(),
             Decl(x) => x.collect_tokens(),
             Function(x) => x.collect_tokens(),
+            FunctionCall(x) => x.collect_tokens(),
             Ident(x) => x.collect_tokens(),
             Trait(x) => x.collect_tokens(),
             TraitDef(x) => x.collect_tokens(),
@@ -64,7 +66,7 @@ impl ExprSource {
 }
 
 cupid_util::build_struct! {
-    #[derive(Debug, Default, Clone)]
+    #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
     pub BlockSourceBuilder => pub BlockSource {
         pub token_delimiters: (Token<'static>, Token<'static>), // e.g. ("{", "}") or ("=", ">")
         pub expressions: Vec<Rc<ExprSource>>,
@@ -98,7 +100,7 @@ impl CollectTokens for BlockSource {
 }
 
 cupid_util::build_struct! {
-    #[derive(Debug, Default, Clone)]
+    #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
     pub DeclSourceBuilder => pub DeclSource {
         pub token_let: Option<Token<'static>>,
         pub token_mut: Option<Token<'static>>,
@@ -122,7 +124,7 @@ impl CollectTokens for DeclSource {
 }
 
 cupid_util::build_struct! {
-    #[derive(Debug, Default, Clone)]
+    #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
     pub FunctionSourceBuilder => pub FunctionSource {
         pub token_empty: Option<Token<'static>>,
         pub params: Vec<Rc<ExprSource>>,
@@ -142,7 +144,29 @@ impl CollectTokens for FunctionSource {
 }
 
 cupid_util::build_struct! {
-    #[derive(Debug, Default, Clone)]
+    #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
+    pub FunctionCallSourceBuilder => pub FunctionCallSource {
+        pub token_parens: Option<(Token<'static>, Token<'static>)>,
+        pub token_operator: Option<Token<'static>>,
+        pub args: Vec<Rc<ExprSource>>,
+        pub function: Rc<ExprSource>,
+    }
+}
+
+impl CollectTokens for FunctionCallSource {
+    fn collect_tokens(&self) -> Vec<&Token<'static>> {
+        let (open_paren, close_paren) = self.token_parens.as_ref().map(|(a, b)| (Some(a), Some(b))).unwrap_or_default();
+        vec![open_paren, close_paren, self.token_operator.as_ref()]
+            .into_iter()
+            .filter_some()
+            .collect::<Vec<&Token<'static>>>()
+            .plus(self.args.collect_tokens())
+            .plus(self.function.collect_tokens())
+    }
+}
+
+cupid_util::build_struct! {
+    #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
     pub IdentSourceBuilder => pub IdentSource {
         pub token_name: Token<'static>,
         pub token_namespace: Option<Token<'static>>,
@@ -161,7 +185,7 @@ impl CollectTokens for IdentSource {
 }
 
 cupid_util::build_struct! {
-    #[derive(Debug, Default, Clone)]
+    #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
     pub TraitSourceBuilder => pub TraitSource {
         pub token_brackets: (Token<'static>, Token<'static>),
         pub ident: Rc<ExprSource>,
@@ -178,7 +202,7 @@ impl CollectTokens for TraitSource {
 }
 
 cupid_util::build_struct! {
-    #[derive(Debug, Default, Clone)]
+    #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
     pub TraitDefSourceBuilder => pub TraitDefSource {
         pub token_trait: Token<'static>,
         pub token_eq: Token<'static>,
@@ -196,7 +220,7 @@ impl CollectTokens for TraitDefSource {
 }
 
 cupid_util::build_struct! {
-    #[derive(Debug, Default, Clone)]
+    #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
     pub TypeSourceBuilder => pub TypeSource {
         pub token_brackets: (Token<'static>, Token<'static>),
         pub ident: Rc<ExprSource>,
@@ -213,7 +237,7 @@ impl CollectTokens for TypeSource {
 }
 
 cupid_util::build_struct! {
-    #[derive(Debug, Default, Clone)]
+    #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
     pub TypeDefSourceBuilder => pub TypeDefSource {
         pub token_type: Token<'static>,
         pub token_eq: Token<'static>,

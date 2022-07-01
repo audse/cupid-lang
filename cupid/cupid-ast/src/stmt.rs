@@ -5,7 +5,7 @@ pub mod decl;
 pub mod trait_def;
 pub mod type_def;
 
-#[derive(Debug, Clone, From, TryInto, IsVariant, Unwrap)]
+#[derive(Debug, Clone, From, TryInto, IsVariant, Unwrap, serde::Serialize, serde::Deserialize)]
 pub enum Stmt {
     Decl(decl::Decl),
     TraitDef(trait_def::TraitDef),

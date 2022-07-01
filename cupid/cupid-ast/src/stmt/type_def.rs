@@ -1,7 +1,7 @@
 use crate::{attr::{Attr, GetAttr}, expr::ident::Ident, types::typ::Type};
 
 cupid_util::build_struct! {
-    #[derive(Debug, Default, Clone)]
+    #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
     pub TypeDefBuilder => pub TypeDef {
         pub ident: Ident,
         pub value: Type,

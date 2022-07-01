@@ -2,7 +2,7 @@
 
 use std::rc::Rc;
 
-use cupid_ast::{expr::{Expr, value::{Value, Val}}, stmt::{decl::{Mut, Decl}, Stmt, type_def::TypeDef, trait_def::TraitDef}};
+use cupid_ast::{expr::{Expr, value::{Value, Val}, function_call::FunctionCall}, stmt::{decl::{Mut, Decl}, Stmt, type_def::TypeDef, trait_def::TraitDef}};
 use cupid_lex::lexer::Lexer;
 use crate::parse::Parser;
 
@@ -24,6 +24,15 @@ fn decl(string: &str) -> Decl {
         decl 
     } else {
         panic!("expected declaration")
+    }
+}
+
+fn fun_call(string: &str) -> FunctionCall {
+    let fun_call = expr(string);
+    if let Expr::FunctionCall(fun_call) = fun_call {
+        fun_call 
+    } else {
+        panic!("expected function call")
     }
 }
 
@@ -129,6 +138,13 @@ fn test_decl_typed_generics() {
             && &*typ.generics[0].name == "int" 
             && &*typ.generics[1].name == "int"
     )
+}
+
+#[test]
+fn test_fun_call() {
+    let fun = fun_call("add(1, 2)");
+    assert!(&*fun.function.name == "add" && fun.args.len() == 2);
+    assert!(matches!(fun.args[0], Expr::Value(Value { inner: Val::VInteger(_), ..})))
 }
 
 #[test]

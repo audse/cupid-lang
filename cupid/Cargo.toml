@@ -3,11 +3,15 @@ name = "cupid"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+crate-type = ["cdylib"]
+
 [workspace]
 members = [
 	"cupid-ast",
 	"cupid-debug",
 	"cupid-env",
+	"cupid-interpret",
 	"cupid-lex",
 	"cupid-parse",
 	"cupid-semantics",
@@ -18,10 +22,13 @@ members = [
 
 [dependencies]
 clap = { version = "3.1.18", features = ["derive"] }
+wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
+console_error_panic_hook = "0.1.7"
 
 cupid-ast = { path = 'cupid-ast' }
 cupid-debug = { path = 'cupid-debug' }
 cupid-env = { path = 'cupid-env' }
+cupid-interpret = { path = 'cupid-interpret' }
 cupid-lex = { path = 'cupid-lex' }
 cupid-parse = { path = 'cupid-parse' }
 cupid_semantics = { path = 'cupid-semantics' }

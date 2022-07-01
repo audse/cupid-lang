@@ -1,6 +1,6 @@
 use std::fmt;
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub enum Severity {
     Warning,
     #[default]

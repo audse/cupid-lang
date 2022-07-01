@@ -7,6 +7,8 @@ impl Infer<Type> for expr::Expr {
         match self {
             Block(block) => block.infer(),
             Function(function) => function.infer(),
+            FunctionCall(function_call) => function_call.infer(),
+            Namespace(namespace) => namespace.infer(),
             Ident(ident) => ident.infer(),
             Trait(t) => t.infer(),
             Type(typ) => typ.infer(),
@@ -44,9 +46,21 @@ impl Infer<Type> for expr::function::Function {
     }
 }
 
+impl Infer<Type> for expr::function_call::FunctionCall {
+    fn infer(&self) -> Type {
+        Type::variable()
+    }
+}
+
 impl Infer<Type> for expr::ident::Ident {
     fn infer(&self) -> Type {
         Type::none()
+    }
+}
+
+impl Infer<Type> for expr::namespace::Namespace {
+    fn infer(&self) -> Type {
+        self.value.infer()
     }
 }
 

@@ -2,7 +2,7 @@ import './static/normalize.css';
 import './static/main.css';
 import './static/dropdown.css';
 
-import init, { run_and_collect_logs } from './../cupid/pkg/cupid';
+import init, { compile } from './../cupid/pkg/cupid';
 
 import { EditorState, basicSetup } from '@codemirror/basic-setup';
 import { EditorView, keymap } from '@codemirror/view';
@@ -51,12 +51,12 @@ window.addEventListener('load', async () => {
 		treeButton.classList.remove('active');
 		parseButton.classList.remove('active');
 		outputElement.innerHTML = `
-            ${createOutput(currentResult.values)}
+            ${createOutput(currentResult)}
             ${currentResult.errors.map(createError).join('\n')}
         `;
 	};
 
-	const createOutput = values =>
+	const createOutput = values => {
 		values.reduce((prev, value = []) => {
 			const isObject = typeof value[1] === 'object';
 			const isLog = isObject && 'Log' in value[1];
@@ -64,7 +64,7 @@ window.addEventListener('load', async () => {
 				? value[0]
 				: `<span style="opacity: 0.5">${value[0]}</span>`;
 			return prev + html + '<br />';
-		}, '');
+		}, '')};
 
 	const createError = error => {
 		const lines = currentText.split('\n');
@@ -158,7 +158,7 @@ window.addEventListener('load', async () => {
 
 	const doUpdate = update => {
 		currentText = update.state.doc.toJSON().join('\n');
-		currentResult = run_and_collect_logs(currentText);
+		currentResult = compile(currentText);
 		console.log(currentResult);
 
 		switch (tab) {

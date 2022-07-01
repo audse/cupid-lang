@@ -4,7 +4,7 @@ use crate::{map_expr, map_stmt,
 };
 use cupid_ast::{expr, stmt, types};
 use cupid_debug::code::ErrorCode;
-use cupid_env::environment::Env;
+use cupid_env::{environment::Env, database::{symbol_table::query::Query, table::QueryTable}};
 use cupid_util::InvertOption;
 
 #[allow(unused_variables)]
@@ -65,7 +65,47 @@ impl CheckTypes for expr::function::Function {
     }
 }
 
+impl CheckTypes for expr::function_call::FunctionCall {
+    fn check_types(self, env: &mut Env) -> Result<Self, Error> {
+        let (mut arg_types, mut param_types) = (vec![], vec![]);
+        for arg in &self.args {
+            let t = get_type_ident(arg.attr().unwrap().source, env).cloned();
+            match t {
+                Ok(typ) => arg_types.push(typ),
+                Err(_) => return Err(self.err(ErrorCode::NotFound, env))
+            }
+        }
+        let function = env
+            .read::<expr::Expr>(&Query::select(self.function.address.unwrap()))
+            .unwrap();
+        let function = match function {
+            expr::Expr::Function(function) => function,
+            _ => return Err(self.err(ErrorCode::ExpectedFunction, env))
+        };
+        for param in &function.params {
+            param_types.push(param.type_annotation.as_ref().unwrap().clone())
+        }
+        let matched_args = arg_types.into_iter().zip(param_types);
+        for (arg_type, param_type) in matched_args {
+            if arg_type != param_type {
+                return Err(
+                    arg_type
+                        .err(ErrorCode::TypeMismatch, env)
+                        .with_hint(format!("expected type `{param_type:#?}`, found type `{arg_type:#?}`"))
+                );
+            }
+        }
+        Ok(self)
+    }
+}
+
 impl CheckTypes for expr::ident::Ident {}
+
+impl CheckTypes for expr::namespace::Namespace {
+    fn check_types(self, env: &mut Env) -> Result<Self, Error> {
+        todo!()
+    }
+}
 
 impl CheckTypes for expr::value::Value {}
 

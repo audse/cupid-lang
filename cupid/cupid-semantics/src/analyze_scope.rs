@@ -74,19 +74,39 @@ impl AnalyzeScope for expr::function::Function {
     }
 }
 
+impl AnalyzeScope for expr::function_call::FunctionCall {
+    fn analyze_scope(self, env: &mut Env) -> Result<Self, Error> {
+        Ok(Self {
+            function: self.function.analyze_scope(env)?,
+            args: self.args.analyze_scope(env)?,
+            attr: Attr { scope: env.scope.current(), ..self.attr }
+        })
+    }
+}
+
 impl AnalyzeScope for expr::ident::Ident {
     fn analyze_scope(self, env: &mut Env) -> Result<Self, Error> {
-        let namespace = self.namespace.analyze_scope(env)?;
-        // use namespace's scope, if there is one. otherwise, current scope
-        let scope = namespace
-            .as_ref()
-            .map(|n| n.attr.scope)
-            .unwrap_or_else(|| env.scope.current());
+        // let namespace = self.namespace.analyze_scope(env)?;
+        // // use namespace's scope, if there is one. otherwise, current scope
+        // let scope = namespace
+        //     .as_ref()
+        //     .map(|n| n.attr.scope)
+        //     .unwrap_or_else(|| env.scope.current());
         Ok(Self {
-            namespace,
+            // namespace,
             generics: self.generics.analyze_scope(env)?,
-            attr: Attr { scope, ..self.attr },
+            attr: Attr { scope: env.scope.current(), ..self.attr },
             ..self
+        })
+    }
+}
+
+impl AnalyzeScope for expr::namespace::Namespace {
+    fn analyze_scope(self, env: &mut Env) -> Result<Self, Error> {
+        Ok(Self {
+            namespace: self.namespace.analyze_scope(env)?,
+            value: self.value.analyze_scope(env)?,
+            attr: Attr { scope: env.scope.current(), ..self.attr }
         })
     }
 }

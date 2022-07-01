@@ -1,15 +1,15 @@
-use crate::{attr::{Attr, GetAttr}, expr::ident::Ident, types::traits::Trait};
+use crate::{attr::{Attr, GetAttr}, expr::Expr};
 
 cupid_util::build_struct! {
     #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
-    pub TraitDefBuilder => pub TraitDef {
-        pub ident: Ident,
-        pub value: Trait,
+    pub NamespaceBuilder => pub Namespace {
+        pub namespace: Box<Expr>,
+        pub value: Box<Expr>,
         pub attr: Attr,
     }
 }
 
-impl GetAttr for TraitDef {
+impl GetAttr for Namespace {
     fn attr(&self) -> Attr {
         self.attr
     }

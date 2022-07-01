@@ -24,7 +24,7 @@ use crate::severity::Severity;
 /// * Full punctuation
 /// * Should provide as much context as possible, customized to each error
 
-#[derive(Debug, Default, Clone, Error)]
+#[derive(Debug, Default, Clone, Error, serde::Serialize, serde::Deserialize)]
 pub enum ErrorCode {
     /// Syntax errors
     UnclosedDelimiter = 103,

@@ -1,8 +1,9 @@
 use crate::{
     map_expr, map_stmt,
-    Error, utils::{update_type, rewrite_symbol_unscoped},
+    Error, utils::{update_type, rewrite_symbol_unscoped, get_type_ident}, ToError,
 };
 use cupid_ast::{expr, stmt, types};
+use cupid_debug::code::ErrorCode;
 use cupid_env::{environment::Env, database::{table::QueryTable, symbol_table::query::Query}};
 use cupid_types::infer::Infer;
 use cupid_util::InvertOption;
@@ -47,6 +48,28 @@ impl InferTypes for expr::function::Function {
     }
 }
 
+impl InferTypes for expr::function_call::FunctionCall {
+    fn infer_types(self, env: &mut Env) -> Result<Self, Error> {
+        let function = env
+            .read::<expr::Expr>(&Query::select(self.function.address.unwrap()))
+            .unwrap();
+        let function = match function {
+            expr::Expr::Function(function) => function,
+            _ => return Err(self.err(ErrorCode::ExpectedFunction, env))
+        };
+        let typ = match get_type_ident(function.body.attr.source, env) {
+            Ok(typ) => typ.clone(),
+            Err(_) => return Err(self.err(ErrorCode::CannotInfer, env)),
+        };
+        update_type(self.attr.source, env, typ)?;
+        Ok(Self {
+            function: self.function.infer_types(env)?,
+            args: self.args.infer_types(env)?,
+            ..self
+        })
+    }
+}
+
 impl InferTypes for expr::ident::Ident {
     fn infer_types(self, env: &mut Env) -> Result<Self, Error> {
         let value = env.read::<expr::Expr>(&Query::select(self.address.unwrap()));
@@ -58,10 +81,16 @@ impl InferTypes for expr::ident::Ident {
             update_type(self.attr.source, env, self.infer().ident)?;
         }
         Ok(Self {
-            namespace: self.namespace.infer_types(env)?,
+            // namespace: self.namespace.infer_types(env)?,
             generics: self.generics.infer_types(env)?,
             ..self
         })
+    }
+}
+
+impl InferTypes for expr::namespace::Namespace {
+    fn infer_types(self, env: &mut Env) -> Result<Self, Error> {
+        todo!()
     }
 }
 

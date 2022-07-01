@@ -20,13 +20,6 @@ mod tests;
 
 pub type Address = usize;
 
-// #[derive(Debug, Default, Clone)]
-// pub struct Error(String);
-
-// pub fn error<S: Into<String>>(err: S) -> Error {
-//     Error(err.into())
-// }
-
 pub trait ToError: GetAttr {
     fn err(&self, code: ErrorCode, env: &mut cupid_env::environment::Env) -> Error {
         let context = env.database
@@ -46,7 +39,9 @@ macro_rules! map_expr {
         match $to {
             Block($exp) => Ok(Block($inside)),
             Function($exp) => Ok(Function($inside)),
+            FunctionCall($exp) => Ok(FunctionCall($inside)),
             Ident($exp) => Ok(Ident($inside)),
+            Namespace($exp) => Ok(Namespace($inside)),
             Value($exp) => Ok(Value($inside)),
             Trait($exp) => Ok(Trait($inside)),
             Type($exp) => Ok(Type($inside)),

@@ -56,16 +56,33 @@ impl ResolveNames for expr::function::Function {
     }
 }
 
+impl ResolveNames for expr::function_call::FunctionCall {
+    fn resolve_names(self, env: &mut Env) -> Result<Self, Error> {
+        let function = env.read::<expr::Expr>(&Query::select(&self.function));
+        match function {
+            Some(expr::Expr::Function(_)) => Ok(()),
+            _ => Err(self.err(ErrorCode::ExpectedFunction, env))
+        }?;
+        env.inside_closure(self.attr.scope, |env| {
+            Ok(Self {
+                function: self.function.resolve_names(env)?,
+                args: self.args.resolve_names(env)?,
+                ..self
+            })
+        })
+    }
+}
+
 impl ResolveNames for expr::ident::Ident {
     fn resolve_names(mut self, env: &mut Env) -> Result<Self, Error> {
-        let namespace = self.namespace
-            .as_ref()
-            .map(|name| env.read::<expr::Expr>(&Query::select(&**name)))
-            .flatten()
-            .map(|n| n.attr())
-            .flatten();
-        let scope = namespace.unwrap_or_else(|| self.attr).scope;
-        env.inside_closure(scope, |env| {
+        // let namespace = self.namespace
+        //     .as_ref()
+        //     .map(|name| env.read::<expr::Expr>(&Query::select(&**name)))
+        //     .flatten()
+        //     .map(|n| n.attr())
+        //     .flatten();
+        // let scope = namespace.unwrap_or_else(|| self.attr).scope;
+        env.inside_closure(self.attr.scope, |env| {
             // TODO is this right?
             for generic in self.generics.iter_mut() {
                 generic.address = read(generic, env);
@@ -81,6 +98,20 @@ impl ResolveNames for expr::ident::Ident {
             }
             self.address = Some(read(&self, env).ok_or_else(|| self.err(ErrorCode::NotFound, env))?);
             Ok(self)
+        })
+    }
+}
+
+impl ResolveNames for expr::namespace::Namespace {
+    fn resolve_names(self, env: &mut Env) -> Result<Self, Error> {
+        env.inside_closure(self.attr.scope, |env| {
+            let name = self.namespace.resolve_names(env)?;
+            match *name {
+                expr::Expr::Ident(ident) => (),
+                _ => ()
+            };
+
+            todo!()
         })
     }
 }

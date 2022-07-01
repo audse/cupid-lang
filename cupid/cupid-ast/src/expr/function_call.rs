@@ -1,15 +1,18 @@
-use crate::{attr::{Attr, GetAttr}, expr::ident::Ident, types::traits::Trait};
+use crate::attr::{Attr, GetAttr};
+
+use super::{ident::Ident, Expr};
+
 
 cupid_util::build_struct! {
     #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
-    pub TraitDefBuilder => pub TraitDef {
-        pub ident: Ident,
-        pub value: Trait,
+    pub FunctionCallBuilder => pub FunctionCall {
+        pub function: Ident,
+        pub args: Vec<Expr>,
         pub attr: Attr,
     }
 }
 
-impl GetAttr for TraitDef {
+impl GetAttr for FunctionCall {
     fn attr(&self) -> Attr {
         self.attr
     }
