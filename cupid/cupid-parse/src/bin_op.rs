@@ -1,8 +1,9 @@
 use std::rc::Rc;
 
-use cupid_ast::expr::{function::Function, Expr, ident::Ident, function_call::FunctionCall};
-use cupid_debug::source::{ExprSource, FunctionCallSource, IdentSource};
+use cupid_ast::expr::{namespace::Namespace, Expr, ident::Ident, function_call::FunctionCall};
+use cupid_debug::source::{ExprSource, FunctionCallSource, IdentSource, NamespaceSource};
 use cupid_lex::{token_iter::{TokenIterator, TokenListBuilder, IsOptional::*}, token::{Token, ReduceTokens}};
+use cupid_util::Bx;
 
 use crate::parse::{Parser, Parse};
 
@@ -15,23 +16,49 @@ fn ident_from_logic_op(parser: &mut Parser, tokens: Vec<Token<'static>>) -> (Ide
     (i, source)
 }
 
-fn parse_bin_op(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<(FunctionCall, Rc<ExprSource>)> {
+/// Returns
+/// ```no_run
+/// Namespace { 
+///     namespace: <left_value>, 
+///     value: FunctionCall {
+///         function: <operation_name>
+///         args: [<right_value>]
+///     }
+/// }
+/// ```
+pub(super) fn parse_bin_op(parser: &mut Parser, tokens: &mut TokenIterator, left: Expr, left_src: Rc<ExprSource>) -> Option<(Expr, Rc<ExprSource>)> {
     tokens.mark(|tokens| {
-        let (left, left_src) = Expr::parse(parser, tokens)?;
-        let (op_ident, op_src) = parse_logic_bin_op(parser, tokens)?; // TODO `or_else`
-        let (right, right_src) = Expr::parse(parser, tokens)?;
-        let source = FunctionCallSource::build()
-            .function(op_src)
-            .args(vec![left_src, right_src])
-            .build();
+        if let Some((op_ident, op_src)) = parse_logic_bin_op(parser, tokens){
+            if let Some((right, right_src)) = Expr::parse(parser, tokens) {
+                let func_src = FunctionCallSource::build()
+                    .function(op_src)
+                    .args(vec![right_src])
+                    .build();
+                let (func_attr, func_src) = parser.attr(func_src);
+                let function_call = FunctionCall::build()
+                    .function(op_ident)
+                    .args(vec![right])
+                    .attr(func_attr)
+                    .build();
 
-        let (attr, source) = parser.attr(source);
-        let function_call = FunctionCall::build()
-            .function(op_ident)
-            .args(vec![left, right])
-            .attr(attr)
-            .build();
-        Some((function_call, source))
+                let namespace_src = NamespaceSource::build()
+                    .namespace(left_src)
+                    .value(func_src)
+                    .build();
+                let (attr, source) = parser.attr(namespace_src);
+                let namespace = Namespace::build()
+                    .namespace(Box::new(left))
+                    .value(Expr::FunctionCall(function_call).bx())
+                    .attr(attr)
+                    .build();
+
+                Some((Expr::Namespace(namespace), source))
+            } else {
+                Some((left, left_src))
+            }
+        } else {
+            Some((left, left_src))
+        }
     })
 }
 

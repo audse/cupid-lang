@@ -169,7 +169,7 @@ impl TokenIterator {
     pub fn index(&mut self) -> usize { self.0.index() }
     pub fn goto(&mut self, index: usize) { self.0.goto(index) }
 
-    pub fn mark<T>(&mut self, mut closure: impl FnMut(&mut TokenIterator) -> Option<T>) -> Option<T> {
+    pub fn mark<T>(&mut self, closure: impl FnOnce(&mut TokenIterator) -> Option<T>) -> Option<T> {
         let start = self.index();
         if let Some(val) = closure(self) {
             Some(val)

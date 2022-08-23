@@ -3,7 +3,7 @@ use cupid_ast::expr::{Expr, ident::Ident};
 use cupid_debug::code::ErrorCode;
 use cupid_env::{
     database::{
-        source_table::query::Query as SourceQuery, symbol_table::query::Query as SymbolQuery,
+        source_table::{query::Query as SourceQuery, row::SourceRow}, symbol_table::{query::Query as SymbolQuery, row::SymbolRow},
         table::QueryTable,
     },
     environment::Env,

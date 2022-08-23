@@ -1,4 +1,3 @@
-#![feature(derive_default_enum, backtrace)]
 
 pub mod code;
 pub mod error;

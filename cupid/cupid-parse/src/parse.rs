@@ -39,6 +39,12 @@ impl Parser {
         parser
     }
 
+    pub fn new_with(source: Rc<String>, env: Env) -> Self {
+        let mut parser = Self { env, document: 0 };
+        parser.env.source = source;
+        parser
+    }
+
     pub fn parse(&mut self, tokens: Vec<Token<'static>>) -> Option<Vec<Expr>> {
         let mut exprs = vec![];
         let mut tokens = TokenIterator(BiDirectionalIterator::new(tokens));
@@ -80,15 +86,19 @@ fn map_expr_parse(args: (impl Into<Expr>, Rc<ExprSource>)) -> (Expr, Rc<ExprSour
 
 impl Parse for Expr {
     fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<(Self, Rc<ExprSource>)> {
-        TraitDef::parse(parser, tokens)
-            .map(map_stmt_parse)
-            .or_else(|| TypeDef::parse(parser, tokens).map(map_stmt_parse))
-            .or_else(|| Decl::parse(parser, tokens).map(map_stmt_parse))
-            .or_else(|| Function::parse(parser, tokens).map(map_expr_parse))
-            .or_else(|| Block::parse(parser, tokens).map(map_expr_parse))
-            .or_else(|| FunctionCall::parse(parser, tokens).map(map_expr_parse))
-            .or_else(|| Value::parse(parser, tokens).map(map_expr_parse))
-            .or_else(|| Ident::parse(parser, tokens).map(map_expr_parse))
+        if let Some((val, val_src)) = TraitDef::parse(parser, tokens)
+                .map(map_stmt_parse)
+                .or_else(|| TypeDef::parse(parser, tokens).map(map_stmt_parse))
+                .or_else(|| Decl::parse(parser, tokens).map(map_stmt_parse))
+                .or_else(|| Function::parse(parser, tokens).map(map_expr_parse))
+                .or_else(|| Block::parse(parser, tokens).map(map_expr_parse))
+                .or_else(|| FunctionCall::parse(parser, tokens).map(map_expr_parse))
+                .or_else(|| Value::parse(parser, tokens).map(map_expr_parse))
+                .or_else(|| Ident::parse(parser, tokens).map(map_expr_parse)) {
+            super::bin_op::parse_bin_op(parser, tokens, val, val_src)
+        } else {
+            None
+        }
     }
 }
 

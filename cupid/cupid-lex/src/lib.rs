@@ -1,4 +1,4 @@
-#![feature(derive_default_enum, let_chains, trait_alias)]
+#![feature(trait_alias)]
 
 pub mod lexer;
 pub mod span;

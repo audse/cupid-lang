@@ -1,4 +1,3 @@
-#![feature(derive_default_enum)]
 
 pub(self) type Address = usize;
 

@@ -134,6 +134,7 @@ dependencies = [
  "cupid-interpret",
  "cupid-lex",
  "cupid-parse",
+ "cupid-transpile",
  "cupid-types",
  "cupid-util",
  "cupid_semantics",
@@ -199,6 +200,13 @@ dependencies = [
  "cupid-env",
  "cupid-lex",
  "cupid-util",
+]
+
+[[package]]
+name = "cupid-transpile"
+version = "0.1.0"
+dependencies = [
+ "cupid-ast",
 ]
 
 [[package]]

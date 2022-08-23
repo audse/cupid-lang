@@ -1,5 +1,3 @@
-#![feature(let_chains)]
-
 pub mod resolve_packages;
 pub mod analyze_scope;
 pub mod resolve_type_names;
