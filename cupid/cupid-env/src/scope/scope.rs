@@ -32,7 +32,8 @@ impl Scope {
     pub fn add_closure(&mut self, context: Context) -> ScopeId {
         increment_id(self, |env| {
             env.closures.push(Closure::new(env.state.closure(), env.state.id(), context))
-        })
+        });
+        self.closures.len() - 1
     }
 
     pub fn add_scope(&mut self, context: Context) -> ScopeId {
@@ -62,3 +63,4 @@ fn increment_id(scope: &mut Scope, closure: impl FnOnce(&mut Scope)) -> ScopeId 
     closure(scope);
     scope.state.current_id
 }
+

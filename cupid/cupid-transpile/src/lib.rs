@@ -6,14 +6,17 @@ pub trait Transpile {
 }
 
 pub fn transpile_vec(items: &[impl Transpile]) -> Vec<String> {
-    items.iter().map(Transpile::transpile).collect::<Vec<String>>()
+    items
+        .iter()
+        .map(Transpile::transpile)
+        .collect::<Vec<String>>()
 }
 
 impl Transpile for expr::Expr {
     fn transpile(&self) -> String {
         use expr::Expr::*;
         match self {
-            Block(block) => transpile_vec(&block.expressions).join("\n"),
+            Block(block) => block.transpile(),
             Function(function) => function.transpile(),
             FunctionCall(function_call) => function_call.transpile(),
             Ident(ident) => ident.transpile(),
@@ -22,6 +25,12 @@ impl Transpile for expr::Expr {
             Value(value) => value.transpile(),
             _ => String::new(),
         }
+    }
+}
+
+impl Transpile for expr::block::Block {
+    fn transpile(&self) -> String {
+        transpile_vec(&self.expressions).join("\n")
     }
 }
 
@@ -44,27 +53,39 @@ fn transpile_as_closure(function: &expr::function::Function) -> String {
             let exprs = transpile_vec(exprs).join("\n");
             match ret_expr {
                 expr::Expr::Stmt(stmt) => (stmt.transpile(), exprs),
-                _ => (format!("return {};", ret_expr.transpile()), exprs)
+                _ => (format!("return {};", ret_expr.transpile()), exprs),
             }
         }
-        _ => (format!("return {};", ret_expr.transpile()), exprs)
+        _ => (format!("return {};", ret_expr.transpile()), exprs),
     };
     format!(
         "({}) => {{
             {exprs}
             {ret_expr}
         }}",
-        function.params.iter()
-            .map(|param| {
-                let type_annotation: String = param.type_annotation.as_ref().map(|t| format!("/** @type {{ {} }} */", t.transpile())).unwrap_or_default();
-                match *param.value {
-                    expr::Expr::Empty => format!("{type_annotation} {}", param.ident.transpile()),
-                    _ => format!("{type_annotation} {} = {}", param.ident.transpile(), param.value.transpile())
-                }
-            })
+        function
+            .params
+            .iter()
+            .map(transpile_as_param)
             .collect::<Vec<String>>()
             .join(", "),
     )
+}
+
+fn transpile_as_param(decl: &stmt::decl::Decl) -> String {
+    let type_annotation: String = decl
+        .type_annotation
+        .as_ref()
+        .map(|t| format!("/** @type {{ {} }} */", t.transpile()))
+        .unwrap_or_default();
+    match *(decl.value.borrow()) {
+        expr::Expr::Empty => format!("{type_annotation} {}", decl.ident.transpile()),
+        _ => format!(
+            "{type_annotation} {} = {}",
+            decl.ident.transpile(),
+            decl.value.borrow().transpile()
+        ),
+    }
 }
 
 fn transpile_as_function(function: &expr::function::Function) -> String {
@@ -75,8 +96,8 @@ fn transpile_as_function(function: &expr::function::Function) -> String {
 impl Transpile for expr::function_call::FunctionCall {
     fn transpile(&self) -> String {
         format!(
-            "{ident}({args})", 
-            ident = self.function.transpile(), 
+            "{ident}({args})",
+            ident = self.function.transpile(),
             args = transpile_vec(&self.args).join(", ")
         )
     }
@@ -90,11 +111,7 @@ impl Transpile for expr::ident::Ident {
 
 impl Transpile for expr::namespace::Namespace {
     fn transpile(&self) -> String {
-        format!(
-            "{}.{}", 
-            self.namespace.transpile(), 
-            self.value.transpile()
-        )
+        format!("{}({})", self.namespace.transpile(), self.value.transpile())
     }
 }
 
@@ -108,7 +125,7 @@ impl Transpile for expr::value::Val {
             VInteger(i) => i.to_string(),
             VString(s) => s.to_string(),
             VChar(c) => c.to_string(),
-            VNone => "null".to_string()
+            VNone => "null".to_string(),
         }
     }
 }
@@ -123,10 +140,10 @@ impl Transpile for stmt::Stmt {
     fn transpile(&self) -> String {
         use stmt::Stmt::*;
         match self {
+            Assign(_) => String::new(),
             Decl(decl) => decl.transpile(),
-            TraitDef(trait_def) => format!("/** @trait {} */", trait_def.ident.transpile()),
-            TypeDef(type_def) => format!("/** @typedef {} */", type_def.ident.transpile()),
-            _ => String::new()
+            TraitDef(trait_def) => trait_def.transpile(),
+            TypeDef(type_def) => type_def.transpile(),
         }
     }
 }
@@ -139,19 +156,23 @@ impl<T: Transpile> Transpile for Option<T> {
 
 impl Transpile for stmt::decl::Decl {
     fn transpile(&self) -> String {
-        let type_annotation: String = self.type_annotation.as_ref().map(|t| format!("/** @type {{ {} }} */", t.transpile())).unwrap_or_default();
-        match &*self.value {
+        let type_annotation: String = self
+            .type_annotation
+            .as_ref()
+            .map(|t| format!("/** @type {{ {} }} */", t.transpile()))
+            .unwrap_or_default();
+        match &*(self.value.borrow()) {
             expr::Expr::Function(function) => format!(
                 "function {ident} {value}",
                 ident = self.ident.transpile(),
                 value = transpile_as_function(&function)
             ),
-            _ =>  format!(
+            _ => format!(
                 "{type_annotation} {mutability} {ident} = {value};",
                 mutability = self.mutable.transpile(),
                 ident = self.ident.transpile(),
-                value = self.value.transpile()
-            )
+                value = self.value.borrow().transpile()
+            ),
         }
     }
 }
@@ -161,6 +182,71 @@ impl Transpile for stmt::decl::Mut {
         match self {
             stmt::decl::Mut::Mutable => "let",
             stmt::decl::Mut::Immutable => "const",
-        }.to_string()
+        }
+        .to_string()
+    }
+}
+
+fn transpile_methods(methods: &[stmt::decl::Decl]) -> String {
+    methods
+        .iter()
+        .map(|m| match &*(m.value.borrow()) {
+            expr::Expr::Function(function) => format!(
+                "function {ident} (obj, {params}) {{ \n {body} \n }}",
+                ident = m.ident.transpile(),
+                params = function
+                    .params
+                    .iter()
+                    .map(transpile_as_param)
+                    .collect::<Vec<String>>()
+                    .join(", "),
+                body = function.body.transpile()
+            ),
+            _ => todo!(),
+        })
+        .collect::<Vec<String>>()
+        .join("\n")
+}
+
+fn transpile_methods_return(methods: &[stmt::decl::Decl]) -> String {
+    format!(
+        "return {{ \n {} \n }};",
+        methods
+            .iter()
+            .map(|m| {
+                let ident = m.ident.transpile();
+                format!("{ident}: {ident}.bind(this, obj)")
+            })
+            .collect::<Vec<String>>()
+            .join(",\n")
+    )
+}
+
+impl Transpile for stmt::trait_def::TraitDef {
+    fn transpile(&self) -> String {
+        format!(
+            "function {ident} (obj) {{
+                {expressions}
+                {returns}
+            }}",
+            ident = self.ident.transpile(),
+            expressions = transpile_methods(&self.value.borrow().methods),
+            returns = transpile_methods_return(&self.value.borrow().methods)
+        )
+    }
+}
+
+impl Transpile for stmt::type_def::TypeDef {
+    fn transpile(&self) -> String {
+        let ident = self.ident.transpile();
+        format!(
+            "/** @typedef {ident} */
+            function type{ident} (obj) {{
+                {expressions}
+                {returns}
+            }}",
+            expressions = transpile_methods(&self.value.borrow().methods),
+            returns = transpile_methods_return(&self.value.borrow().methods)
+        )
     }
 }

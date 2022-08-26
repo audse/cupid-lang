@@ -1,15 +1,24 @@
 use std::rc::Rc;
 
-use cupid_ast::expr::{namespace::Namespace, Expr, ident::Ident, function_call::FunctionCall};
+use cupid_ast::expr::{function_call::FunctionCall, ident::Ident, namespace::Namespace, Expr};
 use cupid_debug::source::{ExprSource, FunctionCallSource, IdentSource, NamespaceSource};
-use cupid_lex::{token_iter::{TokenIterator, TokenListBuilder, IsOptional::*}, token::{Token, ReduceTokens}};
+use cupid_lex::{
+    token::{ReduceTokens, Token},
+    token_iter::{IsOptional::*, TokenIterator, TokenListBuilder},
+};
 use cupid_util::Bx;
 
-use crate::parse::{Parser, Parse};
+use crate::parse::{Parse, Parser};
 
-fn ident_from_logic_op(parser: &mut Parser, tokens: Vec<Token<'static>>) -> (Ident, Rc<ExprSource>) {
+fn ident_from_logic_op(
+    parser: &mut Parser,
+    tokens: Vec<Token<'static>>,
+) -> (Ident, Rc<ExprSource>) {
     let token = tokens.reduce_tokens().unwrap();
-    let mut i: Ident = Ident { name: token.source.clone(), ..Default::default() };
+    let mut i: Ident = Ident {
+        name: token.source.clone(),
+        ..Default::default()
+    };
     let src = IdentSource::build().token_name(token).build();
     let (attr, source) = parser.attr(src);
     i.attr = attr;
@@ -18,17 +27,22 @@ fn ident_from_logic_op(parser: &mut Parser, tokens: Vec<Token<'static>>) -> (Ide
 
 /// Returns
 /// ```no_run
-/// Namespace { 
-///     namespace: <left_value>, 
+/// Namespace {
+///     namespace: <left_value>,
 ///     value: FunctionCall {
 ///         function: <operation_name>
 ///         args: [<right_value>]
 ///     }
 /// }
 /// ```
-pub(super) fn parse_bin_op(parser: &mut Parser, tokens: &mut TokenIterator, left: Expr, left_src: Rc<ExprSource>) -> Option<(Expr, Rc<ExprSource>)> {
+pub(super) fn parse_bin_op(
+    parser: &mut Parser,
+    tokens: &mut TokenIterator,
+    left: Expr,
+    left_src: Rc<ExprSource>,
+) -> Option<(Expr, Rc<ExprSource>)> {
     tokens.mark(|tokens| {
-        if let Some((op_ident, op_src)) = parse_logic_bin_op(parser, tokens){
+        if let Some((op_ident, op_src)) = parse_logic_bin_op(parser, tokens) {
             if let Some((right, right_src)) = Expr::parse(parser, tokens) {
                 let func_src = FunctionCallSource::build()
                     .function(op_src)
@@ -62,32 +76,49 @@ pub(super) fn parse_bin_op(parser: &mut Parser, tokens: &mut TokenIterator, left
     })
 }
 
-fn parse_logic_bin_op(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<(Ident, Rc<ExprSource>)> {
+fn parse_logic_bin_op(
+    parser: &mut Parser,
+    tokens: &mut TokenIterator,
+) -> Option<(Ident, Rc<ExprSource>)> {
     tokens.mark(|tokens| {
         let ops = parse_logic_operator(parser, tokens)?;
         let (mut op_ident, op_src) = ident_from_logic_op(parser, ops);
-        op_ident.name += "!";
+        // op_ident.name += "!";
         Some((op_ident, op_src))
     })
 }
 
-fn parse_logic_operator(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<Vec<Token<'static>>> {
-    tokens.mark(|tokens| {
-        Some(TokenListBuilder::start(tokens)
-            .string("is", Required)?
-            .one_of(["not", "type", "in"], Optional)?
-            .done())
-    })
-    .or_else(|| tokens.mark(|tokens| {
-        Some(TokenListBuilder::start(tokens)
-            .string("not", Required)?
-            .one_of(["in", "type"], Optional)?
-            .done())
-    }))
-    .or_else(|| tokens.mark(|tokens| {
-        Some(TokenListBuilder::start(tokens)
-            .one_of(["and", "or"], Required)?
-            .string("not", Optional)?
-            .done())
-    }))
+fn parse_logic_operator(
+    _parser: &mut Parser,
+    tokens: &mut TokenIterator,
+) -> Option<Vec<Token<'static>>> {
+    tokens
+        .mark(|tokens| {
+            Some(
+                TokenListBuilder::start(tokens)
+                    .string("is", Required)?
+                    .one_of(["not", "type", "in"], Optional)?
+                    .done(),
+            )
+        })
+        .or_else(|| {
+            tokens.mark(|tokens| {
+                Some(
+                    TokenListBuilder::start(tokens)
+                        .string("not", Required)?
+                        .one_of(["in", "type"], Optional)?
+                        .done(),
+                )
+            })
+        })
+        .or_else(|| {
+            tokens.mark(|tokens| {
+                Some(
+                    TokenListBuilder::start(tokens)
+                        .one_of(["and", "or"], Required)?
+                        .string("not", Optional)?
+                        .done(),
+                )
+            })
+        })
 }

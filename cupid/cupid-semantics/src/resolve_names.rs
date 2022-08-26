@@ -1,12 +1,9 @@
-use crate::{
-    map_expr, map_stmt,
-    utils::{insert_symbol, read, rewrite_symbol},
-    Error, ToError
-};
-use cupid_ast::{expr, stmt, types::{self, typ::Type}};
+use crate::{map_expr, map_stmt, Error, ToError};
+use cupid_ast::{expr, stmt, types};
 use cupid_debug::code::ErrorCode;
-use cupid_env::{environment::Env, database::{table::QueryTable, symbol_table::query::Query}};
-use cupid_util::{InvertOption, Bx};
+use cupid_env::{environment::Env, expr_closure::Value};
+use cupid_util::{InvertOption, WrapRefCell};
+use std::{cell::RefCell, rc::Rc};
 
 #[allow(unused_variables)]
 #[auto_implement::auto_implement(Vec, Box, Option)]
@@ -15,6 +12,13 @@ where
     Self: Sized,
 {
     fn resolve_names(self, env: &mut Env) -> Result<Self, Error> {
+        Ok(self)
+    }
+}
+
+impl<T: ResolveNames + std::default::Default> ResolveNames for Rc<RefCell<T>> {
+    fn resolve_names(self, env: &mut Env) -> Result<Self, Error> {
+        self.swap(&self.take().resolve_names(env)?.ref_cell());
         Ok(self)
     }
 }
@@ -33,85 +37,56 @@ impl ResolveNames for stmt::Stmt {
 
 impl ResolveNames for expr::block::Block {
     fn resolve_names(self, env: &mut Env) -> Result<Self, Error> {
-        env.inside_closure(self.attr.scope, |env| {
-            Ok(Self {
-                expressions: self.expressions.resolve_names(env)?,
-                ..self
-            })
+        Ok(Self {
+            expressions: self.expressions.resolve_names(env)?,
+            ..self
         })
     }
 }
 
 impl ResolveNames for expr::function::Function {
     fn resolve_names(self, env: &mut Env) -> Result<Self, Error> {
-        let return_type_annotation = self.return_type_annotation.resolve_names(env)?;
-        env.inside_closure(self.attr.scope, |env| {
-            Ok(Self {
-                params: self.params.resolve_names(env)?,
-                return_type_annotation,
-                body: self.body.resolve_names(env)?,
-                ..self
-            })
+        Ok(Self {
+            params: self.params.resolve_names(env)?,
+            return_type_annotation: self.return_type_annotation.resolve_names(env)?,
+            body: self.body.resolve_names(env)?,
+            ..self
         })
     }
 }
 
 impl ResolveNames for expr::function_call::FunctionCall {
     fn resolve_names(self, env: &mut Env) -> Result<Self, Error> {
-        let function = env.read::<expr::Expr>(&Query::select(&self.function));
-        match function {
-            Some(expr::Expr::Function(_)) => Ok(()),
-            _ => Err(self.err(ErrorCode::ExpectedFunction, env))
-        }?;
-        env.inside_closure(self.attr.scope, |env| {
-            Ok(Self {
-                function: self.function.resolve_names(env)?,
-                args: self.args.resolve_names(env)?,
-                ..self
-            })
+        Ok(Self {
+            function: self.function.resolve_names(env)?,
+            args: self.args.resolve_names(env)?,
+            ..self
         })
     }
 }
 
 impl ResolveNames for expr::ident::Ident {
-    fn resolve_names(mut self, env: &mut Env) -> Result<Self, Error> {
-        // let namespace = self.namespace
-        //     .as_ref()
-        //     .map(|name| env.read::<expr::Expr>(&Query::select(&**name)))
-        //     .flatten()
-        //     .map(|n| n.attr())
-        //     .flatten();
-        // let scope = namespace.unwrap_or_else(|| self.attr).scope;
-        env.inside_closure(self.attr.scope, |env| {
-            // TODO is this right?
-            for generic in self.generics.iter_mut() {
-                generic.address = read(generic, env);
-                if generic.address.is_none() {
-                    env.insert(Query::insert()
-                        .write(expr::Expr::Type(Type { 
-                            ident: generic.clone(), 
-                            attr: generic.attr,
-                            ..Type::default()
-                        }))
-                    );
-                }
-            }
-            self.address = Some(read(&self, env).ok_or_else(|| self.err(ErrorCode::NotFound, env))?);
+    fn resolve_names(self, env: &mut Env) -> Result<Self, Error> {
+        if let Some(_) = env
+            .get_closure(self.attr.source)
+            .unwrap()
+            .borrow_mut()
+            .reference(&self)
+        {
             Ok(self)
-        })
+        } else {
+            Err(self.err(ErrorCode::NotFound, env))
+        }
     }
 }
 
 impl ResolveNames for expr::namespace::Namespace {
     fn resolve_names(self, env: &mut Env) -> Result<Self, Error> {
-        env.inside_closure(self.attr.scope, |env| {
-            let name = self.namespace.resolve_names(env)?;
-            match *name {
-                expr::Expr::Ident(ident) => (),
-                _ => ()
-            };
-
-            todo!()
+        Ok(Self {
+            namespace: self.namespace.resolve_names(env)?,
+            // Don't resolve value yet- it may be related to the type
+            // value: self.value.resolve_names(env)?,
+            ..self
         })
     }
 }
@@ -120,38 +95,57 @@ impl ResolveNames for expr::value::Value {}
 
 impl ResolveNames for types::traits::Trait {
     fn resolve_names(self, env: &mut Env) -> Result<Self, Error> {
-        env.inside_closure(self.attr.scope, |env| {
-            Ok(Self {
-                ident: self.ident.resolve_names(env)?,
-                methods: self.methods.resolve_names(env)?,
-                ..self
-            })
+        Ok(Self {
+            ident: self.ident.resolve_names(env)?,
+            methods: self.methods.resolve_names(env)?,
+            ..self
         })
     }
 }
 
 impl ResolveNames for types::typ::Type {
     fn resolve_names(self, env: &mut Env) -> Result<Self, Error> {
-        env.inside_closure(self.attr.scope, |env| {
-            Ok(Self {
-                ident: self.ident.resolve_names(env)?,
-                fields: self.fields.resolve_names(env)?,
-                methods: self.methods.resolve_names(env)?,
-                ..self
-            })
+        Ok(Self {
+            ident: self.ident.resolve_names(env)?,
+            fields: self.fields.resolve_names(env)?,
+            methods: self.methods.resolve_names(env)?,
+            ..self
+        })
+    }
+}
+
+impl ResolveNames for stmt::assign::Assign {
+    fn resolve_names(self, env: &mut Env) -> Result<Self, Error> {
+        Ok(Self {
+            ident: self.ident.resolve_names(env)?,
+            value: self.value.resolve_names(env)?,
+            ..self
         })
     }
 }
 
 impl ResolveNames for stmt::decl::Decl {
     fn resolve_names(self, env: &mut Env) -> Result<Self, Error> {
-        // TODO resolve ident generics + namespace
-        insert_symbol(&self.ident, env, *self.value, |env, expr: expr::Expr| Ok(expr.resolve_names(env)?))?;
+        let value = self.value.resolve_names(env)?;
+        if let Some(scope) = env.get_closure_mut(self.attr.source) {
+            let value = Value::build()
+                .mutable(self.mutable)
+                .expr(value.clone())
+                .build();
+            scope
+                .borrow_mut()
+                .parent
+                .as_mut()
+                .unwrap()
+                .borrow_mut()
+                .insert(self.ident.clone(), value)
+                .map_err(|code| self.ident.err(code, env))?;
+        }
+
         Ok(Self {
             ident: self.ident.resolve_names(env)?,
             type_annotation: self.type_annotation.resolve_names(env)?,
-            // value is moved into DB, so use a default
-            value: expr::Expr::default().bx(),
+            value,
             ..self
         })
     }
@@ -159,11 +153,9 @@ impl ResolveNames for stmt::decl::Decl {
 
 impl ResolveNames for stmt::trait_def::TraitDef {
     fn resolve_names(self, env: &mut Env) -> Result<Self, Error> {
-        rewrite_symbol(&self.ident, env, |env, trait_value| {
-            trait_value.resolve_names(env)
-        })?;
         Ok(Self {
             ident: self.ident.resolve_names(env)?,
+            value: self.value.resolve_names(env)?,
             ..self
         })
     }
@@ -171,11 +163,9 @@ impl ResolveNames for stmt::trait_def::TraitDef {
 
 impl ResolveNames for stmt::type_def::TypeDef {
     fn resolve_names(self, env: &mut Env) -> Result<Self, Error> {
-        rewrite_symbol(&self.ident, env, |env, type_value| {
-            type_value.resolve_names(env)
-        })?;
         Ok(Self {
             ident: self.ident.resolve_names(env)?,
+            value: self.value.resolve_names(env)?,
             ..self
         })
     }

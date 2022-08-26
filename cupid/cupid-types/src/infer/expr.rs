@@ -34,7 +34,7 @@ impl Infer<Type> for expr::function::Function {
         let mut fields = self.params.clone();
         let return_type = Decl {
             ident: "returns".into(),
-            type_annotation: self.return_type_annotation.clone(),
+            type_annotation: Some(self.body.infer().ident),
             ..Decl::default()
         };
         fields.push(return_type);

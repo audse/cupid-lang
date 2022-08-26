@@ -1,8 +1,11 @@
-use std::fmt;
+use crate::severity::Severity;
 use colored::*;
 use cupid_lex::{span::Position, token::Token};
-use cupid_util::{lines, fmt::{draw_line, draw_underline}};
-use crate::severity::Severity;
+use cupid_util::{
+    fmt::{draw_line, draw_underline},
+    lines,
+};
+use std::fmt;
 
 const PEEK: usize = 2;
 
@@ -29,7 +32,10 @@ impl fmt::Display for LineSet {
 
 fn token_line_range(token: &Token<'static>) -> (usize, usize) {
     let range = || token.span.start.line..=token.span.end.line;
-    (range().min().unwrap_or_default(), range().max().unwrap_or_default())
+    (
+        range().min().unwrap_or_default(),
+        range().max().unwrap_or_default(),
+    )
 }
 
 #[derive(Default)]
@@ -64,7 +70,12 @@ impl HighlightedLineSet {
                 if line_num != last {
                     range.1 = source_lines[line_num].len();
                 }
-                lines.push(HighlightedLine::new(source_lines[line_num], line_num, range, severity));
+                lines.push(HighlightedLine::new(
+                    source_lines[line_num],
+                    line_num,
+                    range,
+                    severity,
+                ));
             }
         }
 
@@ -75,42 +86,51 @@ impl HighlightedLineSet {
         let mut context = (vec![], vec![]);
         for peek in 1..(PEEK + 1) {
             if start_position.line > peek {
-                context.0.insert(0, context_line(start_position.line - peek))
+                context
+                    .0
+                    .insert(0, context_line(start_position.line - peek))
             }
             if source_lines.len() > end_position.line + peek {
                 context.1.push(context_line(end_position.line + peek))
             }
         }
-        Self { 
-            position: start_position, 
+        Self {
+            position: start_position,
             context,
-            lines 
+            lines,
         }
     }
     pub fn finish(self) -> String {
         let line_info = format!(
-            "      ╭─ main.cupid ── line {}, char {}", 
-            self.position.line, 
-            self.position.character
-        ).dimmed().italic();
-        let inner = self.lines
+            "      ╭─ main.cupid ── line {}, char {}",
+            self.position.line, self.position.character
+        )
+        .dimmed()
+        .italic();
+        let inner = self
+            .lines
             .into_iter()
             .map(|line| line.finish())
             .collect::<Vec<String>>()
             .join("\n");
         let fmt_context = |context: Vec<HighlightedLine>, above: bool| {
             let len = context.len();
-            context.into_iter()
+            context
+                .into_iter()
                 .enumerate()
-                .map(|(i, line)| if above && i == 0 {
-                    let lines = line.indent().lines;
-                    format!("{}\n{}\n", lines.overline, lines.line)
-                } else if !above && i == len - 1 {
-                    let lines = line.indent().lines;
-                    format!("{}\n{}\n", lines.line, lines.underline)
-                } else {
-                    format!("{}\n", line.indent().lines.line)
-                }.dimmed().to_string())
+                .map(|(i, line)| {
+                    if above && i == 0 {
+                        let lines = line.indent().lines;
+                        format!("{}\n{}\n", lines.overline, lines.line)
+                    } else if !above && i == len - 1 {
+                        let lines = line.indent().lines;
+                        format!("{}\n{}\n", lines.line, lines.underline)
+                    } else {
+                        format!("{}\n", line.indent().lines.line)
+                    }
+                    .dimmed()
+                    .to_string()
+                })
                 .collect::<Vec<String>>()
                 .join("")
         };
@@ -132,7 +152,7 @@ pub struct HighlightedLine {
 impl HighlightedLine {
     pub fn new(line: &str, line_num: usize, range: (usize, usize), severity: Severity) -> Self {
         Self {
-            lines: LineSet { 
+            lines: LineSet {
                 line: line.to_string(),
                 ..Default::default()
             },
@@ -142,26 +162,43 @@ impl HighlightedLine {
         }
     }
     pub fn bold_range(mut self) -> Self {
-        self.lines.line = self.lines.line
+        self.lines.line = self
+            .lines
+            .line
             .chars()
             .enumerate()
-            .map(|(i, c)| if i >= self.range.0 && i <= self.range.1 {
-                format!("{}", c.to_string().bold())
-            } else {
-                c.to_string()
+            .map(|(i, c)| {
+                if i >= self.range.0 && i <= self.range.1 {
+                    format!("{}", c.to_string().bold())
+                } else {
+                    c.to_string()
+                }
             })
             .collect();
         self
     }
     pub fn underline_range(mut self) -> Self {
-        let underline = draw_underline(self.range.1 - self.range.0); // e.g. "^^^^"
+        let underline = draw_underline(if self.range.1 > self.range.0 {
+            self.range.1 - self.range.0
+        } else {
+            0
+        }); // e.g. "^^^^"
 
-        let before = draw_line(" ", if self.range.0 > 0 { self.range.0 - 1 } else { 0 }); // e.g. "  "
+        let before = draw_line(
+            " ",
+            if self.range.0 > 0 {
+                self.range.0 - 1
+            } else {
+                0
+            },
+        ); // e.g. "  "
         let underline = format!("{before}{underline}"); // e.g. "  ^^^^"
         let underline = match self.severity {
             Severity::Error => underline.red(),
             Severity::Warning => underline.yellow(),
-        }.bold().to_string();
+        }
+        .bold()
+        .to_string();
         self.lines.underline = underline;
         self
     }
@@ -170,14 +207,18 @@ impl HighlightedLine {
         let indent_len = 4;
         let indent_str = draw_line(" ", indent_len - 1);
         let dim_indent = |s: &str| format!(" {s} │  ").dimmed();
-        self.lines = LineSet { 
+        self.lines = LineSet {
             overline: dim_indent(&indent_str).to_string(),
             line: format!("{}{}", dim_indent(&line_num_str), self.lines.line),
-            underline: format!("{}{}", dim_indent(&indent_str), self.lines.underline)
+            underline: format!("{}{}", dim_indent(&indent_str), self.lines.underline),
         };
         self
     }
     pub fn finish(self) -> String {
-        self.bold_range().underline_range().indent().lines.to_string()
+        self.bold_range()
+            .underline_range()
+            .indent()
+            .lines
+            .to_string()
     }
 }

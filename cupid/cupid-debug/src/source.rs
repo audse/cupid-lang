@@ -1,9 +1,9 @@
-use std::{fmt, rc::Rc, ops::Deref};
 use cupid_lex::token::Token;
 use cupid_util::{FilterSome, Plus};
+use std::{fmt, ops::Deref, rc::Rc};
 use thiserror::Error;
 
-use crate::{severity::Severity, highlight::HighlightedLineSet};
+use crate::{highlight::HighlightedLineSet, severity::Severity};
 
 #[derive(Debug, Error, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Source(pub Rc<String>);
@@ -18,9 +18,18 @@ pub trait CollectTokens {
     fn collect_tokens(&self) -> Vec<&Token<'static>>;
 }
 
-#[derive(Debug, Default, Clone, derive_more::From, derive_more::TryInto, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Default,
+    Clone,
+    derive_more::From,
+    derive_more::TryInto,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub enum ExprSource {
     Block(BlockSource),
+    Assign(AssignSource),
     Decl(DeclSource),
     Function(FunctionSource),
     FunctionCall(FunctionCallSource),
@@ -32,7 +41,7 @@ pub enum ExprSource {
     TypeDef(TypeDefSource),
     Value(Vec<Token<'static>>),
     #[default]
-    Empty
+    Empty,
 }
 
 impl CollectTokens for Vec<Token<'static>> {
@@ -46,6 +55,7 @@ impl CollectTokens for ExprSource {
         use ExprSource::*;
         match self {
             Block(x) => x.collect_tokens(),
+            Assign(x) => x.collect_tokens(),
             Decl(x) => x.collect_tokens(),
             Function(x) => x.collect_tokens(),
             FunctionCall(x) => x.collect_tokens(),
@@ -77,13 +87,18 @@ cupid_util::build_struct! {
 
 impl<T: CollectTokens> CollectTokens for Vec<T> {
     fn collect_tokens(&self) -> Vec<&Token<'static>> {
-        self.iter().map(CollectTokens::collect_tokens).flatten().collect()
+        self.iter()
+            .map(CollectTokens::collect_tokens)
+            .flatten()
+            .collect()
     }
 }
 
 impl<T: CollectTokens> CollectTokens for Option<T> {
     fn collect_tokens(&self) -> Vec<&Token<'static>> {
-        self.as_ref().map(|s| s.collect_tokens()).unwrap_or_default()
+        self.as_ref()
+            .map(|s| s.collect_tokens())
+            .unwrap_or_default()
     }
 }
 
@@ -103,6 +118,23 @@ impl CollectTokens for BlockSource {
 
 cupid_util::build_struct! {
     #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
+    pub AssignSourceBuilder => pub AssignSource {
+        pub token_eq: Token<'static>,
+        pub ident: Rc<ExprSource>,
+        pub value: Option<Rc<ExprSource>>,
+    }
+}
+
+impl CollectTokens for AssignSource {
+    fn collect_tokens(&self) -> Vec<&Token<'static>> {
+        vec![&self.token_eq]
+            .plus(self.ident.collect_tokens())
+            .plus(self.value.collect_tokens())
+    }
+}
+
+cupid_util::build_struct! {
+    #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
     pub DeclSourceBuilder => pub DeclSource {
         pub token_let: Option<Token<'static>>,
         pub token_mut: Option<Token<'static>>,
@@ -116,12 +148,18 @@ cupid_util::build_struct! {
 
 impl CollectTokens for DeclSource {
     fn collect_tokens(&self) -> Vec<&Token<'static>> {
-        vec![&self.token_let, &self.token_mut, &self.token_colon, &self.token_eq]
-            .into_iter()
-            .filter_map(|t| t.as_ref())
-            .collect::<Vec<&Token<'static>>>()
-            .plus(self.type_annotation.collect_tokens())
-            .plus(self.value.collect_tokens())
+        vec![
+            &self.token_let,
+            &self.token_mut,
+            &self.token_colon,
+            &self.token_eq,
+        ]
+        .into_iter()
+        .filter_map(|t| t.as_ref())
+        .collect::<Vec<&Token<'static>>>()
+        .plus(self.ident.collect_tokens())
+        .plus(self.type_annotation.collect_tokens())
+        .plus(self.value.collect_tokens())
     }
 }
 
@@ -131,6 +169,7 @@ cupid_util::build_struct! {
         pub token_empty: Option<Token<'static>>,
         pub params: Vec<Rc<ExprSource>>,
         pub body: Rc<ExprSource>,
+        pub return_type_annotation: Option<Rc<ExprSource>>,
     }
 }
 
@@ -157,7 +196,11 @@ cupid_util::build_struct! {
 
 impl CollectTokens for FunctionCallSource {
     fn collect_tokens(&self) -> Vec<&Token<'static>> {
-        let (open_paren, close_paren) = self.token_parens.as_ref().map(|(a, b)| (Some(a), Some(b))).unwrap_or_default();
+        let (open_paren, close_paren) = self
+            .token_parens
+            .as_ref()
+            .map(|(a, b)| (Some(a), Some(b)))
+            .unwrap_or_default();
         vec![open_paren, close_paren, self.token_operator.as_ref()]
             .into_iter()
             .filter_some()

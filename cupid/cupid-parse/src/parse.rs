@@ -1,4 +1,4 @@
-use std::{borrow::Cow, rc::Rc};
+use std::{borrow::Cow, cell::RefCell, rc::Rc};
 
 use cupid_lex::{
     token::{Token, TokenKind},
@@ -8,10 +8,11 @@ use cupid_lex::{
 use cupid_ast::{
     attr::Attr,
     expr::block::Block,
-    expr::{ident::Ident, function_call::FunctionCall},
     expr::value::Value,
     expr::Expr,
     expr::{function::Function, value::Val},
+    expr::{function_call::FunctionCall, ident::Ident},
+    stmt::assign::Assign,
     stmt::decl::Decl,
     stmt::trait_def::TraitDef,
     stmt::type_def::TypeDef,
@@ -24,7 +25,7 @@ use cupid_env::{
     database::{source_table::query::Query, table::QueryTable},
     environment::Env,
 };
-use cupid_util::{BiDirectionalIterator, Bx};
+use cupid_util::{BiDirectionalIterator, WrapRc, WrapRefCell};
 
 #[derive(Default)]
 pub struct Parser {
@@ -87,14 +88,16 @@ fn map_expr_parse(args: (impl Into<Expr>, Rc<ExprSource>)) -> (Expr, Rc<ExprSour
 impl Parse for Expr {
     fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<(Self, Rc<ExprSource>)> {
         if let Some((val, val_src)) = TraitDef::parse(parser, tokens)
-                .map(map_stmt_parse)
-                .or_else(|| TypeDef::parse(parser, tokens).map(map_stmt_parse))
-                .or_else(|| Decl::parse(parser, tokens).map(map_stmt_parse))
-                .or_else(|| Function::parse(parser, tokens).map(map_expr_parse))
-                .or_else(|| Block::parse(parser, tokens).map(map_expr_parse))
-                .or_else(|| FunctionCall::parse(parser, tokens).map(map_expr_parse))
-                .or_else(|| Value::parse(parser, tokens).map(map_expr_parse))
-                .or_else(|| Ident::parse(parser, tokens).map(map_expr_parse)) {
+            .map(map_stmt_parse)
+            .or_else(|| TypeDef::parse(parser, tokens).map(map_stmt_parse))
+            .or_else(|| Decl::parse(parser, tokens).map(map_stmt_parse))
+            .or_else(|| Assign::parse(parser, tokens).map(map_stmt_parse))
+            .or_else(|| Function::parse(parser, tokens).map(map_expr_parse))
+            .or_else(|| Block::parse(parser, tokens).map(map_expr_parse))
+            .or_else(|| FunctionCall::parse(parser, tokens).map(map_expr_parse))
+            .or_else(|| Value::parse(parser, tokens).map(map_expr_parse))
+            .or_else(|| Ident::parse(parser, tokens).map(map_expr_parse))
+        {
             super::bin_op::parse_bin_op(parser, tokens, val, val_src)
         } else {
             None
@@ -103,7 +106,7 @@ impl Parse for Expr {
 }
 
 /// Just an ident/type pair as a decl
-/// E.g. `x : int` or `square : fun (int)
+/// E.g. `x : int` or `square : fun (int)`
 fn parse_typed_ident_decl(
     parser: &mut Parser,
     tokens: &mut TokenIterator,
@@ -180,7 +183,32 @@ impl Parse for Decl {
                     .mutable(mutable)
                     .ident(ident)
                     .type_annotation(type_annotation)
-                    .value(expr.bx())
+                    .value(expr.ref_cell().rc())
+                    .attr(attr)
+                    .build(),
+                source,
+            ))
+        })
+    }
+}
+
+impl Parse for Assign {
+    fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<(Self, Rc<ExprSource>)> {
+        tokens.mark(|tokens| {
+            let mut source = AssignSource::default();
+
+            let (ident, ident_src) = Ident::parse(parser, tokens)?;
+            source.ident = ident_src;
+            source.token_eq = tokens.string("=")?;
+            let (expr, expr_src) = Expr::parse(parser, tokens)?;
+            source.value = Some(expr_src);
+
+            let (attr, source) = parser.attr(source);
+
+            Some((
+                Assign::build()
+                    .ident(ident)
+                    .value(expr.ref_cell().rc())
                     .attr(attr)
                     .build(),
                 source,
@@ -195,8 +223,8 @@ impl Parse for Function {
             let mut source = FunctionSource::default();
             let mut params: Vec<Decl> = vec![];
             // TODO return type annotation
-            TokenListBuilder::start(tokens).repeat_collect(
-                |token| token.source != "=" && token.source != "{",
+            let _builder = TokenListBuilder::start(tokens).repeat_collect(
+                |token| token.source != "=" && token.source != r"{",
                 |mut builder| {
                     Some((
                         parse_typed_ident_decl(parser, &mut builder.tokens)?,
@@ -216,13 +244,18 @@ impl Parse for Function {
             } else {
                 None
             };
+            let (ret_type, ret_type_src) = parse_return_type_annotation(parser, tokens)
+                .map(|(i, src)| (Some(i), Some(src)))
+                .unwrap_or_else(|| (None, None));
             let (block, block_src) = Block::parse(parser, tokens)?;
             source.body = block_src;
+            source.return_type_annotation = ret_type_src;
             let (attr, source) = parser.attr(source);
             Some((
                 Function::build()
                     .params(params)
                     .body(block)
+                    .return_type_annotation(ret_type)
                     .attr(attr)
                     .build(),
                 source,
@@ -245,12 +278,7 @@ impl Parse for FunctionCall {
 
             let mut args = vec![];
             TokenListBuilder::start(tokens).paren_list_collect(
-                |mut builder| {
-                    Some((
-                        Expr::parse(parser, &mut builder.tokens)?,
-                        builder,
-                    ))
-                },
+                |mut builder| Some((Expr::parse(parser, &mut builder.tokens)?, builder)),
                 |parsed_args| {
                     let (arg_list, src_list): (Vec<Expr>, Vec<Rc<ExprSource>>) =
                         parsed_args.into_iter().unzip();
@@ -260,11 +288,14 @@ impl Parse for FunctionCall {
                 Some(","),
             )?;
             let (attr, source) = parser.attr(source);
-            Some((FunctionCall::build()
-                .function(ident)
-                .args(args)
-                .attr(attr)
-                .build(), source))
+            Some((
+                FunctionCall::build()
+                    .function(ident)
+                    .args(args)
+                    .attr(attr)
+                    .build(),
+                source,
+            ))
         })
     }
 }
@@ -306,7 +337,7 @@ impl Parse for TraitDef {
                             (
                                 Decl::build()
                                     .ident(method_ident)
-                                    .value(Box::new(fun.into()))
+                                    .value(Rc::new(RefCell::new(fun.into())))
                                     .attr(attr)
                                     .build(),
                                 decl_src,
@@ -341,7 +372,7 @@ impl Parse for TraitDef {
             Some((
                 TraitDef::build()
                     .ident(ident)
-                    .value(trait_val)
+                    .value(trait_val.ref_cell().rc())
                     .attr(attr)
                     .build(),
                 source,
@@ -380,7 +411,8 @@ impl Parse for TypeDef {
                             .take()
                             .map(|i| Expr::Ident(i))
                             .unwrap_or_default()
-                            .bx();
+                            .ref_cell()
+                            .rc();
                         fields.push(decl);
                         type_source.fields.push(decl_src);
                         Some(builder)
@@ -408,7 +440,9 @@ impl Parse for TypeDef {
                 .fields(fields)
                 .base(base_type)
                 .attr(type_attr)
-                .build();
+                .build()
+                .ref_cell()
+                .rc();
 
             let (attr, source) = parser.attr(source);
 
@@ -490,6 +524,20 @@ fn parse_type_annotation(
             })?
             .done();
         Some((ident, token_colon.pop().unwrap()))
+    })
+}
+
+/// E.g. `-> int`
+fn parse_return_type_annotation(
+    parser: &mut Parser,
+    tokens: &mut TokenIterator,
+) -> Option<(Ident, Rc<ExprSource>)> {
+    tokens.mark(|tokens| {
+        let mut _arrow_tokens = TokenListBuilder::start(tokens)
+            .string("-", Required)?
+            .string(">", Required)?
+            .done();
+        Ident::parse(parser, tokens)
     })
 }
 

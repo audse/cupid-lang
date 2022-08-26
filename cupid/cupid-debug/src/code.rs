@@ -1,11 +1,11 @@
+use crate::severity::Severity;
+use colored::*;
 use std::fmt;
 use thiserror::Error;
-use colored::*;
-use crate::severity::Severity;
 
 /// Error codes are where the bulk of the error reporting happens.
 /// Each error is associated with a code that corresponds to a specific error title and message.
-/// 
+///
 /// # Guidelines
 /// ## Codes
 /// Codes roughly follow HTTP error codes.
@@ -13,7 +13,7 @@ use crate::severity::Severity;
 /// * `300` codes are for warnings/lints
 /// * `400` codes are for semantic errors
 /// * `500` codes are for system/compiler errors
-/// 
+///
 /// ## Messages
 /// * Should use "we" instead of "I" or "you" in most cases
 /// * Should use friendly and natural language
@@ -24,14 +24,16 @@ use crate::severity::Severity;
 /// * Full punctuation
 /// * Should provide as much context as possible, customized to each error
 
-#[derive(Debug, Default, Clone, Error, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Default, Copy, Clone, Error, serde::Serialize, serde::Deserialize, PartialEq, Eq,
+)]
 pub enum ErrorCode {
     /// Syntax errors
     UnclosedDelimiter = 103,
 
     /// Warnings
     UnusedVariable = 304,
-    
+
     /// Semantic errors
     TypeMismatch = 400,
     CannotInfer = 401,
@@ -45,6 +47,8 @@ pub enum ErrorCode {
     ExpectedFunction = 419,
     ExpectedTrait = 420,
     ExpectedExpression = 421,
+    TooManyArgs = 422,
+    NotEnoughArgs = 423,
 
     /// System errors
     #[default]
@@ -60,7 +64,9 @@ impl ErrorCode {
             _ => Severity::Error,
         }
     }
-    fn num(&self) -> usize { self.clone() as usize }
+    fn num(&self) -> usize {
+        self.clone() as usize
+    }
     fn num_str(&self) -> impl fmt::Display {
         format!("[{}] {}", self.num(), self.link()).dimmed()
     }
@@ -89,6 +95,8 @@ impl ErrorCode {
             ExpectedFunction => "expected a function",
             ExpectedTrait => "expected a trait",
             ExpectedExpression => "expected an expression",
+            TooManyArgs => "too many arguments provided",
+            NotEnoughArgs => "not enough arguments provided",
 
             // System errors
             SomethingWentWrong => "something went wrong",
@@ -99,9 +107,13 @@ impl ErrorCode {
         use ErrorCode::*;
         // TODO
         match self {
-            UnclosedDelimiter => "You have an opening bracket that is not matched with a closing bracket.",
-            Unreachable => "This program has reached a part of the code that should be unreachable.",
-            _ => "Something went wrong, but we are not sure what."
+            UnclosedDelimiter => {
+                "You have an opening bracket that is not matched with a closing bracket."
+            }
+            Unreachable => {
+                "This program has reached a part of the code that should be unreachable."
+            }
+            _ => "Something went wrong, but we are not sure what.",
         }
     }
 }

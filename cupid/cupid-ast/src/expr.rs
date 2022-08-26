@@ -1,5 +1,8 @@
-use derive_more::{From, TryInto, IsVariant, Unwrap};
-use crate::{stmt, types, attr::Attr};
+use crate::{
+    attr::{Attr, GetAttr},
+    stmt, types,
+};
+use derive_more::{From, IsVariant, TryInto, Unwrap};
 
 pub mod block;
 pub mod function;
@@ -8,7 +11,9 @@ pub mod ident;
 pub mod namespace;
 pub mod value;
 
-#[derive(Debug, Default, Clone, From, TryInto, IsVariant, Unwrap, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Default, Clone, From, TryInto, IsVariant, Unwrap, serde::Serialize, serde::Deserialize,
+)]
 pub enum Expr {
     Block(block::Block),
     Function(function::Function),
@@ -20,22 +25,36 @@ pub enum Expr {
     Type(types::typ::Type),
     Stmt(stmt::Stmt),
     #[default]
-    Empty
+    Empty,
 }
 
-impl Expr {
-    pub fn attr(&self) -> Option<Attr> {
+impl GetAttr for Expr {
+    fn attr(&self) -> Attr {
         use Expr::*;
         match self {
-            Block(b) => Some(b.attr),
-            Function(f) => Some(f.attr),
-            FunctionCall(f) => Some(f.attr),
-            Namespace(n) => Some(n.attr),
-            Ident(i) => Some(i.attr),
-            Value(v) => Some(v.attr),
-            Trait(t) => Some(t.attr),
-            Type(t) => Some(t.attr),
-            _ => None
+            Block(b) => b.attr,
+            Function(f) => f.attr,
+            FunctionCall(f) => f.attr,
+            Namespace(n) => n.attr,
+            Ident(i) => i.attr,
+            Value(v) => v.attr,
+            Trait(t) => t.attr,
+            Type(t) => t.attr,
+            _ => panic!("No attributes found for node"),
+        }
+    }
+    fn attr_mut(&mut self) -> &mut Attr {
+        use Expr::*;
+        match self {
+            Block(b) => &mut b.attr,
+            Function(f) => &mut f.attr,
+            FunctionCall(f) => &mut f.attr,
+            Namespace(n) => &mut n.attr,
+            Ident(i) => &mut i.attr,
+            Value(v) => &mut v.attr,
+            Trait(t) => &mut t.attr,
+            Type(t) => &mut t.attr,
+            _ => panic!("No attributes found for node"),
         }
     }
 }

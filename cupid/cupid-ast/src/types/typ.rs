@@ -1,6 +1,12 @@
-use crate::{expr::ident::Ident, attr::{Attr, GetAttr}, stmt::decl::Decl};
+use crate::{
+    attr::{Attr, GetAttr},
+    expr::ident::Ident,
+    stmt::decl::Decl,
+};
 
-#[derive(Debug, Default, Copy, Clone, derive_more::Display, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Default, Copy, Clone, derive_more::Display, serde::Serialize, serde::Deserialize,
+)]
 pub enum BaseType {
     Struct,
     Sum,
@@ -47,6 +53,9 @@ impl Type {
             ident: "1".into(),
             ..Default::default()
         }
+    }
+    pub fn is_function(&self) -> bool {
+        &self.ident.name == "fun"
     }
 }
 

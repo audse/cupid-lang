@@ -1,5 +1,8 @@
+use crate::{
+    attr::{Attr, GetAttr},
+    Address,
+};
 use std::borrow::Cow;
-use crate::{Address, attr::{Attr, GetAttr}};
 
 cupid_util::build_struct! {
     #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
@@ -14,18 +17,31 @@ cupid_util::build_struct! {
 
 impl PartialEq for Ident {
     fn eq(&self, other: &Self) -> bool {
-        self.address.is_some() && self.address == other.address || (
-            self.name == other.name 
-            && self.generics.len() == other.generics.len()
-        )
+        self.address.is_some() && self.address == other.address
+            || (self.name == other.name && self.generics.len() == other.generics.len())
     }
 }
 
 impl Eq for Ident {}
 
+impl PartialOrd for Ident {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.name.partial_cmp(&other.name)
+    }
+}
+
+impl Ord for Ident {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.name.cmp(&other.name)
+    }
+}
+
 impl From<&'static str> for Ident {
     fn from(s: &'static str) -> Self {
-        Self { name: s.into(), ..Self::default() }
+        Self {
+            name: s.into(),
+            ..Self::default()
+        }
     }
 }
 

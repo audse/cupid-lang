@@ -1,4 +1,8 @@
-use crate::{expr::{ident::Ident, Expr}, attr::{Attr, GetAttr}};
+use crate::{
+    attr::{Attr, GetAttr},
+    expr::{ident::Ident, Expr},
+};
+use std::{cell::RefCell, rc::Rc};
 
 cupid_util::build_struct! {
     #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
@@ -6,7 +10,7 @@ cupid_util::build_struct! {
         pub ident: Ident,
         pub mutable: Mut,
         pub type_annotation: Option<Ident>,
-        pub value: Box<Expr>,
+        pub value: Rc<RefCell<Expr>>,
         pub attr: Attr,
     }
 }

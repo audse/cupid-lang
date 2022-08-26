@@ -1,4 +1,7 @@
-use cupid_ast::{stmt::{Stmt, decl::Decl, type_def::TypeDef, trait_def::TraitDef}, types::typ::Type};
+use cupid_ast::{
+    stmt::{assign::Assign, decl::Decl, trait_def::TraitDef, type_def::TypeDef, Stmt},
+    types::typ::Type,
+};
 
 use crate::infer::Infer;
 
@@ -21,6 +24,12 @@ impl Infer<Type> for TraitDef {
 }
 
 impl Infer<Type> for TypeDef {
+    fn infer(&self) -> Type {
+        Type::none()
+    }
+}
+
+impl Infer<Type> for Assign {
     fn infer(&self) -> Type {
         Type::none()
     }

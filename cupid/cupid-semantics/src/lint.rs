@@ -1,15 +1,15 @@
-use crate::{
-    map_expr, map_stmt,
-    Error, ToError,
-};
+use crate::{map_expr, map_stmt, Error, InsideClosure, ToError};
 use cupid_ast::{expr, stmt, types};
 use cupid_debug::code::ErrorCode;
-use cupid_env::{environment::Env, database::{symbol_table::{query::Query, row::Ref}, table::QueryTable}};
+use cupid_env::environment::Env;
 use cupid_util::InvertOption;
 
 #[allow(unused_variables)]
 #[auto_implement::auto_implement(Vec, Option, Box)]
-pub trait Lint where Self: Sized {
+pub trait Lint
+where
+    Self: Sized,
+{
     fn lint(self, env: &mut Env) -> Result<Self, Error> {
         Ok(self)
     }
@@ -58,8 +58,12 @@ impl Lint for expr::function_call::FunctionCall {
 
 impl Lint for expr::ident::Ident {
     fn lint(self, env: &mut Env) -> Result<Self, Error> {
-        let num_refs = env.database.symbol_table.read::<Ref>(&Query::select(&self));
-        if num_refs.unwrap().0 == 0 {
+        let num_refs = self
+            .in_closure(env, |_env, closure| {
+                closure.lookup(&self).unwrap().get_refs()
+            })
+            .unwrap_or_default();
+        if num_refs <= 1 {
             Err(self.err(ErrorCode::UnusedVariable, env))
         } else {
             Ok(self)
@@ -74,6 +78,15 @@ impl Lint for expr::value::Value {}
 impl Lint for types::traits::Trait {}
 
 impl Lint for types::typ::Type {}
+
+impl Lint for stmt::assign::Assign {
+    fn lint(self, env: &mut Env) -> Result<Self, Error> {
+        Ok(Self {
+            ident: self.ident.lint(env)?,
+            ..self
+        })
+    }
+}
 
 impl Lint for stmt::decl::Decl {
     fn lint(self, env: &mut Env) -> Result<Self, Error> {
