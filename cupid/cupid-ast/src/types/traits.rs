@@ -1,4 +1,8 @@
-use crate::{expr::ident::Ident, attr::{Attr, GetAttr}, stmt::decl::Decl};
+use crate::{
+    attr::{Attr, GetAttr},
+    expr::ident::Ident,
+    stmt::decl::Decl,
+};
 
 cupid_util::build_struct! {
     #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
@@ -12,8 +16,5 @@ cupid_util::build_struct! {
 impl GetAttr for Trait {
     fn attr(&self) -> Attr {
         self.attr
-    }
-    fn attr_mut(&mut self) -> &mut Attr {
-        &mut self.attr
     }
 }

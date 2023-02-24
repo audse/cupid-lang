@@ -1,24 +1,13 @@
 use crate::{
     attr::{Attr, GetAttr},
-    expr::ident::Ident,
-    types::typ::Type,
+    stmt::allocate::Allocate,
 };
-use std::{cell::RefCell, rc::Rc};
 
-cupid_util::build_struct! {
-    #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
-    pub TypeDefBuilder => pub TypeDef {
-        pub ident: Ident,
-        pub value: Rc<RefCell<Type>>,
-        pub attr: Attr,
-    }
-}
+#[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
+pub struct TypeDef(pub Allocate);
 
 impl GetAttr for TypeDef {
     fn attr(&self) -> Attr {
-        self.attr
-    }
-    fn attr_mut(&mut self) -> &mut Attr {
-        &mut self.attr
+        self.0.attr
     }
 }

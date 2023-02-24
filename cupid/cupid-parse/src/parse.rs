@@ -7,18 +7,27 @@ use cupid_lex::{
 
 use cupid_ast::{
     attr::Attr,
-    expr::block::Block,
-    expr::value::Value,
-    expr::Expr,
-    expr::{function::Function, value::Val},
-    expr::{function_call::FunctionCall, ident::Ident},
-    stmt::assign::Assign,
-    stmt::decl::Decl,
-    stmt::trait_def::TraitDef,
-    stmt::type_def::TypeDef,
-    stmt::{decl::Mut, Stmt},
-    types::traits::Trait,
-    types::typ::{BaseType, Type},
+    expr::{
+        block::Block,
+        function::Function,
+        function_call::FunctionCall,
+        ident::Ident,
+        value::{Val, Value},
+        Expr,
+    },
+    stmt::{
+        allocate::{Allocate, Allocation, AllocationStage},
+        assign::Assign,
+        decl::{Decl, Mut},
+        implement::Impl,
+        trait_def::TraitDef,
+        type_def::TypeDef,
+        Stmt,
+    },
+    types::{
+        traits::Trait,
+        typ::{BaseType, Type},
+    },
 };
 use cupid_debug::source::*;
 use cupid_env::{
@@ -54,7 +63,6 @@ impl Parser {
         }
         Some(exprs)
     }
-
     pub fn attr<T: Into<ExprSource>>(&mut self, source: T) -> (Attr, Rc<ExprSource>) {
         let src = source.into();
         let src_ref = Rc::new(src);
@@ -77,6 +85,93 @@ where
     }
 }
 
+// macro_rules! rule {
+//
+//     // "one of"
+//     (one($tokens:ident => $($rest:tt),*)) => {
+//         || -> Option<Token<'static>> {
+//             $(if let Some(token) = rule!($tokens => $rest) {
+//                 return Some(token)
+//             })*
+//             None
+//         }()
+//     };
+//
+//     // tuple
+//     (tuple( $tokens:ident => $($rest:tt),* )) => {
+//         Some((
+//             $( rule!($tokens => $rest)? ),*
+//         ))
+//     };
+//
+//     ($tokens:ident => TokenKind::$kind:ident) => {
+//         $tokens.kind(TokenKind::$kind)
+//     };
+//     ($tokens:ident => |tokens| $custom:block) => {
+//         $custom($tokens)
+//     };
+//     ($tokens:ident => $string:literal) => {
+//         $tokens.string($string)
+//     };
+//     ($tokens:ident => $name:ident) => {
+//         $name($tokens)
+//     };
+//
+//     // ??
+//     // ($tokens:ident => $rest:tt) => {
+//     //     None
+//     // };
+//     () => {};
+// }
+//
+// macro_rules! parser {
+//     // Returns the first matched token
+//     ($name:ident = one $rule:tt; $($rest:tt)*) => {
+//         pub fn $name(tokens: &mut TokenIterator) -> Option<Token<'static>> {
+//             tokens.mark(|tokens| rule!(one(tokens => $rule)))
+//         }
+//         parser! { $($rest)* }
+//     };
+//     // Returns a tuple of tokens
+//     ($name:ident = tuple( $($rule:tt),* ); $($rest:tt)*) => {
+//         pub fn $name(tokens: &mut TokenIterator) -> Option<($( parser!{ @accum $rule } ),*)> {
+//             tokens.mark(|tokens| rule!(tuple(tokens => $($rule),*)))
+//         }
+//         parser! { $($rest)* }
+//     };
+//     // Returns a single token
+//     ($name:ident = $rule:tt; $($rest:tt)*) => {
+//         pub fn $name(tokens: &mut TokenIterator) -> Option<Token<'static>> {
+//             tokens.mark(|tokens| rule!(tokens => $rule))
+//         }
+//         parser! { $($rest)* }
+//     };
+//     // Creates a tuple return type
+//     (@accum $_:expr) => { Token<'static> };
+//     () => {};
+// }
+//
+// parser! {
+//     // Keywords
+//     kw_let = "let";
+//     kw_mut = "mut";
+//     kw_type = "type";
+//     kw_trait = "trait";
+//     kw_is_not = tuple("is", "not");
+//     kw_is_type = tuple("is", "type");
+//
+//     // Expressions
+//     expr = one(ident, number, decimal, string);
+//
+//     ident = TokenKind::Ident;
+//     number = TokenKind::Number;
+//     decimal = TokenKind::Decimal;
+//     string = TokenKind::String;
+//
+//     // Statements
+//     assign = tuple(ident, "=", expr);
+// }
+
 fn map_stmt_parse(args: (impl Into<Stmt>, Rc<ExprSource>)) -> (Expr, Rc<ExprSource>) {
     (Expr::Stmt(args.0.into()), args.1)
 }
@@ -89,6 +184,7 @@ impl Parse for Expr {
     fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<(Self, Rc<ExprSource>)> {
         if let Some((val, val_src)) = TraitDef::parse(parser, tokens)
             .map(map_stmt_parse)
+            .or_else(|| Impl::parse(parser, tokens).map(map_stmt_parse))
             .or_else(|| TypeDef::parse(parser, tokens).map(map_stmt_parse))
             .or_else(|| Decl::parse(parser, tokens).map(map_stmt_parse))
             .or_else(|| Assign::parse(parser, tokens).map(map_stmt_parse))
@@ -104,6 +200,64 @@ impl Parse for Expr {
         }
     }
 }
+
+// macro_rules! parse {
+//     /// Example
+//     /// ```
+//     /// // Decl
+//     /// parse!(parser, tokens => {
+//     ///     token_let = "let" (Required);
+//     ///     token_mut = "mut" (Optional);
+//     ///     ident, ident_src = Ident::parse (Required);
+//     ///     token_equal = "=" (Required);
+//     /// });
+//     /// // Type
+//     /// parse!(parser, tokens => {
+//     ///     token_type = "type" (Required);
+//     ///     ident, ident_src = Ident::parse (Required);
+//     ///     token_equal = "=" (Required);
+//     ///     fields = [
+//     ///         |parser, tokens| parse!(parser, tokens => {
+//     ///             field, src = Field::parse (Required)
+//     ///         });
+//     ///     ] ("," Required);
+//     /// })
+//     /// ```
+//     $(
+//         $parser:ident, $tokens:ident => { $($rest:tt)* }
+//     ) => {{
+//         $tokens.mark(|tokens| {
+//             parse!($parser, tokens ... $($rest)*);
+//         })
+//     }};
+//     $($parser, $tokens, ... $field = $string:tt ($is_required:ident); $($rest:tt)*) => {{
+//         let $field = $tokens.string($string, $is_required)?;
+//         parse!($parser, $tokens, ... $($rest)*);
+//     }};
+//     $($parser:ident, $tokens:ident ... $field:ident, $src:ident = $node:ident ::parse (Required); $($rest:tt)*) => {{
+//         let ($field, $src) = $node::parse($parser, $tokens)?;
+//         parse!($parser, $tokens, ... $($rest)*);
+//     }};
+//     $($parser:ident, $tokens:ident ... $field:ident, $src:ident = $node:ident ::parse (Optional); $($rest:tt)*) => {{
+//         let ($field, $src) = if let Some(($field, $src)) = $node::parse($parser, $tokens) {
+//             ($field, $src)
+//         } else {
+//             (None, None)
+//         };
+//         parse!($parser, $tokens, ... $($rest)*);
+//     }};
+//     $($parser:ident, $tokens:ident ... $field:ident = [ $parse:expr ]; $($rest:tt)*) => {{
+//         let $field: Vec<Token<'static>> = vec![];
+//         TokenListBuilder::start($tokens)
+//             .bracket_list_collect(
+//                 |builder| {
+//                     $parse($parser, $builder.tokens)
+//                 },
+//                 |tokens| $field = tokens;
+//             )
+//     }};
+//     $() => {};
+// }
 
 /// Just an ident/type pair as a decl
 /// E.g. `x : int` or `square : fun (int)`
@@ -127,9 +281,8 @@ fn parse_typed_ident_decl(
         let (attr, source) = parser.attr(source);
         Some((
             Decl::build()
-                .ident(ident)
+                .allocate(Allocate::build().ident(ident).attr(attr).build())
                 .type_annotation(type_annotation.map(|t| t))
-                .attr(attr)
                 .build(),
             source,
         ))
@@ -177,14 +330,17 @@ impl Parse for Decl {
                 Mut::Immutable
             };
             let (attr, source) = parser.attr(source);
-
+            let allocate = Allocate::build()
+                .ident(ident)
+                .value(Allocation::Expr(expr.ref_cell().rc()))
+                .stage(AllocationStage::NameResolution)
+                .attr(attr)
+                .build();
             Some((
                 Decl::build()
                     .mutable(mutable)
-                    .ident(ident)
+                    .allocate(allocate)
                     .type_annotation(type_annotation)
-                    .value(expr.ref_cell().rc())
-                    .attr(attr)
                     .build(),
                 source,
             ))
@@ -206,11 +362,14 @@ impl Parse for Assign {
             let (attr, source) = parser.attr(source);
 
             Some((
-                Assign::build()
-                    .ident(ident)
-                    .value(expr.ref_cell().rc())
-                    .attr(attr)
-                    .build(),
+                Assign(
+                    Allocate::build()
+                        .ident(ident)
+                        .value(Allocation::Expr(expr.ref_cell().rc()))
+                        .stage(AllocationStage::Runtime)
+                        .attr(attr)
+                        .build(),
+                ),
                 source,
             ))
         })
@@ -321,30 +480,7 @@ impl Parse for TraitDef {
                 .string("=", Required)?
                 .assign(&mut token_equal)
                 .bracket_list_collect(
-                    |mut builder| {
-                        let mut decl_src = DeclSource::default();
-                        let (method_ident, method_ident_src) =
-                            Ident::parse(parser, &mut builder.tokens)?;
-                        decl_src.ident = method_ident_src;
-
-                        builder = builder
-                            .string(":", Required)?
-                            .assign(&mut decl_src.token_colon);
-                        let (fun, fun_src) = Function::parse(parser, &mut builder.tokens)?;
-                        decl_src.value = Some(fun_src);
-                        let (attr, decl_src) = parser.attr(decl_src);
-                        Some((
-                            (
-                                Decl::build()
-                                    .ident(method_ident)
-                                    .value(Rc::new(RefCell::new(fun.into())))
-                                    .attr(attr)
-                                    .build(),
-                                decl_src,
-                            ),
-                            builder,
-                        ))
-                    },
+                    |builder| parse_method_decl(parser, builder),
                     |m| {
                         let (method_list, method_srcs): (Vec<Decl>, Vec<Rc<ExprSource>>) =
                             m.into_iter().unzip();
@@ -365,16 +501,21 @@ impl Parse for TraitDef {
                 .ident(ident.clone())
                 .methods(methods)
                 .attr(trait_attr)
-                .build();
+                .build()
+                .ref_cell()
+                .rc();
 
             let (attr, source) = parser.attr(source);
 
             Some((
-                TraitDef::build()
-                    .ident(ident)
-                    .value(trait_val.ref_cell().rc())
-                    .attr(attr)
-                    .build(),
+                TraitDef(
+                    Allocate::build()
+                        .ident(ident)
+                        .value(Allocation::Trait(trait_val))
+                        .stage(AllocationStage::TypeNameResolution)
+                        .attr(attr)
+                        .build(),
+                ),
                 source,
             ))
         })
@@ -406,13 +547,14 @@ impl Parse for TypeDef {
                     |mut builder| {
                         let (mut decl, decl_src) =
                             parse_typed_ident_decl(parser, &mut builder.tokens)?;
-                        decl.value = decl
-                            .type_annotation
-                            .take()
-                            .map(|i| Expr::Ident(i))
-                            .unwrap_or_default()
-                            .ref_cell()
-                            .rc();
+                        decl.allocate.value = Allocation::Expr(
+                            decl.type_annotation
+                                .take()
+                                .map(|i| Expr::Ident(i))
+                                .unwrap_or_default()
+                                .ref_cell()
+                                .rc(),
+                        );
                         fields.push(decl);
                         type_source.fields.push(decl_src);
                         Some(builder)
@@ -447,9 +589,90 @@ impl Parse for TypeDef {
             let (attr, source) = parser.attr(source);
 
             Some((
-                TypeDef::build().ident(ident).value(typ).attr(attr).build(),
+                TypeDef(
+                    Allocate::build()
+                        .ident(ident)
+                        .value(Allocation::Type(typ))
+                        .stage(AllocationStage::TypeNameResolution)
+                        .attr(attr)
+                        .build(),
+                ),
                 source,
             ))
+        })
+    }
+}
+
+fn parse_method_decl<'t>(
+    parser: &mut Parser,
+    mut builder: TokenListBuilder<'t>,
+) -> Option<((Decl, Rc<ExprSource>), TokenListBuilder<'t>)> {
+    let mut decl_src = DeclSource::default();
+    let (method_ident, method_ident_src) = Ident::parse(parser, &mut builder.tokens)?;
+    decl_src.ident = method_ident_src;
+
+    builder = builder
+        .string(":", Required)?
+        .assign(&mut decl_src.token_colon);
+    let (fun, fun_src) = Function::parse(parser, &mut builder.tokens)?;
+    decl_src.value = Some(fun_src);
+    let (attr, decl_src) = parser.attr(decl_src);
+    Some((
+        (
+            Decl::build()
+                .allocate(
+                    Allocate::build()
+                        .ident(method_ident)
+                        .value(Allocation::Expr(Rc::new(RefCell::new(fun.into()))))
+                        .attr(attr)
+                        .build(),
+                )
+                .build(),
+            decl_src,
+        ),
+        builder,
+    ))
+}
+
+impl Parse for Impl {
+    fn parse(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<(Self, Rc<ExprSource>)> {
+        tokens.mark(|tokens| {
+            let mut source = ImplSource::default();
+            let mut implement = Impl::default();
+            let mut tokens = TokenListBuilder::start(tokens)
+                .string("implement", Required)?
+                .and(|mut builder| {
+                    let (trait_ident, trait_src) = Ident::parse(parser, &mut builder.tokens)?;
+                    implement.trait_ident = trait_ident;
+                    source.trait_ident = trait_src;
+                    Some(builder)
+                })?
+                .string("for", Required)?
+                .and(|mut builder| {
+                    let (type_ident, type_src) = Ident::parse(parser, &mut builder.tokens)?;
+                    implement.type_ident = type_ident;
+                    source.type_ident = type_src;
+                    Some(builder)
+                })?
+                .string("=", Required)?
+                .bracket_list_collect(
+                    |builder| parse_method_decl(parser, builder),
+                    |m| {
+                        let (method_list, method_srcs): (Vec<Decl>, Vec<Rc<ExprSource>>) =
+                            m.into_iter().unzip();
+                        source.methods = method_srcs;
+                        implement.methods = method_list;
+                    },
+                    Some(","),
+                )?
+                .done();
+            source.token_impl = tokens.remove(0);
+            source.token_for = tokens.remove(0);
+            source.token_equal = tokens.remove(0);
+            source.token_delimiters = (tokens.remove(0), tokens.remove(0));
+            let (attr, src) = parser.attr(source);
+            implement.attr = attr;
+            Some((implement, src))
         })
     }
 }

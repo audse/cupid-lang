@@ -34,6 +34,7 @@ pub enum ExprSource {
     Function(FunctionSource),
     FunctionCall(FunctionCallSource),
     Ident(IdentSource),
+    Impl(ImplSource),
     Namespace(NamespaceSource),
     Trait(TraitSource),
     TraitDef(TraitDefSource),
@@ -60,6 +61,7 @@ impl CollectTokens for ExprSource {
             Function(x) => x.collect_tokens(),
             FunctionCall(x) => x.collect_tokens(),
             Ident(x) => x.collect_tokens(),
+            Impl(x) => x.collect_tokens(),
             Namespace(x) => x.collect_tokens(),
             Trait(x) => x.collect_tokens(),
             TraitDef(x) => x.collect_tokens(),
@@ -221,6 +223,34 @@ cupid_util::build_struct! {
 impl CollectTokens for IdentSource {
     fn collect_tokens(&self) -> Vec<&Token<'static>> {
         vec![&self.token_name].plus(self.generics.collect_tokens())
+    }
+}
+
+cupid_util::build_struct! {
+    #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
+    pub ImplSourceBuilder => pub ImplSource {
+        pub token_impl: Token<'static>,
+        pub token_for: Token<'static>,
+        pub token_equal: Token<'static>,
+        pub token_delimiters: (Token<'static>, Token<'static>),
+        pub type_ident: Rc<ExprSource>,
+        pub trait_ident: Rc<ExprSource>,
+        pub methods: Vec<Rc<ExprSource>>,
+    }
+}
+
+impl CollectTokens for ImplSource {
+    fn collect_tokens(&self) -> Vec<&Token<'static>> {
+        vec![
+            &self.token_impl,
+            &self.token_for,
+            &self.token_equal,
+            &self.token_delimiters.0,
+            &self.token_delimiters.1,
+        ]
+        .plus(self.type_ident.collect_tokens())
+        .plus(self.trait_ident.collect_tokens())
+        .plus(self.methods.collect_tokens())
     }
 }
 

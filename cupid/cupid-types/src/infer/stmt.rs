@@ -1,5 +1,13 @@
 use cupid_ast::{
-    stmt::{assign::Assign, decl::Decl, trait_def::TraitDef, type_def::TypeDef, Stmt},
+    stmt::{
+        allocate::{Allocate, Allocation},
+        assign::Assign,
+        decl::Decl,
+        implement::Impl,
+        trait_def::TraitDef,
+        type_def::TypeDef,
+        Stmt,
+    },
     types::typ::Type,
 };
 
@@ -17,6 +25,12 @@ impl Infer<Type> for Decl {
     }
 }
 
+impl Infer<Type> for Impl {
+    fn infer(&self) -> Type {
+        Type::none()
+    }
+}
+
 impl Infer<Type> for TraitDef {
     fn infer(&self) -> Type {
         Type::none()
@@ -24,6 +38,22 @@ impl Infer<Type> for TraitDef {
 }
 
 impl Infer<Type> for TypeDef {
+    fn infer(&self) -> Type {
+        Type::none()
+    }
+}
+
+impl Infer<Type> for Allocation {
+    fn infer(&self) -> Type {
+        match self {
+            Self::Expr(e) => e.borrow().infer(),
+            Self::Trait(t) => t.borrow().infer(),
+            Self::Type(t) => t.borrow().infer(),
+        }
+    }
+}
+
+impl Infer<Type> for Allocate {
     fn infer(&self) -> Type {
         Type::none()
     }

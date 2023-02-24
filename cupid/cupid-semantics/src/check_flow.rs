@@ -53,7 +53,9 @@ impl CheckFlow for expr::value::Value {}
 impl CheckFlow for types::traits::Trait {}
 impl CheckFlow for types::typ::Type {}
 
+impl CheckFlow for stmt::allocate::Allocate {}
 impl CheckFlow for stmt::assign::Assign {}
 impl CheckFlow for stmt::decl::Decl {}
+impl CheckFlow for stmt::implement::Impl {}
 impl CheckFlow for stmt::trait_def::TraitDef {}
 impl CheckFlow for stmt::type_def::TypeDef {}

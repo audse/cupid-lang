@@ -25,6 +25,26 @@ fn ident_from_logic_op(
     (i, source)
 }
 
+fn ident_from_op(parser: &mut Parser, token: Token<'static>) -> (Ident, Rc<ExprSource>) {
+    let name = match &*token.source {
+        "+" => "add!",
+        "-" => "subtract!",
+        "*" => "multiply!",
+        "/" => "divide!",
+        "^" => "power!",
+        "%" => "modulus!",
+        _ => panic!("unexpected operator"),
+    };
+    let mut i: Ident = Ident {
+        name: name.into(),
+        ..Default::default()
+    };
+    let src = IdentSource::build().token_name(token).build();
+    let (attr, source) = parser.attr(src);
+    i.attr = attr;
+    (i, source)
+}
+
 /// Returns
 /// ```no_run
 /// Namespace {
@@ -42,7 +62,8 @@ pub(super) fn parse_bin_op(
     left_src: Rc<ExprSource>,
 ) -> Option<(Expr, Rc<ExprSource>)> {
     tokens.mark(|tokens| {
-        if let Some((op_ident, op_src)) = parse_logic_bin_op(parser, tokens) {
+        let op = parse_logic_bin_op(parser, tokens).or_else(|| parse_op(parser, tokens));
+        if let Some((op_ident, op_src)) = op {
             if let Some((right, right_src)) = Expr::parse(parser, tokens) {
                 let func_src = FunctionCallSource::build()
                     .function(op_src)
@@ -65,7 +86,6 @@ pub(super) fn parse_bin_op(
                     .value(Expr::FunctionCall(function_call).bx())
                     .attr(attr)
                     .build();
-
                 Some((Expr::Namespace(namespace), source))
             } else {
                 Some((left, left_src))
@@ -83,7 +103,15 @@ fn parse_logic_bin_op(
     tokens.mark(|tokens| {
         let ops = parse_logic_operator(parser, tokens)?;
         let (mut op_ident, op_src) = ident_from_logic_op(parser, ops);
-        // op_ident.name += "!";
+        op_ident.name += "!";
+        Some((op_ident, op_src))
+    })
+}
+
+fn parse_op(parser: &mut Parser, tokens: &mut TokenIterator) -> Option<(Ident, Rc<ExprSource>)> {
+    tokens.mark(|tokens| {
+        let op = parse_operator(parser, tokens)?;
+        let (op_ident, op_src) = ident_from_op(parser, op);
         Some((op_ident, op_src))
     })
 }
@@ -118,6 +146,41 @@ fn parse_logic_operator(
                         .one_of(["and", "or"], Required)?
                         .string("not", Optional)?
                         .done(),
+                )
+            })
+        })
+}
+
+fn parse_operator(_parser: &mut Parser, tokens: &mut TokenIterator) -> Option<Token<'static>> {
+    tokens
+        .mark(|tokens| {
+            Some(
+                TokenListBuilder::start(tokens)
+                    .one_of(["+", "-", "%"], Required)?
+                    .next_is_not("=")?
+                    .done()
+                    .remove(0),
+            )
+        })
+        .or_else(|| {
+            tokens.mark(|tokens| {
+                Some(
+                    TokenListBuilder::start(tokens)
+                        .one_of(["*", "/"], Required)?
+                        .next_is_not("=")?
+                        .done()
+                        .remove(0),
+                )
+            })
+        })
+        .or_else(|| {
+            tokens.mark(|tokens| {
+                Some(
+                    TokenListBuilder::start(tokens)
+                        .one_of(["^"], Required)?
+                        .next_is_not("=")?
+                        .done()
+                        .remove(0),
                 )
             })
         })

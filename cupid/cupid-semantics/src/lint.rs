@@ -79,24 +79,49 @@ impl Lint for types::traits::Trait {}
 
 impl Lint for types::typ::Type {}
 
-impl Lint for stmt::assign::Assign {
+impl Lint for stmt::allocate::Allocate {
     fn lint(self, env: &mut Env) -> Result<Self, Error> {
         Ok(Self {
             ident: self.ident.lint(env)?,
             ..self
         })
+    }
+}
+
+impl Lint for stmt::assign::Assign {
+    fn lint(self, env: &mut Env) -> Result<Self, Error> {
+        Ok(Self(self.0.lint(env)?))
     }
 }
 
 impl Lint for stmt::decl::Decl {
     fn lint(self, env: &mut Env) -> Result<Self, Error> {
         Ok(Self {
-            ident: self.ident.lint(env)?,
+            allocate: self.allocate.lint(env)?,
             ..self
         })
     }
 }
 
-impl Lint for stmt::trait_def::TraitDef {}
+impl Lint for stmt::implement::Impl {
+    fn lint(self, env: &mut Env) -> Result<Self, Error> {
+        Ok(Self {
+            trait_ident: self.trait_ident.lint(env)?,
+            type_ident: self.type_ident.lint(env)?,
+            methods: self.methods.lint(env)?,
+            ..self
+        })
+    }
+}
 
-impl Lint for stmt::type_def::TypeDef {}
+impl Lint for stmt::trait_def::TraitDef {
+    fn lint(self, env: &mut Env) -> Result<Self, Error> {
+        Ok(Self(self.0.lint(env)?))
+    }
+}
+
+impl Lint for stmt::type_def::TypeDef {
+    fn lint(self, env: &mut Env) -> Result<Self, Error> {
+        Ok(Self(self.0.lint(env)?))
+    }
+}

@@ -1,23 +1,13 @@
 use crate::{
     attr::{Attr, GetAttr},
-    expr::{ident::Ident, Expr},
+    stmt::allocate::Allocate,
 };
-use std::{cell::RefCell, rc::Rc};
 
-cupid_util::build_struct! {
-    #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
-    pub AssignBuilder => pub Assign {
-        pub ident: Ident,
-        pub value: Rc<RefCell<Expr>>,
-        pub attr: Attr,
-    }
-}
+#[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Assign(pub Allocate);
 
 impl GetAttr for Assign {
     fn attr(&self) -> Attr {
-        self.attr
-    }
-    fn attr_mut(&mut self) -> &mut Attr {
-        &mut self.attr
+        self.0.attr
     }
 }

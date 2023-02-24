@@ -2,7 +2,6 @@ use crate::attr::{Attr, GetAttr};
 
 use super::{ident::Ident, Expr};
 
-
 cupid_util::build_struct! {
     #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
     pub FunctionCallBuilder => pub FunctionCall {
@@ -15,8 +14,5 @@ cupid_util::build_struct! {
 impl GetAttr for FunctionCall {
     fn attr(&self) -> Attr {
         self.attr
-    }
-    fn attr_mut(&mut self) -> &mut Attr {
-        &mut self.attr
     }
 }

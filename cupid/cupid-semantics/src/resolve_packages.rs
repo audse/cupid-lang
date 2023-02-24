@@ -38,7 +38,9 @@ impl ResolvePackages for expr::value::Value {}
 impl ResolvePackages for types::traits::Trait {}
 impl ResolvePackages for types::typ::Type {}
 
+impl ResolvePackages for stmt::allocate::Allocate {}
 impl ResolvePackages for stmt::assign::Assign {}
 impl ResolvePackages for stmt::decl::Decl {}
+impl ResolvePackages for stmt::implement::Impl {}
 impl ResolvePackages for stmt::trait_def::TraitDef {}
 impl ResolvePackages for stmt::type_def::TypeDef {}

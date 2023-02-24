@@ -140,7 +140,7 @@ impl Transpile for stmt::Stmt {
     fn transpile(&self) -> String {
         use stmt::Stmt::*;
         match self {
-            Assign(_) => String::new(),
+            Assign(_) | Allocate(_) => String::new(),
             Decl(decl) => decl.transpile(),
             TraitDef(trait_def) => trait_def.transpile(),
             TypeDef(type_def) => type_def.transpile(),

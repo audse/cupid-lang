@@ -1,7 +1,8 @@
 use crate::environment::Env;
 use cupid_ast::{
+    attr::GetAttr,
     expr::{ident::Ident, Expr},
-    stmt::decl::Mut,
+    stmt::{allocate::Allocation, decl::Mut},
     types::{traits::Trait, typ::Type},
 };
 use cupid_debug::code::ErrorCode;
@@ -141,6 +142,11 @@ impl Decoration {
     fn get_type_value(&self) -> Option<Rc<RefCell<Type>>> {
         (self.try_into() as Trying<Rc<RefCell<Type>>>).ok().cloned()
     }
+    fn get_trait_value(&self) -> Option<Rc<RefCell<Trait>>> {
+        (self.try_into() as Trying<Rc<RefCell<Trait>>>)
+            .ok()
+            .cloned()
+    }
     fn get_refs(&self) -> usize {
         (self.try_into() as Trying<usize>)
             .ok()
@@ -219,6 +225,12 @@ impl Value {
             false
         }
     }
+    pub fn get_trait_value(&self) -> Option<Rc<RefCell<Trait>>> {
+        self.decorations
+            .get(&DecorationType::TraitValue)
+            .map(|d| d.get_trait_value())
+            .flatten()
+    }
     pub fn get_type_value(&self) -> Option<Rc<RefCell<Type>>> {
         self.decorations
             .get(&DecorationType::TypeValue)
@@ -239,17 +251,29 @@ pub struct ValueBuilder {
 }
 
 impl ValueBuilder {
+    pub fn value(self, inner: Allocation) -> Self {
+        match inner.into() {
+            Allocation::Expr(e) => self.expr(e),
+            Allocation::Type(t) => self.type_def(t),
+            Allocation::Trait(t) => self.trait_def(t),
+        }
+    }
     pub fn expr(mut self, expr: Rc<RefCell<Expr>>) -> Self {
+        if !expr.borrow().is_empty() {
+            self.decorations.insert(DecorationType::Source, Decoration::Source(Source(expr.borrow().attr().source)));
+        }
         self.decorations
             .insert(DecorationType::Value, Decoration::Value(expr));
         self
     }
     pub fn type_def(mut self, typ: Rc<RefCell<Type>>) -> Self {
+        self.decorations.insert(DecorationType::Source, Decoration::Source(Source(typ.borrow().attr().source)));
         self.decorations
             .insert(DecorationType::TypeValue, Decoration::TypeValue(typ));
         self
     }
     pub fn trait_def(mut self, trait_val: Rc<RefCell<Trait>>) -> Self {
+        self.decorations.insert(DecorationType::Source, Decoration::Source(Source(trait_val.borrow().attr().source)));
         self.decorations.insert(
             DecorationType::TraitValue,
             Decoration::TraitValue(trait_val),
@@ -264,6 +288,38 @@ impl ValueBuilder {
     pub fn build(self) -> Value {
         Value {
             decorations: self.decorations,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct FmtClosure<'a>(pub &'a Closure, pub i32);
+
+impl std::fmt::Display for FmtClosure<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let closure = self.0.borrow();
+        let depth = self.1;
+        if depth > 0 {
+            let parent = closure
+                .parent
+                .as_ref()
+                .map(|parent| FmtClosure(parent, depth - 1));
+            let namespaces = closure
+                .namespaces
+                .iter()
+                .map(|n| FmtClosure(n, depth - 1))
+                .collect::<Vec<FmtClosure>>();
+            f.debug_struct("ExprClosure")
+                .field("parent", &parent)
+                .field("namespaces", &namespaces)
+                .field("symbols", &closure.symbols)
+                .finish()
+        } else {
+            f.debug_struct("ExprClosure")
+                .field("parent", &"<out of depth>")
+                .field("namespaces", &"<out of depth>")
+                .field("symbols", &closure.symbols)
+                .finish()
         }
     }
 }

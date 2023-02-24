@@ -16,7 +16,6 @@ members = [
 	"cupid-parse",
 	"cupid-semantics",
 	"auto-implement",
-	"cupid-transpile",
 	"cupid-types",
 	"cupid-util"
 ]
@@ -35,5 +34,7 @@ cupid-parse = { path = 'cupid-parse' }
 cupid_semantics = { path = 'cupid-semantics' }
 auto-implement = { path = 'auto-implement' }
 cupid-types = { path = 'cupid-types' }
-cupid-transpile = { path = 'cupid-transpile' }
 cupid-util = { path = 'cupid-util' }
+
+[build-dependencies]
+rust-sitter-tool = "0.1.2"

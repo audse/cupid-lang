@@ -90,9 +90,23 @@ impl CreateScope for expr::block::Block {
     }
 }
 
-impl AnalyzeScope for stmt::assign::Assign {}
+impl AnalyzeScope for stmt::allocate::Allocation {}
+impl CreateScope for stmt::allocate::Allocation {
+    fn create_scope(
+        &self,
+        parent: Option<Rc<RefCell<ExprClosure>>>,
+        env: &mut Env,
+    ) -> Rc<RefCell<ExprClosure>> {
+        match self {
+            Self::Expr(e) => e.create_scope(parent, env),
+            Self::Type(t) => t.create_scope(parent, env),
+            Self::Trait(t) => t.create_scope(parent, env),
+        }
+    }
+}
 
-impl CreateScope for stmt::assign::Assign {
+impl AnalyzeScope for stmt::allocate::Allocate {}
+impl CreateScope for stmt::allocate::Allocate {
     fn create_scope(
         &self,
         parent: Option<Rc<RefCell<ExprClosure>>>,
@@ -105,6 +119,18 @@ impl CreateScope for stmt::assign::Assign {
     }
 }
 
+impl AnalyzeScope for stmt::assign::Assign {}
+
+impl CreateScope for stmt::assign::Assign {
+    fn create_scope(
+        &self,
+        parent: Option<Rc<RefCell<ExprClosure>>>,
+        env: &mut Env,
+    ) -> Rc<RefCell<ExprClosure>> {
+        self.0.create_scope(parent, env)
+    }
+}
+
 impl AnalyzeScope for stmt::decl::Decl {}
 
 impl CreateScope for stmt::decl::Decl {
@@ -113,9 +139,7 @@ impl CreateScope for stmt::decl::Decl {
         parent: Option<Rc<RefCell<ExprClosure>>>,
         env: &mut Env,
     ) -> Rc<RefCell<ExprClosure>> {
-        let scope = env.add_closure(self.attr.source, parent);
-        self.ident.create_scope(Some(scope.clone()), env);
-        self.value.create_scope(Some(scope.clone()), env);
+        let scope = self.allocate.create_scope(parent, env);
         if let Some(type_annotation) = &self.type_annotation {
             type_annotation.create_scope(Some(scope.clone()), env);
         }
@@ -224,6 +248,23 @@ impl CreateScope for types::typ::Type {
     }
 }
 
+impl AnalyzeScope for stmt::implement::Impl {}
+impl CreateScope for stmt::implement::Impl {
+    fn create_scope(
+        &self,
+        parent: Option<Rc<RefCell<ExprClosure>>>,
+        env: &mut Env,
+    ) -> Rc<RefCell<ExprClosure>> {
+        let scope = env.add_closure(self.attr.source, parent);
+        self.trait_ident.create_scope(Some(scope.clone()), env);
+        self.type_ident.create_scope(Some(scope.clone()), env);
+        for method in self.methods.iter() {
+            method.create_scope(Some(scope.clone()), env);
+        }
+        scope
+    }
+}
+
 impl AnalyzeScope for stmt::trait_def::TraitDef {}
 
 impl CreateScope for stmt::trait_def::TraitDef {
@@ -232,10 +273,7 @@ impl CreateScope for stmt::trait_def::TraitDef {
         parent: Option<Rc<RefCell<ExprClosure>>>,
         env: &mut Env,
     ) -> Rc<RefCell<ExprClosure>> {
-        let scope = env.add_closure(self.attr.source, parent);
-        self.ident.create_scope(Some(scope.clone()), env);
-        self.value.borrow().create_scope(Some(scope.clone()), env);
-        scope
+        self.0.create_scope(parent, env)
     }
 }
 
@@ -247,10 +285,7 @@ impl CreateScope for stmt::type_def::TypeDef {
         parent: Option<Rc<RefCell<ExprClosure>>>,
         env: &mut Env,
     ) -> Rc<RefCell<ExprClosure>> {
-        let scope = env.add_closure(self.attr.source, parent);
-        self.ident.create_scope(Some(scope.clone()), env);
-        self.value.borrow().create_scope(Some(scope.clone()), env);
-        scope
+        self.0.create_scope(parent, env)
     }
 }
 

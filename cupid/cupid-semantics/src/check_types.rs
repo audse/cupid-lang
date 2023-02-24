@@ -159,7 +159,7 @@ impl CheckTypes for types::traits::Trait {
     fn check_types(self, env: &mut Env) -> Result<Self, Error> {
         let methods = self.methods.check_types(env)?;
         for method in methods.iter() {
-            let typ = method.ident.get_type(env).unwrap();
+            let typ = method.allocate.ident.get_type(env).unwrap();
             if !typ.is_function() {
                 return Err(method.err(ErrorCode::ExpectedFunction, env));
             }
@@ -172,7 +172,7 @@ impl CheckTypes for types::typ::Type {
     fn check_types(self, env: &mut Env) -> Result<Self, Error> {
         let methods = self.methods.check_types(env)?;
         for method in methods.iter() {
-            let typ = method.ident.get_type(env).unwrap();
+            let typ = method.allocate.ident.get_type(env).unwrap();
             if !typ.is_function() {
                 return Err(method.err(ErrorCode::ExpectedFunction, env));
             }
@@ -181,10 +181,37 @@ impl CheckTypes for types::typ::Type {
     }
 }
 
-impl CheckTypes for stmt::assign::Assign {
+impl CheckTypes for stmt::allocate::Allocation {
+    fn check_types(self, env: &mut Env) -> Result<Self, Error> {
+        match self {
+            Self::Expr(e) => Ok(Self::Expr(e.check_types(env)?)),
+            Self::Trait(t) => Ok(Self::Trait(t.check_types(env)?)),
+            Self::Type(t) => Ok(Self::Type(t.check_types(env)?)),
+        }
+    }
+}
+
+impl GetType for stmt::allocate::Allocation {
+    fn get_type(&self, env: &mut Env) -> Option<Rc<Type>> {
+        match self {
+            Self::Expr(e) => e.borrow().get_type(env),
+            Self::Trait(t) => t.borrow().ident.get_type(env),
+            Self::Type(t) => t.borrow().ident.get_type(env),
+        }
+    }
+    fn get_type_value(&self, env: &mut Env) -> Option<Rc<RefCell<Type>>> {
+        match self {
+            Self::Expr(e) => e.borrow().get_type_value(env),
+            Self::Trait(t) => t.borrow().ident.get_type_value(env),
+            Self::Type(t) => t.borrow().ident.get_type_value(env),
+        }
+    }
+}
+
+impl CheckTypes for stmt::allocate::Allocate {
     fn check_types(self, env: &mut Env) -> Result<Self, Error> {
         let ident_type = self.ident.get_type(env).unwrap();
-        let val_type = self.value.borrow().get_type(env).unwrap();
+        let val_type = self.value.get_type(env).unwrap();
         if val_type.ident != ident_type.ident {
             return Err(self.err(ErrorCode::TypeMismatch, env).with_hint(format!(
                 "expected `{}`, found `{}`",
@@ -198,19 +225,40 @@ impl CheckTypes for stmt::assign::Assign {
     }
 }
 
+impl CheckTypes for stmt::assign::Assign {
+    fn check_types(self, env: &mut Env) -> Result<Self, Error> {
+        Ok(Self(self.0.check_types(env)?))
+    }
+}
+
 impl CheckTypes for stmt::decl::Decl {
     fn check_types(self, env: &mut Env) -> Result<Self, Error> {
-        if let Some(type_annotation) = &self.type_annotation {
-            let val_type = self.value.borrow().get_type(env).unwrap();
+        let value = Self {
+            allocate: self.allocate.check_types(env)?,
+            ..self
+        };
+        if let Some(type_annotation) = &value.type_annotation {
+            let val_type = match &value.allocate.value {
+                stmt::allocate::Allocation::Expr(expr) => expr.borrow().get_type(env).unwrap(),
+                _ => return Err(value.err(ErrorCode::ExpectedExpression, env)),
+            };
             if &val_type.ident != type_annotation {
-                return Err(self.err(ErrorCode::TypeMismatch, env).with_hint(format!(
+                return Err(value.err(ErrorCode::TypeMismatch, env).with_hint(format!(
                     "expected `{}`, found `{}`",
                     type_annotation.name, val_type.ident.name
                 )));
             }
         }
+        Ok(value)
+    }
+}
+
+impl CheckTypes for stmt::implement::Impl {
+    fn check_types(self, env: &mut Env) -> Result<Self, Error> {
         Ok(Self {
-            value: self.value.check_types(env)?,
+            trait_ident: self.trait_ident.check_types(env)?,
+            type_ident: self.type_ident.check_types(env)?,
+            methods: self.methods.check_types(env)?,
             ..self
         })
     }
@@ -218,18 +266,12 @@ impl CheckTypes for stmt::decl::Decl {
 
 impl CheckTypes for stmt::trait_def::TraitDef {
     fn check_types(self, env: &mut Env) -> Result<Self, Error> {
-        Ok(Self {
-            value: self.value.check_types(env)?,
-            ..self
-        })
+        Ok(Self(self.0.check_types(env)?))
     }
 }
 
 impl CheckTypes for stmt::type_def::TypeDef {
     fn check_types(self, env: &mut Env) -> Result<Self, Error> {
-        Ok(Self {
-            value: self.value.check_types(env)?,
-            ..self
-        })
+        Ok(Self(self.0.check_types(env)?))
     }
 }

@@ -43,18 +43,4 @@ impl GetAttr for Expr {
             _ => panic!("No attributes found for node"),
         }
     }
-    fn attr_mut(&mut self) -> &mut Attr {
-        use Expr::*;
-        match self {
-            Block(b) => &mut b.attr,
-            Function(f) => &mut f.attr,
-            FunctionCall(f) => &mut f.attr,
-            Namespace(n) => &mut n.attr,
-            Ident(i) => &mut i.attr,
-            Value(v) => &mut v.attr,
-            Trait(t) => &mut t.attr,
-            Type(t) => &mut t.attr,
-            _ => panic!("No attributes found for node"),
-        }
-    }
 }

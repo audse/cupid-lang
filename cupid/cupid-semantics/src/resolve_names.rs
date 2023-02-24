@@ -1,8 +1,8 @@
-use crate::{map_expr, map_stmt, Error, ToError};
-use cupid_ast::{expr, stmt, types};
+use crate::{map_expr, map_stmt, Error, ToError, ToErrorCode};
+use cupid_ast::{attr::GetAttr, expr, stmt, types};
 use cupid_debug::code::ErrorCode;
 use cupid_env::{environment::Env, expr_closure::Value};
-use cupid_util::{InvertOption, WrapRefCell};
+use cupid_util::{InvertOption, WrapRc, WrapRefCell};
 use std::{cell::RefCell, rc::Rc};
 
 #[allow(unused_variables)]
@@ -75,7 +75,7 @@ impl ResolveNames for expr::ident::Ident {
         {
             Ok(self)
         } else {
-            Err(self.err(ErrorCode::NotFound, env))
+            Err(self.err_not_found(env))
         }
     }
 }
@@ -114,38 +114,70 @@ impl ResolveNames for types::typ::Type {
     }
 }
 
+impl ResolveNames for stmt::allocate::Allocation {
+    fn resolve_names(self, env: &mut Env) -> Result<Self, Error> {
+        match self {
+            Self::Expr(e) => Ok(Self::Expr(e.resolve_names(env)?)),
+            Self::Trait(t) => Ok(Self::Trait(t.resolve_names(env)?)),
+            Self::Type(t) => Ok(Self::Type(t.resolve_names(env)?)),
+        }
+    }
+}
+
+impl ResolveNames for stmt::allocate::Allocate {
+    fn resolve_names(self, env: &mut Env) -> Result<Self, Error> {
+        use stmt::allocate::AllocationStage;
+        match self.stage {
+            AllocationStage::NameResolution => {
+                let value = self.value.resolve_names(env)?;
+                if let Some(scope) = env.get_closure_mut(self.attr.source) {
+                    let value = Value::build().value(value.clone()).build();
+                    scope
+                        .borrow_mut()
+                        .parent
+                        .as_mut()
+                        .unwrap()
+                        .borrow_mut()
+                        .insert(self.ident.clone(), value)
+                        .map_err(|code| self.ident.err(code, env))?;
+                }
+                Ok(Self {
+                    ident: self.ident.resolve_names(env)?,
+                    value,
+                    ..self
+                })
+            }
+            AllocationStage::TypeNameResolution | AllocationStage::Runtime => Ok(Self {
+                ident: self.ident.resolve_names(env)?,
+                value: self.value.resolve_names(env)?,
+                ..self
+            }),
+        }
+    }
+}
+
 impl ResolveNames for stmt::assign::Assign {
     fn resolve_names(self, env: &mut Env) -> Result<Self, Error> {
-        Ok(Self {
-            ident: self.ident.resolve_names(env)?,
-            value: self.value.resolve_names(env)?,
-            ..self
-        })
+        Ok(Self(self.0.resolve_names(env)?))
     }
 }
 
 impl ResolveNames for stmt::decl::Decl {
     fn resolve_names(self, env: &mut Env) -> Result<Self, Error> {
-        let value = self.value.resolve_names(env)?;
-        if let Some(scope) = env.get_closure_mut(self.attr.source) {
-            let value = Value::build()
-                .mutable(self.mutable)
-                .expr(value.clone())
-                .build();
-            scope
-                .borrow_mut()
-                .parent
-                .as_mut()
-                .unwrap()
-                .borrow_mut()
-                .insert(self.ident.clone(), value)
-                .map_err(|code| self.ident.err(code, env))?;
-        }
-
         Ok(Self {
-            ident: self.ident.resolve_names(env)?,
+            allocate: self.allocate.resolve_names(env)?,
             type_annotation: self.type_annotation.resolve_names(env)?,
-            value,
+            ..self
+        })
+    }
+}
+
+impl ResolveNames for stmt::implement::Impl {
+    fn resolve_names(self, env: &mut Env) -> Result<Self, Error> {
+        Ok(Self {
+            trait_ident: self.trait_ident.resolve_names(env)?,
+            type_ident: self.type_ident.resolve_names(env)?,
+            methods: self.methods.resolve_names(env)?,
             ..self
         })
     }
@@ -153,20 +185,12 @@ impl ResolveNames for stmt::decl::Decl {
 
 impl ResolveNames for stmt::trait_def::TraitDef {
     fn resolve_names(self, env: &mut Env) -> Result<Self, Error> {
-        Ok(Self {
-            ident: self.ident.resolve_names(env)?,
-            value: self.value.resolve_names(env)?,
-            ..self
-        })
+        Ok(Self(self.0.resolve_names(env)?))
     }
 }
 
 impl ResolveNames for stmt::type_def::TypeDef {
     fn resolve_names(self, env: &mut Env) -> Result<Self, Error> {
-        Ok(Self {
-            ident: self.ident.resolve_names(env)?,
-            value: self.value.resolve_names(env)?,
-            ..self
-        })
+        Ok(Self(self.0.resolve_names(env)?))
     }
 }

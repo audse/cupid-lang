@@ -1,5 +1,10 @@
 use crate::infer::Infer;
-use cupid_ast::{expr, stmt::decl::Decl, types, types::typ::Type};
+use cupid_ast::{
+    expr,
+    stmt::{allocate::Allocate, decl::Decl},
+    types,
+    types::typ::Type,
+};
 
 impl Infer<Type> for expr::Expr {
     fn infer(&self) -> Type {
@@ -33,7 +38,10 @@ impl Infer<Type> for expr::function::Function {
     fn infer(&self) -> Type {
         let mut fields = self.params.clone();
         let return_type = Decl {
-            ident: "returns".into(),
+            allocate: Allocate {
+                ident: "returns".into(),
+                ..Default::default()
+            },
             type_annotation: Some(self.body.infer().ident),
             ..Decl::default()
         };

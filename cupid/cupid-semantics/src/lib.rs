@@ -35,6 +35,18 @@ pub trait ToError: GetAttr {
 
 impl<T: GetAttr> ToError for T {}
 
+pub trait ToErrorCode: ToError {
+    fn err_not_found(&self, env: &mut cupid_env::environment::Env) -> Error {
+        self.err(ErrorCode::NotFound, env)
+    }
+}
+
+impl ToErrorCode for cupid_ast::expr::ident::Ident {
+    fn err_not_found(&self, env: &mut cupid_env::environment::Env) -> Error {
+        self.err(ErrorCode::NotFound, env).with_message(format!("The identifier `{}` could not be found in the current scope", self.name))
+    }
+}
+
 pub trait InsideClosure
 where
     Self: GetAttr + Sized,
@@ -74,8 +86,10 @@ macro_rules! map_stmt {
     ($to:ident => |$stm:ident| $inside:expr) => {{
         use stmt::Stmt::*;
         match $to {
+            Allocate($stm) => Ok(Allocate($inside)),
             Assign($stm) => Ok(Assign($inside)),
             Decl($stm) => Ok(Decl($inside)),
+            Impl($stm) => Ok(Impl($inside)),
             TraitDef($stm) => Ok(TraitDef($inside)),
             TypeDef($stm) => Ok(TypeDef($inside)),
         }
@@ -104,8 +118,10 @@ macro_rules! for_stmt {
     ($to:ident => |$stm:ident| $inside:expr) => {{
         use stmt::Stmt::*;
         match $to {
+            Allocate($stm) => $inside,
             Assign($stm) => $inside,
             Decl($stm) => $inside,
+            Impl($stm) => $inside,
             TraitDef($stm) => $inside,
             TypeDef($stm) => $inside,
         }

@@ -1,17 +1,15 @@
 use crate::{
     attr::{Attr, GetAttr},
-    expr::{ident::Ident, Expr},
+    expr::ident::Ident,
+    stmt::allocate::Allocate,
 };
-use std::{cell::RefCell, rc::Rc};
 
 cupid_util::build_struct! {
     #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
     pub DeclBuilder => pub Decl {
-        pub ident: Ident,
+        pub allocate: Allocate,
         pub mutable: Mut,
         pub type_annotation: Option<Ident>,
-        pub value: Rc<RefCell<Expr>>,
-        pub attr: Attr,
     }
 }
 
@@ -24,9 +22,6 @@ pub enum Mut {
 
 impl GetAttr for Decl {
     fn attr(&self) -> Attr {
-        self.attr
-    }
-    fn attr_mut(&mut self) -> &mut Attr {
-        &mut self.attr
+        self.allocate.attr
     }
 }

@@ -1,3 +1,4 @@
+#![cfg(test)]
 use cupid_ast::expr::Expr;
 use cupid_debug::error::Error;
 use cupid_env::environment::Env;

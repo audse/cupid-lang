@@ -49,7 +49,4 @@ impl GetAttr for Ident {
     fn attr(&self) -> Attr {
         self.attr
     }
-    fn attr_mut(&mut self) -> &mut Attr {
-        &mut self.attr
-    }
 }
