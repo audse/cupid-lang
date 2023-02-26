@@ -1,9 +1,9 @@
-import { ErrorCode, err, formatType } from '@/error'
+import { ErrorCode, err } from '@/error'
 import * as input from './@types/5-pre-check-types'
 import * as output from './@types/5-pre-check-types'
-import { Kind, TypeKind } from '@/ast'
+import { isFun, isFunType, Kind, TypeKind } from '@/ast'
 import { unify } from '@/unify'
-import { argTypeMismatch, notFound, typeAnnotationMismatch } from '@/error/constructors'
+import { argTypeMismatch, notAFunction, notFound, typeAnnotationMismatch } from '@/error/constructors'
 
 type Fun = output.Type<TypeKind.Fun>
 
@@ -39,6 +39,13 @@ function checkFieldTypes (field: input.Field): output.Field {
 
 const map: Methods = {
 
+    [Kind.Assign]: assign => {
+        const ident = checkTypes<Kind.Ident>(assign.ident)
+        const value = checkTypes(assign.value)
+        const inferredType = unify(ident.inferredType, value.inferredType)
+        return { ...assign, ident, value, inferredType }
+    },
+
     [Kind.BinOp]: binop => {
         const left = checkTypes(binop.left)
         const right = checkTypes(binop.right)
@@ -68,7 +75,9 @@ const map: Methods = {
     [Kind.Call]: call => {
         const fun = checkTypes(call.fun)
         const args = call.args.map(checkTypes)
-        const funType = { ...fun.inferredType as Fun }
+        const funType: output.Type = { ...fun.inferredType as output.Type }
+
+        if (!isFunType<output.Type<TypeKind.Fun>>(funType)) throw notAFunction(call, fun, funType)
 
         funType.params = funType.params.map((param, i) => {
             try {
@@ -123,7 +132,7 @@ const map: Methods = {
 
     [Kind.Map]: map => {
         const entries: output.Expr<Kind.Map>['entries'] = (
-            map.entries.map(([key, value]) => [checkTypes(key), checkTypes(value)])
+            map.entries.map(([key, value]) => [checkTypes<Kind.Literal>(key), checkTypes(value)])
         )
         if (map.inferredType.typeKind !== TypeKind.Map) throw err(ErrorCode.TypeMismatch, 'expected map', map.inferredType)
         let keyType = map.inferredType.keys, valueType = map.inferredType.values

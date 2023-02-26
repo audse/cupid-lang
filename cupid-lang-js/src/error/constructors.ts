@@ -13,6 +13,17 @@ export function typeAnnotationMismatch (expr: AnyExpr, declaredType: AnyType | n
     )
 }
 
+export function notAFunction (call: AnyExpr<Kind.Call>, fun: AnyExpr, funType: AnyType): Result<any, Err> {
+    return err(
+        ErrorCode.NotAFunction,
+        `expected a function, instead found type ${ formatType(funType) }`,
+        [
+            { context: 'function was declared here...', expr: fun },
+            { context: '...and attempted to be used as a function here', expr: call }
+        ]
+    )
+}
+
 export function argTypeMismatch (param: AnyExpr<Kind.Fun>['params'][number], arg: AnyExpr<Kind.Call>['args'][number], callType: AnyType): Result<any, Err> {
     return err(
         ErrorCode.TypeMismatch,

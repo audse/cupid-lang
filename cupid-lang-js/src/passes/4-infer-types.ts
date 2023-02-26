@@ -3,7 +3,7 @@ import { Option } from '@/types'
 import * as input from './@types/4-pre-infer-types'
 import * as output from './@types/5-pre-check-types'
 import { primitive } from './test/constructors'
-import { Kind, TypeKind } from '@/ast'
+import { isIdent, isLiteral, isMap, Kind, TypeKind } from '@/ast'
 import { unify } from '@/unify'
 
 
@@ -45,6 +45,13 @@ function typeKind (parent: Omit<output.Expr, 'inferredType'>): output.Type {
 const compareOp = new Set(['not', '<', '<=', '>', '>=', 'is', '==', '!='])
 
 const map: Methods = {
+
+    [Kind.Assign]: assign => ({
+        ...assign,
+        ident: inferTypes<Kind.Ident>(assign.ident),
+        value: inferTypes(assign.value),
+        inferredType: makePrimitive(assign, 'none')
+    }),
 
     [Kind.BinOp]: binop => {
         const left = inferTypes(binop.left)
@@ -151,10 +158,10 @@ const map: Methods = {
     },
 
     [Kind.Map]: map => {
-        const entries: [output.Expr, output.Expr][] = map.entries.map(([key, val]) => {
+        const entries: [output.Expr<Kind.Literal>, output.Expr][] = map.entries.map(([key, val]) => {
             const value = inferTypes(val)
-            if (key.kind === Kind.Ident) key.scope.annotate(key as output.Expr<Kind.Ident>, { type: value.inferredType })
-            return [inferTypes(key), value]
+            // if (key.kind === Kind.Ident) key.scope.annotate(key as output.Expr<Kind.Ident>, { type: value.inferredType })
+            return [inferTypes<Kind.Literal>(key), value]
         })
         const newMap: Omit<output.Expr<Kind.Map>, 'inferredType'> = { ...map, entries }
         const partialType = (
@@ -173,11 +180,28 @@ const map: Methods = {
     [Kind.Property]: property => {
         const parent = inferTypes(property.parent)
         const prop = inferTypes(property.property)
+
+        function getPropertyValue (obj: output.Expr): output.Expr | null {
+            if (isMap<output.Expr<Kind.Map>>(obj) && isLiteral<output.Expr<Kind.Literal>>(prop)) {
+                const value = obj.entries.find(
+                    ([key, value]) => key.value === prop.value
+                )
+                if (value) return value[1]
+                return null
+            } else console.log(obj)
+            if (isIdent<output.Expr<Kind.Ident>>(obj)) {
+                const parentValue = prop.scope.lookup(obj)
+                if (parentValue) return getPropertyValue(parentValue.value)
+            }
+            return null
+        }
+        const inferredType = getPropertyValue(parent)?.inferredType || makeType(prop, TypeKind.Unknown, {})
+        console.log(inferredType)
         return {
             ...property,
             parent,
             property: prop,
-            inferredType: prop.inferredType as output.Type,
+            inferredType,
         }
     },
 

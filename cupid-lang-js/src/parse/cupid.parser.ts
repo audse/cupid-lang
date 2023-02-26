@@ -13,9 +13,9 @@ export namespace cupid {
         ?? ((parser): Option<Node | Node[]> => block(parser))(parser)
         ?? ((parser): Option<Node | Node[]> => declaremut(parser))(parser)
         ?? ((parser): Option<Node | Node[]> => declare(parser))(parser)
+        ?? ((parser): Option<Node | Node[]> => assign(parser))(parser)
         ?? ((parser): Option<Node | Node[]> => func(parser))(parser)
         ?? ((parser): Option<Node | Node[]> => ifstmt(parser))(parser)
-        ?? ((parser): Option<Node | Node[]> => assign(parser))(parser)
         ?? ((parser): Option<Node | Node[]> => binaryop(parser))(parser)
         if (exprGroup) return getNodeArray(exprGroup)
         return null
@@ -347,38 +347,6 @@ export namespace cupid {
         }
         return null
     }
-    export function funcall (parser: TokenParser): Option<Node> {
-        const funcallGroup = parser.chain(
-            (parser): Option<Node | Node[]> => funcall_fun(parser),
-            (parser): Option<Node | Node[]> => args(parser)
-        )
-        if (funcallGroup) return {
-            name: 'FunCall',
-            items: getNodeArray(funcallGroup),
-        }
-        return null
-    }
-    export function funcall_fun (parser: TokenParser): Option<Node[]> {
-            const funcall_funGroup = ((parser): Option<Node | Node[]> => parens(
-                parser,
-                (parser): Option<Node | Node[]> => expr(parser)
-        ))(parser)
-        ?? ((parser): Option<Node | Node[]> => ident(parser))(parser)
-        if (funcall_funGroup) return getNodeArray(funcall_funGroup)
-        return null
-    }
-    export function args (parser: TokenParser): Option<Node> {
-            const argsGroup = ((parser): Option<Node | Node[]> => parenlist(
-                parser,
-                (parser): Option<Node | Node[]> => expr(parser),
-                (parser): Option<boolean> => parser.match(',') ? true : null
-        ))(parser)
-        if (argsGroup) return {
-            name: 'Args',
-            items: getNodeArray(argsGroup),
-        }
-        return null
-    }
     export function binaryop (parser: TokenParser): Option<Node> {
         const binaryopGroup = ((parser): Option<Node | Node[]> => compareop(parser))(parser)
         if (binaryopGroup) return {
@@ -449,7 +417,7 @@ export namespace cupid {
     }
     export function powerop (parser: TokenParser): Option<Node[]> {
         const poweropGroup = parser.chain(
-            (parser): Option<Node | Node[]> => propertyop(parser),
+            (parser): Option<Node | Node[]> => funcall(parser),
             parser => modifier.optional(parser, (parser): Option<Node | Node[]> => powerop_right(parser))
         )
         if (poweropGroup) return getNodeArray(poweropGroup)
@@ -466,6 +434,29 @@ export namespace cupid {
     const powerop_opAccepted: Set<string> = new Set(['^'])
     export function powerop_op (parser: TokenParser): Option<Node> {
         return node.string(parser.matchOneSet(powerop_opAccepted))
+    }
+    export function funcall (parser: TokenParser): Option<Node> {
+        const funcallGroup = parser.chain(
+            (parser): Option<Node | Node[]> => propertyop(parser),
+            parser => modifier.optional(parser, (parser): Option<Node | Node[]> => args(parser))
+        )
+        if (funcallGroup) return {
+            name: 'FunCall',
+            items: getNodeArray(funcallGroup),
+        }
+        return null
+    }
+    export function args (parser: TokenParser): Option<Node> {
+            const argsGroup = ((parser): Option<Node | Node[]> => parenlist(
+                parser,
+                (parser): Option<Node | Node[]> => expr(parser),
+                (parser): Option<boolean> => parser.match(',') ? true : null
+        ))(parser)
+        if (argsGroup) return {
+            name: 'Args',
+            items: getNodeArray(argsGroup),
+        }
+        return null
     }
     export function propertyop (parser: TokenParser): Option<Node[]> {
         const propertyopGroup = parser.chain(
@@ -513,7 +504,6 @@ export namespace cupid {
         ?? ((parser): Option<Node | Node[]> => node.string(parser.string()))(parser)
         ?? ((parser): Option<Node | Node[]> => node.int(parser.int()))(parser)
         ?? ((parser): Option<Node | Node[]> => node.decimal(parser.decimal()))(parser)
-        ?? ((parser): Option<Node | Node[]> => funcall(parser))(parser)
         ?? ((parser): Option<Node | Node[]> => typeinstancewithargs(parser))(parser)
         ?? ((parser): Option<Node | Node[]> => ident(parser))(parser)
         ?? ((parser): Option<Node | Node[]> => type(parser))(parser)

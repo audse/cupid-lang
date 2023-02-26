@@ -1,3 +1,4 @@
+import { Option } from '@/types'
 import { Scope } from '@/scope'
 import { TypeKind } from './index'
 import { Kind } from './kind'

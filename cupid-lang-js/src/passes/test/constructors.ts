@@ -10,6 +10,12 @@ type MakeType<T extends AnyTypeKind, Keys extends Partial<keyof Type<T>>> = (
     (args: { [Key in Keys]: Type<T>[Key] }, source?: number) => Type<T>
 )
 
+export const assign: Make<Kind.Assign, 'ident' | 'value'> = ({ ident, value }, source = -1) => ({
+    kind: Kind.Assign,
+    ident,
+    value,
+    source
+})
 export const binop: Make<Kind.BinOp, 'left' | 'right' | 'op'> = ({ left, right, op }, source = -1) => ({
     kind: Kind.BinOp,
     source,

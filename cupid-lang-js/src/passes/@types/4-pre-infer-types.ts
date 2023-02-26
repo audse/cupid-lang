@@ -1,4 +1,4 @@
-import { Kind, TypeKind, Base as AstBase, Scoped, Ident, Literal, Primitive, Unknown, Variable } from '@/ast'
+import { Kind, TypeKind, Base as AstBase, Scoped, Ident, Literal, Primitive, Unknown, Variable, LiteralValue } from '@/ast'
 
 
 export type AnyTypeKind = Exclude<TypeKind, TypeKind.Instance>
@@ -6,6 +6,12 @@ export type AnyTypeKind = Exclude<TypeKind, TypeKind.Instance>
 export type Base<K extends Kind = Kind> = AstBase<K> & Scoped
 
 export type Expr<K extends Kind = Kind, T extends AnyTypeKind = AnyTypeKind> = {
+
+    [Kind.Assign]: Base<K> & {
+        ident: Expr<Kind.Ident>
+        value: Expr
+    }
+
     [Kind.BinOp]: Base<K> & {
         left: Expr
         right: Expr
@@ -33,7 +39,9 @@ export type Expr<K extends Kind = Kind, T extends AnyTypeKind = AnyTypeKind> = {
         body: Expr
     }
 
-    [Kind.Ident]: Scoped & Ident
+    [Kind.Ident]: Base<K> & {
+        name: string
+    }
 
     [Kind.IfStmt]: Base<K> & {
         condition: Expr
@@ -41,10 +49,12 @@ export type Expr<K extends Kind = Kind, T extends AnyTypeKind = AnyTypeKind> = {
         elseBody?: Expr
     }
 
-    [Kind.Literal]: Scoped & Literal
+    [Kind.Literal]: Base<K> & {
+        value: LiteralValue
+    }
 
     [Kind.Map]: Base<K> & {
-        entries: [Expr, Expr][]
+        entries: [Expr<Kind.Literal>, Expr][]
     }
 
     [Kind.Property]: Base<K> & {
@@ -81,7 +91,10 @@ export type Type<T extends AnyTypeKind = AnyTypeKind> = {
         values: Type
     }
 
-    [TypeKind.Primitive]: Scoped & Primitive
+    [TypeKind.Primitive]: Base<Kind.Type> & {
+        typeKind: TypeKind.Primitive
+        name: string
+    }
 
     [TypeKind.Struct]: Base<Kind.Type> & {
         typeKind: TypeKind.Struct
@@ -93,7 +106,9 @@ export type Type<T extends AnyTypeKind = AnyTypeKind> = {
         fields: Field[]
     }
 
-    [TypeKind.Unknown]: Scoped & Unknown
+    [TypeKind.Unknown]: Base<Kind.Type> & {
+        typeKind: TypeKind.Unknown
+    }
 
     [TypeKind.Variable]: Scoped & Variable
 

@@ -20,6 +20,13 @@ function createFieldScope (field: input.Field, scope: Scope): output.Field {
 
 const map: Methods = {
 
+    [Kind.Assign]: (assign, scope) => ({
+        ...assign,
+        ident: createScope<Kind.Ident>(assign.ident, scope),
+        value: createScope(assign.value, scope),
+        scope
+    }),
+
     [Kind.BinOp]: (binop, scope) => ({
         ...binop,
         left: createScope(binop.left, scope),
@@ -44,12 +51,15 @@ const map: Methods = {
         scope,
     }),
 
-    [Kind.Call]: (call, scope) => ({
-        ...call,
-        fun: createScope(call.fun, scope),
-        args: call.args.map(arg => createScope(arg, scope)),
-        scope,
-    }),
+    [Kind.Call]: (call, scope) => {
+        const subscope = scope.subscope()
+        return {
+            ...call,
+            fun: createScope(call.fun, subscope),
+            args: call.args.map(arg => createScope(arg, subscope)),
+            scope: subscope,
+        }
+    },
 
     [Kind.Fun]: (fun, scope) => {
         const subscope = scope.subscope()
@@ -84,7 +94,7 @@ const map: Methods = {
         const subscope = scope.subscope()
         return {
             ...map,
-            entries: map.entries.map(([key, value]) => [createScope(key, subscope), createScope(value, subscope)]),
+            entries: map.entries.map(([key, value]) => [createScope<Kind.Literal>(key, subscope), createScope(value, subscope)]),
             scope: subscope
         }
     },

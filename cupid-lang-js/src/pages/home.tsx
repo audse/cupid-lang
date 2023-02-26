@@ -6,6 +6,24 @@ import { reindent } from '@/codegen'
 import { Err, format, FormatJsx } from '@/error'
 import { Node, Result } from '@/types'
 
+const presetClosure = reindent(`
+    type int = type! int
+    type str = type! str
+
+    let counter = n : int => {
+        let mut i = n
+        let counter = () => {
+            i = i + 1
+            i
+        }
+        counter
+    }
+
+    let count = counter (0)
+    count()
+    count()
+`.trim())
+
 const presetFib = reindent(`
     type int = type! int
     let fib = n : int -> int => {
@@ -42,6 +60,12 @@ const presetTypedef = reindent(`
     ]
 
     my-point\\x
+
+    let operations = [
+        add : (a : int, b : int) => a + b
+    ]
+
+    (operations\\add)(1, 2)
 `.trim())
 
 const presetFunction = reindent(`
@@ -114,6 +138,7 @@ export function Home () {
     let nodes: Node[] = []
     let error: Err | null = null
 
+
     try {
         const compiled = test(content)
         results = compiled.results
@@ -134,6 +159,7 @@ export function Home () {
             <div style={ { display: 'flex', gap: '2rem' } }>
                 <section style={ { flex: 1, maxWidth: '50%' } }>
                     {/* <button onClick={ () => setContent(presetFib) }>ex. Fibonacci</button> */ }
+                    <button onClick={ () => setContent(presetClosure) }>ex. Closure</button>
                     <button onClick={ () => setContent(presetMath) }>ex. Math</button>
                     <button onClick={ () => setContent(presetTypedef) }>ex. Typedef</button>
                     <button onClick={ () => setContent(presetFunction) }>ex. Function</button>

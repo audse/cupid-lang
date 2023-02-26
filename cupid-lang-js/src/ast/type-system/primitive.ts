@@ -1,7 +1,44 @@
-import { Base } from '../ast'
-import { Kind } from '../kind'
-import { TypeKind } from './typekind'
+import { Scope } from '@/env'
+import { TypeVisitor, TypeVisitorWithContext } from '../visitor'
+import { Type, TypeProps } from './type'
 
-export interface Primitive extends Base<Kind.Type, TypeKind.Primitive> {
+
+interface PrimitiveProps extends TypeProps {
     name: string
+}
+
+
+export default class PrimitiveType extends Type implements PrimitiveProps {
+
+    name: string
+
+    constructor (props: PrimitiveProps) {
+        super(props)
+        this.name = props.name
+    }
+
+    report (): string {
+        return this.name
+    }
+
+    isEqual (other: this): boolean {
+        return this.name === other.name
+    }
+
+    cloneIntoScope (scope: Scope): PrimitiveType {
+        return new PrimitiveType({
+            scope,
+            source: this.source,
+            name: this.name
+        })
+    }
+
+    accept<T> (visitor: TypeVisitor<T>): T {
+        return visitor.visitPrimitiveType(this)
+    }
+
+    acceptWithContext<T, Ctx> (visitor: TypeVisitorWithContext<T, Ctx>, context: Ctx): T {
+        return visitor.visitPrimitiveType(this, context)
+    }
+
 }

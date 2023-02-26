@@ -24,6 +24,12 @@ function toLiteral (parent: Expr, value: Value): Expr<Kind.Literal> {
 
 const map: Methods = {
 
+    [Kind.Assign]: assign => {
+        const value = interpret(assign.value)
+        assign.scope.annotate(assign.ident, { value: toLiteral(assign, value) })
+        return null
+    },
+
     [Kind.BinOp]: binop => {
         const left = interpret(binop.left)
         const right = interpret(binop.right)
@@ -101,13 +107,16 @@ const map: Methods = {
     },
 
     [Kind.Property]: property => {
-        const parent = interpret(property.parent)
-        const prop = interpret(property.property)
-        if (typeof parent === 'object' && parent) {
-            // @ts-ignore
-            if ((typeof prop === 'number' || typeof prop === 'string')) return parent[prop]
+        const parent = interpret(property.parent) as Record<string | number, any>
+
+        if (typeof parent === 'object' && property.property.kind === Kind.Literal) {
+            return parent[property.property.value as keyof typeof parent]
         }
-        throw err(ErrorCode.InvalidOperation, '', property)
+
+        return interpret(property.property)
+        // if (property.property.kind === Kind.Ident) return parent[property.property.name]
+        // already resolved as symbol
+        // throw err(ErrorCode.InvalidOperation, '', property)
     },
 
     [Kind.Type]: type => type,
@@ -128,6 +137,10 @@ const map: Methods = {
 export function interpret<
     Input extends Kind = Kind
 > (expr: Expr<Input>): Value {
+    if (!expr || !expr.kind) {
+        console.trace()
+        console.log(expr)
+    }
     const kind = expr.kind as Input
     return map[kind](expr)
 }

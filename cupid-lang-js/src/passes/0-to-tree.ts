@@ -1,6 +1,6 @@
 import { Node, nodeIs, RuleNode } from '@/types'
 import { safeStringify } from '@/utils'
-import { Kind, TypeKind } from '@/ast'
+import { isIdent, Kind, TypeKind } from '@/ast'
 import { Expr, AnyTypeKind, Field } from './@types/1-pre-create-scope'
 import * as make from './test/constructors'
 
@@ -9,9 +9,10 @@ type ToTree<Input extends Kind> = (
 )
 
 type AcceptedExpr<K extends Kind> = {
+    [Kind.Assign]: Kind.Assign
     [Kind.BinOp]: Kind
     [Kind.Block]: Kind.Block
-    [Kind.Call]: Kind.Call
+    [Kind.Call]: Kind
     [Kind.Decl]: Kind.Decl
     [Kind.Fun]: Kind.Fun
     [Kind.Ident]: Kind.Ident
@@ -46,6 +47,17 @@ function fieldToTree (node: Node, env: Node[]): Field {
 
 const map: Methods = {
 
+    [Kind.Assign]: (node, env) => {
+        if (nodeIs.RuleNode(node)) {
+            const [ident, value] = node.items
+            return make.assign({
+                ident: toTree<Kind.Ident>(ident, env),
+                value: toTree(value, env)
+            }, env.push(node))
+        }
+        throw err(node, 'Expected assign node')
+    },
+
     [Kind.BinOp]: (node, env) => {
         if (nodeIs.RuleNode(node)) {
             if (node.items.length >= 3 && nodeIs.StringNode(node.items[1])) {
@@ -69,10 +81,13 @@ const map: Methods = {
     },
 
     [Kind.Call]: (node, env) => {
-        if (nodeIs.RuleNode(node) && nodeIs.RuleNode(node.items[1])) return make.call({
-            fun: toTree(node.items[0], env),
-            args: node.items[1].items.map(item => toTree(item, env))
-        }, env.push(node))
+        if (nodeIs.RuleNode(node)) {
+            if (nodeIs.RuleNode(node.items[1])) return make.call({
+                fun: toTree(node.items[0], env),
+                args: node.items[1].items.map(item => toTree(item, env))
+            }, env.push(node))
+            return map.binop(node, env)
+        }
         throw err(node)
     },
 
@@ -141,8 +156,16 @@ const map: Methods = {
 
     [Kind.Map]: (node, env) => {
         if (nodeIs.RuleNode(node)) {
-            const entries: [Expr, Expr][] = node.items.map(item => {
-                if (nodeIs.RuleNode(item)) return [toTree(item.items[0], env), toTree(item.items[1], env)]
+            const entries: [Expr<Kind.Literal>, Expr][] = node.items.map(item => {
+                if (nodeIs.RuleNode(item)) {
+                    const key = toTree(item.items[0], env)
+                    const value = toTree(item.items[1], env)
+                    if (isIdent<Expr<Kind.Ident>>(key)) return [
+                        make.literal({ value: key.name }, key.source),
+                        value
+                    ]
+                    return [key as Expr<Kind.Literal>, value]
+                }
                 throw err(item, 'expected rule node')
             })
             return make.map({ entries }, env.push(node))
@@ -151,8 +174,16 @@ const map: Methods = {
     },
 
     [Kind.Property]: (node, env) => {
-        const [left, _, right] = (node as RuleNode).items
-        return make.property({ parent: toTree(left, env), property: toTree(right, env) }, env.push(node))
+        const [left, _, rightNode] = (node as RuleNode).items
+
+        const right = toTree(rightNode, env)
+        // convert ident properties to string properties
+        const property = (
+            isIdent<Expr<Kind.Ident>>(right) ? make.literal({ value: right.name }, right.source)
+                : right
+        )
+
+        return make.property({ parent: toTree(left, env), property }, env.push(node))
     },
 
     [Kind.Type]: (node, env) => {
@@ -221,6 +252,7 @@ export function toTree<
 > (node: Node, env: Node[]): Expr<Input> {
     if (nodeIs.RuleNode(node)) {
         switch (node.name) {
+            case 'Assign': return map.assign(node, env) as Expr<Input>
             case 'BinaryOp': return map.binop(node, env) as Expr<Input>
             case 'Block': return map.block(node, env) as Expr<Input>
             case 'FunCall': return map.call(node, env) as Expr<Input>

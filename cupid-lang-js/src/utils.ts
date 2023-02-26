@@ -1,3 +1,5 @@
+import { reindent } from './codegen'
+
 export function mapEntries<T extends object, R> (object: T, predicate: (key: keyof T, value: T[keyof T], i: number) => R): R[] {
     const results: R[] = []
     let i = 0
@@ -31,6 +33,12 @@ export function filterObjectRecursive<T extends object> (object: T, predicate: (
     return copy
 }
 
+export function fixNestedStringify (stringified: string): string {
+    return reindent(stringified
+        .replace(/\\n/g, '\n')
+        .replace(/\\"/g, '"'))
+}
+
 export function safeStringify (obj: any, indent = 2): string {
     let cache: any[] | null = []
     const retVal = JSON.stringify(
@@ -44,7 +52,7 @@ export function safeStringify (obj: any, indent = 2): string {
         indent
     )
     cache = null
-    return retVal
+    return fixNestedStringify(retVal)
 }
 
 export function debounce (func: any, wait: number) {
@@ -80,4 +88,14 @@ export function filterMap<T, R> (array: T[], predicate: (item: T, index: number)
         i += 1
     }
     return items
+}
+
+export function stringify (object: object): string {
+    return safeStringify(object, 2).replace(/"/g, '')
+}
+
+
+export function pluralize (string: string, amount: number): string {
+    if (amount === 1) return string
+    return `${ string }s`
 }

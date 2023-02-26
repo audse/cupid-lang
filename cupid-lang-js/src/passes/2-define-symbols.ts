@@ -1,4 +1,5 @@
-import { isIdent, Kind, TypeKind } from '@/ast'
+import { isCall, isIdent, isLiteral, Kind, TypeKind } from '@/ast'
+import { isMap } from 'util/types'
 import * as input from './@types/2-pre-define-symbols'
 import * as output from './@types/3-pre-resolve-types'
 
@@ -19,6 +20,12 @@ function defineFieldSymbol (field: input.Field): output.Field {
 }
 
 const map: Methods = {
+
+    [Kind.Assign]: assign => ({
+        ...assign,
+        ident: defineSymbols<Kind.Ident>(assign.ident),
+        value: defineSymbols(assign.value),
+    }),
 
     [Kind.BinOp]: binop => ({
         ...binop,
@@ -49,14 +56,12 @@ const map: Methods = {
         args: call.args.map(defineSymbols),
     }),
 
-    [Kind.Fun]: fun => {
-        return {
-            ...fun,
-            params: fun.params.map(defineFieldSymbol),
-            returns: defineSymbols<Kind.Type>(fun.returns),
-            body: defineSymbols(fun.body),
-        }
-    },
+    [Kind.Fun]: fun => ({
+        ...fun,
+        params: fun.params.map(defineFieldSymbol),
+        returns: defineSymbols<Kind.Type>(fun.returns),
+        body: defineSymbols(fun.body),
+    }),
 
     [Kind.Ident]: ident => ident,
 
@@ -70,10 +75,10 @@ const map: Methods = {
     [Kind.Literal]: literal => literal,
 
     [Kind.Map]: map => {
-        const entries: [output.Expr, output.Expr][] = map.entries.map(([key, value]) => {
-            const val = defineSymbols(value)
-            if (key.kind === Kind.Ident) key.scope.define(key as output.Expr<Kind.Ident>, { value: val })
-            return [defineSymbols(key), val]
+        const entries: [output.Expr<Kind.Literal>, output.Expr][] = map.entries.map(([key, value]) => {
+            // const val = defineSymbols(value)
+            // if (key.kind === Kind.Ident) key.scope.define(key as output.Expr<Kind.Ident>, { value: val })
+            return [defineSymbols<Kind.Literal>(key), defineSymbols(value)]
         })
         return { ...map, entries }
     },
@@ -81,10 +86,23 @@ const map: Methods = {
     [Kind.Property]: prop => {
         const parent = defineSymbols(prop.parent)
         const property = defineSymbols(prop.property)
-        if (isIdent<output.Expr<Kind.Ident>>(parent)) {
-            const parentValue = prop.scope.lookup(parent)
-            if (parentValue) property.scope = parentValue.value.scope
-        } else property.scope = parent.scope
+
+        // if (isIdent<output.Expr<Kind.Ident>>(parent)) {
+        //     const parentValue = prop.scope.lookup(parent)
+        //     if (parentValue) scope = parentValue.value.scope
+        //     console.log(parentValue)
+        // }
+
+        // function updateScope (expr: any) {
+        //     if (typeof expr === 'object' && expr && 'scope' in expr) {
+        //         for (const value of Object.values(expr)) updateScope(value)
+        //         expr.scope = scope
+        //     }
+        //     return expr
+        // }
+        // updateScope(property)
+        // console.log(scope)
+
         return { ...prop, parent, property }
     },
 

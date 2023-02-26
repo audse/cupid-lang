@@ -1,5 +1,6 @@
 
 export enum Kind {
+    Assign = 'assign',
     BinOp = 'binop',
     Block = 'block',
     Call = 'call',
@@ -12,7 +13,6 @@ export enum Kind {
     Property = 'property',
     Type = 'type',
     TypeConstructor = 'typedef',
-    // TypeInstance = 'typeinstance',
     UnOp = 'unop',
 }
 
@@ -31,6 +31,10 @@ export function isExpr<E> (expr: unknown): expr is E {
 
 export function isKind<E extends V, V extends HasKind = HasKind> (kind: string, value: V): value is E {
     return value.kind === kind
+}
+
+export function isAssign<E extends V, V extends HasKind = HasKind> (value: V): value is E {
+    return isKind<E>(Kind.Assign, value)
 }
 
 export function isBinOp<E extends V, V extends HasKind = HasKind> (value: V): value is E {

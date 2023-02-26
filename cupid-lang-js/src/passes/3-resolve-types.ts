@@ -48,6 +48,12 @@ function resolveTypeConstructor (constructor: input.Expr<Kind.TypeConstructor>, 
 
 const map: Methods = {
 
+    [Kind.Assign]: assign => ({
+        ...assign,
+        ident: resolveTypes<Kind.Ident>(assign.ident),
+        value: resolveTypes(assign.value),
+    }),
+
     [Kind.BinOp]: binop => ({
         ...binop,
         left: resolveTypes(binop.left),
@@ -69,11 +75,13 @@ const map: Methods = {
         return { ...decl, ident, value, type, scope: decl.scope }
     },
 
-    [Kind.Call]: call => ({
-        ...call,
-        fun: resolveTypes(call.fun),
-        args: call.args.map(resolveTypes),
-    }),
+    [Kind.Call]: call => {
+        return {
+            ...call,
+            fun: resolveTypes(call.fun),
+            args: call.args.map(resolveTypes),
+        }
+    },
 
     [Kind.Fun]: fun => ({
         ...fun,
@@ -100,10 +108,10 @@ const map: Methods = {
     }),
 
     [Kind.Map]: map => {
-        const entries: [output.Expr, output.Expr][] = map.entries.map(([key, val]) => {
+        const entries: [output.Expr<Kind.Literal>, output.Expr][] = map.entries.map(([key, val]) => {
             const value = resolveTypes(val)
-            if (key.kind === Kind.Ident) key.scope.annotate(key as output.Expr<Kind.Ident>, { value })
-            return [resolveTypes(key), value]
+            // if (key.kind === Kind.Ident) key.scope.annotate(key as output.Expr<Kind.Ident>, { value })
+            return [resolveTypes<Kind.Literal>(key), value]
         })
         return { ...map, entries }
     },

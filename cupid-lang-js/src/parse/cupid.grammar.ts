@@ -92,9 +92,7 @@ TypeInstanceArgs {
     BracketList [ TypeInstance, ','~ ]
 }
 
-ReturnTypeHint ~ {
-    '-'~ '>'~ Type
-}
+ReturnTypeHint ~ { '-'~ '>'~ Type }
 
 `
 
@@ -105,9 +103,9 @@ Expr ~ {
     | Block
     | DeclareMut
     | Declare
+    | Assign
     | Func
     | IfStmt
-    | Assign
     | BinaryOp
 }
 
@@ -161,33 +159,14 @@ ArrowBlock ~ {
     '='~ '>'~ Expr
 }
 
-Func {
-    Params ReturnTypeHint? Block
-}
-
+Func { Params ReturnTypeHint? Block }
 Params { 
     ParenList[Param, ','~]
     | List[Param, ','~]
 }
-
 Param { Ident TypeHint }
 
-FunCall {
-    FunCall_Fun Args
-}
-
-FunCall_Fun ~ {
-    Parens[Expr]
-    | Ident
-}
-
-Args {
-    ParenList[Expr, ','~]
-}
-
-BinaryOp {
-    CompareOp
-}
+BinaryOp { CompareOp }
 
 CompareOp ~ { AddOp CompareOp_Right? }
 CompareOp_Right ~ { CompareOperator Expr }
@@ -207,33 +186,25 @@ CompareOperator match-strings {
 
 AddOp ~ { MultiplyOp AddOp_Right? }
 AddOp_Right ~ { AddOp_Op Expr }
-AddOp_Op match-strings {
-    '+' 
-    '-'
-}
+AddOp_Op match-strings { '+' '-' '%' }
 
 MultiplyOp ~ { PowerOp MultiplyOp_Right? }
 MultiplyOp_Right ~ { MultiplyOp_Op Expr }
-MultiplyOp_Op match-strings {
-    '*'
-    '/'
-}
+MultiplyOp_Op match-strings { '*' '/' }
 
-PowerOp ~ { PropertyOp PowerOp_Right? }
+PowerOp ~ { FunCall PowerOp_Right? }
 PowerOp_Right ~ { PowerOp_Op Expr }
-PowerOp_Op match-strings {
-    '^'
-}
+PowerOp_Op match-strings { '^' }
+
+FunCall { PropertyOp Args? }
+Args { ParenList[Expr, ','~] }
 
 PropertyOp ~ { UnaryOp PropertyOp_Right? }
 PropertyOp_Right ~ { PropertyOp_Op Expr }
-PropertyOp_Op match-strings {
-    '.'
-    '\\\\'
-}
+PropertyOp_Op match-strings { '.' '\\\\' }
 
-UnaryOp {
-    ('-' Expr)
+UnaryOp { 
+    ('-' Expr) 
     | Group
 }
 
@@ -247,7 +218,6 @@ Leaf ~ {
     | @string
     | @int
     | @decimal
-    | FunCall
     | TypeInstanceWithArgs
     | Ident
     | Type
