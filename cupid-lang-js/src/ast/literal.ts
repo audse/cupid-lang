@@ -1,5 +1,6 @@
 import { Scope } from '@/env'
 import { Expr, ExprProps } from './expr'
+import Ident from './ident'
 import { ExprVisitor, ExprVisitorWithContext } from './visitor'
 
 export type LiteralValue = number | string | null | [number, number] | boolean
@@ -17,6 +18,19 @@ export default class Literal extends Expr implements LiteralProps {
         this.value = props.value
     }
 
+    intoIdent (): Ident {
+        const name: string | number = (
+            ['string', 'number'].includes(typeof this.value) ? this.value as string | number
+                : (this.value || 'none').toString()
+        )
+        return new Ident({
+            scope: this.scope,
+            source: this.source,
+            name,
+            inferredType: this.inferredType,
+        })
+    }
+
     report (): string {
         return `${ this.value }`
     }
@@ -26,14 +40,6 @@ export default class Literal extends Expr implements LiteralProps {
             return this.value[0] === other.value[0] && this.value[1] === other.value[1]
         }
         return this.value === other.value
-    }
-
-    cloneIntoScope (scope: Scope): Literal {
-        return new Literal({
-            scope,
-            source: this.source,
-            value: Array.isArray(this.value) ? [...this.value] : this.value,
-        })
     }
 
     accept<T> (visitor: ExprVisitor<T>): T {

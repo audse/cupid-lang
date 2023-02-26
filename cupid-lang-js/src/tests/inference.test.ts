@@ -1,6 +1,6 @@
 import { Expr, PrimitiveType } from '@/ast/index'
 import { expect, test } from 'bun:test'
-import { compile, interpret, setup } from './utils'
+import { compile, interpret, last, setup } from './utils'
 
 
 function inferredTypeIsPrimitive (expr: Expr, name: string): boolean {
@@ -12,66 +12,66 @@ function inferredTypeIsPrimitive (expr: Expr, name: string): boolean {
 }
 
 test('int literal inference', () => {
-    const [scope, make] = setup()
-    const int = make.int(123)
-    expect(inferredTypeIsPrimitive(compile(int)[0], 'int')).toBeTruthy()
+    const [scope, make, exprs] = setup()
+    const int = make.literal.int(123)
+    expect(inferredTypeIsPrimitive(last(compile(...exprs, int)), 'int')).toBeTruthy()
 })
 
 test('bool literal inference', () => {
-    const [scope, make] = setup()
-    const bool = make.bool(false)
-    expect(inferredTypeIsPrimitive(compile(bool)[0], 'bool')).toBeTruthy()
+    const [scope, make, exprs] = setup()
+    const bool = make.literal.bool(false)
+    expect(inferredTypeIsPrimitive(last(compile(...exprs, bool)), 'bool')).toBeTruthy()
 })
 
 test('decimal literal inference', () => {
-    const [scope, make] = setup()
-    const dec = make.dec(1, 5)
-    expect(inferredTypeIsPrimitive(compile(dec)[0], 'decimal')).toBeTruthy()
+    const [scope, make, exprs] = setup()
+    const dec = make.literal.dec(1, 5)
+    expect(inferredTypeIsPrimitive(last(compile(...exprs, dec)), 'decimal')).toBeTruthy()
 })
 
 test('none literal inference', () => {
-    const [scope, make] = setup()
-    const none = make.none()
-    expect(inferredTypeIsPrimitive(compile(none)[0], 'none')).toBeTruthy()
+    const [scope, make, exprs] = setup()
+    const none = make.literal.none()
+    expect(inferredTypeIsPrimitive(last(compile(...exprs, none)), 'none')).toBeTruthy()
 })
 
 test('typekind inference', () => {
-    const [scope, make] = setup()
-    const intType = make.primitiveType('int')
-    expect(inferredTypeIsPrimitive(compile(intType)[0], 'type')).toBeTruthy()
+    const [scope, make, exprs] = setup()
+    const intType = make.type.primitive('int')
+    expect(inferredTypeIsPrimitive(last(compile(...exprs, intType)), 'type')).toBeTruthy()
 })
 
 test('empty block inference', () => {
-    const [scope, make] = setup()
+    const [scope, make, exprs] = setup()
     const block = make.block()
-    expect(inferredTypeIsPrimitive(compile(block)[0], 'none')).toBeTruthy()
+    expect(inferredTypeIsPrimitive(last(compile(...exprs, block)), 'none')).toBeTruthy()
 })
 
 test('block inference', () => {
-    const [scope, make] = setup()
+    const [scope, make, exprs] = setup()
     const block = make.block(
-        make.bool(true),
-        make.int(1)
+        make.literal.bool(true),
+        make.literal.int(1)
     )
-    expect(inferredTypeIsPrimitive(compile(block)[0], 'int')).toBeTruthy()
+    expect(inferredTypeIsPrimitive(last(compile(...exprs, block)), 'int')).toBeTruthy()
 })
 
 test('binop math inference', () => {
-    const [scope, make] = setup()
+    const [scope, make, exprs] = setup()
     const binop = make.binop(
-        make.int(2),
-        make.int(1),
+        make.literal.int(2),
+        make.literal.int(1),
         '+'
     )
-    expect(inferredTypeIsPrimitive(compile(binop)[0], 'int')).toBeTruthy()
+    expect(inferredTypeIsPrimitive(last(compile(...exprs, binop)), 'int')).toBeTruthy()
 })
 
 test('binop compare inference', () => {
-    const [scope, make] = setup()
+    const [scope, make, exprs] = setup()
     const binop = make.binop(
-        make.int(2),
-        make.int(1),
+        make.literal.int(2),
+        make.literal.int(1),
         'is'
     )
-    expect(inferredTypeIsPrimitive(compile(binop)[0], 'bool')).toBeTruthy()
+    expect(inferredTypeIsPrimitive(last(compile(...exprs, binop)), 'bool')).toBeTruthy()
 })

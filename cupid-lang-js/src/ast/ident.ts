@@ -6,13 +6,13 @@ import { Scope, Symbol } from '@/env'
 
 
 interface IdentProps extends ExprProps {
-    name: string
+    name: string | number
 }
 
 
 export default class Ident extends Expr implements IdentProps {
 
-    name: string
+    name: string | number
     symbol: Option<Symbol> = null
 
     constructor (props: IdentProps) {
@@ -22,23 +22,15 @@ export default class Ident extends Expr implements IdentProps {
 
     expectSymbol (): Symbol {
         if (this.symbol) return this.symbol
-        else return this.scope.lookupExpect(this)
+        return this.scope.lookupExpect(this)
     }
 
     report (): string {
-        return this.name
+        return this.name.toString()
     }
 
     isEqual (other: this): boolean {
         return this.name === other.name
-    }
-
-    cloneIntoScope (scope: Scope): Ident {
-        return new Ident({
-            scope,
-            source: this.source,
-            name: this.name,
-        })
     }
 
     accept<T> (visitor: ExprVisitor<T>): T {

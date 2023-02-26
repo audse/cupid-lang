@@ -1,22 +1,22 @@
 import { CompilationErrorCode } from '@/error/compilation-error'
 import { expect, test } from 'bun:test'
-import { expectCompilationError, interpret, maker, setup } from './utils'
+import { expectCompilationError, interpret, maker, last, setup } from './utils'
 
 test('int decl', () => {
-    const [scope, make] = setup()
-    expect(interpret(
-        make.quick.constructor.int(),
+    const [scope, make, exprs] = setup()
+    expect(last(interpret(
+        ...exprs,
         make.quick.decl.int('x', 123),
         make.ident('x')
-    )[2]).toBe(123)
+    ))).toBe(123)
 })
 
 test('already defined', () => {
-    const [scope, make] = setup()
+    const [scope, make, exprs] = setup()
     expectCompilationError(
         CompilationErrorCode.AlreadyDefined,
         () => interpret(
-            make.quick.constructor.int(),
+            ...exprs,
             make.quick.decl.int('x', 123),
             make.quick.decl.dec('x', 1, 5),
         )

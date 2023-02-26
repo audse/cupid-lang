@@ -1,13 +1,13 @@
 import { CompilationErrorCode } from '@/error/compilation-error'
 import { expect, test } from 'bun:test'
-import { expectCompilationError, interpret, maker, setup } from './utils'
+import { expectCompilationError, interpret, last, maker, setup } from './utils'
 
 test('fun decl', () => {
-    const [_, make] = setup()
+    const [_, make, exprs] = setup()
     const addFun = make.quick.decl.addFun()
     const addIdent = make.ident('add')
     interpret(
-        make.quick.constructor.int(),
+        ...exprs,
         addFun,
         addIdent
     )
@@ -16,50 +16,50 @@ test('fun decl', () => {
 })
 
 test('fun call', () => {
-    const [_, make] = setup()
-    expect(interpret(
-        make.quick.constructor.int(),
+    const [_, make, exprs] = setup()
+    expect(last(interpret(
+        ...exprs,
         make.call(
             make.quick.decl.addFun().value,
-            make.int(1),
-            make.int(2)
+            make.literal.int(1),
+            make.literal.int(2)
         )
-    )[1]).toBe(3)
+    ))).toBe(3)
 })
 
 test('nested fun call', () => {
-    const [_, make] = setup()
-    expect(interpret(
-        make.quick.constructor.int(),
+    const [_, make, exprs] = setup()
+    expect(last(interpret(
+        ...exprs,
         make.quick.decl.addFun(),
         make.call(
             make.ident('add'),
-            make.call(make.ident('add'), make.int(1), make.int(2)),
-            make.int(2)
+            make.call(make.ident('add'), make.literal.int(1), make.literal.int(2)),
+            make.literal.int(2)
         )
-    )[2]).toBe(5)
+    ))).toBe(5)
 })
 
 test('wrong argument type', () => {
-    const [_, make] = setup()
+    const [_, make, exprs] = setup()
     expectCompilationError(
         CompilationErrorCode.UnableToUnifyType,
         () => interpret(
-            make.quick.constructor.int(),
+            ...exprs,
             make.quick.decl.addFun(),
-            make.call(make.ident('add'), make.int(1), make.dec(1, 5))
+            make.call(make.ident('add'), make.literal.int(1), make.literal.dec(1, 5))
         )
     )
 })
 
 test('wrong number of arguments', () => {
-    const [_, make] = setup()
+    const [_, make, exprs] = setup()
     expectCompilationError(
         CompilationErrorCode.IncorrectNumberOfArgs,
         () => interpret(
-            make.quick.constructor.int(),
+            ...exprs,
             make.quick.decl.addFun(),
-            make.call(make.ident('add'), make.int(1), make.int(2), make.int(3))
+            make.call(make.ident('add'), make.literal.int(1), make.literal.int(2), make.literal.int(3))
         )
     )
 })

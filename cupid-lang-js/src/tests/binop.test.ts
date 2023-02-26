@@ -1,23 +1,23 @@
 import { LiteralValue } from '@/ast/literal'
 import { expect, test } from 'bun:test'
-import { interpret, maker, setup } from './utils'
+import { interpret, last, maker, setup } from './utils'
 
 function testBinopInt (props: { op: string, l: number, r: number, expect: LiteralValue }) {
-    const [scope, make] = setup()
-    const binop = make.binop(make.int(props.l), make.int(props.r), props.op)
-    expect(interpret(binop)[0]).toBe(props.expect)
+    const [scope, make, exprs] = setup()
+    const binop = make.binop(make.literal.int(props.l), make.literal.int(props.r), props.op)
+    expect(last(interpret(...exprs, binop))).toBe(props.expect)
 }
 
 function testBinopDecimal (props: { op: string, l: [number, number], r: [number, number], expect: LiteralValue }) {
-    const [scope, make] = setup()
-    const binop = make.binop(make.dec(...props.l), make.dec(...props.r), props.op)
-    expect(interpret(binop)[0]).toBe(props.expect)
+    const [scope, make, exprs] = setup()
+    const binop = make.binop(make.literal.dec(...props.l), make.literal.dec(...props.r), props.op)
+    expect(last(interpret(...exprs, binop))).toBe(props.expect)
 }
 
 function testBinopBool (props: { op: string, l: boolean, r: boolean, expect: LiteralValue }) {
-    const [scope, make] = setup()
-    const binop = make.binop(make.bool(props.l), make.bool(props.r), props.op)
-    expect(interpret(binop)[0]).toBe(props.expect)
+    const [scope, make, exprs] = setup()
+    const binop = make.binop(make.literal.bool(props.l), make.literal.bool(props.r), props.op)
+    expect(last(interpret(...exprs, binop))).toBe(props.expect)
 }
 
 test('add int binop', () => {

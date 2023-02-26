@@ -6,22 +6,22 @@ import { expectCompilationError, interpret, setup } from './utils'
 
 
 test('struct field type instance int/unknown unification', () => {
-    const [_, make] = setup()
+    const [_, make, exprs] = setup()
     const pointInstance = make.quick.instance.pointStruct('int')
-    const unknownType = make.typeConstructor(make.ident('some-type'), make.unknownType())
+    const unknown = make.typeConstructor(make.ident('some-type'), make.type.unknown())
     const pointUnknown = make.typeConstructor(
         make.ident('p2'),
-        make.structType([
-            make.fieldType(make.ident('x'), make.instanceType(make.ident('some-type'))),
-            make.fieldType(make.ident('y'), make.instanceType(make.ident('some-type'))),
+        make.type.struct([
+            make.type.field(make.ident('x'), make.type.instance(make.ident('some-type'))),
+            make.type.field(make.ident('y'), make.type.instance(make.ident('some-type'))),
         ])
     )
-    const pointUnknownInstance = make.instanceType(make.ident('p2'))
+    const pointUnknownInstance = make.type.instance(make.ident('p2'))
     interpret(
-        make.quick.constructor.int(),
+        ...exprs,
         make.quick.constructor.pointStruct(),
         pointInstance,
-        unknownType,
+        unknown,
         pointUnknown,
         pointUnknownInstance
     )
@@ -37,15 +37,14 @@ test('struct field type instance int/unknown unification', () => {
 
 
 test('struct field type instance int/decimal unification', () => {
-    const [_, make] = setup()
+    const [_, make, exprs] = setup()
     const pointInstanceA = make.quick.instance.pointStruct('int')
     const pointInstanceB = make.quick.instance.pointStruct('decimal')
     expectCompilationError(
         CompilationErrorCode.UnableToUnifyType,
         () => {
             interpret(
-                make.quick.constructor.int(),
-                make.quick.constructor.decimal(),
+                ...exprs,
                 make.quick.constructor.pointStruct(),
                 pointInstanceA,
                 pointInstanceB,

@@ -29,7 +29,9 @@ export default class FieldType extends Type implements FieldProps {
             scope: this.scope,
             source: this.source,
             ident: this.ident,
-            type: this.type.getResolved()
+            type: this.type.getResolved(),
+            environment: this.environment,
+            inferredType: this.inferredType,
         })
     }
 
@@ -38,15 +40,6 @@ export default class FieldType extends Type implements FieldProps {
             this.ident.isEqual(other.ident)
             && this.type.isEqual(other.type)
         )
-    }
-
-    cloneIntoScope (scope: Scope): FieldType {
-        return new FieldType({
-            scope,
-            source: this.source,
-            ident: this.ident.cloneIntoScope(scope),
-            type: this.type.cloneIntoScope(scope)
-        })
     }
 
     findMatch (other: FieldType[]): Option<FieldType> {

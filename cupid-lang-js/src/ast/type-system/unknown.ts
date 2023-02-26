@@ -20,13 +20,6 @@ export default class UnknownType extends Type implements UnknownProps {
         return true
     }
 
-    cloneIntoScope (scope: Scope): UnknownType {
-        return new UnknownType({
-            scope,
-            source: this.source,
-        })
-    }
-
     accept<T> (visitor: TypeVisitor<T>): T {
         return visitor.visitUnknownType(this)
     }

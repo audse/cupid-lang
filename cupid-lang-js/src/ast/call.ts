@@ -35,16 +35,6 @@ export default class Call extends Expr implements CallProps {
         return false
     }
 
-    cloneIntoScope (scope: Scope): Call {
-        const subscope = scope.subscope(Context.Call)
-        return new Call({
-            scope: subscope,
-            source: this.source,
-            fun: this.fun.cloneIntoScope(subscope),
-            args: this.args.map(arg => arg.cloneIntoScope(subscope)),
-        })
-    }
-
     accept<T> (visitor: ExprVisitor<T>): T {
         return visitor.visitCall(this)
     }

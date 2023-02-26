@@ -34,17 +34,6 @@ export default class TypeConstructor extends Expr implements TypeConstructorProp
         return false
     }
 
-    cloneIntoScope (scope: Scope): TypeConstructor {
-        const subscope = scope.subscope(Context.TypeConstructor)
-        return new TypeConstructor({
-            scope: subscope,
-            source: this.source,
-            ident: this.ident.cloneIntoScope(subscope),
-            params: this.params.map(param => param.cloneIntoScope(subscope)),
-            body: this.body.cloneIntoScope(subscope)
-        })
-    }
-
     accept<T> (visitor: ExprVisitor<T>): T {
         return visitor.visitTypeConstructor(this)
     }

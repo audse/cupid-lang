@@ -39,17 +39,6 @@ export default class Fun extends Expr implements FunProps {
         return false
     }
 
-    cloneIntoScope (scope: Scope): Fun {
-        const subscope = scope.subscope(Context.Fun)
-        return new Fun({
-            scope: subscope,
-            source: this.source,
-            params: this.params.map(param => param.cloneIntoScope(subscope)),
-            body: this.body.cloneIntoScope(subscope),
-            returns: this.returns.cloneIntoScope(subscope)
-        })
-    }
-
     accept<T> (visitor: ExprVisitor<T>): T {
         return visitor.visitFun(this)
     }

@@ -27,15 +27,6 @@ export default class Block extends Expr implements BlockProps {
         return false
     }
 
-    cloneIntoScope (scope: Scope): Block {
-        const subscope = scope.subscope(Context.Block)
-        return new Block({
-            scope: subscope,
-            source: this.source,
-            exprs: this.exprs.map(expr => expr.cloneIntoScope(subscope))
-        })
-    }
-
     accept<T> (visitor: ExprVisitor<T>): T {
         return visitor.visitBlock(this)
     }

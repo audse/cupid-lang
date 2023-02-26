@@ -3,7 +3,6 @@ import { Type, TypeProps } from './type'
 import FieldType from './field'
 import { paren } from '@/codegen'
 import { Scope } from '@/env'
-import { Expr } from '../expr'
 
 interface FunProps extends TypeProps {
     params: FieldType[]
@@ -31,7 +30,9 @@ export default class FunType extends Type implements FunProps {
             source: this.source,
             scope: this.scope,
             params: this.params.map(param => param.getResolved()),
-            returns: this.returns.getResolved()
+            returns: this.returns.getResolved(),
+            environment: this.environment,
+            inferredType: this.inferredType,
         })
     }
 
@@ -40,15 +41,6 @@ export default class FunType extends Type implements FunProps {
             this.params.every((param, i) => param.isEqual(other.params[i]))
             && this.returns.isEqual(other.returns)
         )
-    }
-
-    cloneIntoScope (scope: Scope): FunType {
-        return new FunType({
-            scope,
-            source: this.source,
-            params: this.params.map(param => param.cloneIntoScope(scope)),
-            returns: this.returns.cloneIntoScope(scope)
-        })
     }
 
     accept<T> (visitor: TypeVisitor<T>): T {

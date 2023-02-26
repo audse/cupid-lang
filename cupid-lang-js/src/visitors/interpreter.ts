@@ -1,8 +1,8 @@
-import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, TypeVisitor, UnknownType, Decl, Assign, Block, InstanceType, Fun, Call } from '@/ast'
+import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, TypeVisitor, UnknownType, Decl, Assign, Block, InstanceType, Fun, Call, Environment, Lookup, Impl } from '@/ast'
 import { bracket, paren } from '@/codegen'
 import { RuntimeError } from '@/error/index'
 
-type Value = number | string | boolean | null | Type | Fun
+type Value = number | string | boolean | null | Type | Fun | Environment
 
 export default class Interpreter extends ExprVisitor<Value> {
 
@@ -64,6 +64,10 @@ export default class Interpreter extends ExprVisitor<Value> {
         return null
     }
 
+    visitEnvironment (env: Environment): Value {
+        return env
+    }
+
     visitFun (fun: Fun): Value {
         return fun
     }
@@ -80,9 +84,17 @@ export default class Interpreter extends ExprVisitor<Value> {
         )
     }
 
+    visitImpl (impl: Impl): Value {
+        return null
+    }
+
     visitLiteral (literal: Literal): Value {
         if (Array.isArray(literal.value)) return parseFloat(literal.value.join('.'))
         return literal.value
+    }
+
+    visitLookup (lookup: Lookup): Value {
+        return lookup.member.accept(this)
     }
 
     visitTypeConstructor (constructor: TypeConstructor): Value {

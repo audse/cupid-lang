@@ -1,4 +1,4 @@
-import { Assign, BinOp, Block, Call, Decl, ExprVisitor, FieldType, Fun, FunType, Ident, InstanceType, Literal, PrimitiveType, StructType, TypeConstructor, UnknownType } from '@/ast'
+import { Assign, BinOp, Block, Call, Decl, Environment, ExprVisitor, FieldType, Fun, FunType, Ident, Impl, InstanceType, Literal, Lookup, PrimitiveType, StructType, TypeConstructor, UnknownType } from '@/ast'
 import { Context } from '@/env'
 
 export default class ScopeAnalyzer extends ExprVisitor<void> {
@@ -52,7 +52,25 @@ export default class ScopeAnalyzer extends ExprVisitor<void> {
         decl.type.accept(this)
     }
 
+    visitEnvironment (env: Environment): void {
+        const scope = env.scope.subscope(Context.Environment)
+        if (env.ident) env.ident.accept(this)
+        env.scope = scope
+        env.content.map(expr => {
+            expr.scope = scope
+            expr.accept(this)
+        })
+    }
+
     visitIdent (ident: Ident): void { }
+
+    visitImpl (impl: Impl): void {
+        impl.type.scope = impl.scope
+        impl.type.accept(this)
+
+        impl.environment.scope = impl.scope
+        impl.environment.accept(this)
+    }
 
     visitFun (fun: Fun): void {
         const scope = fun.scope.subscope(Context.Fun)
@@ -70,6 +88,14 @@ export default class ScopeAnalyzer extends ExprVisitor<void> {
     }
 
     visitLiteral (literal: Literal): void { }
+
+    visitLookup (lookup: Lookup): void {
+        lookup.environment.scope = lookup.scope
+        lookup.environment.accept(this)
+
+        lookup.member.scope = lookup.environment.scope
+        lookup.member.accept(this)
+    }
 
     visitTypeConstructor (constructor: TypeConstructor): void {
         constructor.ident.scope = constructor.scope
@@ -94,6 +120,9 @@ export default class ScopeAnalyzer extends ExprVisitor<void> {
 
         field.type.scope = field.scope
         field.type.accept(this)
+
+        field.environment.scope = field.scope
+        field.environment.accept(this)
     }
 
     visitFunType (fun: FunType): void {
@@ -103,6 +132,9 @@ export default class ScopeAnalyzer extends ExprVisitor<void> {
         })
         fun.returns.scope = fun.scope
         fun.returns.accept(this)
+
+        fun.environment.scope = fun.scope
+        fun.environment.accept(this)
     }
 
     visitInstanceType (instance: InstanceType): void {
@@ -116,9 +148,15 @@ export default class ScopeAnalyzer extends ExprVisitor<void> {
             arg.scope = scope
             arg.accept(this)
         })
+
+        instance.environment.scope = scope
+        instance.environment.accept(this)
     }
 
-    visitPrimitiveType (primitive: PrimitiveType): void { }
+    visitPrimitiveType (primitive: PrimitiveType): void {
+        primitive.environment.scope = primitive.scope
+        primitive.environment.accept(this)
+    }
 
     visitStructType (struct: StructType): void {
         const scope = struct.scope.subscope()
@@ -127,7 +165,13 @@ export default class ScopeAnalyzer extends ExprVisitor<void> {
             field.scope = scope
             field.accept(this)
         })
+
+        struct.environment.scope = scope
+        struct.environment.accept(this)
     }
 
-    visitUnknownType (unknown: UnknownType): void { }
+    visitUnknownType (unknown: UnknownType): void {
+        unknown.environment.scope = unknown.scope
+        unknown.environment.accept(this)
+    }
 }

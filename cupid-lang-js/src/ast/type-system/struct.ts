@@ -27,16 +27,9 @@ export default class StructType extends Type implements StructProps {
         return new StructType({
             scope: this.scope,
             source: this.source,
-            fields: this.fields.map(field => field.getResolved())
-        })
-    }
-
-    cloneIntoScope (scope: Scope): StructType {
-        const subscope = scope.subscope(Context.TypeConstructor)
-        return new StructType({
-            scope: subscope,
-            source: this.source,
-            fields: this.fields.map(field => field.cloneIntoScope(subscope))
+            fields: this.fields.map(field => field.getResolved()),
+            environment: this.environment,
+            inferredType: this.inferredType,
         })
     }
 

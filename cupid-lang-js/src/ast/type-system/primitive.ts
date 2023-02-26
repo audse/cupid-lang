@@ -1,4 +1,5 @@
 import { Scope } from '@/env'
+import Ident from '../ident'
 import { TypeVisitor, TypeVisitorWithContext } from '../visitor'
 import { Type, TypeProps } from './type'
 
@@ -23,14 +24,6 @@ export default class PrimitiveType extends Type implements PrimitiveProps {
 
     isEqual (other: this): boolean {
         return this.name === other.name
-    }
-
-    cloneIntoScope (scope: Scope): PrimitiveType {
-        return new PrimitiveType({
-            scope,
-            source: this.source,
-            name: this.name
-        })
     }
 
     accept<T> (visitor: TypeVisitor<T>): T {

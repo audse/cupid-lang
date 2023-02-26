@@ -1,4 +1,4 @@
-import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, UnknownType, Decl, Assign, Block, InstanceType, ExprVisitorWithContext, Fun, Call } from '@/ast'
+import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, UnknownType, Decl, Assign, Block, InstanceType, ExprVisitorWithContext, Fun, Call, Environment, Lookup, Impl } from '@/ast'
 import { CompilationError } from '@/error/compilation-error'
 import { BaseExprVisitorWithContext } from './base'
 import { TypeUnifier } from './type-unifier'
@@ -30,17 +30,29 @@ export default class TypeInferrer extends BaseExprVisitorWithContext<Infer> {
         inferrer.visit(decl)
     }
 
+    visitEnvironment (env: Environment, inferrer: Infer): void {
+        super.visitEnvironment(env, inferrer)
+        inferrer.visit(env)
+    }
+
     visitFun (fun: Fun, inferrer: Infer): void {
         super.visitFun(fun, inferrer)
         inferrer.visit(fun)
     }
 
     visitIdent (ident: Ident, inferrer: Infer): void {
+        super.visitIdent(ident, inferrer)
         inferrer.visit(ident)
     }
 
     visitLiteral (literal: Literal, inferrer: Infer): void {
+        super.visitLiteral(literal, inferrer)
         inferrer.visit(literal)
+    }
+
+    visitLookup (lookup: Lookup, inferrer: Infer): void {
+        lookup.environment.acceptWithContext(this, inferrer)
+        inferrer.visit(lookup)
     }
 
     visitTypeConstructor (constructor: TypeConstructor, inferrer: Infer): void {
@@ -80,12 +92,14 @@ export default class TypeInferrer extends BaseExprVisitorWithContext<Infer> {
 
 }
 
-function primitiveType (parent: Expr, name: string) {
-    return new PrimitiveType({
-        source: parent.source,
-        scope: parent.scope,
-        name
-    })
+function primitiveType (parent: Expr, name: string): Type {
+    const ident = new Ident({ source: parent.source, scope: parent.scope, name })
+    const symbol = parent.scope.lookup(ident)
+    if (symbol) {
+        if (symbol.value instanceof Type) return symbol.value
+        if (symbol.value instanceof TypeConstructor) return symbol.value.body
+    }
+    throw CompilationError.notDefined(ident)
 }
 
 function noneType (parent: Expr) {
@@ -133,11 +147,16 @@ export class Infer extends ExprVisitor<Type> {
     visitCall (call: Call): Type {
         const fun = call.fun.accept(this)
         if (fun instanceof FunType) return fun.returns
+        if (fun instanceof UnknownType) return unknownType(call)
         throw CompilationError.notAFunction(call.fun)
     }
 
     visitDecl (decl: Decl): Type {
         return noneType(decl)
+    }
+
+    visitEnvironment (env: Environment): Type {
+        return primitiveType(env, 'env')
     }
 
     visitFun (fun: Fun): Type {
@@ -156,6 +175,10 @@ export class Infer extends ExprVisitor<Type> {
         else return unknownType(ident)
     }
 
+    visitImpl (impl: Impl): Type {
+        return primitiveType(impl, 'none')
+    }
+
     visitLiteral (literal: Literal): Type {
         switch (typeof literal.value) {
             case 'string': return primitiveType(literal, 'str')
@@ -167,6 +190,10 @@ export class Infer extends ExprVisitor<Type> {
             }
         }
         return unknownType(literal)
+    }
+
+    visitLookup (lookup: Lookup): Type {
+        return unknownType(lookup)
     }
 
     visitTypeConstructor (constructor: TypeConstructor): Type {

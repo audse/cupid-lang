@@ -1,4 +1,4 @@
-import { Assign, BinOp, Block, Call, Decl, Expr, FieldType, Fun, FunType, Ident, InstanceType, Literal, PrimitiveType, StructType, Type, TypeConstructor, UnknownType } from './index'
+import { Assign, BinOp, Block, Call, Decl, Environment, Expr, FieldType, Fun, FunType, Ident, Impl, InstanceType, Literal, Lookup, PrimitiveType, StructType, Type, TypeConstructor, UnknownType } from './index'
 
 export abstract class TypeVisitor<T> {
     abstract visitFieldType (field: FieldType): T
@@ -30,9 +30,12 @@ export abstract class ExprVisitor<T> extends TypeVisitor<T> {
     abstract visitBlock (block: Block): T
     abstract visitCall (call: Call): T
     abstract visitDecl (decl: Decl): T
+    abstract visitEnvironment (env: Environment): T
     abstract visitFun (fun: Fun): T
     abstract visitIdent (ident: Ident): T
+    abstract visitImpl (impl: Impl): T
     abstract visitLiteral (literal: Literal): T
+    abstract visitLookup (lookup: Lookup): T
     abstract visitTypeConstructor (constructor: TypeConstructor): T
 }
 
@@ -43,10 +46,13 @@ export abstract class ExprVisitorWithContext<T, Ctx = never> extends TypeVisitor
     abstract visitAssign (assign: Assign, context: Ctx): T
     abstract visitBinOp (binop: BinOp, context: Ctx): T
     abstract visitBlock (block: Block, context: Ctx): T
-    abstract visitDecl (decl: Decl, context: Ctx): T
     abstract visitCall (call: Call, context: Ctx): T
+    abstract visitDecl (decl: Decl, context: Ctx): T
+    abstract visitEnvironment (env: Environment, context: Ctx): T
     abstract visitFun (fun: Fun, context: Ctx): T
     abstract visitIdent (ident: Ident, context: Ctx): T
+    abstract visitImpl (impl: Impl, context: Ctx): T
     abstract visitLiteral (literal: Literal, context: Ctx): T
+    abstract visitLookup (lookup: Lookup, context: Ctx): T
     abstract visitTypeConstructor (constructor: TypeConstructor, context: Ctx): T
 }

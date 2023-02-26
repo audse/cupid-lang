@@ -45,7 +45,6 @@ export class TypeUnifier extends TypeVisitorWithContext<Type, Type> {
 
     visitPrimitiveType (primitive: PrimitiveType, context: Type): Type {
         const other = context.getResolved()
-        // console.log('\nunifying', primitive.report(), other.report(), '\n')
         if (other instanceof PrimitiveType && primitive.name === other.name) return primitive
         if (other instanceof UnknownType) return primitive
         throw CompilationError.unableToUnify(other)

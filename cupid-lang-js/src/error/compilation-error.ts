@@ -9,6 +9,7 @@ export enum CompilationErrorCode {
     NotAFunction = 'not a function',
     NotAType = 'not a type',
     NotDefined = 'not defined',
+    UnableToResolveLookup = 'unable to resolve lookup',
     UnableToResolveType = 'unable to resolve type',
     UnableToUnifyType = 'unable to unify type',
     Unimplemented = 'unimplemented',
@@ -62,6 +63,14 @@ export class CompilationError<T extends Reportable> extends CupidError<T> {
 
     static notDefined<T extends Reportable> (context: T, message: string = ''): CompilationError<T> {
         return new CompilationError(CompilationErrorCode.NotDefined, context, message)
+    }
+
+    static unableToResolveLookup<T extends Reportable> (context: T, message: string = ''): CompilationError<T> {
+        return new CompilationError(
+            CompilationErrorCode.UnableToResolveLookup,
+            context,
+            message.length ? message : `unable to statically resolve member lookup - member must be a constant expression`
+        )
     }
 
     static unableToUnify<T extends Reportable> (context: T, message: string = ''): CompilationError<T> {

@@ -1,86 +1,92 @@
-import { Assign, BinOp, Block, Call, Decl, Expr, FieldType, Fun, Ident, InstanceType, Literal, PrimitiveType, StructType, Type, TypeConstructor, UnknownType } from '@/ast'
+import { Assign, BinOp, Block, Call, Decl, Environment, Expr, FieldType, Fun, Ident, Impl, InstanceType, Literal, Lookup, PrimitiveType, StructType, Type, TypeConstructor, UnknownType } from '@/ast'
 import { Scope } from '@/env'
 import { CompilationError, CompilationErrorCode, RuntimeError, RuntimeErrorCode } from '@/error/index'
-import { Infer, Interpreter, ScopeAnalyzer, SymbolDefiner, SymbolResolver, TypeChecker, TypeInferrer, TypeResolver } from '@/visitors'
+import { Infer, Interpreter, LookupEnvironmentFinder, LookupEnvironmentResolver, LookupMemberResolver, ScopeAnalyzer, SymbolDefiner, SymbolResolver, TypeChecker, TypeInferrer, TypeResolver } from '@/visitors'
 import { TypeUnifier } from '@/visitors/type-unifier'
 import { expect } from 'bun:test'
 
 
 export function maker (scope: Scope) {
-    const int = (value: number) => new Literal({ scope, value })
-    const dec = (...value: [number, number]) => new Literal({ scope, value })
-    const bool = (value: boolean) => new Literal({ scope, value })
-    const none = () => new Literal({ scope, value: null })
+    const literal = {
+        int: (value: number) => new Literal({ scope, value }),
+        dec: (...value: [number, number]) => new Literal({ scope, value }),
+        bool: (value: boolean) => new Literal({ scope, value }),
+        none: () => new Literal({ scope, value: null }),
+    }
     const assign = (ident: Ident, value: Expr) => new Assign({ scope, ident, value })
     const binop = (left: Expr, right: Expr, op: string) => new BinOp({ scope, left, right, op })
     const block = (...exprs: Expr[]) => new Block({ scope, exprs })
     const ident = (name: string) => new Ident({ scope, name })
     const decl = (ident: Ident, value: Expr, type?: Type, mutable?: boolean) => new Decl({ scope, ident, value, type, mutable })
-    const instanceType = (ident: Ident, args: Type[] = []) => new InstanceType({ scope, ident, args })
-    const unknownType = () => new UnknownType({ scope })
-    const structType = (fields: FieldType[]) => new StructType({ scope, fields })
-    const fieldType = (ident: Ident, type: Type = unknownType()) => new FieldType({ scope, ident, type })
-    const primitiveType = (name: string) => new PrimitiveType({ scope, name })
+
+    const fun = (params: FieldType[], body: Expr, returns: Type = type.unknown()) => new Fun({ scope, params, body, returns })
+    const call = (fun: Expr, ...args: Expr[]) => new Call({ scope, fun, args })
+    const env = (content: Expr[], ident?: Ident) => new Environment({ scope, ident, content })
+    const lookup = (environment: Expr, member: Ident | Literal) => new Lookup({ scope, environment, member })
     const typeConstructor = (ident: Ident, body: Type, params: Ident[] = []) => new TypeConstructor({
         scope,
         ident,
         params,
-        body
+        body,
     })
-    const fun = (params: FieldType[], body: Expr, returns: Type = unknownType()) => new Fun({ scope, params, body, returns })
-    const call = (fun: Expr, ...args: Expr[]) => new Call({ scope, fun, args })
+    const impl = (type: Type, environment: Environment) => new Impl({ scope, type, environment })
+    const type = {
+        instance: (ident: Ident, args: Type[] = []) => new InstanceType({ scope, ident, args }),
+        unknown: () => new UnknownType({ scope }),
+        struct: (fields: FieldType[]) => new StructType({ scope, fields }),
+        field: (ident: Ident, type: Type = new UnknownType({ scope })) => new FieldType({ scope, ident, type }),
+        primitive: (name: string) => new PrimitiveType({ scope, name }),
+    }
     return {
-        int,
-        dec,
-        bool,
-        none,
         assign,
         binop,
         block,
-        ident,
-        decl,
-        fun,
         call,
-        instanceType,
-        unknownType,
-        structType,
-        fieldType,
-        primitiveType,
+        decl,
+        env,
+        fun,
+        ident,
+        impl,
+        literal,
+        lookup,
+        type,
         typeConstructor,
 
         quick: {
             decl: {
-                int: (name: string = 'x', value: number = 1) => decl(ident(name), int(value), instanceType(ident('int'))),
-                dec: (name: string, ...value: [number, number]) => decl(ident(name), dec(...value), instanceType(ident('dec'))),
+                int: (name: string = 'x', value: number = 1) => decl(ident(name), literal.int(value), type.instance(ident('int'))),
+                dec: (name: string, ...value: [number, number]) => decl(ident(name), literal.dec(...value), type.instance(ident('dec'))),
                 addFun: () => decl(
                     ident('add'),
                     fun([
-                        fieldType(ident('a'), instanceType(ident('int'))),
-                        fieldType(ident('b'), instanceType(ident('int')))
+                        type.field(ident('a'), type.instance(ident('int'))),
+                        type.field(ident('b'), type.instance(ident('int')))
                     ], binop(ident('a'), ident('b'), '+'))
                 )
             },
             constructor: {
-                int: () => typeConstructor(ident('int'), primitiveType('int')),
-                decimal: () => typeConstructor(ident('decimal'), primitiveType('decimal')),
-                bool: () => typeConstructor(ident('bool'), primitiveType('bool')),
-                none: () => typeConstructor(ident('none'), primitiveType('none')),
+                int: () => typeConstructor(ident('int'), type.primitive('int')),
+                decimal: () => typeConstructor(ident('decimal'), type.primitive('decimal')),
+                bool: () => typeConstructor(ident('bool'), type.primitive('bool')),
+                none: () => typeConstructor(ident('none'), type.primitive('none')),
+                env: () => typeConstructor(ident('env'), type.primitive('env')),
+                type: () => typeConstructor(ident('type'), type.primitive('type')),
                 pointStruct: () => typeConstructor(
                     ident('point'),
-                    structType([
-                        fieldType(ident('x'), instanceType(ident('t'))),
-                        fieldType(ident('y'), instanceType(ident('t'))),
+                    type.struct([
+                        type.field(ident('x'), type.instance(ident('t'))),
+                        type.field(ident('y'), type.instance(ident('t'))),
                     ]),
                     [ident('t')]
                 )
             },
             instance: {
-                int: () => instanceType(ident('int')),
-                decimal: () => instanceType(ident('decimal')),
-                bool: () => instanceType(ident('bool')),
-                pointStruct: (name: 'int' | 'decimal' = 'int') => instanceType(
+                int: () => type.instance(ident('int')),
+                decimal: () => type.instance(ident('decimal')),
+                bool: () => type.instance(ident('bool')),
+                pointStruct: (name: 'int' | 'decimal' = 'int') => type.instance(
                     ident('point'),
-                    [instanceType((ident(name)))]
+                    [type.instance((ident(name)))]
                 )
             },
             primitiveConstructors () {
@@ -89,6 +95,8 @@ export function maker (scope: Scope) {
                     this.constructor.decimal(),
                     this.constructor.bool(),
                     this.constructor.none(),
+                    this.constructor.env(),
+                    this.constructor.type(),
                 ]
             }
         },
@@ -98,7 +106,8 @@ export function maker (scope: Scope) {
 export function setup () {
     const scope = new Scope()
     const make = maker(scope)
-    return [scope, make] as const
+    const exprs: Expr[] = make.quick.primitiveConstructors()
+    return [scope, make, exprs] as const
 }
 
 export function compile (...exprs: Expr[]): Expr[] {
@@ -118,6 +127,13 @@ export function compile (...exprs: Expr[]): Expr[] {
     const inferrer = new Infer()
     exprs.map(expr => typeInferrer.visit(expr, inferrer))
 
+    const lookupEnvironmentFinder = new LookupEnvironmentFinder()
+    const lookupEnvironmentResolver = new LookupEnvironmentResolver()
+    exprs.map(expr => lookupEnvironmentResolver.visit(expr, lookupEnvironmentFinder))
+
+    const lookupMemberResolver = new LookupMemberResolver()
+    exprs.map(expr => lookupMemberResolver.visit(expr))
+
     const typeChecker = new TypeChecker()
     const unifier = new TypeUnifier()
     exprs.map(expr => typeChecker.visit(expr, unifier))
@@ -136,6 +152,11 @@ export function interpret (...exprs: Expr[]) {
 export function report (error: any) {
     if (error instanceof CompilationError<Expr>) error.log()
     return `${ error }`
+}
+
+
+export function last<T> (arr: T[]): T {
+    return arr[arr.length - 1]
 }
 
 

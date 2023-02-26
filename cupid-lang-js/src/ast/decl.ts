@@ -34,17 +34,6 @@ export default class Decl extends Expr implements DeclProps {
         return stringify({ declare: { ident, value, type, mutable: this.mutable } })
     }
 
-    cloneIntoScope (scope: Scope): Decl {
-        return new Decl({
-            scope,
-            source: this.source,
-            ident: this.ident.cloneIntoScope(scope),
-            value: this.value.cloneIntoScope(scope),
-            type: this.type.cloneIntoScope(scope),
-            mutable: this.mutable
-        })
-    }
-
     isEqual (other: this): boolean {
         return false
     }

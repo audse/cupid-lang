@@ -5,9 +5,9 @@ import { expectCompilationError, interpret, setup } from './utils'
 
 
 test('int type instance', () => {
-    const [_, make] = setup()
+    const [_, make, exprs] = setup()
     const intInstance = make.quick.instance.int()
-    interpret(make.quick.constructor.int(), intInstance)
+    interpret(...exprs, intInstance)
     expect(
         intInstance.value
         && intInstance.value instanceof PrimitiveType
@@ -16,10 +16,10 @@ test('int type instance', () => {
 })
 
 test('struct field type instance', () => {
-    const [_, make] = setup()
+    const [_, make, exprs] = setup()
     const pointInstance = make.quick.instance.pointStruct()
     interpret(
-        make.quick.constructor.int(),
+        ...exprs,
         make.quick.constructor.pointStruct(),
         pointInstance
     )
@@ -33,15 +33,16 @@ test('struct field type instance', () => {
 })
 
 test('struct field undefined type instance', () => {
-    const [_, make] = setup()
+    const [_, make, exprs] = setup()
     expectCompilationError(
         CompilationErrorCode.NotDefined,
         () => interpret(
+            ...exprs,
             make.typeConstructor(
                 make.ident('point'),
-                make.structType([
-                    make.fieldType(make.ident('x'), make.instanceType(make.ident('t'))),
-                    make.fieldType(make.ident('y'), make.instanceType(make.ident('t'))),
+                make.type.struct([
+                    make.type.field(make.ident('x'), make.type.instance(make.ident('t'))),
+                    make.type.field(make.ident('y'), make.type.instance(make.ident('t'))),
                 ]),
             )
         )
@@ -49,27 +50,28 @@ test('struct field undefined type instance', () => {
 })
 
 test('unable to resolve', () => {
-    const [_, make] = setup()
+    const [_, make, exprs] = setup()
     expectCompilationError(
         CompilationErrorCode.NotAType,
         () => interpret(
-            make.decl(make.ident('int'), make.int(123)),
+            ...exprs,
+            make.decl(make.ident('t'), make.literal.int(123)),
             make.typeConstructor(
                 make.ident('some-type'),
-                make.instanceType(make.ident('int'))
+                make.type.instance(make.ident('t'))
             )
         )
     )
 })
 
 test('wrong number of args', () => {
-    const [_, make] = setup()
+    const [_, make, exprs] = setup()
     expectCompilationError(
         CompilationErrorCode.IncorrectNumberOfArgs,
         () => interpret(
-            make.quick.constructor.int(),
+            ...exprs,
             make.quick.constructor.pointStruct(),
-            make.instanceType(make.ident('point'))
+            make.type.instance(make.ident('point'))
         )
     )
 })

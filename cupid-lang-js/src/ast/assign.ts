@@ -25,15 +25,6 @@ export default class Assign extends Expr implements AssignProps {
         return stringify({ assign: { ident, value } })
     }
 
-    cloneIntoScope (scope: Scope): Assign {
-        return new Assign({
-            scope,
-            source: this.source,
-            ident: this.ident.cloneIntoScope(scope),
-            value: this.value.cloneIntoScope(scope),
-        })
-    }
-
     isEqual (other: this): boolean {
         return false
     }

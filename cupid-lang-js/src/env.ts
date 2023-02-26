@@ -1,5 +1,5 @@
 import { Option } from '@/types'
-import { Type, Ident, Expr } from '@/ast'
+import { Type, Ident, Expr, Environment } from '@/ast'
 import { CompilationError } from './error/compilation-error'
 import { Reportable } from './error/index'
 import { stringify } from './utils'
@@ -29,7 +29,10 @@ export class Symbol implements SymbolProps, Reportable {
     report () {
         return stringify({
             ident: this.ident.report(),
-            value: this.value?.report() || null,
+            value: (
+                this.value instanceof Environment ? '<environment>'
+                    : this.value?.report() || null
+            ),
             type: this.type?.report() || null,
             mutable: this.mutable
         })
@@ -41,10 +44,11 @@ export class Symbol implements SymbolProps, Reportable {
 }
 
 export enum Context {
-    Block = 'block',
-    Fun = 'fun',
-    TypeConstructor = 'typedef',
-    Call = 'call',
+    Block = 'Block',
+    Environment = 'Environment',
+    Fun = 'Fun',
+    TypeConstructor = 'TypeConstructor',
+    Call = 'Call',
 }
 
 export interface ScopeProps {
@@ -99,6 +103,14 @@ export class Scope implements ScopeProps, Reportable {
         if ('type' in props && props.type) symbol.type = props.type
         if ('value' in props && props.value !== undefined) symbol.value = props.value
         return symbol
+    }
+
+    acceptMerge (other: Scope): void {
+        for (const symbol of other.symbols) {
+            const existingSymbol = this.lookup(symbol.ident)
+            if (existingSymbol) throw CompilationError.alreadyDefined(existingSymbol.ident)
+            this.symbols.push(symbol)
+        }
     }
 
     report (): string {

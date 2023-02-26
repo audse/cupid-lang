@@ -1,4 +1,4 @@
-import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, UnknownType, Decl, Assign, Block, InstanceType, Call } from '@/ast'
+import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, UnknownType, Decl, Assign, Block, InstanceType, Call, Lookup } from '@/ast'
 import { CompilationError } from '@/error/compilation-error'
 import BaseExprVisitor, { BaseExprVisitorWithContext } from './base'
 import { TypeUnifier } from './type-unifier'
@@ -12,20 +12,22 @@ export default class TypeChecker extends BaseExprVisitorWithContext<TypeUnifier>
 
     visitCall (call: Call, unifier: TypeUnifier): void {
         super.visitCall(call, unifier)
-        const callType = call.fun.expectType() as FunType
+        const callType = call.fun.expectType()
 
-        // Check number of arguments
-        if (callType.params.length !== call.args.length) throw CompilationError.incorrectNumArgs(
-            call,
-            callType.params.length,
-            call.args.length
-        )
+        if (callType instanceof FunType) {
+            // Check number of arguments
+            if (callType.params.length !== call.args.length) throw CompilationError.incorrectNumArgs(
+                call,
+                callType.params.length,
+                call.args.length
+            )
 
-        // Check type of arguments
-        call.args.map((arg, i) => {
-            const param = callType.params[i]
-            unifier.visit(arg.expectType(), param.type)
-        })
+            // Check type of arguments
+            call.args.map((arg, i) => {
+                const param = callType.params[i]
+                unifier.visit(arg.expectType(), param.type)
+            })
+        }
     }
 
     visitDecl (decl: Decl, unifier: TypeUnifier): void {

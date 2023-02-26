@@ -7,6 +7,7 @@ import { Reportable } from '@/error/index'
 import { bracket } from '@/codegen'
 import { stringify } from '@/utils'
 import { Context, Scope } from '@/env'
+import environment from '../environment'
 
 interface InstanceProps extends TypeProps {
     ident: Ident
@@ -41,22 +42,20 @@ export default class InstanceType extends Type implements InstanceProps, Reporta
         )
     }
 
+    acceptEnvironmentMerge (env: environment): void {
+        if (this.value) {
+            this.value.acceptEnvironmentMerge(env)
+            this.environment = this.value.environment
+        }
+        else super.acceptEnvironmentMerge(env)
+    }
+
     getResolved (): Type {
         if (this.value) return this.value.getResolved()
         throw new CompilationError(
             CompilationErrorCode.UnableToResolveType,
             this
         )
-    }
-
-    cloneIntoScope (scope: Scope): InstanceType {
-        const subscope = scope.subscope(Context.TypeConstructor)
-        return new InstanceType({
-            scope: subscope,
-            source: this.source,
-            ident: this.ident.cloneIntoScope(subscope),
-            args: this.args.map(arg => arg.cloneIntoScope(subscope)),
-        })
     }
 
     accept<T> (visitor: TypeVisitor<T>): T {

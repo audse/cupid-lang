@@ -31,16 +31,6 @@ export default class BinOp extends Expr implements BinOpProps {
         return false
     }
 
-    cloneIntoScope (scope: Scope): BinOp {
-        return new BinOp({
-            scope,
-            source: this.source,
-            left: this.left.cloneIntoScope(scope),
-            right: this.right.cloneIntoScope(scope),
-            op: this.op
-        })
-    }
-
     accept<T> (visitor: ExprVisitor<T>): T {
         return visitor.visitBinOp(this)
     }

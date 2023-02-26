@@ -1,4 +1,4 @@
-import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, UnknownType, Decl, Assign, Block, InstanceType, Fun } from '@/ast'
+import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, UnknownType, Decl, Assign, Block, InstanceType, Fun, Environment } from '@/ast'
 import BaseExprVisitor from './base'
 
 export default class SymbolDefiner extends BaseExprVisitor {
@@ -10,6 +10,14 @@ export default class SymbolDefiner extends BaseExprVisitor {
             type: decl.type,
             value: decl.value,
             mutable: decl.mutable,
+        })
+    }
+
+    visitEnvironment (env: Environment): void {
+        super.visitEnvironment(env)
+        if (env.ident) env.ident.scope.define({
+            ident: env.ident,
+            value: env
         })
     }
 
