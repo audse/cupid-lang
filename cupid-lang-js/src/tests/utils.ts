@@ -1,4 +1,4 @@
-import { Assign, BinOp, Block, Call, Decl, Environment, Expr, FieldType, Fun, Ident, Impl, InstanceType, Literal, Lookup, PrimitiveType, StructType, Type, TypeConstructor, UnknownType } from '@/ast'
+import { Assign, BinOp, Block, Call, Decl, Environment, Expr, FieldType, Fun, FunType, Ident, Impl, InstanceType, Literal, Lookup, PrimitiveType, StructType, Type, TypeConstructor, UnknownType } from '@/ast'
 import { Scope } from '@/env'
 import { CompilationError, CompilationErrorCode, RuntimeError, RuntimeErrorCode } from '@/error/index'
 import { Infer, Interpreter, LookupEnvironmentFinder, LookupEnvironmentResolver, LookupMemberResolver, ScopeAnalyzer, SymbolDefiner, SymbolResolver, TypeChecker, TypeInferrer, TypeResolver } from '@/visitors'
@@ -36,6 +36,11 @@ export function maker (scope: Scope) {
         struct: (fields: FieldType[]) => new StructType({ scope, fields }),
         field: (ident: Ident, type: Type = new UnknownType({ scope })) => new FieldType({ scope, ident, type }),
         primitive: (name: string) => new PrimitiveType({ scope, name }),
+        fun: (params: FieldType[], returns: Type = new PrimitiveType({ scope, name: 'none' })) => new FunType({
+            scope,
+            params,
+            returns
+        })
     }
     return {
         assign,
@@ -53,15 +58,25 @@ export function maker (scope: Scope) {
         typeConstructor,
 
         quick: {
+            lookup: (env: string, member: string) => lookup(ident(env), ident(member)),
+            instanceType: (name: string, ...args: string[]) => type.instance(
+                ident(name),
+                args.map(arg => type.instance(ident(arg)))
+            ),
+            fieldType: (name: string, typeInstance: string) => type.field(ident(name), type.instance(ident(typeInstance))),
             decl: {
-                int: (name: string = 'x', value: number = 1) => decl(ident(name), literal.int(value), type.instance(ident('int'))),
+                int: (name: string = 'x', value: number = 1, mutable?: boolean) => decl(ident(name), literal.int(value), type.instance(ident('int')), mutable),
                 dec: (name: string, ...value: [number, number]) => decl(ident(name), literal.dec(...value), type.instance(ident('dec'))),
                 addFun: () => decl(
                     ident('add'),
-                    fun([
-                        type.field(ident('a'), type.instance(ident('int'))),
-                        type.field(ident('b'), type.instance(ident('int')))
-                    ], binop(ident('a'), ident('b'), '+'))
+                    fun(
+                        [
+                            type.field(ident('a'), type.instance(ident('int'))),
+                            type.field(ident('b'), type.instance(ident('int')))
+                        ],
+                        binop(ident('a'), ident('b'), '+'),
+                        type.instance(ident('int'))
+                    )
                 )
             },
             constructor: {
@@ -133,6 +148,9 @@ export function compile (...exprs: Expr[]): Expr[] {
 
     const lookupMemberResolver = new LookupMemberResolver()
     exprs.map(expr => lookupMemberResolver.visit(expr))
+
+    // reinfer after lookup resolution
+    exprs.map(expr => inferrer.visit(expr))
 
     const typeChecker = new TypeChecker()
     const unifier = new TypeUnifier()

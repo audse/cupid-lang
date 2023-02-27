@@ -1,9 +1,10 @@
-import { Option, Node, token } from '@/types'
+import { Option, Node, token, CustomNode, nodeIs } from '@/types'
 import { TokenParser } from '@/parse/parse'
 
 type NodeArray = (Node | boolean | (Node | boolean)[])[]
 
-export function getNodeArray (nodes: NodeArray | Node | boolean): Node[] {
+export function getNodeArray (nodes: NodeArray | Node | boolean | null): Option<Node[]> {
+    if (nodes === null) return null
     if (typeof nodes === 'boolean') return []
     if (Array.isArray(nodes)) return (nodes as NodeArray)
         .flat()
@@ -11,34 +12,62 @@ export function getNodeArray (nodes: NodeArray | Node | boolean): Node[] {
     return [nodes]
 }
 
+export function makeNode (name: string, items: NodeArray | Node | boolean | null): Option<CustomNode> {
+    if (items === null) return null
+    const node: CustomNode = {
+        name,
+        children: {},
+        items: []
+    }
+    for (const item of getNodeArray(items) || []) {
+        if ('children' in item) node.children[item.name] = item
+        else if (!('name' in item)) node.items.push(item)
+    }
+    return node
+}
+
+type ParseFunc<T> = (parser: TokenParser) => T
+
 export namespace modifier {
 
-    export function multiple<T> (parser: TokenParser, func: (parser: TokenParser) => Option<T>): T[] {
-        const nodes: T[] = []
-        while (true) {
-            const node = func(parser)
-            if (node !== null) nodes.push(node)
-            else break
+    export function passThrough<T> (func: ParseFunc<Option<T>>): ParseFunc<Option<boolean>> {
+        return parser => func(parser) ? true : null
+    }
+
+    export function multiple<T> (func: ParseFunc<Option<T>>): ParseFunc<T[]> {
+        return parser => {
+            const nodes: T[] = []
+            while (true) {
+                const node = func(parser)
+                if (node !== null) nodes.push(node)
+                else break
+            }
+            return nodes
         }
-        return nodes
     }
 
-    export function atLeastOne<T> (parser: TokenParser, func: (parser: TokenParser) => Option<T>): Option<T[]> {
-        const items = multiple<T>(parser, func)
-        if (items.length) return items
-        return null
+    export function atLeastOne<T> (func: ParseFunc<Option<T>>): ParseFunc<Option<T[]>> {
+        return parser => {
+            const items = multiple<T>(func)(parser)
+            if (items.length) return items
+            return null
+        }
     }
 
-    export function optional<T> (parser: TokenParser, func: (parser: TokenParser) => Option<T>): Option<T | boolean> {
-        const item = func(parser)
-        if (item !== null) return item
-        else return false
+    export function optional<T> (func: ParseFunc<Option<T>>): ParseFunc<Option<T | boolean>> {
+        return parser => {
+            const item = func(parser)
+            if (item !== null) return item
+            else return false
+        }
     }
 
-    export function negative<T> (parser: TokenParser, func: (parser: TokenParser) => Option<T>): Option<T | boolean> {
-        const item = func(parser)
-        if (item === null) return false
-        return null
+    export function negative<T> (func: ParseFunc<Option<T>>): ParseFunc<Option<T | boolean>> {
+        return parser => {
+            const item = func(parser)
+            if (item === null) return false
+            return null
+        }
     }
 
 }

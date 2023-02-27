@@ -160,7 +160,7 @@ export namespace grammar {
     function rule (parser: TokenParser): Option<grmmr.Rule> {
         const results = parser.chain(
             parser => parser.ident(),
-            parser => mod.optional<string[]>(parser, parser => parser.groupList(ruleParam, ',').bracket()),
+            mod.optional<string[]>(parser => parser.groupList(ruleParam, ',').bracket()),
             parser => ruleModifier(parser) || false,
             parser => parser.groupList(group, '|').brace()
         )
@@ -205,7 +205,7 @@ export namespace grammar {
 
     function item (parser: TokenParser): Option<grmmr.Item> {
         const token = parser.ident() || parser.string()
-        const args = mod.optional(parser, parser => parser.groupList(item, ',').bracket())
+        const args = mod.optional(parser => parser.groupList(item, ',').bracket())(parser)
         if (token) return {
             content: token.content,
             modifier: modifier(parser),

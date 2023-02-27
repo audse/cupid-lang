@@ -21,8 +21,8 @@ export namespace generator {
 
     export function generate (name: string, grammar: grmmr.Rule[]): GeneratedString {
         return gen.reindent([
-            `\nimport { Option, token, Node, NodeParser } from '@/types'`,
-            `import { getNodeArray, node, modifier } from '@/parse/utils'`,
+            `\nimport { Option, token, Node, NodeParser, CustomNode } from '@/types'`,
+            `import { getNodeArray, node, modifier, makeNode } from '@/parse/utils'`,
             `import { TokenParser } from '@/parse/parse'\n`,
             gen.headerComment('AUTOMATICALLY GENERATED - DO NOT EDIT'),
             gen.namespace({
@@ -39,24 +39,15 @@ export namespace generator {
             gen.assign({ name: 'parser', type: 'TokenParser' }),
             ...rule.params.map(name => gen.assign({ name, type: 'NodeParser' }))
         ]
-        const ruleName = rule.name.toLowerCase()
-        const groupName = `${ ruleName }Group`
         const groups = rule.alts.map(group).join('\n?? ')
-        const returns = isPassThroughRule(rule)
-            ? `return getNodeArray(${ groupName })`
-            : `return { 
-                name: '${ rule.name }',
-                items: getNodeArray(${ groupName }),
-            }`
         return gen.func({
-            name: ruleName,
+            name: rule.name.toLowerCase(),
             params,
             statements: [
-                gen.constant({ name: groupName, value: groups }),
-                gen.ifStmt({ compare: groupName, thenDo: returns }),
-                'return null'
+                isPassThroughRule(rule) ? `return getNodeArray(${ groups })`
+                    : `return makeNode('${ rule.name }', ${ groups })`
             ],
-            type: isPassThroughRule(rule) ? `Option<Node[]>` : `Option<Node>`,
+            type: isPassThroughRule(rule) ? `Option<Node[]>` : `Option<CustomNode>`,
             export: true,
         })
     }
@@ -83,16 +74,20 @@ export namespace generator {
 
     function group (group: grmmr.Group, i: number): GeneratedString {
         switch (group.modifier) {
-            case grmmr.Modifier.Multiple: return `modifier.multiple(parser, parser => ${ groupBody(group) }).flat()`
-            case grmmr.Modifier.MoreThanOne: return `modifier.moreThanOne(parser, parser => ${ groupBody(group) }).flat()`
-            case grmmr.Modifier.Optional: return `modifier.optional(parser, parser => ${ groupBody(group) })`
-            case grmmr.Modifier.Not: return `modifier.negative(parser, parser => ${ groupBody(group) })`
+            case grmmr.Modifier.Multiple: return `modifier.multiple(parser => ${ groupBody(group) })`
+            case grmmr.Modifier.MoreThanOne: return `modifier.moreThanOne(parser => ${ groupBody(group) })`
+            case grmmr.Modifier.Optional: return `modifier.optional(parser => ${ groupBody(group) })`
+            case grmmr.Modifier.Not: return `modifier.negative(parser => ${ groupBody(group) })`
             default: return groupBody(group)
         }
     }
 
     function groupBody (group: grmmr.Group): GeneratedString {
-        if (group.items.length === 1) return `(${ item(group.items[0]) })(parser)`
+        if (group.items.length === 1) {
+            const itemBody = item(group.items[0]).trim()
+            if (itemBody.startsWith('parser => ')) return itemBody.replace('parser => ', '')
+            return `${ itemBody }(parser)`
+        }
         return `parser.chain(\n${ group.items.map(item).join(',\n') }\n)`
     }
 
@@ -105,21 +100,40 @@ export namespace generator {
             || identItemValue(item, passThrough)
             || `() => throw 'item didn\'t match any available functions:\n${ JSON.stringify(item, null, 2) }'`
         )
-        const body = gen.anonFunc({
-            params: ['parser'],
-            statements: passThrough ? `${ stmt } ? true : null`
-                : stmt,
-            type: passThrough
-                ? `Option<boolean>`
-                : `Option<Node | Node[]>`
-        })
-        switch (item.modifier) {
-            case grmmr.Modifier.Multiple: return `parser => modifier.multiple(parser, ${ body }).flat()`
-            case grmmr.Modifier.MoreThanOne: return `parser => modifier.moreThanOne(parser, ${ body }).flat()`
-            case grmmr.Modifier.Optional: return `parser => modifier.optional(parser, ${ body })`
-            case grmmr.Modifier.Not: return `parser => modifier.negative(parser, ${ body })`
-            default: return body
+        if (passThrough) {
+            if (isIdentItem(item)) return `modifier.passThrough(${ stmt })`
+            return `modifier.passThrough(parser => ${ stmt })`
         }
+        if (item.modifier || !isIdentItem(item)) {
+            const body = !isIdentItem(item) ? gen.anonFunc({
+                params: ['parser'],
+                statements: stmt,
+            }) : stmt
+            switch (item.modifier) {
+                case grmmr.Modifier.Multiple: return `modifier.multiple(${ body })`
+                case grmmr.Modifier.MoreThanOne: return `modifier.moreThanOne(${ body })`
+                case grmmr.Modifier.Optional: return `modifier.optional(${ body })`
+                case grmmr.Modifier.Not: return `modifier.negative(${ body })`
+                default: return body
+            }
+        }
+        return stmt
+    }
+
+    function isFuncItem (item: grmmr.Item): boolean {
+        return item.args.length > 0
+    }
+
+    function isStringItem (item: grmmr.Item): boolean {
+        return /['"`][^'"`]*['"`]/.test(item.content)
+    }
+
+    function isBuiltinItem (item: grmmr.Item): boolean {
+        return /\@(?<content>.*)/.test(item.content)
+    }
+
+    function isIdentItem (item: grmmr.Item): boolean {
+        return !(isFuncItem(item) || isStringItem(item) || isBuiltinItem(item))
     }
 
     function funcItemValue (itm: grmmr.Item, isPassThrough: boolean = false): Option<GeneratedString> {
@@ -151,6 +165,6 @@ export namespace generator {
     }
 
     function identItemValue (item: grmmr.Item, isPassThrough: boolean = false): Option<GeneratedString> {
-        return `${ item.content.toLowerCase() }(parser)`
+        return item.content.toLowerCase()
     }
 }

@@ -1,7 +1,7 @@
 import { FieldType, PrimitiveType } from '@/ast/index'
 import { CompilationError, CompilationErrorCode } from '@/error/compilation-error'
 import { expect, test } from 'bun:test'
-import { expectCompilationError, interpret, last, maker, setup } from './utils'
+import { compile, expectCompilationError, interpret, last, maker, setup } from './utils'
 
 test('env', () => {
     const [_, make, exprs] = setup()
@@ -39,7 +39,33 @@ test('env lookup call', () => {
     expect(last(interpret(...exprs, env, lookup))).toBe(2)
 })
 
-test('type environment call', () => {
+test('inferred type environment call', () => {
+    const [_, make, exprs] = setup()
+    expect(last(interpret(
+        ...exprs,
+
+        // create impl: int [ add: (int, int) -> int ]
+        make.impl(
+            make.type.instance(make.ident('int')),
+            make.env([
+                make.quick.decl.addFun()
+            ])
+        ),
+
+        // create lookup: 1\add(1, 2)
+        make.call(
+            make.lookup(
+                make.literal.int(1),
+                make.ident('add')
+            ),
+            make.literal.int(1),
+            make.literal.int(1),
+        )
+    ))).toBe(2)
+})
+
+
+test('explicit type environment call', () => {
     const [_, make, exprs] = setup()
     expect(last(interpret(
         ...exprs,
@@ -55,7 +81,7 @@ test('type environment call', () => {
         // create lookup: int\add(1, 2)
         make.call(
             make.lookup(
-                make.literal.int(1),
+                make.ident('int'),
                 make.ident('add')
             ),
             make.literal.int(1),
@@ -64,29 +90,55 @@ test('type environment call', () => {
     ))).toBe(2)
 })
 
-test('struct type field', () => {
+
+test('incorrect type environment call', () => {
     const [_, make, exprs] = setup()
-
-    const intPointConstructor = make.typeConstructor(
-        make.ident('int-point'),
-        make.quick.instance.pointStruct('int')
+    expectCompilationError(
+        CompilationErrorCode.NotDefined,
+        () => interpret(
+            ...exprs,
+            // create impl: int [ add: (int, int) -> int ]
+            make.impl(
+                make.type.instance(make.ident('int')),
+                make.env([
+                    make.quick.decl.addFun()
+                ])
+            ),
+            // create lookup: 1.5\add(1.1, 1.2)
+            make.call(
+                make.lookup(
+                    make.literal.dec(1, 5),
+                    make.ident('add')
+                ),
+                make.literal.dec(1, 1),
+                make.literal.dec(1, 2),
+            )
+        )
     )
+})
 
-    // create lookup: int-point\x
-    const lookup = make.lookup(
-        make.ident('int-point'),
-        make.ident('x'),
-    )
-    const result = last(interpret(
+test('explicit type environment call inference', () => {
+    const [_, make, exprs] = setup()
+    const result = last(compile(
         ...exprs,
-        make.quick.constructor.pointStruct(),
-        intPointConstructor,
-        lookup
+        // create impl: int [ add: (int, int) -> int ]
+        make.impl(
+            make.quick.instanceType('int'),
+            make.env([
+                make.quick.decl.addFun()
+            ])
+        ),
+        // create lookup: int\add(1, 2)
+        make.call(
+            make.quick.lookup('int', 'add'),
+            make.literal.int(1),
+            make.literal.int(1),
+        )
     ))
-    // intPointConstructor.body.getResolved().log()
-    result.log()
+    const type = result.inferredType && result.inferredType.getResolved()
     expect(
-        result instanceof FieldType
-        && result.ident.name === 'x'
+        type
+        && type instanceof PrimitiveType
+        && type.name === 'int'
     ).toBeTruthy()
 })

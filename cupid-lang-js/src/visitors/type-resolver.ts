@@ -22,14 +22,17 @@ export default class TypeResolver extends BaseExprVisitor {
             if (value.value.params.length !== instance.args.length) {
                 throw CompilationError.incorrectNumArgs(instance, value.value.params.length, instance.args.length)
             }
-            const cloner = new Cloner()
-            const constructor = cloner.visitTypeConstructor(value.value, instance.scope)
-            // Annotate constructor params with matching arguments
-            constructor.params.map((param, i) => instance.scope.define({
-                ident: param,
-                value: instance.args[i]
-            }))
-            instance.value = constructor.body
+            // Only bother cloning if there are parameters
+            if (value.value.params.length) {
+                const cloner = new Cloner()
+                const constructor = cloner.visitTypeConstructor(value.value, instance.scope)
+                // Annotate constructor params with matching arguments
+                constructor.params.map((param, i) => instance.scope.define({
+                    ident: param,
+                    value: instance.args[i]
+                }))
+                instance.value = constructor.body
+            } else instance.value = value.value.body
         }
         else throw CompilationError.notAType(instance)
 

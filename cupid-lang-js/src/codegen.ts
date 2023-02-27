@@ -40,7 +40,7 @@ export function func ({ name, params, statements, ...config }: FuncParams): Gene
 export function anonFunc ({ params, statements, ...config }: AnonFuncParams): GeneratedString {
     const body = Array.isArray(statements) ? `{\n${ statements.join('\n') }\n}` : statements
     return kw.async(
-        `${ paren(params.join(', ')) }${ returnType(config) } => ${ body }`,
+        `${ params.length === 1 ? params[0] : paren(params.join(', ')) }${ returnType(config) } => ${ body }`,
         config
     )
 }

@@ -1,6 +1,7 @@
+import { PrimitiveType } from '@/ast/index'
 import { CompilationErrorCode } from '@/error/compilation-error'
 import { expect, test } from 'bun:test'
-import { expectCompilationError, interpret, last, maker, setup } from './utils'
+import { compile, expectCompilationError, interpret, last, maker, setup } from './utils'
 
 test('fun decl', () => {
     const [_, make, exprs] = setup()

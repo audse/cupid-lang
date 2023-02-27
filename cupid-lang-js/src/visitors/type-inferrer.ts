@@ -117,113 +117,124 @@ function unknownType (parent: Expr) {
     })
 }
 
+function infer<E extends Expr> (expr: E, doInfer: () => Type): Type {
+    if (expr.inferredType && !(expr.inferredType instanceof UnknownType)) return expr.inferredType
+    const inferredType = doInfer()
+    expr.inferredType = inferredType
+    return inferredType
+}
+
 export class Infer extends ExprVisitor<Type> {
 
-    visit (expr: Expr): Type {
-        const type = expr.accept(this)
-        expr.inferredType = type
-        return type
-    }
-
     visitAssign (assign: Assign): Type {
-        return noneType(assign)
+        return infer(assign, () => noneType(assign))
     }
 
     visitBinOp (binop: BinOp): Type {
-        if (['+', '-', '*', '/', '^', '%'].includes(binop.op)) {
-            const left = binop.left.accept(this)
-            const right = binop.right.accept(this)
-            const unifier = new TypeUnifier()
-            return unifier.visit(left, right)
-        }
-        return primitiveType(binop, 'bool')
+        return infer(binop, () => {
+            if (['+', '-', '*', '/', '^', '%'].includes(binop.op)) {
+                const left = binop.left.accept(this)
+                const right = binop.right.accept(this)
+                const unifier = new TypeUnifier()
+                return unifier.visit(left, right)
+            }
+            return primitiveType(binop, 'bool')
+        })
     }
 
     visitBlock (block: Block): Type {
-        const types = block.exprs.map(expr => expr.accept(this))
-        return types.pop() || noneType(block)
+        return infer(block, () => {
+            const types = block.exprs.map(expr => expr.accept(this))
+            return types.pop() || noneType(block)
+        })
     }
 
     visitCall (call: Call): Type {
-        const fun = call.fun.accept(this)
-        if (fun instanceof FunType) return fun.returns
-        if (fun instanceof UnknownType) return unknownType(call)
-        throw CompilationError.notAFunction(call.fun)
+        return infer(call, () => {
+            const fun = call.fun.accept(this)
+            if (fun instanceof FunType) return fun.returns
+            if (fun instanceof UnknownType) return unknownType(call)
+            throw CompilationError.notAFunction(call.fun)
+        })
     }
 
     visitDecl (decl: Decl): Type {
-        return noneType(decl)
+        return infer(decl, () => noneType(decl))
     }
 
     visitEnvironment (env: Environment): Type {
-        return primitiveType(env, 'env')
+        return infer(env, () => primitiveType(env, 'env'))
     }
 
     visitFun (fun: Fun): Type {
-        return new FunType({
+        return infer(fun, () => new FunType({
             scope: fun.scope,
             source: fun.source,
             params: fun.params,
             returns: fun.body.accept(this),
-        })
+        }))
     }
 
     visitIdent (ident: Ident): Type {
-        const symbol = ident.expectSymbol()
-        if (symbol.type && !(symbol.type instanceof UnknownType)) return symbol.type
-        if (symbol.value) return symbol.value.accept(this)
-        else return unknownType(ident)
+        return infer(ident, () => {
+            const symbol = ident.expectSymbol()
+            if (symbol.type && !(symbol.type instanceof UnknownType)) return symbol.type
+            if (symbol.value) return symbol.value.accept(this)
+            else return unknownType(ident)
+        })
     }
 
     visitImpl (impl: Impl): Type {
-        return primitiveType(impl, 'none')
+        return infer(impl, () => primitiveType(impl, 'none'))
     }
 
     visitLiteral (literal: Literal): Type {
-        switch (typeof literal.value) {
-            case 'string': return primitiveType(literal, 'str')
-            case 'number': return primitiveType(literal, 'int')
-            case 'boolean': return primitiveType(literal, 'bool')
-            case 'object': {
-                if (Array.isArray(literal.value)) return primitiveType(literal, 'decimal')
-                if (!literal.value) return noneType(literal)
+        return infer(literal, () => {
+            switch (typeof literal.value) {
+                case 'string': return primitiveType(literal, 'str')
+                case 'number': return primitiveType(literal, 'int')
+                case 'boolean': return primitiveType(literal, 'bool')
+                case 'object': {
+                    if (Array.isArray(literal.value)) return primitiveType(literal, 'decimal')
+                    if (!literal.value) return noneType(literal)
+                }
             }
-        }
-        return unknownType(literal)
+            return unknownType(literal)
+        })
     }
 
     visitLookup (lookup: Lookup): Type {
-        return unknownType(lookup)
+        return infer(lookup, () => unknownType(lookup))
     }
 
     visitTypeConstructor (constructor: TypeConstructor): Type {
-        return type(constructor)
+        return infer(constructor, () => type(constructor))
     }
 
     /* Types */
 
     visitFieldType (field: FieldType): Type {
-        return type(field)
+        return infer(field, () => type(field))
     }
 
     visitFunType (fun: FunType): Type {
-        return type(fun)
+        return infer(fun, () => type(fun))
     }
 
     visitInstanceType (instance: InstanceType): Type {
-        return type(instance)
+        return infer(instance, () => type(instance))
     }
 
     visitPrimitiveType (primitive: PrimitiveType): Type {
-        return type(primitive)
+        return infer(primitive, () => type(primitive))
     }
 
     visitStructType (struct: StructType): Type {
-        return type(struct)
+        return infer(struct, () => type(struct))
     }
 
     visitUnknownType (unknown: UnknownType): Type {
-        return type(unknown)
+        return infer(unknown, () => type(unknown))
     }
 
 }

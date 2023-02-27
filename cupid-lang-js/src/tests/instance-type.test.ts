@@ -1,7 +1,7 @@
-import { PrimitiveType, StructType } from '@/ast/index'
+import { FunType, PrimitiveType, StructType } from '@/ast/index'
 import { CompilationError, CompilationErrorCode } from '@/error/compilation-error'
 import { expect, test } from 'bun:test'
-import { expectCompilationError, interpret, setup } from './utils'
+import { compile, expectCompilationError, interpret, last, setup } from './utils'
 
 
 test('int type instance', () => {
@@ -74,4 +74,28 @@ test('wrong number of args', () => {
             make.type.instance(make.ident('point'))
         )
     )
+})
+
+test('fun type instance', () => {
+    const [_, make, exprs] = setup()
+    const genericFunType = make.typeConstructor(
+        make.ident('add'),
+        make.type.fun([
+            make.quick.fieldType('a', 't'),
+            make.quick.fieldType('b', 't')
+        ], make.quick.instanceType('t')),
+        [make.ident('t')]
+    )
+    const instance = make.quick.instanceType('add', 'int')
+    compile(
+        ...exprs,
+        genericFunType,
+        instance
+    )
+    const type = instance.getResolved()
+    expect(
+        type instanceof FunType
+        && type.returns instanceof PrimitiveType
+        && type.returns.name === 'int'
+    ).toBeTruthy()
 })

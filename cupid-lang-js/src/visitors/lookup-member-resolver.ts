@@ -19,9 +19,9 @@ export default class LookupMemberResolver extends BaseExprVisitor {
         lookup.member.symbol = (() => {
             for (const scope of lookup.environment.lookupEnvironments) {
                 const symbol = scope.lookup(lookup.member)
-                symbol?.log()
                 if (symbol) {
                     lookup.member.inferredType = symbol.value?.inferredType || symbol.type
+                    lookup.inferredType = lookup.member.inferredType
                     return symbol
                 }
             }

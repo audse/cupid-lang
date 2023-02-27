@@ -1,7 +1,7 @@
 import { TokenParser } from '@/parse/parse'
 import { token, Option } from '@/types'
 
-export type Node = StringNode | IntNode | DecimalNode | IdentNode | RuleNode
+export type Node = StringNode | IntNode | DecimalNode | IdentNode | RuleNode | CustomNode
 
 export type NodeParser = (parser: TokenParser) => Option<any>
 
@@ -16,6 +16,12 @@ export type IdentNode = BaseNode<true> & { ident: string }
 export type RuleNode = {
     name: string,
     items: Node[]
+}
+
+export interface CustomNode {
+    name: string
+    children: Record<string, CustomNode>
+    items: Exclude<Node, CustomNode | RuleNode>[]
 }
 
 export namespace nodeIs {
