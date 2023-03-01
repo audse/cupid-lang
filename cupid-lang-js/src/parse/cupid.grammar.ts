@@ -221,9 +221,11 @@ Lookup_Member ~ { Ident | @string | @int }
 Lookup_Op match-strings { '.' '\\\\' }
 
 UnOp { 
-    ('-' Expr) 
+    (UnOp_Op Expr) 
     | Group
 }
+
+UnOp_Op match-strings { '-' 'not' }
 
 Group ~ {
     Parens[Expr]

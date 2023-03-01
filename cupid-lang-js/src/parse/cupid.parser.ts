@@ -348,10 +348,14 @@ export namespace cupid {
     }
     export function unop (parser: TokenParser): Option<RuleNode> {
             return makeNode('UnOp', parser.chain(
-                parser => node.string(parser.match('-')),
+                unop_op,
                 expr
             )
         ?? group(parser))
+    }
+    const unop_opAccepted: Set<string> = new Set(['-', 'not'])
+    export function unop_op (parser: TokenParser): Option<Node> {
+        return node.string(parser.matchOneSet(unop_opAccepted))
     }
     export function group (parser: TokenParser): Option<Node[]> {
             return getNodeArray(parens(

@@ -1,4 +1,4 @@
-import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, UnknownType, Decl, Assign, Block, InstanceType, ExprVisitorWithContext, Fun, Call, Environment, Lookup, Impl } from '@/ast'
+import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, UnknownType, Decl, Assign, Block, InstanceType, ExprVisitorWithContext, Fun, Call, Environment, Lookup, Impl, UnOp } from '@/ast'
 import { CompilationError } from '@/error/compilation-error'
 import { BaseExprVisitorWithContext } from './base'
 import { TypeUnifier } from './type-unifier'
@@ -209,6 +209,10 @@ export class Infer extends ExprVisitor<Type> {
 
     visitTypeConstructor (constructor: TypeConstructor): Type {
         return infer(constructor, () => type(constructor))
+    }
+
+    visitUnOp (unop: UnOp): Type {
+        return infer(unop, () => unop.expr.accept(this))
     }
 
     /* Types */

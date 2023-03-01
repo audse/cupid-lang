@@ -64,6 +64,38 @@ test('inferred type environment call', () => {
     ))).toBe(2)
 })
 
+test('inferred type environment call with self param', () => {
+    const [_, make, exprs] = setup()
+    expect(last(interpret(
+        ...exprs,
+
+        // create impl: int [ add: (self, int) -> int ]
+        make.impl(
+            make.type.instance(make.ident('int')),
+            make.env([
+                make.decl(
+                    make.ident('add'),
+                    make.fun(
+                        [make.type.field(make.ident('other'), make.type.instance(make.ident('int')))],
+                        make.binop(make.ident('self'), make.ident('other'), '+'),
+                        make.type.instance(make.ident('int')),
+                        true
+                    )
+                )
+            ])
+        ),
+
+        // create lookup: 1\add(2)
+        make.call(
+            make.lookup(
+                make.literal.int(1),
+                make.ident('add')
+            ),
+            make.literal.int(1),
+        )
+    ))).toBe(2)
+})
+
 
 test('explicit type environment call', () => {
     const [_, make, exprs] = setup()

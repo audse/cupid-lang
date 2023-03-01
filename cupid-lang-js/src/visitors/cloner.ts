@@ -1,4 +1,4 @@
-import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, TypeVisitor, UnknownType, Decl, Assign, Block, InstanceType, Fun, Call, Environment, Lookup, Impl } from '@/ast'
+import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, TypeVisitor, UnknownType, Decl, Assign, Block, InstanceType, Fun, Call, Environment, Lookup, Impl, UnOp } from '@/ast'
 import { ExprVisitorWithContext } from '@/ast/visitor'
 import { Context, Scope } from '@/env'
 
@@ -131,6 +131,15 @@ export default class Cloner extends ExprVisitorWithContext<Expr, Scope> {
             ident: this.visitIdent(constructor.ident, subscope),
             params: constructor.params.map(param => this.visitIdent(param, subscope)),
             body: this.visitType(constructor.body, subscope),
+        })
+    }
+
+    visitUnOp (unop: UnOp, scope: Scope): Expr {
+        return new UnOp({
+            scope,
+            source: unop.source,
+            expr: unop.acceptWithContext(this, scope),
+            op: unop.op
         })
     }
 

@@ -1,4 +1,4 @@
-import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, UnknownType, Decl, Assign, Block, InstanceType, Lookup, Environment, Impl, ExprVisitorWithContext, Call, Fun } from '@/ast'
+import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, UnknownType, Decl, Assign, Block, InstanceType, Lookup, Environment, Impl, ExprVisitorWithContext, Call, Fun, UnOp } from '@/ast'
 import { Scope } from '@/env'
 import { CompilationError } from '@/error/compilation-error'
 import BaseExprVisitor, { BaseExprVisitorWithContext } from './base'
@@ -159,6 +159,10 @@ export class LookupEnvironmentFinder extends ExprVisitor<Scope[]> {
 
     visitTypeConstructor (constructor: TypeConstructor): Scope[] {
         return constructor.body.accept(this)
+    }
+
+    visitUnOp (unop: UnOp): Scope[] {
+        return unop.expectType().accept(this)
     }
 
     /* Types */

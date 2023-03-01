@@ -1,4 +1,4 @@
-import { Assign, BinOp, Block, Call, Decl, Environment, ExprVisitor, FieldType, Fun, FunType, Ident, Impl, InstanceType, Literal, Lookup, PrimitiveType, StructType, TypeConstructor, UnknownType } from '@/ast'
+import { Assign, BinOp, Block, Call, Decl, Environment, ExprVisitor, FieldType, Fun, FunType, Ident, Impl, InstanceType, Literal, Lookup, PrimitiveType, StructType, TypeConstructor, UnknownType, UnOp } from '@/ast'
 import { Context } from '@/env'
 
 export default class ScopeAnalyzer extends ExprVisitor<void> {
@@ -110,6 +110,11 @@ export default class ScopeAnalyzer extends ExprVisitor<void> {
             param.scope = scope
             param.accept(this)
         })
+    }
+
+    visitUnOp (unop: UnOp): void {
+        unop.expr.scope = unop.scope
+        unop.expr.accept(this)
     }
 
     /* Types */

@@ -1,5 +1,5 @@
 import { CustomNode, DecimalNode, IdentNode, IntNode, Node, nodeIs, RuleNode, StringNode } from '@/types'
-import { Assign, BinOp, Block, Call, Decl, Environment, Expr, FieldType, Fun, FunType, Ident, Impl, InstanceType, Literal, Lookup, PrimitiveType, StructType, Type, TypeConstructor } from '@/ast'
+import { Assign, BinOp, Block, Call, Decl, Environment, Expr, FieldType, Fun, FunType, Ident, Impl, InstanceType, Literal, Lookup, PrimitiveType, StructType, Type, TypeConstructor, UnOp } from '@/ast'
 import { Scope } from './env'
 
 export function intoAst () {
@@ -232,6 +232,12 @@ export function intoAst () {
     })
 
     const intoUnOp = rule(node => {
+        if (node.items.length === 2) return new UnOp({
+            scope,
+            source: source.push(node),
+            expr: into(node.items[1]),
+            op: string(op => op.string)(node.items[0])
+        })
         return into(node.items[0])
     })
 

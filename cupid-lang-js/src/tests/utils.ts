@@ -1,4 +1,4 @@
-import { Assign, BinOp, Block, Call, Decl, Environment, Expr, FieldType, Fun, FunType, Ident, Impl, InstanceType, Literal, Lookup, PrimitiveType, StructType, Type, TypeConstructor, UnknownType } from '@/ast'
+import { Assign, BinOp, Block, Call, Decl, Environment, Expr, FieldType, Fun, FunType, Ident, Impl, InstanceType, Literal, Lookup, PrimitiveType, StructType, Type, TypeConstructor, UnknownType, UnOp } from '@/ast'
 import { Scope } from '@/env'
 import { CompilationError, CompilationErrorCode, RuntimeError, RuntimeErrorCode } from '@/error/index'
 import { Infer, Interpreter, LookupEnvironmentFinder, LookupEnvironmentResolver, LookupMemberResolver, ScopeAnalyzer, SymbolDefiner, SymbolResolver, TypeChecker, TypeInferrer, TypeResolver } from '@/visitors'
@@ -19,7 +19,7 @@ export function maker (scope: Scope) {
     const ident = (name: string) => new Ident({ scope, name })
     const decl = (ident: Ident, value: Expr, type?: Type, mutable?: boolean) => new Decl({ scope, ident, value, type, mutable })
 
-    const fun = (params: FieldType[], body: Expr, returns: Type = type.unknown()) => new Fun({ scope, params, body, returns })
+    const fun = (params: FieldType[], body: Expr, returns: Type = type.unknown(), hasSelfParam: boolean = false) => new Fun({ scope, params, body, returns, hasSelfParam })
     const call = (fun: Expr, ...args: Expr[]) => new Call({ scope, fun, args })
     const env = (content: Expr[], ident?: Ident) => new Environment({ scope, ident, content })
     const lookup = (environment: Expr, member: Ident | Literal) => new Lookup({ scope, environment, member })
@@ -29,6 +29,7 @@ export function maker (scope: Scope) {
         params,
         body,
     })
+    const unop = (expr: Expr, op: string) => new UnOp({ scope, expr, op })
     const impl = (type: Type, environment: Environment) => new Impl({ scope, type, environment })
     const type = {
         instance: (ident: Ident, args: Type[] = []) => new InstanceType({ scope, ident, args }),
@@ -56,6 +57,7 @@ export function maker (scope: Scope) {
         lookup,
         type,
         typeConstructor,
+        unop,
 
         quick: {
             lookup: (env: string, member: string) => lookup(ident(env), ident(member)),
