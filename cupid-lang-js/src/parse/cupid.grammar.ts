@@ -1,7 +1,7 @@
 const GrammarUtils = `
 
 Parens [inner] ~ {
-    Bracketed [ inner, '('~, ')'~ ]
+    Surrounded [ inner, '('~, ')'~ ]
 }
 
 ParenList [inner, sep] ~ {
@@ -9,7 +9,7 @@ ParenList [inner, sep] ~ {
 }
 
 Brackets [inner] ~ {
-    Bracketed [ inner, '['~, ']'~ ]
+    Surrounded [ inner, '['~, ']'~ ]
 }
 
 BracketList [inner, sep] ~ {
@@ -17,14 +17,14 @@ BracketList [inner, sep] ~ {
 }
 
 Braces [inner] ~ {
-    Bracketed [ inner, '{'~, '}'~ ]
+    Surrounded [ inner, '{'~, '}'~ ]
 }
 
 BracesList [inner, sep] ~ {
     Braces [ List[inner, sep] ]
 }
 
-Bracketed [inner, open, close] ~ {
+Surrounded [inner, open, close] ~ {
     open~ inner close~
 }
 
@@ -42,33 +42,38 @@ ListInner [inner, sep] ~ {
 const TypeGrammar = `
 
 Type ~ {
-    StructType
+    PrimitiveType
+    | StructType
     | SumType
-    | PrimitiveType
-    | TypeInstance
+    | InstanceType
 }
 
-StructType { 'type'~ '!'~ BaseType }
-SumType { 'sum'~ '!'~ BaseType }
-PrimitiveType { 'type'~ '!'~ @ident }
+StructType { 'struct'~ BaseType }
+SumType { 'sum'~ BaseType }
+PrimitiveType { 'primitive'~ PrimitiveName }
+PrimitiveName match-strings {
+    'int'
+    'type'
+    'decimal'
+    'bool'
+    'boo'
+    'str'
+    'none'
+    'env'
+}
 
 BaseType ~ {
-    BracketList [ Field, ','? ]
+    BracketList [ FieldType, ','? ]
 }
 
 TypeHint {
-    ':'~ TypeInstance
+    ':'~ InstanceType
 }
 
-Field { Ident ':'~ FieldValue }
-
-FieldValue ~ {
-    Type
-    | TypeInstance
-}
+FieldType { Ident ':'~ Type }
 
 TypeConstructor {
-    TypeConstructor_Ident '='~ TypeConstructor_Value
+    'type'~ TypeConstructor_Ident '='~ TypeConstructor_Value
 }
 
 TypeConstructor_Value ~ {
@@ -77,22 +82,29 @@ TypeConstructor_Value ~ {
 }
 
 TypeConstructor_Ident ~ {
-    'type'~ Ident
+    Ident 
+    | PrimitiveName
 }
 
 TypeParams { List [ Ident, ','~ ] }
 
-TypeInstance { Ident TypeInstanceArgs? }
-
-TypeInstanceWithArgs {
-    Ident TypeInstanceArgs
-}
-
-TypeInstanceArgs { 
-    BracketList [ TypeInstance, ','~ ]
-}
+InstanceType { Ident InstanceTypeArgs? }
+InstanceTypeWithArgs { Ident InstanceTypeArgs }
+InstanceTypeArgs { BracketList [ InstanceType, ','~ ] }
 
 ReturnTypeHint ~ { '-'~ '>'~ Type }
+
+Impl {
+    'impl'~ Type '='~ ImplBlock
+}
+
+ImplBlock ~ {
+    BracketList [ ImplFun, ','~ ]
+}
+
+ImplFun {
+    Ident ':'~ Fun
+}
 
 `
 
@@ -100,13 +112,14 @@ export default `
 
 Expr ~ {
     TypeConstructor
+    | Impl
     | Block
-    | DeclareMut
-    | Declare
+    | DeclMut
+    | Decl
     | Assign
-    | Func
+    | Fun
     | IfStmt
-    | BinaryOp
+    | BinOp
 }
 
 ${ TypeGrammar }
@@ -134,11 +147,11 @@ ElseStmt ~ {
     'else'~ Block
 }
 
-Declare {
+Decl {
     'let'~ Ident TypeHint? '='~ Expr
 }
 
-DeclareMut {
+DeclMut {
     'let'~ 'mut'~ Ident TypeHint? '='~ Expr
 }
 
@@ -159,14 +172,17 @@ ArrowBlock ~ {
     '='~ '>'~ Expr
 }
 
-Func { Params ReturnTypeHint? Block }
+Fun { Params ReturnTypeHint? Block }
 Params { 
     ParenList[Param, ','~]
     | List[Param, ','~]
 }
-Param { Ident TypeHint }
+Param { 
+    'self'
+    | (Ident TypeHint)
+}
 
-BinaryOp { CompareOp }
+BinOp { CompareOp }
 
 CompareOp ~ { AddOp CompareOp_Right? }
 CompareOp_Right ~ { CompareOperator Expr }
@@ -192,18 +208,19 @@ MultiplyOp ~ { PowerOp MultiplyOp_Right? }
 MultiplyOp_Right ~ { MultiplyOp_Op Expr }
 MultiplyOp_Op match-strings { '*' '/' }
 
-PowerOp ~ { FunCall PowerOp_Right? }
+PowerOp ~ { Call PowerOp_Right? }
 PowerOp_Right ~ { PowerOp_Op Expr }
 PowerOp_Op match-strings { '^' }
 
-FunCall { PropertyOp Args? }
+Call { Lookup Args? }
 Args { ParenList[Expr, ','~] }
 
-PropertyOp ~ { UnaryOp PropertyOp_Right? }
-PropertyOp_Right ~ { PropertyOp_Op Expr }
-PropertyOp_Op match-strings { '.' '\\\\' }
+Lookup { UnOp Lookup_Right? }
+Lookup_Right ~ { Lookup_Op Lookup_Member }
+Lookup_Member ~ { Ident | @string | @int }
+Lookup_Op match-strings { '.' '\\\\' }
 
-UnaryOp { 
+UnOp { 
     ('-' Expr) 
     | Group
 }
@@ -218,10 +235,10 @@ Leaf ~ {
     | @string
     | @int
     | @decimal
-    | TypeInstanceWithArgs
+    | InstanceTypeWithArgs
     | Ident
     | Type
-    | Boolean
+    | Bool
     | None
 }
 
@@ -241,7 +258,7 @@ Reserved match-strings {
     'mut'
 }
 
-Boolean {
+Bool {
     'true'
     | 'false'
 }

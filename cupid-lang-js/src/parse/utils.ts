@@ -1,4 +1,4 @@
-import { Option, Node, token, CustomNode, nodeIs } from '@/types'
+import { Option, Node, token, CustomNode, nodeIs, RuleNode } from '@/types'
 import { TokenParser } from '@/parse/parse'
 
 type NodeArray = (Node | boolean | (Node | boolean)[])[]
@@ -12,18 +12,9 @@ export function getNodeArray (nodes: NodeArray | Node | boolean | null): Option<
     return [nodes]
 }
 
-export function makeNode (name: string, items: NodeArray | Node | boolean | null): Option<CustomNode> {
+export function makeNode (name: string, items: NodeArray | Node | boolean | null): Option<RuleNode> {
     if (items === null) return null
-    const node: CustomNode = {
-        name,
-        children: {},
-        items: []
-    }
-    for (const item of getNodeArray(items) || []) {
-        if ('children' in item) node.children[item.name] = item
-        else if (!('name' in item)) node.items.push(item)
-    }
-    return node
+    return { name, items: getNodeArray(items) || [] }
 }
 
 type ParseFunc<T> = (parser: TokenParser) => T

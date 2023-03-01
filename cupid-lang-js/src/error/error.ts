@@ -1,27 +1,5 @@
 import { reindent } from '@/codegen'
-import { color, ConsoleFgColorBright, logColor, logFgRed } from '@/console'
-import { Result } from '@/types'
-import { CompilationError } from './compilation-error'
-import { AnyExpr, Err, ErrorCode } from './index'
-import { RuntimeError } from './runtime-error'
-
-export function err (code: ErrorCode, context: string = '', expr: Err['expr']): Result<any, Err> {
-    return {
-        ok: false,
-        err: {
-            code,
-            context,
-            expr
-        }
-    }
-}
-
-export function ok<T> (result: T): Result<T, any> {
-    return {
-        ok: true,
-        result
-    }
-}
+import { color } from '@/console'
 
 export interface Reportable {
     report: () => string

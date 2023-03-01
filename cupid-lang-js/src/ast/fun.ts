@@ -6,6 +6,7 @@ import { ExprVisitor, ExprVisitorWithContext } from './visitor'
 
 
 interface FunProps extends ExprProps {
+    hasSelfParam?: boolean
     params: FieldType[]
     body: Expr
     returns?: Type
@@ -14,6 +15,7 @@ interface FunProps extends ExprProps {
 
 export default class Fun extends Expr implements FunProps {
 
+    hasSelfParam: boolean
     params: FieldType[]
     body: Expr
     returns: Type
@@ -23,6 +25,7 @@ export default class Fun extends Expr implements FunProps {
         this.params = props.params
         this.body = props.body
         this.returns = props.returns || new UnknownType({ scope: this.scope })
+        this.hasSelfParam = props.hasSelfParam || false
     }
 
     report (): string {

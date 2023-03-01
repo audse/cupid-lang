@@ -1,5 +1,3 @@
-export * from './kind'
-
 export * from './type'
 
 import FieldType from './field'

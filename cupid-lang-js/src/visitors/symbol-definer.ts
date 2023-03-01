@@ -1,4 +1,4 @@
-import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, UnknownType, Decl, Assign, Block, InstanceType, Fun, Environment } from '@/ast'
+import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, UnknownType, Decl, Assign, Block, InstanceType, Fun, Environment, Call, UnOp } from '@/ast'
 import BaseExprVisitor from './base'
 
 export default class SymbolDefiner extends BaseExprVisitor {
@@ -28,6 +28,11 @@ export default class SymbolDefiner extends BaseExprVisitor {
             ident: param.ident,
             type: param.type,
         }))
+        if (fun.hasSelfParam) {
+            fun.scope.define({
+                ident: new Ident({ scope: fun.scope, name: 'self' })
+            })
+        }
     }
 
     visitTypeConstructor (constructor: TypeConstructor): void {

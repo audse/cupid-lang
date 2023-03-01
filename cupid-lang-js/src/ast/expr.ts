@@ -1,6 +1,6 @@
 import { Scope } from '@/env'
 import { CompilationError, Reportable } from '@/error/index'
-import { Option } from '@/types'
+import { Option, Node } from '@/types'
 import { Type } from './type-system/type'
 import { ExprVisitor, ExprVisitorWithContext } from './visitor'
 

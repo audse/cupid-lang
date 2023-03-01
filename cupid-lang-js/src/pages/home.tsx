@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { filterObjectRecursive, safeStringify } from '@/utils'
 import { create, Tree } from '@/components/json-tree'
-import { test } from '@/passes/test/tests'
 import { reindent } from '@/codegen'
-import { Err, format, FormatJsx } from '@/error'
-import { Node, Result } from '@/types'
+// import { Err, format, FormatJsx } from '@/error'
+// import { Node, Result } from '@/types'
 
 const presetClosure = reindent(`
     type int = type! int
@@ -136,21 +135,21 @@ export function Home () {
     let tree: any[] = []
     let results: any[] = []
     let nodes: Node[] = []
-    let error: Err | null = null
+    // let error: Err | null = null
 
 
-    try {
-        const compiled = test(content)
-        results = compiled.results
-        tree = compiled.tree
-        nodes = compiled.env
-    } catch (err: any) {
-        console.log(err)
-        error = (typeof err.error === 'object' && err.error && 'err' in err.error) ? err.error.err as Err : null
-        results = []
-        tree = err.tree
-        nodes = err.env
-    }
+    // try {
+    //     const compiled = test(content)
+    //     results = compiled.results
+    //     tree = compiled.tree
+    //     nodes = compiled.env
+    // } catch (err: any) {
+    //     console.log(err)
+    //     error = (typeof err.error === 'object' && err.error && 'err' in err.error) ? err.error.err as Err : null
+    //     results = []
+    //     tree = err.tree
+    //     nodes = err.env
+    // }
 
     return (
         <main>
@@ -177,10 +176,10 @@ export function Home () {
                         <input type='checkbox' onClick={ () => setShowAst(!showAst) } defaultChecked={ showAst } />
                         Show AST
                     </label>
-                    { error && <>
+                    {/* { error && <>
                         <h2>Errors</h2>
                         <pre><FormatJsx files={ [content] } error={ error } env={ nodes } /></pre>
-                    </> }
+                    </> } */}
                     { showResults && <>
                         <h2>Results</h2>
                         <JsonTree content={ results } />

@@ -1,4 +1,4 @@
-import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, TypeVisitor, UnknownType, Decl, Assign, Block, InstanceType, Fun, Call, Environment, Lookup, Impl } from '@/ast'
+import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, TypeVisitor, UnknownType, Decl, Assign, Block, InstanceType, Fun, Call, Environment, Lookup, Impl, UnOp } from '@/ast'
 import { bracket, paren } from '@/codegen'
 import { RuntimeError } from '@/error/index'
 
@@ -49,6 +49,12 @@ export default class Interpreter extends ExprVisitor<Value> {
             fun.params.map((param, i) => {
                 param.ident.expectSymbol().value = call.args[i]
             })
+            if (fun.hasSelfParam && call.fun instanceof Lookup) {
+                fun.scope.annotate(
+                    new Ident({ scope: call.fun.scope, name: 'self' }),
+                    { value: call.fun.environment }
+                )
+            }
             return fun.body.accept(this)
         }
         throw RuntimeError.unreachable(
@@ -90,6 +96,8 @@ export default class Interpreter extends ExprVisitor<Value> {
 
     visitLiteral (literal: Literal): Value {
         if (Array.isArray(literal.value)) return parseFloat(literal.value.join('.'))
+        // Trim off quotes
+        if (typeof literal.value === 'string') return literal.value.substring(1, literal.value.length - 1)
         return literal.value
     }
 
@@ -98,7 +106,20 @@ export default class Interpreter extends ExprVisitor<Value> {
     }
 
     visitTypeConstructor (constructor: TypeConstructor): Value {
-        return null
+        return constructor.body.getResolved()
+    }
+
+    visitUnOp (unop: UnOp): Value {
+        const expr = unop.expr.accept(this)
+        switch (typeof expr) {
+            case 'number': switch (unop.op) {
+                case '-': return -1 * expr
+            }
+            case 'boolean': switch (unop.op) {
+                case 'not': case '!': return !expr
+            }
+        }
+        throw RuntimeError.unreachable(unop)
     }
 
     /* Types */

@@ -1,4 +1,4 @@
-import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, UnknownType, Decl, Assign, Block, InstanceType, ExprVisitorWithContext, Fun, Call, Environment, Lookup, Impl } from '@/ast'
+import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, UnknownType, Decl, Assign, Block, InstanceType, ExprVisitorWithContext, Fun, Call, Environment, Lookup, Impl, UnOp } from '@/ast'
 
 /**
  * Recursively performs the default action for all expressions
@@ -59,6 +59,10 @@ export default class BaseExprVisitor extends ExprVisitor<void> {
         constructor.ident.accept(this)
         constructor.params.map(param => param.accept(this))
         constructor.body.accept(this)
+    }
+
+    visitUnOp (unop: UnOp): void {
+        unop.expr.accept(this)
     }
 
     /* Types */
@@ -152,6 +156,10 @@ export class BaseExprVisitorWithContext<Ctx> extends ExprVisitorWithContext<void
         constructor.ident.acceptWithContext(this, context)
         constructor.params.map(param => param.acceptWithContext(this, context))
         constructor.body.acceptWithContext(this, context)
+    }
+
+    visitUnOp (unop: UnOp, context: Ctx): void {
+        unop.expr.acceptWithContext(this, context)
     }
 
     /* Types */

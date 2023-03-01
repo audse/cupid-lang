@@ -1,5 +1,3 @@
-export * from './ast'
-export * from './kind'
 export * from './type-system'
 
 export * from './expr'
@@ -17,5 +15,20 @@ import Impl from './impl'
 import Literal from './literal'
 import Lookup from './lookup'
 import TypeConstructor from './type-constructor'
+import UnOp from './unop'
 
-export { Assign, BinOp, Block, Call, Decl, Environment, Fun, Ident, Impl, Literal, Lookup, TypeConstructor }
+export {
+    Assign,
+    BinOp,
+    Block,
+    Call,
+    Decl,
+    Environment,
+    Fun,
+    Ident,
+    Impl,
+    Literal,
+    Lookup,
+    TypeConstructor,
+    UnOp
+}

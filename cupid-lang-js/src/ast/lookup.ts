@@ -25,7 +25,7 @@ export default class Lookup extends Expr implements LookupProps {
     }
 
     report (): string {
-        return stringify({ Lookup: this.scope.report() })
+        return stringify({ lookup: this.scope.report() })
     }
 
     isEqual (other: this): boolean {

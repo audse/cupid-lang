@@ -6,6 +6,7 @@ import { Scope } from '@/env'
 import { Expr } from './expr'
 import Fun from './fun'
 import Environment from './environment'
+import { stringify } from '@/utils'
 
 interface ImplProps extends TypeProps {
     type: Type
@@ -24,7 +25,10 @@ export default class Impl extends Expr implements ImplProps {
     }
 
     report (): string {
-        throw 'unimplemented'
+        return stringify({
+            impl: this.type.report(),
+            env: this.environment.report()
+        })
     }
 
     isEqual (other: this): boolean {

@@ -21,7 +21,7 @@ export namespace generator {
 
     export function generate (name: string, grammar: grmmr.Rule[]): GeneratedString {
         return gen.reindent([
-            `\nimport { Option, token, Node, NodeParser, CustomNode } from '@/types'`,
+            `\nimport { Option, Node, NodeParser, RuleNode } from '@/types'`,
             `import { getNodeArray, node, modifier, makeNode } from '@/parse/utils'`,
             `import { TokenParser } from '@/parse/parse'\n`,
             gen.headerComment('AUTOMATICALLY GENERATED - DO NOT EDIT'),
@@ -47,7 +47,7 @@ export namespace generator {
                 isPassThroughRule(rule) ? `return getNodeArray(${ groups })`
                     : `return makeNode('${ rule.name }', ${ groups })`
             ],
-            type: isPassThroughRule(rule) ? `Option<Node[]>` : `Option<CustomNode>`,
+            type: isPassThroughRule(rule) ? `Option<Node[]>` : `Option<RuleNode>`,
             export: true,
         })
     }

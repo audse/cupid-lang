@@ -181,12 +181,11 @@ export function last<T> (arr: T[]): T {
 export function expectCompilationError<T> (code: CompilationErrorCode, inner: () => T) {
     try {
         const result = inner()
-        throw `expected compilation error ${ code }, found ${ result }`
+        console.error(`expected compilation error [${ code }] - instead found result`)
+        throw result
     } catch (error) {
-        if (error instanceof CompilationError && error.code !== code) {
-            if ([CompilationErrorCode.AlreadyDefined, CompilationErrorCode.NotDefined].includes(error.code) && 'scope' in error.context) error.context.scope.log()
-            error.log()
-        }
+        if (error instanceof CompilationError && error.code !== code) error.log()
+        else if (!(error instanceof CompilationError)) console.log(error)
         expect(
             error instanceof CompilationError
             && error.code === code
@@ -200,6 +199,7 @@ export function expectRuntimeError<T> (code: RuntimeErrorCode, inner: () => T) {
         throw `expected compilation error ${ code }, found ${ result }`
     } catch (error) {
         if (error instanceof RuntimeError && error.code !== code) error.log()
+        else if (!(error instanceof CompilationError)) console.log(error)
         expect(
             error instanceof RuntimeError
             && error.code === code
