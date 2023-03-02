@@ -1,4 +1,4 @@
-import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, TypeVisitor, UnknownType, Decl, Assign, Block, InstanceType, Fun, Call, Environment, Lookup, Impl, UnOp } from '@/ast'
+import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, TypeVisitor, UnknownType, Decl, Assign, Block, InstanceType, Fun, Call, Environment, Lookup, Impl, UnOp, Branch, Match } from '@/ast'
 import { ExprVisitorWithContext } from '@/ast/visitor'
 import { Context, Scope } from '@/env'
 
@@ -32,6 +32,17 @@ export default class Cloner extends ExprVisitorWithContext<Expr, Scope> {
             source: block.source,
             inferredType: block.inferredType,
             exprs: block.exprs.map(expr => expr.acceptWithContext(this, subscope)),
+        })
+    }
+
+    visitBranch (branch: Branch, scope: Scope): Branch {
+        return new Branch({
+            scope,
+            source: branch.source,
+            inferredType: branch.inferredType,
+            condition: branch.condition.acceptWithContext(this, scope),
+            body: branch.body.acceptWithContext(this, scope),
+            ...branch.else && { else: branch.else.acceptWithContext(this, scope) }
         })
     }
 
@@ -119,6 +130,15 @@ export default class Cloner extends ExprVisitorWithContext<Expr, Scope> {
                 if (lookup.member instanceof Ident) return this.visitIdent(lookup.member, scope)
                 else return this.visitLiteral(lookup.member, scope)
             })(),
+        })
+    }
+
+    visitMatch (match: Match, scope: Scope): Match {
+        return new Match({
+            scope,
+            expr: match.expr.acceptWithContext(this, scope),
+            branches: match.branches.map(branch => this.visitBranch(branch, scope)),
+            default: match.default.acceptWithContext(this, scope)
         })
     }
 

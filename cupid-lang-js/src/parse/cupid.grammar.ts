@@ -118,6 +118,7 @@ Expr ~ {
     | Decl
     | Assign
     | Fun
+    | Match
     | IfStmt
     | BinOp
 }
@@ -138,6 +139,18 @@ MapKey ~ {
     | @string 
     | @int
 }
+
+Match {
+    'match'~ Expr Brackets[MatchBranches]
+}
+
+MatchBranches ~ {
+    List[MatchBranch, ','~]
+    MatchBranch_Default ','?
+}
+
+MatchBranch { '_'! Expr ':'~ Expr }
+MatchBranch_Default ~ { '_'~ ':'~ Expr }
 
 IfStmt {
     'if'~ Expr Block ElseStmt?
@@ -258,6 +271,7 @@ Reserved match-strings {
     'loop'
     'let'
     'mut'
+    'match'
 }
 
 Bool {

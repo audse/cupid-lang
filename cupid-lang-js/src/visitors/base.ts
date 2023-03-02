@@ -1,4 +1,4 @@
-import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, UnknownType, Decl, Assign, Block, InstanceType, ExprVisitorWithContext, Fun, Call, Environment, Lookup, Impl, UnOp } from '@/ast'
+import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, UnknownType, Decl, Assign, Block, InstanceType, ExprVisitorWithContext, Fun, Call, Environment, Lookup, Impl, UnOp, Branch, Match } from '@/ast'
 
 /**
  * Recursively performs the default action for all expressions
@@ -17,6 +17,12 @@ export default class BaseExprVisitor extends ExprVisitor<void> {
 
     visitBlock (block: Block): void {
         block.exprs.map(expr => expr.accept(this))
+    }
+
+    visitBranch (branch: Branch): void {
+        branch.condition.accept(this)
+        branch.body.accept(this)
+        branch.else?.accept(this)
     }
 
     visitCall (call: Call): void {
@@ -53,6 +59,12 @@ export default class BaseExprVisitor extends ExprVisitor<void> {
     visitLookup (lookup: Lookup): void {
         lookup.environment.accept(this)
         lookup.member.accept(this)
+    }
+
+    visitMatch (match: Match): void {
+        match.expr.accept(this)
+        match.branches.map(branch => branch.accept(this))
+        match.default.accept(this)
     }
 
     visitTypeConstructor (constructor: TypeConstructor): void {
@@ -116,6 +128,12 @@ export class BaseExprVisitorWithContext<Ctx> extends ExprVisitorWithContext<void
         block.exprs.map(expr => expr.acceptWithContext(this, context))
     }
 
+    visitBranch (branch: Branch, context: Ctx): void {
+        branch.condition.acceptWithContext(this, context)
+        branch.body.acceptWithContext(this, context)
+        branch.else?.acceptWithContext(this, context)
+    }
+
     visitCall (call: Call, context: Ctx): void {
         call.fun.acceptWithContext(this, context)
         call.args.map(arg => arg.acceptWithContext(this, context))
@@ -150,6 +168,12 @@ export class BaseExprVisitorWithContext<Ctx> extends ExprVisitorWithContext<void
     visitLookup (lookup: Lookup, context: Ctx): void {
         lookup.environment.acceptWithContext(this, context)
         lookup.member.acceptWithContext(this, context)
+    }
+
+    visitMatch (match: Match, context: Ctx): void {
+        match.expr.acceptWithContext(this, context)
+        match.branches.map(branch => branch.acceptWithContext(this, context))
+        match.default.acceptWithContext(this, context)
     }
 
     visitTypeConstructor (constructor: TypeConstructor, context: Ctx): void {

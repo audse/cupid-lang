@@ -1,8 +1,11 @@
-import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, TypeVisitor, UnknownType, Decl, Assign, Block, InstanceType, Fun, Call, Environment, Lookup, Impl, UnOp } from '@/ast'
+import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, TypeVisitor, UnknownType, Decl, Assign, Block, InstanceType, Fun, Call, Environment, Lookup, Impl, UnOp, Branch, Match } from '@/ast'
 import { bracket, paren } from '@/codegen'
 import { RuntimeError } from '@/error/index'
 
-type Value = number | string | boolean | null | Type | Fun | Environment
+type Incomplete = { incomplete: true }
+type Value = number | string | boolean | null | Type | Fun | Environment | Incomplete
+
+const incomplete = (): Incomplete => ({ incomplete: true })
 
 export default class Interpreter extends ExprVisitor<Value> {
 
@@ -34,6 +37,9 @@ export default class Interpreter extends ExprVisitor<Value> {
         switch (binop.op) {
             case 'is': case '==': return left === right
             case 'not': case '!=': return left !== right
+            case 'istype': return (
+                binop.left.expectType().getResolved().isEqual(binop.right.expectType().getResolved())
+            )
         }
         return null
     }
@@ -41,6 +47,13 @@ export default class Interpreter extends ExprVisitor<Value> {
     visitBlock (block: Block): Value {
         const values = block.exprs.map(expr => expr.accept(this))
         return values.pop() || null
+    }
+
+    visitBranch (branch: Branch): Value {
+        const condition = branch.condition.accept(this)
+        if (condition === true) return branch.body.accept(this)
+        if (branch.else) return branch.else.accept(this)
+        else return incomplete()
     }
 
     visitCall (call: Call): Value {
@@ -103,6 +116,20 @@ export default class Interpreter extends ExprVisitor<Value> {
 
     visitLookup (lookup: Lookup): Value {
         return lookup.member.accept(this)
+    }
+
+    visitMatch (match: Match): Value {
+        const expr = match.expr.accept(this)
+        for (const branch of match.branches) {
+            const condition = branch.condition.accept(this)
+            if (condition instanceof Type && expr instanceof Type) return condition.isEqual(expr)
+            if (condition instanceof Fun && expr instanceof Fun) return condition.isEqual(expr)
+            if (condition instanceof Environment && expr instanceof Environment) return condition.isEqual(expr)
+
+            if (condition === expr) return branch.body.accept(this)
+            if (condition instanceof Type) return condition.isEqual(match.expr.expectType().getResolved())
+        }
+        return match.default.accept(this)
     }
 
     visitTypeConstructor (constructor: TypeConstructor): Value {

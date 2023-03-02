@@ -1,4 +1,4 @@
-import { Assign, BinOp, Block, Call, Decl, Environment, Expr, FieldType, Fun, FunType, Ident, Impl, InstanceType, Literal, Lookup, PrimitiveType, StructType, Type, TypeConstructor, UnknownType, UnOp } from './index'
+import { Assign, BinOp, Block, Branch, Call, Decl, Environment, Expr, FieldType, Fun, FunType, Ident, Impl, InstanceType, Literal, Lookup, Match, PrimitiveType, StructType, Type, TypeConstructor, UnknownType, UnOp } from './index'
 
 export abstract class TypeVisitor<T> {
     abstract visitFieldType (field: FieldType): T
@@ -28,6 +28,7 @@ export abstract class ExprVisitor<T> extends TypeVisitor<T> {
     abstract visitAssign (assign: Assign): T
     abstract visitBinOp (binop: BinOp): T
     abstract visitBlock (block: Block): T
+    abstract visitBranch (branch: Branch): T
     abstract visitCall (call: Call): T
     abstract visitDecl (decl: Decl): T
     abstract visitEnvironment (env: Environment): T
@@ -36,6 +37,7 @@ export abstract class ExprVisitor<T> extends TypeVisitor<T> {
     abstract visitImpl (impl: Impl): T
     abstract visitLiteral (literal: Literal): T
     abstract visitLookup (lookup: Lookup): T
+    abstract visitMatch (match: Match): T
     abstract visitTypeConstructor (constructor: TypeConstructor): T
     abstract visitUnOp (unop: UnOp): T
 }
@@ -47,6 +49,7 @@ export abstract class ExprVisitorWithContext<T, Ctx = never> extends TypeVisitor
     abstract visitAssign (assign: Assign, context: Ctx): T
     abstract visitBinOp (binop: BinOp, context: Ctx): T
     abstract visitBlock (block: Block, context: Ctx): T
+    abstract visitBranch (branch: Branch, context: Ctx): T
     abstract visitCall (call: Call, context: Ctx): T
     abstract visitDecl (decl: Decl, context: Ctx): T
     abstract visitEnvironment (env: Environment, context: Ctx): T
@@ -55,6 +58,7 @@ export abstract class ExprVisitorWithContext<T, Ctx = never> extends TypeVisitor
     abstract visitImpl (impl: Impl, context: Ctx): T
     abstract visitLiteral (literal: Literal, context: Ctx): T
     abstract visitLookup (lookup: Lookup, context: Ctx): T
+    abstract visitMatch (match: Match, context: Ctx): T
     abstract visitTypeConstructor (constructor: TypeConstructor, context: Ctx): T
     abstract visitUnOp (unop: UnOp, context: Ctx): T
 }

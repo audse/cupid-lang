@@ -6,6 +6,7 @@ export enum CompilationErrorCode {
     CannotInfer = 'cannot infer',
     Immutable = 'immutable',
     IncorrectNumberOfArgs = 'incorrect number of args',
+    IncorrectType = 'incorrect type',
     NotAFunction = 'not a function',
     NotAType = 'not a type',
     NotDefined = 'not defined',
@@ -50,6 +51,14 @@ export class CompilationError<T extends Reportable> extends CupidError<T> {
             CompilationErrorCode.IncorrectNumberOfArgs,
             context,
             `expected ${ expected } ${ pluralize('argument', expected) }, but called with ${ found }`
+        )
+    }
+
+    static incorrectType<T extends Reportable> (context: T, expected: string | Reportable): CompilationError<T> {
+        return new CompilationError(
+            CompilationErrorCode.IncorrectType,
+            context,
+            `expected type ${ typeof expected === 'string' ? expected : expected.report() }`
         )
     }
 

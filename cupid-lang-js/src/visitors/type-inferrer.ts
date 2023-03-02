@@ -1,4 +1,4 @@
-import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, UnknownType, Decl, Assign, Block, InstanceType, ExprVisitorWithContext, Fun, Call, Environment, Lookup, Impl, UnOp } from '@/ast'
+import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, UnknownType, Decl, Assign, Block, InstanceType, ExprVisitorWithContext, Fun, Call, Environment, Lookup, Impl, UnOp, Branch, Match } from '@/ast'
 import { CompilationError } from '@/error/compilation-error'
 import { BaseExprVisitorWithContext } from './base'
 import { TypeUnifier } from './type-unifier'
@@ -18,6 +18,11 @@ export default class TypeInferrer extends BaseExprVisitorWithContext<Infer> {
     visitBlock (block: Block, inferrer: Infer): void {
         super.visitBlock(block, inferrer)
         inferrer.visit(block)
+    }
+
+    visitBranch (branch: Branch, inferrer: Infer): void {
+        super.visitBranch(branch, inferrer)
+        inferrer.visit(branch)
     }
 
     visitCall (call: Call, inferrer: Infer): void {
@@ -45,6 +50,11 @@ export default class TypeInferrer extends BaseExprVisitorWithContext<Infer> {
         inferrer.visit(ident)
     }
 
+    visitImpl (impl: Impl, inferrer: Infer): void {
+        super.visitImpl(impl, inferrer)
+        inferrer.visit(impl)
+    }
+
     visitLiteral (literal: Literal, inferrer: Infer): void {
         super.visitLiteral(literal, inferrer)
         inferrer.visit(literal)
@@ -55,9 +65,19 @@ export default class TypeInferrer extends BaseExprVisitorWithContext<Infer> {
         inferrer.visit(lookup)
     }
 
+    visitMatch (match: Match, inferrer: Infer): void {
+        super.visitMatch(match, inferrer)
+        inferrer.visit(match)
+    }
+
     visitTypeConstructor (constructor: TypeConstructor, inferrer: Infer): void {
         super.visitTypeConstructor(constructor, inferrer)
         inferrer.visit(constructor)
+    }
+
+    visitUnOp (unop: UnOp, inferrer: Infer): void {
+        super.visitUnOp(unop, inferrer)
+        inferrer.visit(unop)
     }
 
     /* Types */
@@ -149,6 +169,17 @@ export class Infer extends ExprVisitor<Type> {
         })
     }
 
+    visitBranch (branch: Branch): Type {
+        return infer(branch, () => {
+            const bodyType = branch.body.accept(this)
+            if (branch.else) {
+                const elseType = branch.else.accept(this)
+                return new TypeUnifier().visit(bodyType, elseType)
+            }
+            return bodyType
+        })
+    }
+
     visitCall (call: Call): Type {
         return infer(call, () => {
             const fun = call.fun.accept(this)
@@ -205,6 +236,10 @@ export class Infer extends ExprVisitor<Type> {
 
     visitLookup (lookup: Lookup): Type {
         return infer(lookup, () => unknownType(lookup))
+    }
+
+    visitMatch (match: Match): Type {
+        return infer(match, () => match.default.accept(this))
     }
 
     visitTypeConstructor (constructor: TypeConstructor): Type {

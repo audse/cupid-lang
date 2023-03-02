@@ -1,4 +1,4 @@
-import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, UnknownType, Decl, Assign, Block, InstanceType, Lookup, Environment, Impl, ExprVisitorWithContext, Call, Fun, UnOp } from '@/ast'
+import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, UnknownType, Decl, Assign, Block, InstanceType, Lookup, Environment, Impl, ExprVisitorWithContext, Call, Fun, UnOp, Branch, Match } from '@/ast'
 import { Scope } from '@/env'
 import { CompilationError } from '@/error/compilation-error'
 import BaseExprVisitor, { BaseExprVisitorWithContext } from './base'
@@ -22,6 +22,11 @@ export default class LookupEnvironmentResolver extends BaseExprVisitorWithContex
     visitBlock (block: Block, context: LookupEnvironmentFinder): void {
         super.visitBlock(block, context)
         block.lookupEnvironments = context.visit(block)
+    }
+
+    visitBranch (branch: Branch, context: LookupEnvironmentFinder): void {
+        super.visitBranch(branch, context)
+        branch.lookupEnvironments = context.visit(branch)
     }
 
     visitCall (call: Call, context: LookupEnvironmentFinder): void {
@@ -65,9 +70,19 @@ export default class LookupEnvironmentResolver extends BaseExprVisitorWithContex
         lookup.member.lookupEnvironments = lookup.lookupEnvironments
     }
 
+    visitMatch (match: Match, context: LookupEnvironmentFinder): void {
+        super.visitMatch(match, context)
+        match.lookupEnvironments = context.visit(match)
+    }
+
     visitTypeConstructor (constructor: TypeConstructor, context: LookupEnvironmentFinder): void {
         super.visitTypeConstructor(constructor, context)
         constructor.lookupEnvironments = context.visit(constructor)
+    }
+
+    visitUnOp (unop: UnOp, context: LookupEnvironmentFinder): void {
+        super.visitUnOp(unop, context)
+        unop.lookupEnvironments = context.visit(unop)
     }
 
     /* Types */
@@ -117,6 +132,13 @@ export class LookupEnvironmentFinder extends ExprVisitor<Scope[]> {
         return block.expectType().accept(this)
     }
 
+    visitBranch (branch: Branch): Scope[] {
+        return [
+            ...branch.body.expectType().accept(this),
+            ...branch.else ? branch.else.expectType().accept(this) : [],
+        ]
+    }
+
     visitCall (call: Call): Scope[] {
         return call.expectType().accept(this)
     }
@@ -155,6 +177,10 @@ export class LookupEnvironmentFinder extends ExprVisitor<Scope[]> {
 
     visitLookup (lookup: Lookup): Scope[] {
         return lookup.environment.accept(this)
+    }
+
+    visitMatch (match: Match): Scope[] {
+        return match.expectType().accept(this)
     }
 
     visitTypeConstructor (constructor: TypeConstructor): Scope[] {

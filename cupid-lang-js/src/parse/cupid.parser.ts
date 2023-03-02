@@ -16,6 +16,7 @@ export namespace cupid {
             ?? decl(parser)
             ?? assign(parser)
             ?? fun(parser)
+            ?? match(parser)
             ?? ifstmt(parser)
         ?? binop(parser))
     }
@@ -161,6 +162,42 @@ export namespace cupid {
         return getNodeArray(node.ident(parser.ident())
             ?? node.string(parser.string())
         ?? node.int(parser.int()))
+    }
+    export function match (parser: TokenParser): Option<RuleNode> {
+            return makeNode('Match', parser.chain(
+                modifier.passThrough(parser => parser.match('match')),
+                expr,
+                parser => brackets(
+                    parser,
+                    matchbranches
+                )
+        ))
+    }
+    export function matchbranches (parser: TokenParser): Option<Node[]> {
+            return getNodeArray(parser.chain(
+                parser => list(
+                    parser,
+                    matchbranch,
+                    modifier.passThrough(parser => parser.match(','))
+                ),
+                matchbranch_default,
+                modifier.optional(parser => node.string(parser.match(',')))
+        ))
+    }
+    export function matchbranch (parser: TokenParser): Option<RuleNode> {
+            return makeNode('MatchBranch', parser.chain(
+                modifier.negative(parser => node.string(parser.match('_'))),
+                expr,
+                modifier.passThrough(parser => parser.match(':')),
+                expr
+        ))
+    }
+    export function matchbranch_default (parser: TokenParser): Option<Node[]> {
+            return getNodeArray(parser.chain(
+                modifier.passThrough(parser => parser.match('_')),
+                modifier.passThrough(parser => parser.match(':')),
+                expr
+        ))
     }
     export function ifstmt (parser: TokenParser): Option<RuleNode> {
             return makeNode('IfStmt', parser.chain(
@@ -375,7 +412,7 @@ export namespace cupid {
             ?? bool(parser)
         ?? none(parser))
     }
-    const reservedAccepted: Set<string> = new Set(['true', 'false', 'none', 'and', 'or', 'not', 'if', 'else', 'for', 'while', 'loop', 'let', 'mut'])
+    const reservedAccepted: Set<string> = new Set(['true', 'false', 'none', 'and', 'or', 'not', 'if', 'else', 'for', 'while', 'loop', 'let', 'mut', 'match'])
     export function reserved (parser: TokenParser): Option<Node> {
         return node.string(parser.matchOneSet(reservedAccepted))
     }

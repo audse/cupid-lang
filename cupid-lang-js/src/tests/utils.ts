@@ -1,4 +1,4 @@
-import { Assign, BinOp, Block, Call, Decl, Environment, Expr, FieldType, Fun, FunType, Ident, Impl, InstanceType, Literal, Lookup, PrimitiveType, StructType, Type, TypeConstructor, UnknownType, UnOp } from '@/ast'
+import { Assign, BinOp, Block, Branch, Call, Decl, Environment, Expr, FieldType, Fun, FunType, Ident, Impl, InstanceType, Literal, Lookup, PrimitiveType, StructType, Type, TypeConstructor, UnknownType, UnOp } from '@/ast'
 import { Scope } from '@/env'
 import { CompilationError, CompilationErrorCode, RuntimeError, RuntimeErrorCode } from '@/error/index'
 import { Infer, Interpreter, LookupEnvironmentFinder, LookupEnvironmentResolver, LookupMemberResolver, ScopeAnalyzer, SymbolDefiner, SymbolResolver, TypeChecker, TypeInferrer, TypeResolver } from '@/visitors'
@@ -16,6 +16,7 @@ export function maker (scope: Scope) {
     const assign = (ident: Ident, value: Expr) => new Assign({ scope, ident, value })
     const binop = (left: Expr, right: Expr, op: string) => new BinOp({ scope, left, right, op })
     const block = (...exprs: Expr[]) => new Block({ scope, exprs })
+    const branch = (condition: Expr, body: Expr, elseBody: Expr) => new Branch({ scope, condition, body, else: elseBody })
     const ident = (name: string) => new Ident({ scope, name })
     const decl = (ident: Ident, value: Expr, type?: Type, mutable?: boolean) => new Decl({ scope, ident, value, type, mutable })
 
@@ -47,6 +48,7 @@ export function maker (scope: Scope) {
         assign,
         binop,
         block,
+        branch,
         call,
         decl,
         env,

@@ -1,4 +1,4 @@
-import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, UnknownType, Decl, Assign, Block, InstanceType, Call, Lookup } from '@/ast'
+import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, UnknownType, Decl, Assign, Block, InstanceType, Call, Lookup, Branch, Match } from '@/ast'
 import { CompilationError } from '@/error/compilation-error'
 import BaseExprVisitor, { BaseExprVisitorWithContext } from './base'
 import { TypeUnifier } from './type-unifier'
@@ -8,6 +8,15 @@ export default class TypeChecker extends BaseExprVisitorWithContext<TypeUnifier>
     visitBinOp (binop: BinOp, unifier: TypeUnifier): void {
         super.visitBinOp(binop, unifier)
         unifier.visit(binop.left.expectType(), binop.right.expectType())
+    }
+
+    visitBranch (branch: Branch, unifier: TypeUnifier): void {
+        super.visitBranch(branch, unifier)
+        const branchType = branch.condition.expectType()
+        if (!branchType.isBoolType()) throw CompilationError.incorrectType(
+            branchType,
+            'bool'
+        )
     }
 
     visitCall (call: Call, unifier: TypeUnifier): void {
@@ -34,6 +43,21 @@ export default class TypeChecker extends BaseExprVisitorWithContext<TypeUnifier>
         super.visitDecl(decl, unifier)
         const type = unifier.visit(decl.type, decl.value.expectType())
         decl.scope.annotate(decl.ident, { type })
+    }
+
+    visitMatch (match: Match, unifier: TypeUnifier): void {
+        match.expr.acceptWithContext(this, unifier)
+        const type = match.expectType()
+
+        for (const branch of match.branches) {
+            branch.condition.acceptWithContext(this, unifier)
+            branch.body.acceptWithContext(this, unifier)
+            branch.else?.acceptWithContext(this, unifier)
+
+            unifier.visit(type, branch.expectType())
+        }
+
+        unifier.visit(type, match.default.expectType())
     }
 
 }

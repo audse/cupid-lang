@@ -34,4 +34,8 @@ export default class PrimitiveType extends Type implements PrimitiveProps {
         return visitor.visitPrimitiveType(this, context)
     }
 
+    isBoolType (): boolean {
+        return ['bool', 'boo'].includes(this.name)
+    }
+
 }

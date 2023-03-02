@@ -30,4 +30,8 @@ export abstract class Type extends Expr {
     abstract accept<T> (visitor: TypeVisitor<T>): T
     abstract acceptWithContext<T, Ctx> (visitor: TypeVisitorWithContext<T, Ctx>, context: Ctx): T
 
+    isBoolType (): boolean {
+        return false
+    }
+
 }

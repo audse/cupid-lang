@@ -66,4 +66,8 @@ export default class InstanceType extends Type implements InstanceProps, Reporta
         return visitor.visitInstanceType(this, context)
     }
 
+    isBoolType (): boolean {
+        return this.getResolved().isBoolType()
+    }
+
 }

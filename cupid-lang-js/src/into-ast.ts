@@ -1,5 +1,5 @@
 import { CustomNode, DecimalNode, IdentNode, IntNode, Node, nodeIs, RuleNode, StringNode } from '@/types'
-import { Assign, BinOp, Block, Call, Decl, Environment, Expr, FieldType, Fun, FunType, Ident, Impl, InstanceType, Literal, Lookup, PrimitiveType, StructType, Type, TypeConstructor, UnOp } from '@/ast'
+import { Assign, BinOp, Block, Branch, Call, Decl, Environment, Expr, FieldType, Fun, FunType, Ident, Impl, InstanceType, Literal, Lookup, Match, PrimitiveType, StructType, Type, TypeConstructor, UnOp } from '@/ast'
 import { Scope } from './env'
 
 export function intoAst () {
@@ -18,8 +18,10 @@ export function intoAst () {
                 case 'Decl': return intoDecl(node)
                 case 'DeclMut': return intoDecl(node, true)
                 case 'Fun': return intoFun(node)
+                case 'IfStmt': return intoBranch(node)
                 case 'Impl': return intoImpl(node)
                 case 'Lookup': return intoLookup(node)
+                case 'Match': return intoMatch(node)
                 case 'None': return intoNone(node)
                 case 'TypeConstructor': return intoTypeConstructor(node)
                 case 'UnOp': return intoUnOp(node)
@@ -116,6 +118,17 @@ export function intoAst () {
         value: string(node => node.string)(node.items[0]) === 'true'
     }))
 
+    const intoBranch = rule(node => {
+        const [condition, body, elseBody] = node.items.map(item => into(item))
+        return new Branch({
+            scope,
+            condition,
+            body,
+            else: elseBody,
+            source: source.push(node),
+        })
+    })
+
     const intoCall = rule(node => {
         if (node.items.length > 1) {
             const [fun, args] = node.items
@@ -208,6 +221,27 @@ export function intoAst () {
             throw `environments can only be accessed by idents or literals`
         }
         return into(node.items[0])
+    })
+
+    const intoMatch = rule(node => {
+        const [expr, ...branches] = node.items
+        return new Match({
+            scope,
+            source: source.push(node),
+            expr: into(expr),
+            branches: branches.slice(0, branches.length - 1).map(branch => intoMatchBranch(branch)),
+            default: into(branches[branches.length - 1])
+        })
+    })
+
+    const intoMatchBranch = rule(node => {
+        const [condition, body] = node.items.map(item => into(item))
+        return new Branch({
+            scope,
+            condition,
+            body,
+            source: source.push(node)
+        })
     })
 
     const intoNone = (node: Node) => new Literal({
