@@ -9,7 +9,7 @@ const path = resolve(process.argv.at(-1) || './apps/main.cupid')
 
 const stdlibPaths = [
     resolve('./src/apps/primitives.cupid'),
-    // resolve('./src/apps/int.cupid')
+    resolve('./src/apps/int.cupid')
 ]
 
 const stdlib: [string, string][] = []

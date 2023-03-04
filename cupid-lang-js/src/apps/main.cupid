@@ -1,2 +1,3 @@
-let xyz : int = -10
-type some-type = xyz
+let x : int = -10
+type some-type = x
+let z : some-type = -10

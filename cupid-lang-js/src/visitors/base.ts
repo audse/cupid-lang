@@ -82,33 +82,25 @@ export default class BaseExprVisitor extends ExprVisitor<void> {
     visitFieldType (field: FieldType): void {
         field.ident.accept(this)
         field.type.accept(this)
-        field.environment.accept(this)
     }
 
     visitFunType (fun: FunType): void {
         fun.params.map(param => param.accept(this))
         fun.returns.accept(this)
-        fun.environment.accept(this)
     }
 
     visitInstanceType (instance: InstanceType): void {
         instance.ident.accept(this)
         instance.args.map(arg => arg.accept(this))
-        instance.environment.accept(this)
     }
 
-    visitPrimitiveType (primitive: PrimitiveType): void {
-        primitive.environment.accept(this)
-    }
+    visitPrimitiveType (primitive: PrimitiveType): void { }
 
     visitStructType (struct: StructType): void {
         struct.fields.map(field => field.accept(this))
-        struct.environment.accept(this)
     }
 
-    visitUnknownType (unknown: UnknownType): void {
-        unknown.environment.accept(this)
-    }
+    visitUnknownType (unknown: UnknownType): void { }
 
 }
 
@@ -191,32 +183,24 @@ export class BaseExprVisitorWithContext<Ctx> extends ExprVisitorWithContext<void
     visitFieldType (field: FieldType, context: Ctx): void {
         field.ident.acceptWithContext(this, context)
         field.type.acceptWithContext(this, context)
-        field.environment.acceptWithContext(this, context)
     }
 
     visitFunType (fun: FunType, context: Ctx): void {
         fun.params.map(param => param.acceptWithContext(this, context))
         fun.returns.acceptWithContext(this, context)
-        fun.environment.acceptWithContext(this, context)
     }
 
     visitInstanceType (instance: InstanceType, context: Ctx): void {
         instance.ident.acceptWithContext(this, context)
         instance.args.map(arg => arg.acceptWithContext(this, context))
-        instance.environment.acceptWithContext(this, context)
     }
 
-    visitPrimitiveType (primitive: PrimitiveType, context: Ctx): void {
-        primitive.environment.acceptWithContext(this, context)
-    }
+    visitPrimitiveType (primitive: PrimitiveType, context: Ctx): void { }
 
     visitStructType (struct: StructType, context: Ctx): void {
         struct.fields.map(field => field.acceptWithContext(this, context))
-        struct.environment.acceptWithContext(this, context)
     }
 
-    visitUnknownType (unknown: UnknownType, context: Ctx): void {
-        unknown.environment.acceptWithContext(this, context)
-    }
+    visitUnknownType (unknown: UnknownType, context: Ctx): void { }
 
 }

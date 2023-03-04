@@ -111,6 +111,7 @@ export class FileFormatter implements FileFormatterProps {
         const end = Math.min(endLine * 2, this.formatted.length)
         return [
             this.#color(this.path, ConsoleColorModifier.Italic, ConsoleFgColor.Gray),
+            this.#dim(`┬─`.padStart(this.#lineNumberPadding + this.#lineNumberSeparator.length, '─').padEnd(this.path.length + 2, '─')),
             ...this.formatted.slice(start, end)
         ].join('\n')
     }

@@ -18,10 +18,6 @@ export default class ErrorFormatter extends BaseExprVisitorWithContext<{ fmt: Fi
 
     /** Types */
 
-    visitInstanceType (instance: InstanceType, context: { fmt: FileFormatter; source: Node[] }): void {
-        return instance.ident.acceptWithContext(this, context)
-    }
-
     visitPrimitiveType (primitive: PrimitiveType, context: { fmt: FileFormatter; source: Node[] }): void {
         const node = context.source[primitive.source - 1]
         if (!nodeIs.RuleNode(node)) context.fmt.underlineToken(node.token)
