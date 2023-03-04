@@ -30,7 +30,7 @@ export default class SymbolDefiner extends BaseExprVisitor {
         }))
         if (fun.hasSelfParam) {
             fun.scope.define({
-                ident: new Ident({ scope: fun.scope, name: 'self' })
+                ident: new Ident({ scope: fun.scope, name: 'self', source: fun.source, file: fun.file })
             })
         }
     }
@@ -42,6 +42,7 @@ export default class SymbolDefiner extends BaseExprVisitor {
             value: new UnknownType({
                 scope: param.scope,
                 source: param.source,
+                file: param.file
             })
         }))
         constructor.scope.define({

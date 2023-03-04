@@ -1,0 +1,19 @@
+impl int = [
+
+    abs : self -> int {
+        if self < 0 => -self
+        else => self
+    },
+
+    clamp : self, min : int, max : int -> int {
+        if self < min => min
+        else {
+            if self > max => max 
+            else => self
+        }
+    },
+
+    negative : self -> bool => self < 0,
+    positive : self -> bool => self >= 0,
+    sq : self -> int => self ^ 2
+]

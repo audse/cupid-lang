@@ -5,9 +5,11 @@ import { TypeUnifier } from './type-unifier'
 
 export default class TypeChecker extends BaseExprVisitorWithContext<TypeUnifier> {
 
+    NonUnifiableOperations = new Set(['istype'])
+
     visitBinOp (binop: BinOp, unifier: TypeUnifier): void {
         super.visitBinOp(binop, unifier)
-        unifier.visit(binop.left.expectType(), binop.right.expectType())
+        if (!this.NonUnifiableOperations.has(binop.op)) unifier.visit(binop.left.expectType(), binop.right.expectType())
     }
 
     visitBranch (branch: Branch, unifier: TypeUnifier): void {

@@ -1,4 +1,5 @@
 import BaseExprVisitor from './base'
+import ErrorFormatter from './error-formatter'
 import Interpreter from './interpreter'
 import ScopeAnalyzer from './scope-analyzer'
 import SymbolDefiner from './symbol-definer'
@@ -11,6 +12,7 @@ import TypeChecker from './type-checker'
 
 export {
     BaseExprVisitor,
+    ErrorFormatter,
     Interpreter,
     ScopeAnalyzer,
     SymbolDefiner,

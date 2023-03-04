@@ -25,13 +25,10 @@ export default class FieldType extends Type implements FieldProps {
     }
 
     getResolved (): FieldType {
+        const { scope, source, ident, file, environment, inferredType } = this
         return new FieldType({
-            scope: this.scope,
-            source: this.source,
-            ident: this.ident,
+            scope, source, ident, file, environment, inferredType,
             type: this.type.getResolved(),
-            environment: this.environment,
-            inferredType: this.inferredType,
         })
     }
 

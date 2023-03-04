@@ -38,10 +38,10 @@ export class CupidError<T extends Reportable> extends Error implements Reportabl
     }
 
     logTitle () {
-        console.log(color().underline.red(), `\nerror:`, color().red(), this.code)
+        console.log(`\n${ color.underline.red('error') }${ color.red(':') }`, color.red(this.code.toString()))
     }
 
     logMessage () {
-        console.log(color().dim(), this.message)
+        console.log(color.dim(this.message))
     }
 }

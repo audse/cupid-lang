@@ -15,6 +15,7 @@ export abstract class Type extends Expr {
         this.environment = props.environment || new Environment({
             scope: this.scope,
             source: this.source,
+            file: this.file,
             content: [],
         })
     }

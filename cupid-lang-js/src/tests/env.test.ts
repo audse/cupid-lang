@@ -23,6 +23,27 @@ test('env lookup', () => {
     expect(last(interpret(...exprs, env, lookup))).toBe(1)
 })
 
+test('nested env lookup', () => {
+    const [_, make, exprs] = setup()
+    expect(last(interpret(
+        ...exprs,
+        make.env(
+            [make.env(
+                [make.quick.decl.int('x', 1)],
+                make.ident('my-nested-env')
+            )],
+            make.ident('my-env')
+        ),
+        make.lookup(
+            make.lookup(
+                make.ident('my-env'),
+                make.ident('my-nested-env')
+            ),
+            make.ident('x')
+        )
+    ))).toBe(1)
+})
+
 test('env lookup call', () => {
     const [_, make, exprs] = setup()
     const env = make.env([

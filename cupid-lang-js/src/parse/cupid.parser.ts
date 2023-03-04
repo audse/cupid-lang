@@ -285,6 +285,22 @@ export namespace cupid {
     export function binop (parser: TokenParser): Option<RuleNode> {
         return makeNode('BinOp', compareop(parser))
     }
+    export function comparetypeop (parser: TokenParser): Option<Node[]> {
+            return getNodeArray(parser.chain(
+                compareop,
+                modifier.optional(comparetypeop_right)
+        ))
+    }
+    export function comparetypeop_right (parser: TokenParser): Option<Node[]> {
+            return getNodeArray(parser.chain(
+                comparetypeoperator,
+                expr
+        ))
+    }
+    const comparetypeoperatorAccepted: Set<string> = new Set(['istype'])
+    export function comparetypeoperator (parser: TokenParser): Option<Node> {
+        return node.string(parser.matchOneSet(comparetypeoperatorAccepted))
+    }
     export function compareop (parser: TokenParser): Option<Node[]> {
             return getNodeArray(parser.chain(
                 addop,

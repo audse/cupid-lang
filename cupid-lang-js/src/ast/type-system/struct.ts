@@ -24,12 +24,10 @@ export default class StructType extends Type implements StructProps {
     }
 
     getResolved (): StructType {
+        const { scope, source, file, environment, inferredType } = this
         return new StructType({
-            scope: this.scope,
-            source: this.source,
+            scope, source, file, environment, inferredType,
             fields: this.fields.map(field => field.getResolved()),
-            environment: this.environment,
-            inferredType: this.inferredType,
         })
     }
 

@@ -37,9 +37,10 @@ export default class Interpreter extends ExprVisitor<Value> {
         switch (binop.op) {
             case 'is': case '==': return left === right
             case 'not': case '!=': return left !== right
-            case 'istype': return (
-                binop.left.expectType().getResolved().isEqual(binop.right.expectType().getResolved())
-            )
+            case 'istype': if (right instanceof Type) {
+                const leftType = binop.left.expectType().getResolved()
+                return leftType.isEqual(right)
+            }
         }
         return null
     }
@@ -64,7 +65,7 @@ export default class Interpreter extends ExprVisitor<Value> {
             })
             if (fun.hasSelfParam && call.fun instanceof Lookup) {
                 fun.scope.annotate(
-                    new Ident({ scope: call.fun.scope, name: 'self' }),
+                    new Ident({ scope: call.fun.scope, name: 'self', file: fun.file, source: fun.source }),
                     { value: call.fun.environment }
                 )
             }

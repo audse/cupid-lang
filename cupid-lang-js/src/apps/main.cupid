@@ -1,0 +1,2 @@
+let xyz : int = -10
+type some-type = xyz

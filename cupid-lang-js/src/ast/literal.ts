@@ -26,6 +26,7 @@ export default class Literal extends Expr implements LiteralProps {
         return new Ident({
             scope: this.scope,
             source: this.source,
+            file: this.file,
             name,
             inferredType: this.inferredType,
         })

@@ -71,10 +71,6 @@
 //     return safeStringify(filterObjectRecursive(obj, key => !['scope', 'token', 'tokens'].includes(key.toString())))
 // }
 
-// function tabsToSpaces (line: string): string {
-//     return line.replace(/\t/g, ' ')
-// }
-
 // function getFormatter (exp: Omit<Expr, 'scope'>): Formatter<Kind> {
 //     switch (exp.kind) {
 //         case Kind.Decl: return declare as Formatter<Kind>
@@ -203,10 +199,6 @@
 // }
 
 // namespace make {
-
-//     export function underline (len: number): string {
-//         return new Array(len).fill('^').join('') + '\n'
-//     }
 
 //     export function underlinedLine (line: string, start: number, end: number, lineNumber: number, totalLines: number): string {
 //         return [

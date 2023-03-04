@@ -62,6 +62,7 @@ export default class TypeInferrer extends BaseExprVisitorWithContext<Infer> {
 
     visitLookup (lookup: Lookup, inferrer: Infer): void {
         lookup.environment.acceptWithContext(this, inferrer)
+        lookup.member.inferredType = infer(lookup.member, () => unknownType(lookup.member))
         inferrer.visit(lookup)
     }
 
@@ -113,7 +114,7 @@ export default class TypeInferrer extends BaseExprVisitorWithContext<Infer> {
 }
 
 function primitiveType (parent: Expr, name: string): Type {
-    const ident = new Ident({ source: parent.source, scope: parent.scope, name })
+    const ident = new Ident({ source: parent.source, file: parent.file, scope: parent.scope, name })
     const symbol = parent.scope.lookup(ident)
     if (symbol) {
         if (symbol.value instanceof Type) return symbol.value
@@ -134,6 +135,7 @@ function unknownType (parent: Expr) {
     return new UnknownType({
         source: parent.source,
         scope: parent.scope,
+        file: parent.file,
     })
 }
 
@@ -203,6 +205,7 @@ export class Infer extends ExprVisitor<Type> {
             source: fun.source,
             params: fun.params,
             returns: fun.body.accept(this),
+            file: fun.file,
         }))
     }
 

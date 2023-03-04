@@ -1,6 +1,8 @@
 export enum ConsoleColorModifier {
+    Italic = '\x1b[3m',
     Reset = '\x1b[0m',
-    Bright = '\x1b[1m',
+    Bold = '\x1b[1m',
+    BoldUnderline = '\x1b[1;4m',
     Dim = '\x1b[2m',
     Underline = '\x1b[4m',
     Blink = '\x1b[5m',
@@ -20,18 +22,6 @@ export enum ConsoleFgColor {
     Gray = '\x1b[90m',
 }
 
-export enum ConsoleFgColorBright {
-    Black = '\x1b[1;30m',
-    Red = '\x1b[1;31m',
-    Green = '\x1b[1;32m',
-    Yellow = '\x1b[1;33m',
-    Blue = '\x1b[1;34m',
-    Magenta = '\x1b[1;35m',
-    Cyan = '\x1b[1;36m',
-    White = '\x1b[1;37m',
-    Gray = '\x1b[1;90m',
-}
-
 export enum ConsoleBgColor {
     Black = '\x1b[40m',
     Red = '\x1b[41m',
@@ -44,58 +34,37 @@ export enum ConsoleBgColor {
     Gray = '\x1b[100m',
 }
 
-export enum ConsoleBgColorBright {
-    Black = '\x1b[1;40m',
-    Red = '\x1b[1;41m',
-    Green = '\x1b[1;42m',
-    Yellow = '\x1b[1;43m',
-    Blue = '\x1b[1;44m',
-    Magenta = '\x1b[1;45m',
-    Cyan = '\x1b[1;46m',
-    White = '\x1b[1;47m',
-    Gray = '\x1b[1;100m',
-}
-
 export type ConsoleColor = (
     ConsoleColorModifier
     | ConsoleFgColor
-    | ConsoleFgColorBright
     | ConsoleBgColor
-    | ConsoleBgColorBright
 )
 
-export function color () {
+function makeFunctions (palette: typeof ConsoleFgColor | typeof ConsoleBgColor, ...colors: ConsoleColor[]) {
     return {
-        underline: {
-            red: () => `${ ConsoleColorModifier.Underline }${ colorString(ConsoleFgColor.Red) }`,
-            yellow: () => `${ ConsoleColorModifier.Underline }${ colorString(ConsoleFgColor.Red) }`
-        },
-        dim: () => colorString(ConsoleColorModifier.Dim),
-        red: () => colorString(ConsoleFgColor.Red),
-        yellow: () => colorString(ConsoleFgColor.Yellow),
-        bg: {
-            red: () => colorString(ConsoleBgColor.Red),
-            yellow: () => colorString(ConsoleBgColor.Yellow),
-            bright: {}
-        },
-        bright: {
-            red: () => colorString(ConsoleFgColorBright.Red),
-        }
-    }
+        black: (str: string) => colorString(str, ...colors, palette.Black),
+        red: (str: string) => colorString(str, ...colors, palette.Red),
+        yellow: (str: string) => colorString(str, ...colors, palette.Yellow),
+        green: (str: string) => colorString(str, ...colors, palette.Green),
+        blue: (str: string) => colorString(str, ...colors, palette.Blue),
+        magenta: (str: string) => colorString(str, ...colors, palette.Magenta),
+        cyan: (str: string) => colorString(str, ...colors, palette.Cyan),
+        white: (str: string) => colorString(str, ...colors, palette.White),
+        gray: (str: string) => colorString(str, ...colors, palette.Gray),
+    } as const
 }
 
-function underlineString (): string {
-    return `${ ConsoleColorModifier.Underline }%s${ ConsoleColorModifier.Reset }`
+export const color = {
+    underline: makeFunctions(ConsoleFgColor, ConsoleColorModifier.Underline),
+    dimmed: makeFunctions(ConsoleFgColor, ConsoleColorModifier.Dim),
+    bold: makeFunctions(ConsoleFgColor, ConsoleColorModifier.Bold),
+    boldUnderline: makeFunctions(ConsoleFgColor, ConsoleColorModifier.BoldUnderline),
+    italic: makeFunctions(ConsoleFgColor, ConsoleColorModifier.Italic),
+    bg: makeFunctions(ConsoleBgColor),
+    dim: (str: string) => colorString(str, ConsoleColorModifier.Dim),
+    ...makeFunctions(ConsoleFgColor)
 }
 
-function colorString (color: ConsoleColor): string {
-    return `${ color }%s${ ConsoleColorModifier.Reset }`
-}
-
-export function logColor (color: ConsoleColor, ...items: any[]) {
-    console.log(`${ color }%s${ ConsoleColorModifier.Reset }`, ...items)
-}
-
-export function logFgRed (...items: any[]) {
-    logColor(ConsoleFgColor.Red, ...items)
+export function colorString (string: string, ...colors: ConsoleColor[]): string {
+    return `${ colors.join('') }${ string }${ ConsoleColorModifier.Reset }`
 }

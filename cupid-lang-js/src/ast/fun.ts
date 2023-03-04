@@ -24,7 +24,7 @@ export default class Fun extends Expr implements FunProps {
         super(props)
         this.params = props.params
         this.body = props.body
-        this.returns = props.returns || new UnknownType({ scope: this.scope })
+        this.returns = props.returns || new UnknownType({ scope: this.scope, source: this.source, file: this.file })
         this.hasSelfParam = props.hasSelfParam || false
     }
 

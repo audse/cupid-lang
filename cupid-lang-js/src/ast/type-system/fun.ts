@@ -26,13 +26,11 @@ export default class FunType extends Type implements FunProps {
     }
 
     getResolved (): FunType {
+        const { scope, source, file, environment, inferredType } = this
         return new FunType({
-            source: this.source,
-            scope: this.scope,
+            scope, source, file, environment, inferredType,
             params: this.params.map(param => param.getResolved()),
             returns: this.returns.getResolved(),
-            environment: this.environment,
-            inferredType: this.inferredType,
         })
     }
 

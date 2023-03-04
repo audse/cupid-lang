@@ -176,6 +176,7 @@ export class LookupEnvironmentFinder extends ExprVisitor<Scope[]> {
     }
 
     visitLookup (lookup: Lookup): Scope[] {
+        if (lookup.environment instanceof Lookup) return lookup.member.accept(this)
         return lookup.environment.accept(this)
     }
 

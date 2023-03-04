@@ -23,7 +23,7 @@ export default class Decl extends Expr implements DeclProps {
         super(props)
         this.ident = props.ident
         this.value = props.value
-        this.type = props.type || new UnknownType({ scope: this.scope })
+        this.type = props.type || new UnknownType({ scope: this.scope, source: this.source, file: this.file })
         this.mutable = props.mutable || false
     }
 

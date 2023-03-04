@@ -2,10 +2,14 @@ import { CustomNode, DecimalNode, IdentNode, IntNode, Node, nodeIs, RuleNode, St
 import { Assign, BinOp, Block, Branch, Call, Decl, Environment, Expr, FieldType, Fun, FunType, Ident, Impl, InstanceType, Literal, Lookup, Match, PrimitiveType, StructType, Type, TypeConstructor, UnOp } from '@/ast'
 import { Scope } from './env'
 
+export type IntoAst = ReturnType<typeof intoAst>
+
 export function intoAst () {
 
     const scope = new Scope()
     const source: Node[] = []
+
+    let file: number = -1
 
     function into (node: Node): Expr {
         if (nodeIs.RuleNode(node)) {
@@ -85,7 +89,7 @@ export function intoAst () {
     const intoAssign = rule(node => {
         const [ident, value] = node.items
         return new Assign({
-            scope,
+            scope, file,
             source: source.push(node),
             ident: intoIdent(ident),
             value: into(value)
@@ -96,7 +100,7 @@ export function intoAst () {
         if (node.items.length > 1) {
             const [left, op, right] = node.items
             return new BinOp({
-                scope,
+                scope, file,
                 source: source.push(node),
                 left: into(left),
                 right: into(right),
@@ -107,13 +111,13 @@ export function intoAst () {
     })
 
     const intoBlock = rule(node => new Block({
-        scope,
+        scope, file,
         source: source.push(node),
         exprs: node.items.map(into)
     }))
 
     const intoBool = rule(node => new Literal({
-        scope,
+        scope, file,
         source: source.push(node),
         value: string(node => node.string)(node.items[0]) === 'true'
     }))
@@ -121,9 +125,7 @@ export function intoAst () {
     const intoBranch = rule(node => {
         const [condition, body, elseBody] = node.items.map(item => into(item))
         return new Branch({
-            scope,
-            condition,
-            body,
+            scope, file, condition, body,
             else: elseBody,
             source: source.push(node),
         })
@@ -133,7 +135,7 @@ export function intoAst () {
         if (node.items.length > 1) {
             const [fun, args] = node.items
             return new Call({
-                scope,
+                scope, file,
                 source: source.push(node),
                 fun: into(fun),
                 args: intoCallArgs(args)
@@ -149,8 +151,7 @@ export function intoAst () {
     const intoDecl = rule<Decl, boolean>((node, mutable) => {
         const [ident, type, value] = node.items.length === 3 ? node.items : [node.items[0], null, node.items[1]]
         return new Decl({
-            scope,
-            mutable,
+            scope, file, mutable,
             source: source.push(node),
             ident: intoIdent(ident),
             value: into(value),
@@ -162,9 +163,7 @@ export function intoAst () {
         const [paramsNode, returns, body] = node.items.length === 3 ? node.items : [node.items[0], null, node.items[1]]
         const { hasSelfParam, params } = intoParams(paramsNode)
         return new Fun({
-            scope,
-            params,
-            hasSelfParam,
+            scope, file, params, hasSelfParam,
             source: source.push(node),
             returns: returns ? intoType(returns) : undefined,
             body: into(body),
@@ -178,7 +177,7 @@ export function intoAst () {
     })
 
     const intoIdent = ident(node => new Ident({
-        scope,
+        scope, file,
         source: source.push(node),
         name: node.ident
     }))
@@ -186,7 +185,7 @@ export function intoAst () {
     const intoImpl = rule(node => {
         const [type, ...funs] = node.items
         return new Impl({
-            scope,
+            scope, file,
             source: source.push(node),
             type: intoType(type),
             environment: intoImplEnvironment(funs)
@@ -194,14 +193,14 @@ export function intoAst () {
     })
 
     const intoImplEnvironment = (nodes: Node[]) => new Environment({
-        scope,
+        scope, file,
         content: nodes.map(node => intoImplFunDecl(node))
     })
 
     const intoImplFunDecl = rule(node => {
         const [ident, fun] = node.items
         return new Decl({
-            scope,
+            scope, file,
             source: source.push(node),
             ident: intoIdent(ident),
             value: intoFun(fun)
@@ -213,10 +212,9 @@ export function intoAst () {
             const [env, _, memberNode] = node.items
             const member = into(memberNode)
             if (member instanceof Ident || member instanceof Literal) return new Lookup({
-                scope,
+                scope, file, member,
                 source: source.push(node),
                 environment: into(env),
-                member,
             })
             throw `environments can only be accessed by idents or literals`
         }
@@ -226,7 +224,7 @@ export function intoAst () {
     const intoMatch = rule(node => {
         const [expr, ...branches] = node.items
         return new Match({
-            scope,
+            scope, file,
             source: source.push(node),
             expr: into(expr),
             branches: branches.slice(0, branches.length - 1).map(branch => intoMatchBranch(branch)),
@@ -237,15 +235,13 @@ export function intoAst () {
     const intoMatchBranch = rule(node => {
         const [condition, body] = node.items.map(item => into(item))
         return new Branch({
-            scope,
-            condition,
-            body,
+            scope, file, condition, body,
             source: source.push(node)
         })
     })
 
     const intoNone = (node: Node) => new Literal({
-        scope,
+        scope, file,
         source: source.push(node),
         value: null
     })
@@ -257,8 +253,7 @@ export function intoAst () {
                 : string(ident => intoIdent({ ...ident, ident: ident.string }))(identNode)
         )
         return new TypeConstructor({
-            scope,
-            ident,
+            scope, file, ident,
             source: source.push(node),
             body: intoType(value),
             params: params ? rule(p => p.items.map(item => intoIdent(item)))(params) : []
@@ -267,7 +262,7 @@ export function intoAst () {
 
     const intoUnOp = rule(node => {
         if (node.items.length === 2) return new UnOp({
-            scope,
+            scope, file,
             source: source.push(node),
             expr: into(node.items[1]),
             op: string(op => op.string)(node.items[0])
@@ -292,7 +287,7 @@ export function intoAst () {
     const intoFieldType = rule<FieldType>(node => {
         const [ident, type] = node.items
         return new FieldType({
-            scope,
+            scope, file,
             source: source.push(node),
             ident: intoIdent(ident),
             type: intoType(type)
@@ -302,7 +297,7 @@ export function intoAst () {
     const intoInstanceType = rule<InstanceType>(node => {
         const [ident, args] = node.items
         return new InstanceType({
-            scope,
+            scope, file,
             source: source.push(node),
             ident: intoIdent(ident),
             args: args ? intoInstanceTypeArgs(args) : []
@@ -312,35 +307,36 @@ export function intoAst () {
     const intoInstanceTypeArgs = rule<Type[]>(node => node.items.map(item => intoType(item)))
 
     const intoPrimitiveType = rule<PrimitiveType>(node => new PrimitiveType({
-        scope,
+        scope, file,
         source: source.push(node),
         name: string(node => node.string)(node.items[0]).replace(/'"`/g, '')
     }))
 
     const intoStructType = rule<StructType>(node => new StructType({
-        scope,
+        scope, file,
         source: source.push(node),
         fields: node.items.map(item => intoFieldType(item)),
     }))
 
     const intoString = string(node => new Literal({
-        scope,
+        scope, file,
         source: source.push(node),
         value: node.string
     }))
 
     const intoInt = int(node => new Literal({
-        scope,
+        scope, file,
         source: source.push(node),
         value: node.int
     }))
 
     const intoDec = dec(node => new Literal({
-        scope,
+        scope, file,
         source: source.push(node) - 1,
         value: node.decimal
     }))
 
+    const setFile = (i: number) => file = i
 
-    return { into, scope, source }
+    return { into, scope, source, setFile }
 }

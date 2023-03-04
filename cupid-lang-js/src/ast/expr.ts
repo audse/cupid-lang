@@ -5,18 +5,21 @@ import { Type } from './type-system/type'
 import { ExprVisitor, ExprVisitorWithContext } from './visitor'
 
 export interface ExprProps {
+    file?: number
     source?: number
     scope: Scope
     inferredType?: Option<Type>
 }
 
 export abstract class Expr implements ExprProps, Reportable {
+    file: number
     source: number
     scope: Scope
     inferredType: Option<Type>
     lookupEnvironments: Scope[] = []
 
     constructor (props: ExprProps) {
+        this.file = props.file || -1
         this.source = props.source || -1
         this.scope = props.scope
         this.inferredType = props.inferredType || null

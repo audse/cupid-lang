@@ -1,6 +1,6 @@
 import { LiteralValue } from '@/ast/literal'
 import { expect, test } from 'bun:test'
-import { interpret, last, maker, setup } from './utils'
+import { interpret, last, setup } from './utils'
 
 function testBinopInt (props: { op: string, l: number, r: number, expect: LiteralValue }) {
     const [scope, make, exprs] = setup()
@@ -62,4 +62,16 @@ test('and binop', () => {
 
 test('or binop', () => {
     testBinopBool({ op: 'or', l: false, r: true, expect: true })
+})
+
+test('is type binop', () => {
+    const [scope, make, exprs] = setup()
+    expect(last(interpret(
+        ...exprs,
+        make.binop(
+            make.literal.int(1),
+            make.quick.instance.int(),
+            'istype'
+        )
+    ))).toBeTruthy()
 })

@@ -197,6 +197,10 @@ Param {
 
 BinOp { CompareOp }
 
+CompareTypeOp ~ { CompareOp CompareTypeOp_Right? }
+CompareTypeOp_Right ~ { CompareTypeOperator Expr }
+CompareTypeOperator match-strings { 'istype' }
+
 CompareOp ~ { AddOp CompareOp_Right? }
 CompareOp_Right ~ { CompareOperator Expr }
 CompareOperator match-strings {

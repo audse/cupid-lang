@@ -25,7 +25,13 @@ export default class Lookup extends Expr implements LookupProps {
     }
 
     report (): string {
-        return stringify({ lookup: this.scope.report() })
+        return stringify({
+            lookup: {
+                environment: this.environment.report(),
+                member: this.member.report(),
+                scopes: this.lookupEnvironments.map(env => env.report())
+            }
+        })
     }
 
     isEqual (other: this): boolean {
