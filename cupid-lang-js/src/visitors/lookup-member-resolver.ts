@@ -1,7 +1,6 @@
 import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, UnknownType, Decl, Assign, Block, InstanceType, Lookup, Environment, Impl } from '@/ast'
 import { CompilationError } from '@/error/compilation-error'
 import BaseExprVisitor from './base'
-import LookupEnvironmentResolver, { LookupEnvironmentFinder } from './lookup-environment-resolver'
 
 /**
  * Attempts to locate all environment lookup references
@@ -11,9 +10,16 @@ export default class LookupMemberResolver extends BaseExprVisitor {
     visitLookup (lookup: Lookup): void {
         lookup.environment.accept(this)
 
-        if (lookup.environment instanceof Lookup) {
-            const symbol = (lookup.environment.member as Ident).expectSymbol()
-            if (symbol.value && symbol.value instanceof Environment) lookup.lookupEnvironments.push(symbol.value.scope)
+        let env = lookup.environment
+
+        if (lookup.environment instanceof Ident) {
+            const symbol = lookup.environment.expectSymbol()
+            if (symbol.value) env = symbol.value
+        }
+
+        if (env instanceof Lookup) {
+            const symbol = (env.member as Ident).expectSymbol()
+            if (symbol.value && symbol.value instanceof Environment) lookup.lookupEnvironments = [symbol.value.scope]
         }
 
         lookup.member = (() => {

@@ -1,4 +1,4 @@
-import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, UnknownType, Decl, Assign, Block, InstanceType, Call, Lookup, Branch, Match } from '@/ast'
+import { Expr, ExprVisitor, BinOp, Ident, Literal, FunType, PrimitiveType, StructType, Type, TypeConstructor, FieldType, UnknownType, Decl, Assign, Block, InstanceType, Call, Lookup, Branch, Match, Fun } from '@/ast'
 import { CompilationError } from '@/error/compilation-error'
 import BaseExprVisitor, { BaseExprVisitorWithContext } from './base'
 import { TypeUnifier } from './type-unifier'
@@ -45,6 +45,12 @@ export default class TypeChecker extends BaseExprVisitorWithContext<TypeUnifier>
         super.visitDecl(decl, unifier)
         const type = unifier.visit(decl.type, decl.value.expectType())
         decl.scope.annotate(decl.ident, { type })
+    }
+
+    visitFun (fun: Fun, unifier: TypeUnifier): void {
+        super.visitFun(fun, unifier)
+        const type = fun.inferredType?.getResolved() as FunType
+        fun.returns = unifier.visit(fun.returns, type.returns)
     }
 
     visitMatch (match: Match, unifier: TypeUnifier): void {

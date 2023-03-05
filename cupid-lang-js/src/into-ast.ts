@@ -25,6 +25,7 @@ export function intoAst () {
                 case 'IfStmt': return intoBranch(node)
                 case 'Impl': return intoImpl(node)
                 case 'Lookup': return intoLookup(node)
+                case 'MapLiteral': return intoMapLiteral(node)
                 case 'Match': return intoMatch(node)
                 case 'None': return intoNone(node)
                 case 'TypeConstructor': return intoTypeConstructor(node)
@@ -219,6 +220,21 @@ export function intoAst () {
             throw `environments can only be accessed by idents or literals`
         }
         return into(node.items[0])
+    })
+
+    const intoMapLiteral = rule(node => new Environment({
+        scope, file,
+        content: node.items.map(item => intoMapLiteralField(item)),
+    }))
+
+    const intoMapLiteralField = rule<Decl>(node => {
+        const [key, value] = node.items
+        return new Decl({
+            scope, file,
+            source: source.push(node),
+            ident: intoIdent(key),
+            value: into(value)
+        })
     })
 
     const intoMatch = rule(node => {

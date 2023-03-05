@@ -1,7 +1,7 @@
-type int = primitive int
 type decimal = primitive decimal
 type none = primitive none
 type str = primitive str
 type bool = primitive bool
 type type = primitive type
 type env = primitive env
+type int = primitive int

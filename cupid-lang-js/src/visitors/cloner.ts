@@ -65,7 +65,7 @@ export default class Cloner extends ExprVisitorWithContext<Expr, Scope> {
 
     visitEnvironment (env: Environment, scope: Scope): Environment {
         const { file, source, inferredType } = env
-        const subscope = scope.subscope(Context.Environment)
+        const subscope = scope.global().subscope(Context.Environment)
         return new Environment({
             file, source, inferredType,
             scope: subscope,

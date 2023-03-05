@@ -46,7 +46,7 @@ export default class ScopeAnalyzer extends BaseExprVisitor {
     }
 
     visitEnvironment (env: Environment): void {
-        const scope = env.scope.subscope(Context.Environment)
+        const scope = env.scope.global().subscope(Context.Environment)
         if (env.ident) env.ident.scope = env.scope
         env.scope = scope
         env.content.map(expr => expr.scope = scope)

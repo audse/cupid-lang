@@ -29,7 +29,6 @@ export default class Lookup extends Expr implements LookupProps {
             lookup: {
                 environment: this.environment.report(),
                 member: this.member.report(),
-                scopes: this.lookupEnvironments.map(env => env.report())
             }
         })
     }

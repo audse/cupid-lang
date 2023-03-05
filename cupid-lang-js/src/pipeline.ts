@@ -10,85 +10,6 @@ import { cupid } from '@/parse/cupid.parser'
 import { IntoAst, intoAst } from '@/into-ast'
 import { FileFormatter } from '@/fmt/utils'
 
-
-export function tokenize (content: string) {
-    const tokenizer = new Tokenizer(0, content)
-    return tokenizer.tokenize()
-}
-
-export function parse (tokens: token.Token[]) {
-    const parser = new TokenParser(tokens)
-    const exprs = []
-    while (parser.peek()) {
-        const expr = cupid.expr(parser)
-        if (expr) exprs.push(...expr)
-        else {
-            console.error({
-                error: `unable to parse token`,
-                token: parser.current()
-            })
-            throw 'unable to parse token'
-        }
-    }
-    return exprs
-}
-
-export function compile (...exprs: Expr[]): Expr[] {
-    const scopeAnalyzer = new ScopeAnalyzer()
-    exprs.map(expr => scopeAnalyzer.visit(expr))
-
-    const symbolDefiner = new SymbolDefiner()
-    exprs.map(expr => symbolDefiner.visit(expr))
-
-    const symbolResolver = new SymbolResolver()
-    exprs.map(expr => symbolResolver.visit(expr))
-
-    const typeResolver = new TypeResolver()
-    exprs.map(expr => typeResolver.visit(expr))
-
-    const typeInferrer = new TypeInferrer()
-    const inferrer = new Infer()
-    exprs.map(expr => typeInferrer.visit(expr, inferrer))
-
-    const lookupEnvironmentFinder = new LookupEnvironmentFinder()
-    const lookupEnvironmentResolver = new LookupEnvironmentResolver()
-    exprs.map(expr => lookupEnvironmentResolver.visit(expr, lookupEnvironmentFinder))
-
-    const lookupMemberResolver = new LookupMemberResolver()
-    exprs.map(expr => lookupMemberResolver.visit(expr))
-
-    // reinfer after lookup resolution
-    exprs.map(expr => inferrer.visit(expr))
-
-    const typeChecker = new TypeChecker()
-    const unifier = new TypeUnifier()
-    exprs.map(expr => typeChecker.visit(expr, unifier))
-
-    return exprs
-}
-
-export function interpret (...exprs: Expr[]) {
-    const compiledExprs = compile(...exprs)
-    const interpreter = new Interpreter()
-    return compiledExprs.map(expr => interpreter.visit(expr))
-}
-
-
-export function setup (content: string) {
-    const { scope, source, into } = intoAst()
-
-    const tokens = tokenize(content)
-    const nodes = parse(tokens)
-    const exprs = nodes?.map(expr => into(expr)) || []
-
-    return { scope, source, tokens, exprs, content }
-}
-
-export function run (content: string) {
-    const { exprs } = setup(content)
-    return interpret(...exprs)
-}
-
 export class Cupid {
 
     scope: Scope
@@ -186,6 +107,11 @@ export class Cupid {
             if (error instanceof CompilationError || error instanceof RuntimeError) {
                 error.log()
                 if (error.context instanceof Expr) {
+                    if (error.context.file === -1) console.log(
+                        'No file found:',
+                        error.context.report(),
+                        this.source[error.context.source - 1]
+                    )
                     const fmt = this.formatter(error.context.file)
                     new ErrorFormatter().visit(error.context, { fmt, source: this.source })
                     console.log(fmt.useConsoleColors().useLineNumbers().build())

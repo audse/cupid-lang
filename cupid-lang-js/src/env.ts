@@ -68,6 +68,11 @@ export class Scope implements ScopeProps, Reportable {
         if (parent) this.parent = parent
     }
 
+    global (): Scope {
+        if (this.parent) return this.parent.global()
+        return this
+    }
+
     subscope (context?: Context): Scope {
         return new Scope(this, context)
     }

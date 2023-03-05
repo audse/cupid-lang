@@ -13,7 +13,7 @@ export abstract class Type extends Expr {
     constructor (props: TypeProps) {
         super(props)
         this.environment = props.environment || new Environment({
-            scope: this.scope,
+            scope: this.scope.global(),
             source: this.source,
             file: this.file,
             content: [],

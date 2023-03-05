@@ -7,13 +7,17 @@ impl int = [
 
     clamp : self, min : int, max : int -> int {
         if self < min => min
-        else {
-            if self > max => max 
-            else => self
-        }
+        else => if self > max => max 
+        else => self
     },
 
     negative : self -> bool => self < 0,
     positive : self -> bool => self >= 0,
-    sq : self -> int => self ^ 2
+    sq : self -> int => self ^ 2,
+
+    sign : self {
+        if self < 0 => -1
+        else => if self > 0 => 1
+        else => 0
+    }
 ]

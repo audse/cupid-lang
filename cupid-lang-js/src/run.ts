@@ -1,6 +1,5 @@
 import { resolve } from 'path'
-import { run, parse, tokenize, interpret, setup, Cupid } from '@/pipeline'
-import { CompilationError, RuntimeError } from '@/error'
+import { Cupid } from '@/pipeline'
 import { Expr } from '@/ast'
 
 const cupid = new Cupid()
@@ -8,8 +7,10 @@ const cupid = new Cupid()
 const path = resolve(process.argv.at(-1) || './apps/main.cupid')
 
 const stdlibPaths = [
-    resolve('./src/apps/primitives.cupid'),
-    resolve('./src/apps/int.cupid')
+    resolve('./apps/primitives.cupid'),
+    resolve('./apps/int.cupid'),
+    resolve('./apps/decimal.cupid'),
+    resolve('./apps/type.cupid'),
 ]
 
 const stdlib: [string, string][] = []

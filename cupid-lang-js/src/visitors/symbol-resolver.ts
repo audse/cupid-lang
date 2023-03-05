@@ -16,10 +16,6 @@ export default class SymbolResolver extends BaseExprVisitor {
 
     visitIdent (ident: Ident): void {
         ident.symbol = ident.scope.lookupExpect(ident)
-
-        if (ident.symbol.value instanceof Environment) {
-            ident.scope = ident.symbol.value.scope
-        }
     }
 
     visitLookup (lookup: Lookup): void {

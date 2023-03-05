@@ -44,4 +44,15 @@ describe('assign end-to-end', () => {
         )
     })
 
+    test('wrong return type', () => {
+        const { exprs } = setup(`
+            let some-fun = () -> int => true
+            some-fun ()
+        `)
+        expectCompilationError(
+            CompilationErrorCode.UnableToUnifyType,
+            () => interpret(...exprs)
+        )
+    })
+
 })
