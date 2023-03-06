@@ -5,5 +5,5 @@
         }
     }
 
-    log Foo().returnSelf(); -- expect: Foo
+    log (Foo().returnSelf()); -- expect: Foo
 }

@@ -1,56 +1,9 @@
-use crate::{
-    gc::GcRef,
-    objects::{BoundMethod, Class, Closure, Function, Instance, NativeFunction, Str},
-};
-use std::{
-    fmt::{self, Display},
-    ops::Deref,
-};
-
-#[derive(Clone, Copy, PartialEq)]
-pub enum Value {
-    Bool(bool),
-    BoundMethod(GcRef<BoundMethod>),
-    Class(GcRef<Class>),
-    Closure(GcRef<Closure>),
-    Function(GcRef<Function>),
-    Instance(GcRef<Instance>),
-    NativeFunction(NativeFunction),
-    Nil,
-    Number(f64),
-    String(GcRef<Str>),
-}
-
-impl Value {
-    pub fn is_falsey(&self) -> bool {
-        match self {
-            Value::Nil => true,
-            Value::Bool(value) => !value,
-            _ => false,
-        }
-    }
-}
-
-impl Display for Value {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Value::Bool(value) => write!(f, "{}", value),
-            Value::BoundMethod(value) => write!(f, "{}", value.method.function.deref()),
-            Value::Class(value) => write!(f, "{}", value.name.deref()),
-            Value::Closure(value) => write!(f, "{}", value.function.deref()),
-            Value::Function(value) => write!(f, "{}", value.name.deref()),
-            Value::Instance(value) => write!(f, "{} instance", value.class.name.deref()),
-            Value::NativeFunction(_) => write!(f, "<native fn>"),
-            Value::Nil => write!(f, "nil"),
-            Value::Number(value) => write!(f, "{}", value),
-            Value::String(value) => write!(f, "{}", value.deref()),
-        }
-    }
-}
+use crate::{gc::GcRef, objects::Str, value::Value};
 
 #[derive(Debug, Copy, Clone)]
 pub enum Instruction {
     Add,
+    Array(u8),
     Call(u8),
     Class(u8),
     CloseUpvalue,
@@ -84,7 +37,7 @@ pub enum Instruction {
     SetLocal(u8),
     SetProperty(u8),
     SetUpvalue(u8),
-    Substract,
+    Subtract,
     SuperInvoke((u8, u8)),
     True,
 }

@@ -1,1 +1,1 @@
-log 'Hello World'; -- expect: Hello World
+log ('Hello World'); -- expect: Hello World

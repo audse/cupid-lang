@@ -5,5 +5,5 @@ fun f () {
     }
 }
 
-log f();
+log (f());
 -- expect: i

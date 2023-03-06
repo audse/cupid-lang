@@ -3,7 +3,7 @@ let f;
 {
     let local = 'local';
     fun f_ () {
-        log local;
+        log (local);
     }
     f = f_;
 }

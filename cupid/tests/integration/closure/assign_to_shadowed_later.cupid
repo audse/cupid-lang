@@ -7,7 +7,7 @@ let a = 'global';
 
     let a = 'inner';
     assign();
-    log a; -- expect: inner
+    log (a); -- expect: inner
 }
 
-log a; -- expect: assigned
+log (a); -- expect: assigned

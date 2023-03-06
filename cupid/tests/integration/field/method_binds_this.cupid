@@ -1,7 +1,7 @@
 class Foo {
     sayName(a) {
-        log self.name;
-        log a;
+        log (self.name);
+        log (a);
     }
 }
 

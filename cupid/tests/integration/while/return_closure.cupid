@@ -1,7 +1,7 @@
 fun f () {
-    while (true) {
+    while true {
         let i = 'i';
-        fun g () { log i; }
+        fun g () { log (i); }
         return g;
     }
 }

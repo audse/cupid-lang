@@ -1,7 +1,7 @@
 class Foo {
     method(a, b) {
-        log a;
-        log b;
+        log (a);
+        log (b);
     }
 }
 

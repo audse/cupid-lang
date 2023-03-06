@@ -1,9 +1,10 @@
 use std::{fmt, ops::Deref};
 
 use crate::{
-    chunk::{Chunk, Value},
+    chunk::Chunk,
     gc::{GcObject, GcRef},
     objects::{FunctionUpvalue, ObjectType, Str},
+    value::Value,
     vm::Vm,
 };
 
@@ -12,7 +13,7 @@ pub struct NativeFunction(pub fn(&Vm, &[Value]) -> Value);
 
 impl fmt::Debug for NativeFunction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "<fn>")
+        write!(f, "<fun>")
     }
 }
 
@@ -48,7 +49,7 @@ impl fmt::Display for Function {
         if self.name.deref().s == "script" {
             write!(f, "<script>")
         } else {
-            write!(f, "<fn {}>", self.name.deref())
+            write!(f, "<fun {}>", self.name.deref())
         }
     }
 }

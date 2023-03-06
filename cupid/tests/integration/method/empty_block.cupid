@@ -2,4 +2,4 @@ class Foo {
     bar () {}
 }
 
-log Foo().bar(); -- expect: nil
+log (Foo().bar()); -- expect: none

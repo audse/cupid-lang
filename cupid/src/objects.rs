@@ -1,3 +1,6 @@
+pub mod array;
+pub use self::array::Array;
+
 pub mod class;
 pub use self::class::Class;
 
@@ -21,6 +24,7 @@ pub use self::upvalue::{FunctionUpvalue, Upvalue};
 
 #[derive(Debug)]
 pub enum ObjectType {
+    Array,
     Function,
     Closure,
     Str,

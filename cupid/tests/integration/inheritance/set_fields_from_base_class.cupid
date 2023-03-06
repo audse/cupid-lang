@@ -5,8 +5,8 @@ class Foo {
     }
 
     fooPrint () {
-        log self.field1;
-        log self.field2;
+        log (self.field1);
+        log (self.field2);
     }
 }
 
@@ -17,8 +17,8 @@ class Bar < Foo {
     }
 
     barPrint () {
-        log self.field1;
-        log self.field2;
+        log (self.field1);
+        log (self.field2);
     }
 }
 

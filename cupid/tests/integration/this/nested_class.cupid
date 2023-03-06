@@ -1,13 +1,13 @@
 class Outer {
     method () {
-        log self; -- expect: Outer instance
+        log (self); -- expect: Outer instance
 
         fun f () {
-            log self; -- expect: Outer instance
+            log (self); -- expect: Outer instance
 
             class Inner {
                 method () {
-                    log self; -- expect: Inner instance
+                    log (self); -- expect: Inner instance
                 }
             }
 

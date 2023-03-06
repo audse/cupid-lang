@@ -1,8 +1,8 @@
 let a = 'before';
-log a; -- expect: before
+log (a); -- expect: before
 
 a = 'after';
-log a; -- expect: after
+log (a); -- expect: after
 
-log a = 'arg'; -- expect: arg
-log a; -- expect: arg
+log (a = 'arg'); -- expect: arg
+log (a); -- expect: arg

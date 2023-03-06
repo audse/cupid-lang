@@ -8,5 +8,5 @@ fun isOdd (n) {
     return isEven(n - 1);
 }
 
-log isEven(4); -- expect: true
-log isOdd(3); -- expect: true
+log (isEven(4)); -- expect: true
+log (isOdd(3)); -- expect: true

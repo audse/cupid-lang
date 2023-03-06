@@ -1,9 +1,9 @@
 class Foo {}
 
 fun bar (a, b) {
-    log 'bar';
-    log a;
-    log b;
+    log ('bar');
+    log (a);
+    log (b);
 }
 
 let foo = Foo();

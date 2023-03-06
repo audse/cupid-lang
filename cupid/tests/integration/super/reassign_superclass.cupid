@@ -1,6 +1,6 @@
 class Base {
     method () {
-        log 'Base.method()';
+        log ('Base.method()');
     }
 }
 
@@ -12,7 +12,7 @@ class Derived < Base {
 
 class OtherBase {
     method () {
-        log 'OtherBase.method()';
+        log ('OtherBase.method()');
     }
 }
 

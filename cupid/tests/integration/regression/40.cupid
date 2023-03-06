@@ -1,7 +1,7 @@
 fun caller (g) {
     g();
-    -- g should be a function, not nil.
-    log g == nil; -- expect: false
+    -- g should be a function, not none.
+    log (g == none); -- expect: false
 }
 
 fun callCaller () {
@@ -12,8 +12,8 @@ fun callCaller () {
         -- Commenting the next line out prevents the bug!
         capturedVar = 'after';
 
-        -- Returning anything also fixes it, even nil:
-        --return nil;
+        -- Returning anything also fixes it, even none:
+        --return none;
     }
 
     caller(f);

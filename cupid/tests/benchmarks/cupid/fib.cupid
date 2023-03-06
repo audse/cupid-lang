@@ -4,5 +4,5 @@ fun fib (n) {
 }
 
 let start = clock();
-log fib(35) == 9227465;
-log clock() - start;
+log (fib(35) == 9227465);
+log (clock() - start);

@@ -4,6 +4,6 @@ let c = 'c';
 
 -- Assignment is right-associative.
 a = b = c;
-log a; -- expect: c
-log b; -- expect: c
-log c; -- expect: c
+log (a); -- expect: c
+log (b); -- expect: c
+log (c); -- expect: c

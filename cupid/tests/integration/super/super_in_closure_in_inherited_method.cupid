@@ -1,6 +1,6 @@
 class A {
     say () {
-        log 'A';
+        log ('A');
     }
 }
 
@@ -13,13 +13,13 @@ class B < A {
     }
 
     say () {
-        log 'B';
+        log ('B');
     }
 }
 
 class C < B {
     say () {
-        log 'C';
+        log ('C');
     }
 }
 

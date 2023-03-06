@@ -4,16 +4,16 @@ let g;
 {
     let local = 'local';
     fun f_ () {
-        log local;
+        log (local);
         local = 'after f';
-        log local;
+        log (local);
     }
     f = f_;
 
     fun g_ () {
-        log local;
+        log (local);
         local = 'after g';
-        log local;
+        log (local);
     }
     g = g_;
 }

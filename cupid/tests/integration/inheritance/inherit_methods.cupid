@@ -1,11 +1,11 @@
 class Foo {
-    methodOnFoo () { log 'foo'; }
-    override () { log 'foo'; }
+    methodOnFoo () { log ('foo'); }
+    override () { log ('foo'); }
 }
 
 class Bar < Foo {
-    methodOnBar () { log 'bar'; }
-    override () { log 'bar'; }
+    methodOnBar () { log ('bar'); }
+    override () { log ('bar'); }
 }
 
 let bar = Bar();

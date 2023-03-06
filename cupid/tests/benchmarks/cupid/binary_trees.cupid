@@ -8,13 +8,13 @@ class Tree {
             self.left = Tree(item2 - 1, depth);
             self.right = Tree(item2, depth);
         } else {
-            self.left = nil;
-            self.right = nil;
+            self.left = none;
+            self.right = none;
         }
     }
 
     check () {
-        if self.left == nil {
+        if self.left == none {
             return self.item;
         }
 
@@ -28,44 +28,44 @@ let stretchDepth = maxDepth + 1;
 
 let start = clock();
 
-log 'stretch tree of depth:';
-log stretchDepth;
-log 'check:';
-log Tree(0, stretchDepth).check();
+log ('stretch tree of depth:');
+log (stretchDepth);
+log ('check:');
+log (Tree(0, stretchDepth).check());
 
 let longLivedTree = Tree(0, maxDepth);
 
 -- iterations = 2 ** maxDepth
 let iterations = 1;
 let d = 0;
-while (d < maxDepth) {
+while d < maxDepth {
     iterations = iterations * 2;
     d = d + 1;
 }
 
 let depth = minDepth;
-while (depth < stretchDepth) {
+while depth < stretchDepth {
     let check = 0;
     let i = 1;
-    while (i <= iterations) {
+    while i <= iterations {
         check = check + Tree(i, depth).check() + Tree(-i, depth).check();
         i = i + 1;
     }
 
-    log 'num trees:';
-    log iterations * 2;
-    log 'depth:';
-    log depth;
-    log 'check:';
-    log check;
+    log ('num trees:');
+    log (iterations * 2);
+    log ('depth:');
+    log (depth);
+    log ('check:');
+    log (check);
 
     iterations = iterations / 4;
     depth = depth + 2;
 }
 
-log 'long lived tree of depth:';
-log maxDepth;
-log 'check:';
-log longLivedTree.check();
-log 'elapsed:';
-log clock() - start;
+log ('long lived tree of depth:');
+log (maxDepth);
+log ('check:');
+log (longLivedTree.check());
+log ('elapsed:');
+log (clock() - start);

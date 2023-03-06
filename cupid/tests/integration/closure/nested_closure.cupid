@@ -7,9 +7,9 @@ fun f1 () {
         fun f3 () {
             let c = 'c';
             fun f4 () {
-                log a;
-                log b;
-                log c;
+                log (a);
+                log (b);
+                log (c);
             }
             f = f4;
         }

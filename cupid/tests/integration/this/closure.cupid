@@ -10,4 +10,4 @@ class Foo {
 }
 
 let closure = Foo().getClosure();
-log closure(); -- expect: Foo
+log (closure()); -- expect: Foo

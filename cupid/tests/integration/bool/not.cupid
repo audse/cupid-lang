@@ -1,3 +1,3 @@
-log !true; -- expect: false
-log !false; -- expect: true
-log !!true; -- expect: true
+log (!true); -- expect: false
+log (!false); -- expect: true
+log (!!true); -- expect: true

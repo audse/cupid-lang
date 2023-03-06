@@ -3,7 +3,7 @@ let f;
 class Foo {
     method (param) {
         fun f_ () {
-            log param;
+            log (param);
         }
         f = f_;
     }

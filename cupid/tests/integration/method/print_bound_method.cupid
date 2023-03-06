@@ -2,4 +2,4 @@ class Foo {
     method () { }
 }
 let foo = Foo();
-log foo.method; -- expect: <fn method>
+log (foo.method); -- expect: <fun method>

@@ -1,6 +1,6 @@
 class Foo {
     init (arg) {
-        log 'Foo.init (' + arg + ')';
+        log ('Foo.init (' + arg + ')');
         self.field = 'init';
     }
 }
@@ -9,7 +9,7 @@ let foo = Foo('one'); -- expect: Foo.init (one)
 foo.field = 'field';
 
 let foo2 = foo.init ('two'); -- expect: Foo.init (two)
-log foo2; -- expect: Foo instance
+log (foo2); -- expect: Foo instance
 
 -- Make sure init () doesn't create a fresh instance.
-log foo.field; -- expect: init
+log (foo.field); -- expect: init

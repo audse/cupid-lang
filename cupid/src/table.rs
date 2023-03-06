@@ -1,9 +1,8 @@
 use std::alloc::{alloc, dealloc, Layout};
+use std::fmt;
 use std::ptr::null_mut;
 
-use crate::chunk::Value;
-use crate::gc::GcRef;
-use crate::objects::Str;
+use crate::{gc::GcRef, objects::Str, value::Value};
 
 struct Entry {
     key: Option<GcRef<Str>>,
@@ -196,6 +195,12 @@ impl Drop for Table {
     }
 }
 
+impl fmt::Display for Table {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self.entries)
+    }
+}
+
 pub struct IterTable {
     ptr: *mut Entry,
     end: *const Entry,
@@ -224,8 +229,8 @@ mod tests {
 
     use super::{Str, Table};
     use crate::{
-        chunk::Value,
         gc::{Gc, GcRef},
+        value::Value,
     };
     #[test]
     fn basic() {
@@ -233,9 +238,9 @@ mod tests {
         let mut table = Table::default();
         let foo = gc.alloc(Str::from_string("foo".to_owned()));
 
-        table.set(foo, Value::Number(10f64));
+        table.set(foo, Value::Float(10f64));
 
-        if let Some(Value::Number(x)) = table.get(foo) {
+        if let Some(Value::Float(x)) = table.get(foo) {
             assert_eq!(x, 10f64);
         } else {
             panic!("No value")
@@ -279,11 +284,11 @@ mod tests {
             .collect();
 
         for (i, &key) in keys.iter().enumerate() {
-            table.set(key, Value::Number(i as f64));
+            table.set(key, Value::Float(i as f64));
         }
 
         for (i, &key) in keys.iter().enumerate() {
-            if let Some(Value::Number(x)) = table.get(key) {
+            if let Some(Value::Float(x)) = table.get(key) {
                 assert_eq!(x, i as f64);
             } else {
                 panic!("No value")
@@ -300,14 +305,14 @@ mod tests {
             .collect();
 
         for (i, &key) in keys.iter().enumerate() {
-            table.set(key, Value::Number(i as f64));
+            table.set(key, Value::Float(i as f64));
         }
 
         let mut table2 = Table::default();
         table2.add_all(&table);
 
         for (i, &key) in keys.iter().enumerate() {
-            if let Some(Value::Number(x)) = table2.get(key) {
+            if let Some(Value::Float(x)) = table2.get(key) {
                 assert_eq!(x, i as f64);
             } else {
                 panic!("No value")
@@ -344,13 +349,13 @@ mod tests {
 
         for i in 0..32 {
             let k = gc.alloc(Str::from_string(format!("{}", i)));
-            table.set(k, Value::Number(i as f64));
+            table.set(k, Value::Float(i as f64));
         }
 
         let mut numbers: HashSet<isize> = (0..32).collect();
 
         for (_key, value) in table.iter() {
-            if let Value::Number(x) = value {
+            if let Value::Float(x) = value {
                 numbers.remove(&(x as isize));
             } else {
                 panic!("No value")

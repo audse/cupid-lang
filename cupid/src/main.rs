@@ -1,6 +1,7 @@
 pub mod chunk;
 pub mod compiler;
 pub mod error;
+pub mod expose;
 pub mod gc;
 pub mod objects;
 pub mod parser;
@@ -8,6 +9,7 @@ pub mod repl;
 pub mod run;
 pub mod scanner;
 pub mod table;
+pub mod value;
 pub mod vm;
 
 use std::env;

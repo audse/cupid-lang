@@ -1,2 +1,2 @@
 let a;
-log a; -- expect: nil
+log (a); -- expect: none

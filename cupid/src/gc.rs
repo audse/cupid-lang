@@ -7,9 +7,9 @@ use std::{
     usize,
 };
 
-use crate::objects::{BoundMethod, Class, Closure, Function, Instance, Str, Upvalue};
+use crate::objects::{Array, BoundMethod, Class, Closure, Function, Instance, Str, Upvalue};
 use crate::table::Table;
-use crate::{chunk::Value, objects::ObjectType};
+use crate::{objects::ObjectType, value::Value};
 
 #[repr(C)]
 pub struct GcObject {
@@ -131,6 +131,9 @@ impl Gc {
         let object_type = unsafe { &pointer.as_ref().obj_type };
 
         match object_type {
+            ObjectType::Array => {
+                let _: &Array = unsafe { mem::transmute(pointer.as_ref()) };
+            }
             ObjectType::Function => {
                 let function: &Function = unsafe { mem::transmute(pointer.as_ref()) };
                 self.mark_object(function.name);
@@ -172,6 +175,7 @@ impl Gc {
 
     pub fn mark_value(&mut self, value: Value) {
         match value {
+            Value::Array(value) => self.mark_object(value),
             Value::BoundMethod(value) => self.mark_object(value),
             Value::Class(value) => self.mark_object(value),
             Value::Closure(value) => self.mark_object(value),

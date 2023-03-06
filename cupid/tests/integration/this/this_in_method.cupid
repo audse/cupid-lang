@@ -3,4 +3,4 @@ class Foo {
     baz () { return 'baz'; }
 }
 
-log Foo().bar().baz(); -- expect: baz
+log (Foo().bar().baz()); -- expect: baz

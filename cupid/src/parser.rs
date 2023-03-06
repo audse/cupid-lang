@@ -1,12 +1,13 @@
 use std::{collections::HashMap, convert::TryFrom, mem};
 
 use crate::{
-    chunk::{Instruction, Value},
+    chunk::Instruction,
     compiler::{ClassCompiler, Compiler, FunctionType, Local},
     error::CupidError,
     gc::{Gc, GcRef},
     objects::Function,
     scanner::{Scanner, Token, TokenType},
+    value::Value,
 };
 
 #[derive(Copy, Clone, PartialOrd, PartialEq)]
@@ -21,7 +22,6 @@ pub enum Precedence {
     Factor,     // * /
     Unary,      // ! -
     Call,       // . ()
-    Primary,
 }
 
 impl Precedence {
@@ -36,13 +36,12 @@ impl Precedence {
             Precedence::Term => Precedence::Factor,
             Precedence::Factor => Precedence::Unary,
             Precedence::Unary => Precedence::Call,
-            Precedence::Call => Precedence::Primary,
-            Precedence::Primary => Precedence::None,
+            Precedence::Call => Precedence::None,
         }
     }
 }
 
-type ParseFn<'src> = fn(&mut Parser<'src>, can_assing: bool) -> ();
+type ParseFn<'src> = fn(&mut Parser<'src>, can_assign: bool) -> ();
 
 #[derive(Copy, Clone)]
 pub struct ParseRule<'src> {
@@ -98,6 +97,8 @@ impl<'src> Parser<'src> {
         rule(RightParen, None, None, P::None);
         rule(LeftBrace, None, None, P::None);
         rule(RightBrace, None, None, P::None);
+        rule(LeftBracket, Some(Parser::array), None, P::None);
+        rule(RightBracket, None, None, P::None);
         rule(Comma, None, None, P::None);
         rule(Dot, None, Some(Parser::dot), P::Call);
         rule(Minus, Some(Parser::unary), Some(Parser::binary), P::Term);
@@ -115,7 +116,8 @@ impl<'src> Parser<'src> {
         rule(LessEqual, None, Some(Parser::binary), P::Comparison);
         rule(Identifier, Some(Parser::variable), None, P::None);
         rule(String, Some(Parser::string), None, P::None);
-        rule(Number, Some(Parser::number), None, P::None);
+        rule(Float, Some(Parser::float), None, P::None);
+        rule(Int, Some(Parser::int), None, P::None);
         rule(And, None, Some(Parser::and_op), P::And);
         rule(Class, None, None, P::None);
         rule(Else, None, None, P::None);
@@ -386,9 +388,7 @@ impl<'src> Parser<'src> {
 
     fn while_statement(&mut self) {
         let loop_start = self.start_loop();
-        self.consume(TokenType::LeftParen, "Expect '(' after 'while'.");
         self.expression();
-        self.consume(TokenType::RightParen, "Expect ')' after condition.");
         let exit_jump = self.emit(Instruction::JumpIfFalse(0xffff));
         self.emit(Instruction::Pop);
         self.statement();
@@ -471,28 +471,39 @@ impl<'src> Parser<'src> {
     }
 
     fn log_statement(&mut self) {
+        self.consume(TokenType::LeftParen, "Expect '(' after 'log'");
         self.expression();
+        self.consume(TokenType::RightParen, "Expect ')' after 'log'");
         self.consume(TokenType::Semicolon, "Expect ';' after value.");
         self.emit(Instruction::Log);
     }
 
-    fn number(&mut self, _can_assing: bool) {
+    fn float(&mut self, _can_assign: bool) {
         let value: f64 = self
             .previous
             .lexeme
             .parse()
             .expect("Parsed value is not a double");
-        self.emit_constant(Value::Number(value));
+        self.emit_constant(Value::Float(value));
     }
 
-    fn string(&mut self, _can_assing: bool) {
+    fn int(&mut self, _can_assign: bool) {
+        let value: i32 = self
+            .previous
+            .lexeme
+            .parse()
+            .expect("Parsed value is not a double");
+        self.emit_constant(Value::Int(value));
+    }
+
+    fn string(&mut self, _can_assign: bool) {
         let lexeme = self.previous.lexeme;
         let value = &lexeme[1..(lexeme.len() - 1)];
         let s = self.gc.intern(value.to_owned());
         self.emit_constant(Value::String(s));
     }
 
-    fn literal(&mut self, _can_assing: bool) {
+    fn literal(&mut self, _can_assign: bool) {
         match self.previous.kind {
             TokenType::False => self.emit(Instruction::False),
             TokenType::True => self.emit(Instruction::True),
@@ -501,8 +512,8 @@ impl<'src> Parser<'src> {
         };
     }
 
-    fn variable(&mut self, can_assing: bool) {
-        self.named_variable(self.previous, can_assing);
+    fn variable(&mut self, can_assign: bool) {
+        self.named_variable(self.previous, can_assign);
     }
 
     fn super_(&mut self, _can_assign: bool) {
@@ -536,7 +547,7 @@ impl<'src> Parser<'src> {
         self.variable(false);
     }
 
-    fn named_variable(&mut self, name: Token, can_assing: bool) {
+    fn named_variable(&mut self, name: Token, can_assign: bool) {
         let get_op;
         let set_op;
         if let Some(arg) = self.resolve_local(name) {
@@ -551,7 +562,7 @@ impl<'src> Parser<'src> {
             set_op = Instruction::SetGlobal(index);
         }
 
-        if can_assing && self.matches(TokenType::Equal) {
+        if can_assign && self.matches(TokenType::Equal) {
             self.expression();
             self.emit(set_op);
         } else {
@@ -577,9 +588,32 @@ impl<'src> Parser<'src> {
         result
     }
 
-    fn call(&mut self, _can_assing: bool) {
+    fn call(&mut self, _can_assign: bool) {
         let arg_count = self.argument_list();
         self.emit(Instruction::Call(arg_count));
+    }
+
+    fn array(&mut self, _can_assign: bool) {
+        let item_count = self.array_items();
+        self.emit(Instruction::Array(item_count));
+    }
+
+    fn array_items(&mut self) -> u8 {
+        let mut count: usize = 0;
+        if !self.check(TokenType::RightBracket) {
+            loop {
+                self.expression();
+                if count == 255 {
+                    self.error("Can't have more than 255 items in an array literal.");
+                }
+                count += 1;
+                if !self.matches(TokenType::Comma) {
+                    break;
+                }
+            }
+        }
+        self.consume(TokenType::RightBracket, "Expect ']' after arguments.");
+        count as u8
     }
 
     fn dot(&mut self, can_assign: bool) {
@@ -616,12 +650,12 @@ impl<'src> Parser<'src> {
         count as u8
     }
 
-    fn grouping(&mut self, _can_assing: bool) {
+    fn grouping(&mut self, _can_assign: bool) {
         self.expression();
         self.consume(TokenType::RightParen, "Expect ')' after expression.");
     }
 
-    fn unary(&mut self, _can_assing: bool) {
+    fn unary(&mut self, _can_assign: bool) {
         let operator = self.previous.kind;
         self.parse_precedence(Precedence::Unary);
         match operator {
@@ -631,13 +665,13 @@ impl<'src> Parser<'src> {
         };
     }
 
-    fn binary(&mut self, _can_assing: bool) {
+    fn binary(&mut self, _can_assign: bool) {
         let operator = self.previous.kind;
         let rule = self.get_rule(operator);
         self.parse_precedence(rule.precedence.next());
         match operator {
             TokenType::Plus => self.emit(Instruction::Add),
-            TokenType::Minus => self.emit(Instruction::Substract),
+            TokenType::Minus => self.emit(Instruction::Subtract),
             TokenType::Star => self.emit(Instruction::Multiply),
             TokenType::Slash => self.emit(Instruction::Divide),
             TokenType::BangEqual => self.emit_two(Instruction::Equal, Instruction::Not),
@@ -651,14 +685,14 @@ impl<'src> Parser<'src> {
         };
     }
 
-    fn and_op(&mut self, _can_assing: bool) {
+    fn and_op(&mut self, _can_assign: bool) {
         let false_jump = self.emit(Instruction::JumpIfFalse(0xffff));
         self.emit(Instruction::Pop);
         self.parse_precedence(Precedence::And);
         self.patch_jump(false_jump);
     }
 
-    fn or_op(&mut self, _can_assing: bool) {
+    fn or_op(&mut self, _can_assign: bool) {
         let false_jump = self.emit(Instruction::JumpIfFalse(0xffff));
         let true_jump = self.emit(Instruction::Jump(0xffff));
         self.patch_jump(false_jump);
@@ -741,13 +775,11 @@ impl<'src> Parser<'src> {
             self.advance();
             return;
         }
-
         self.error_at_current(msg);
     }
 
     fn advance(&mut self) {
         self.previous = self.current;
-
         loop {
             self.current = self.scanner.scan_token();
             if self.current.kind == TokenType::Error {
@@ -783,7 +815,6 @@ impl<'src> Parser<'src> {
         if self.panic_mode {
             return;
         }
-
         self.had_error = true;
         self.panic_mode = true;
         eprint!("[line {}] Error", token.line);
@@ -797,12 +828,10 @@ impl<'src> Parser<'src> {
 
     fn synchronize(&mut self) {
         self.panic_mode = false;
-
         while self.previous.kind != TokenType::Eof {
             if self.previous.kind == TokenType::Semicolon {
                 return;
             }
-
             match self.current.kind {
                 TokenType::Class
                 | TokenType::Fun
@@ -814,7 +843,6 @@ impl<'src> Parser<'src> {
                 | TokenType::Return => return,
                 _ => (),
             }
-
             self.advance()
         }
     }

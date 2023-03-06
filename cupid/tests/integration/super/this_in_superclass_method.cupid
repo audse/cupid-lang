@@ -12,5 +12,5 @@ class Derived < Base {
 }
 
 let derived = Derived('a', 'b');
-log derived.a; -- expect: a
-log derived.b; -- expect: b
+log (derived.a); -- expect: a
+log (derived.b); -- expect: b

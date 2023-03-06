@@ -1,4 +1,4 @@
 fun foo () {}
-log foo; -- expect: <fn foo>
+log (foo); -- expect: <fun foo>
 
-log clock; -- expect: <native fn>
+log (clock); -- expect: <native fun>

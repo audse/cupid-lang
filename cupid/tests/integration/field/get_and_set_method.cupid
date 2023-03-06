@@ -1,12 +1,12 @@
 -- Bound methods have identity equality.
 class Foo {
     method(a) {
-        log 'method';
-        log a;
+        log ('method');
+        log (a);
     }
     other(a) {
-        log 'other';
-        log a;
+        log ('other');
+        log (a);
     }
 }
 

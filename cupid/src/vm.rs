@@ -1,10 +1,12 @@
 use crate::{
-    chunk::{Instruction, Value},
+    chunk::Instruction,
     compiler::compile,
     error::CupidError,
+    expose,
     gc::{Gc, GcRef},
-    objects::{BoundMethod, Class, Closure, Instance, NativeFunction, Str, Upvalue},
+    objects::{Array, BoundMethod, Class, Closure, Instance, NativeFunction, Str, Upvalue},
     table::Table,
+    value::Value,
 };
 use std::{
     fmt::Display,
@@ -18,11 +20,11 @@ pub struct Vm {
     frames: [CallFrame; Vm::MAX_FRAMES],
     frame_count: usize,
     stack: [Value; Vm::STACK_SIZE],
-    stack_top: *mut Value,
+    pub stack_top: *mut Value,
     globals: Table,
     open_upvalues: Vec<GcRef<Upvalue>>,
     init_string: GcRef<Str>,
-    start_time: SystemTime,
+    pub start_time: SystemTime,
 }
 
 impl Default for Vm {
@@ -53,8 +55,12 @@ impl Vm {
     const STACK_SIZE: usize = Vm::MAX_FRAMES * (std::u8::MAX as usize) + 1;
 
     pub fn initialize(&mut self) {
-        self.define_native("clock", NativeFunction(clock));
-        self.define_native("panic", NativeFunction(cupid_panic));
+        self.define_native("clock", NativeFunction(expose::clock));
+        self.define_native("panic", NativeFunction(expose::cupid_panic));
+        self.define_native("push", NativeFunction(expose::push));
+        self.define_native("pop", NativeFunction(expose::pop));
+        self.define_native("len", NativeFunction(expose::len));
+        self.define_native("get", NativeFunction(expose::get));
         self.stack_top = self.stack.as_mut_ptr();
     }
 
@@ -74,7 +80,7 @@ impl Vm {
         }
     }
 
-    fn pop(&mut self) -> Value {
+    pub fn pop(&mut self) -> Value {
         unsafe {
             self.stack_top = self.stack_top.offset(-1);
             *self.stack_top
@@ -112,17 +118,6 @@ impl Vm {
         Err(CupidError::RuntimeError)
     }
 
-    fn binary_op<T>(&mut self, f: fn(f64, f64) -> T, r: fn(T) -> Value) -> Result<(), CupidError> {
-        let operands = (self.pop(), self.pop());
-        match operands {
-            (Value::Number(value_b), Value::Number(value_a)) => {
-                self.push(r(f(value_a, value_b)));
-                Ok(())
-            }
-            _ => self.runtime_error("Operands must be numbers."),
-        }
-    }
-
     fn run(&mut self) -> Result<(), CupidError> {
         let mut current_frame =
             unsafe { &mut *(&mut self.frames[self.frame_count - 1] as *mut CallFrame) };
@@ -135,25 +130,21 @@ impl Vm {
             match instruction {
                 Instruction::Add => {
                     let (b, a) = (self.pop(), self.pop());
-                    match (&a, &b) {
-                        (Value::Number(a), Value::Number(b)) => {
-                            self.push(Value::Number(a + b));
-                        }
-
-                        (Value::String(a), Value::String(b)) => {
-                            let result = format!("{}{}", a.deref(), b.deref());
-                            let result = self.intern(result);
-                            let value = Value::String(result);
-                            self.push(value);
-                        }
-
-                        _ => {
-                            self.push(a);
-                            self.push(b);
-                            return self
-                                .runtime_error("Operands must be two numbers or two strings.");
-                        }
+                    match a.add(b, self) {
+                        Ok(value) => self.push(value),
+                        Err(err) => return self.runtime_error(err),
                     }
+                }
+                Instruction::Array(item_count) => {
+                    let mut items = vec![];
+                    for _ in 0..item_count {
+                        let item = self.pop();
+                        items.push(item);
+                    }
+                    items.reverse();
+                    let array = Array::new(items);
+                    let array = self.alloc(array);
+                    self.push(Value::Array(array));
                 }
                 Instruction::Class(constant) => {
                     let class_name = current_chunk.read_string(constant);
@@ -204,7 +195,13 @@ impl Vm {
                     let value = self.pop();
                     self.globals.set(global_name, value);
                 }
-                Instruction::Divide => self.binary_op(|a, b| a / b, Value::Number)?,
+                Instruction::Divide => {
+                    let (b, a) = (self.pop(), self.pop());
+                    match a.divide(b) {
+                        Ok(value) => self.push(value),
+                        Err(err) => return self.runtime_error(err),
+                    }
+                }
                 Instruction::Equal => {
                     let a = self.pop();
                     let b = self.pop();
@@ -263,7 +260,13 @@ impl Vm {
                     };
                     self.push(value);
                 }
-                Instruction::Greater => self.binary_op(|a, b| a > b, Value::Bool)?,
+                Instruction::Greater => {
+                    let (b, a) = (self.pop(), self.pop());
+                    match a.greater(b) {
+                        Ok(value) => self.push(value),
+                        Err(err) => return self.runtime_error(err),
+                    }
+                }
                 Instruction::Inherit => {
                     let pair = (self.peek(0), self.peek(1));
                     if let (Value::Class(mut subclass), Value::Class(superclass)) = pair {
@@ -289,7 +292,13 @@ impl Vm {
                         current_frame.ip = unsafe { current_frame.ip.offset(offset as isize) };
                     }
                 }
-                Instruction::Less => self.binary_op(|a, b| a < b, Value::Bool)?,
+                Instruction::Less => {
+                    let (b, a) = (self.pop(), self.pop());
+                    match a.lesser(b) {
+                        Ok(value) => self.push(value),
+                        Err(err) => return self.runtime_error(err),
+                    }
+                }
                 Instruction::Loop(offset) => {
                     current_frame.ip = unsafe { current_frame.ip.offset(-1 - (offset as isize)) };
                 }
@@ -297,15 +306,24 @@ impl Vm {
                     let method_name = current_chunk.read_string(constant);
                     self.define_method(method_name);
                 }
-                Instruction::Multiply => self.binary_op(|a, b| a * b, Value::Number)?,
-                Instruction::Negate => {
-                    if let Value::Number(value) = self.peek(0) {
-                        self.pop();
-                        self.push(Value::Number(-value));
-                    } else {
-                        return self.runtime_error("Operand must be a number.");
+                Instruction::Multiply => {
+                    let (b, a) = (self.pop(), self.pop());
+                    match a.multiply(b) {
+                        Ok(value) => self.push(value),
+                        Err(err) => return self.runtime_error(err),
                     }
                 }
+                Instruction::Negate => match self.peek(0) {
+                    Value::Float(value) => {
+                        self.pop();
+                        self.push(Value::Float(-value));
+                    }
+                    Value::Int(value) => {
+                        self.pop();
+                        self.push(Value::Int(-value));
+                    }
+                    _ => return self.runtime_error("Operand must be a number."),
+                },
                 Instruction::Nil => self.push(Value::Nil),
                 Instruction::Not => {
                     let value = self.pop();
@@ -368,7 +386,13 @@ impl Vm {
                         upvalue.closed = Some(value);
                     }
                 }
-                Instruction::Substract => self.binary_op(|a, b| a - b, Value::Number)?,
+                Instruction::Subtract => {
+                    let (b, a) = (self.pop(), self.pop());
+                    match a.subtract(b) {
+                        Ok(value) => self.push(value),
+                        Err(err) => return self.runtime_error(err),
+                    }
+                }
                 Instruction::SuperInvoke((constant, arg_count)) => {
                     let method_name = current_chunk.read_string(constant);
                     if let Value::Class(class) = self.pop() {
@@ -385,6 +409,7 @@ impl Vm {
             };
         }
     }
+
     fn call_value(&mut self, arg_count: usize) -> Result<(), CupidError> {
         let callee = self.peek(arg_count);
         match callee {
@@ -532,7 +557,7 @@ impl Vm {
         self.gc.alloc(object)
     }
 
-    fn intern(&mut self, name: String) -> GcRef<Str> {
+    pub fn intern(&mut self, name: String) -> GcRef<Str> {
         self.mark_and_sweep();
         self.gc.intern(name)
     }
@@ -589,20 +614,4 @@ impl CallFrame {
     fn line(&self) -> usize {
         self.closure.function.chunk.lines[self.offset() - 1]
     }
-}
-
-fn clock(vm: &Vm, _args: &[Value]) -> Value {
-    let time = vm.start_time.elapsed().unwrap().as_secs_f64();
-    Value::Number(time)
-}
-
-fn cupid_panic(_vm: &Vm, args: &[Value]) -> Value {
-    let mut terms: Vec<String> = vec![];
-
-    for &arg in args.iter() {
-        let term = format!("{}", arg);
-        terms.push(term);
-    }
-
-    panic!("panic: {}", terms.join(", "))
 }

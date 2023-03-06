@@ -1,24 +1,24 @@
 fun test_interner () {
     -- The interner hashmap should be weak and be cleaned when gc clean 
 
-    log 'Testing gc interner...';
+    log ('Testing gc interner...');
 
     let s = 'unique' + 'string';
     s = 'other' + 'thing';
     s = 'unique' + 'string';
-    log s;
+    log (s);
 }
 
 fun test_string_concat () {
     -- String concatenation should not pop from the stack before concatenating
 
-    log 'Testing string concatenation';
+    log ('Testing string concatenation');
 
     let s = ('one' + 'two') + ('three' + 'four');
-    log s;
+    log (s);
 }
 
 test_interner();
 test_string_concat();
 
-log '++++++++++++++END OF THE TEST+++++++++++++++++++++';
+log ('++++++++++++++END OF THE TEST+++++++++++++++++++++');

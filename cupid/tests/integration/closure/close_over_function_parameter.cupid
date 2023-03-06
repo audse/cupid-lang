@@ -2,7 +2,7 @@ let f;
 
 fun foo (param) {
     fun f_ () {
-        log param;
+        log (param);
     }
     f = f_;
 }

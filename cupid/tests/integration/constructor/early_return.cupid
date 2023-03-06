@@ -1,10 +1,10 @@
 class Foo {
     init () {
-        log 'init';
+        log ('init');
         return;
-        log 'nope';
+        log ('nope');
     }
 }
 
 let foo = Foo(); -- expect: init
-log foo; -- expect: Foo instance
+log (foo); -- expect: Foo instance

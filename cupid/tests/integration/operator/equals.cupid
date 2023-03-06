@@ -1,14 +1,14 @@
-log nil == nil; -- expect: true
+log (none == none); -- expect: true
 
-log true == true; -- expect: true
-log true == false; -- expect: false
+log (true == true); -- expect: true
+log (true == false); -- expect: false
 
-log 1 == 1; -- expect: true
-log 1 == 2; -- expect: false
+log (1 == 1); -- expect: true
+log (1 == 2); -- expect: false
 
-log 'str' == 'str'; -- expect: true
-log 'str' == 'ing'; -- expect: false
+log ('str' == 'str'); -- expect: true
+log ('str' == 'ing'); -- expect: false
 
-log nil == false; -- expect: false
-log false == 0; -- expect: false
-log 0 == '0'; -- expect: false
+log (none == false); -- expect: false
+log (false == 0); -- expect: false
+log (0 == '0'); -- expect: false

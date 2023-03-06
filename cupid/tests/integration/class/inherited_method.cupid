@@ -1,18 +1,18 @@
 class Foo {
     inFoo () {
-        log 'in foo';
+        log ('in foo');
     }
 }
 
 class Bar < Foo {
     inBar () {
-        log 'in bar';
+        log ('in bar');
     }
 }
 
 class Baz < Bar {
     inBaz () {
-        log 'in baz';
+        log ('in baz');
     }
 }
 

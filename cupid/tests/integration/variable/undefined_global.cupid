@@ -1,1 +1,1 @@
-log notDefined; -- expect runtime error: Undefined variable 'notDefined'.
+log (notDefined); -- expect runtime error: Undefined variable 'notDefined'.

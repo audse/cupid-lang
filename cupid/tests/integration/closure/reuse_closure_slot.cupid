@@ -3,7 +3,7 @@
 
     {
         let a = 'a';
-        fun f_ () { log a; }
+        fun f_ () { log (a); }
         f = f_;
     }
 

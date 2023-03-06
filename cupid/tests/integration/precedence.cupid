@@ -1,32 +1,32 @@
 -- * has higher precedence than +.
-log 2 + 3 * 4; -- expect: 14
+log (2 + 3 * 4); -- expect: 14
 
 -- * has higher precedence than -.
-log 20 - 3 * 4; -- expect: 8
+log (20 - 3 * 4); -- expect: 8
 
 -- / has higher precedence than +.
-log 2 + 6 / 3; -- expect: 4
+log (2 + 6 / 3); -- expect: 4
 
 -- / has higher precedence than -.
-log 2 - 6 / 3; -- expect: 0
+log (2 - 6 / 3); -- expect: 0
 
 -- < has higher precedence than ==.
-log false == 2 < 1; -- expect: true
+log (false == 2 < 1); -- expect: true
 
 -- > has higher precedence than ==.
-log false == 1 > 2; -- expect: true
+log (false == 1 > 2); -- expect: true
 
 -- <= has higher precedence than ==.
-log false == 2 <= 1; -- expect: true
+log (false == 2 <= 1); -- expect: true
 
 -- >= has higher precedence than ==.
-log false == 1 >= 2; -- expect: true
+log (false == 1 >= 2); -- expect: true
 
 -- 1 - 1 is not space-sensitive.
-log 1 - 1; -- expect: 0
-log 1 -1; -- expect: 0
-log 1- 1; -- expect: 0
-log 1-1; -- expect: 0
+log (1 - 1); -- expect: 0
+log (1 -1); -- expect: 0
+log (1- 1); -- expect: 0
+log (1-1); -- expect: 0
 
 -- Using () for grouping.
-log (2 * (6 - (2 + 2))); -- expect: 4
+log ((2 * (6 - (2 + 2)))); -- expect: 4

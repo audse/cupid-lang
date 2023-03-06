@@ -1,6 +1,6 @@
 fun f () {
     return;
-    log 'bad';
+    log ('bad');
 }
 
-log f(); -- expect: nil
+log (f()); -- expect: none

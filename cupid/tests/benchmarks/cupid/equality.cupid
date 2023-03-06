@@ -2,13 +2,13 @@ let i = 0;
 
 let loopStart = clock();
 
-while (i < 10000000) {
+while i < 10000000 {
     i = i + 1;
 
-    1; 1; 1; 2; 1; nil; 1; 'str'; 1; true;
-    nil; nil; nil; 1; nil; 'str'; nil; true;
-    true; true; true; 1; true; false; true; 'str'; true; nil;
-    'str'; 'str'; 'str'; 'stru'; 'str'; 1; 'str'; nil; 'str'; true;
+    1; 1; 1; 2; 1; none; 1; 'str'; 1; true;
+    none; none; none; 1; none; 'str'; none; true;
+    true; true; true; 1; true; false; true; 'str'; true; none;
+    'str'; 'str'; 'str'; 'stru'; 'str'; 1; 'str'; none; 'str'; true;
 }
 
 let loopTime = clock() - loopStart;
@@ -16,19 +16,19 @@ let loopTime = clock() - loopStart;
 let start = clock();
 
 i = 0;
-while (i < 10000000) {
+while i < 10000000 {
     i = i + 1;
 
-    1 == 1; 1 == 2; 1 == nil; 1 == 'str'; 1 == true;
-    nil == nil; nil == 1; nil == 'str'; nil == true;
-    true == true; true == 1; true == false; true == 'str'; true == nil;
-    'str' == 'str'; 'str' == 'stru'; 'str' == 1; 'str' == nil; 'str' == true;
+    1 == 1; 1 == 2; 1 == none; 1 == 'str'; 1 == true;
+    none == none; none == 1; none == 'str'; none == true;
+    true == true; true == 1; true == false; true == 'str'; true == none;
+    'str' == 'str'; 'str' == 'stru'; 'str' == 1; 'str' == none; 'str' == true;
 }
 
 let elapsed = clock() - start;
-log 'loop';
-log loopTime;
-log 'equals';
-log elapsed - loopTime;
-log 'elapsed';
-log elapsed;
+log ('loop');
+log (loopTime);
+log ('equals');
+log (elapsed - loopTime);
+log ('elapsed');
+log (elapsed);

@@ -1,6 +1,6 @@
 class A {
     method(arg) {
-        log 'A.method(' + arg + ')';
+        log ('A.method(' + arg + ')');
     }
 }
 
@@ -10,7 +10,7 @@ class B < A {
     }
 
     method(arg) {
-        log 'B.method(' + arg + ')';
+        log ('B.method(' + arg + ')');
     }
 }
 

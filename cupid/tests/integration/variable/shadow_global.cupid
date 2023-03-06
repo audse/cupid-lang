@@ -1,6 +1,6 @@
 let a = 'global';
 {
     let a = 'shadow';
-    log a; -- expect: shadow
+    log (a); -- expect: shadow
 }
-log a; -- expect: global
+log (a); -- expect: global

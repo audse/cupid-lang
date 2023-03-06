@@ -1,7 +1,7 @@
 {
     let local = 'local';
     fun f () {
-        log local; -- expect: local
+        log (local); -- expect: local
     }
     f();
 }

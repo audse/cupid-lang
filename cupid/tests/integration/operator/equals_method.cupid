@@ -7,7 +7,7 @@ let foo = Foo();
 let fooMethod = foo.method;
 
 -- Same bound method.
-log fooMethod == fooMethod; -- expect: true
+log (fooMethod == fooMethod); -- expect: true
 
 -- Different closurizations.
-log foo.method == foo.method; -- expect: false
+log (foo.method == foo.method); -- expect: false

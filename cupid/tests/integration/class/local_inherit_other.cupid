@@ -5,4 +5,4 @@ fun f () {
     return B;
 }
 
-log f(); -- expect: B
+log (f()); -- expect: B

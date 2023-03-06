@@ -1,10 +1,10 @@
 {
     let a = 'a';
-    log a; -- expect: a
+    log (a); -- expect: a
     let b = a + ' b';
-    log b; -- expect: a b
+    log (b); -- expect: a b
     let c = a + ' c';
-    log c; -- expect: a c
+    log (c); -- expect: a c
     let d = b + ' d';
-    log d; -- expect: a b d
+    log (d); -- expect: a b d
 }

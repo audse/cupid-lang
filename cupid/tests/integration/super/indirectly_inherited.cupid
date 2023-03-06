@@ -1,6 +1,6 @@
 class A {
     foo () {
-        log 'A.foo()';
+        log ('A.foo()');
     }
 }
 
@@ -8,7 +8,7 @@ class B < A {}
 
 class C < B {
     foo () {
-        log 'C.foo()';
+        log ('C.foo()');
         super.foo();
     }
 }

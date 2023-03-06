@@ -1,9 +1,9 @@
 use std::{fmt, ops::Deref};
 
 use crate::{
-    chunk::Value,
     gc::{GcObject, GcRef},
     objects::{Closure, ObjectType},
+    value::Value,
 };
 
 #[repr(C)]

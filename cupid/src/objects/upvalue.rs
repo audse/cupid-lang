@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::{chunk::Value, gc::GcObject, objects::ObjectType};
+use crate::{gc::GcObject, objects::ObjectType, value::Value};
 
 #[repr(C)]
 pub struct Upvalue {

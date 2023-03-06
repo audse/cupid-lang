@@ -6,6 +6,8 @@ pub enum TokenType {
     RightParen,
     LeftBrace,
     RightBrace,
+    LeftBracket,
+    RightBracket,
     Comma,
     Dot,
     Minus,
@@ -28,10 +30,12 @@ pub enum TokenType {
     // Literals.
     Identifier,
     String,
-    Number,
+    Float,
+    Int,
 
     // Keywords.
     And,
+    In,
     Class,
     Else,
     False,
@@ -89,7 +93,8 @@ impl<'src> Scanner<'src> {
         keywords.insert("for", TokenType::For);
         keywords.insert("fun", TokenType::Fun);
         keywords.insert("if", TokenType::If);
-        keywords.insert("nil", TokenType::Nil);
+        keywords.insert("in", TokenType::In);
+        keywords.insert("none", TokenType::Nil);
         keywords.insert("or", TokenType::Or);
         keywords.insert("log", TokenType::Log);
         keywords.insert("return", TokenType::Return);
@@ -120,6 +125,8 @@ impl<'src> Scanner<'src> {
             b')' => self.make_token(TokenType::RightParen),
             b'{' => self.make_token(TokenType::LeftBrace),
             b'}' => self.make_token(TokenType::RightBrace),
+            b'[' => self.make_token(TokenType::LeftBracket),
+            b']' => self.make_token(TokenType::RightBracket),
             b';' => self.make_token(TokenType::Semicolon),
             b',' => self.make_token(TokenType::Comma),
             b'.' => self.make_token(TokenType::Dot),
@@ -246,9 +253,10 @@ impl<'src> Scanner<'src> {
             while is_digit(self.peek()) {
                 self.advance();
             }
+            self.make_token(TokenType::Float)
+        } else {
+            self.make_token(TokenType::Int)
         }
-
-        self.make_token(TokenType::Number)
     }
 
     fn identifier(&mut self) -> Token<'src> {

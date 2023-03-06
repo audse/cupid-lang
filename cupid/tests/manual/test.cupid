@@ -17,7 +17,7 @@ fun assert_false (a) {
 }
 
 fun test_arithmetic () {
-    log 'Testing arithmetic...';
+    log ('Testing arithmetic...');
 
     assert_eq(2 * 3, 6);
     assert_eq(2 + 3, 5);
@@ -33,7 +33,7 @@ fun test_arithmetic () {
 }
 
 fun test_boolean () {
-    log 'Testing boolean...';
+    log ('Testing boolean...');
 
     assert_true(true);
     assert_true(!false);
@@ -49,14 +49,14 @@ fun test_boolean () {
 }
 
 fun test_strings () {
-    log 'Testing strings...';
+    log ('Testing strings...');
 
     let a = 'hello' + ' world';
     assert_eq('hello world', a);
 }
 
 fun test_if () {
-    log 'Testing if...';
+    log ('Testing if...');
 
     let a = 0;
     if 5 < 10 {
@@ -77,10 +77,10 @@ fun test_if () {
 }
 
 fun test_loops () {
-    log 'Testing loops...';
+    log ('Testing loops...');
 
     let a = 5;
-    while (a > 0) {
+    while a > 0 {
         a = a - 1;
     }
     assert_eq(0, a);
@@ -93,7 +93,7 @@ fun test_loops () {
 }
 
 fun test_functions () {
-    log 'Testing functions...';
+    log ('Testing functions...');
     fun a () {
         return 1;
     }
@@ -108,12 +108,12 @@ fun test_functions () {
 }
 
 fun test_closures () {
-    log 'Testing closures...';
-    let result = nil;
+    log ('Testing closures...');
+    let result = none;
     fun makeClosure () {
         let local = 'local';
         fun closure () {
-                log '  Local is ' + local;
+                log ('  Local is ' + local);
                 result = 'result';
         }
         return closure;
@@ -126,10 +126,10 @@ fun test_closures () {
 }
 
 fun test_closures2 () {
-    log 'Testing closures 2...';
+    log ('Testing closures 2...');
     fun makeClosure2 (value) {
         fun closure () {
-            log ' ' + value;
+            log (' ' + value);
         }
         return closure;
     }
@@ -141,17 +141,17 @@ fun test_closures2 () {
 }
 
 fun test_gc_trigger () {
-    log 'Testing gc trigger...';
+    log ('Testing gc trigger...');
 
     let s = 'hello';
     for (let i = 1; i < 10000; i = i + 1) {
         s = s + 'world';
     }
-    log 'end';
+    log ('end');
 }
 
 fun test_class_fields () {
-    log 'Testing class fields...';
+    log ('Testing class fields...');
 
     class Foo {}
 
@@ -167,10 +167,10 @@ fun test_class_fields () {
 }
 
 fun test_class_method () {
-    log 'Testing class method...';
+    log ('Testing class method...');
     class Scone {
         topping(first, second) {
-            log '  scone with ' + first + ' and ' + second;
+            log ('  scone with ' + first + ' and ' + second);
         }
     }
 
@@ -179,7 +179,7 @@ fun test_class_method () {
 }
 
 fun test_class_this () {
-    log 'Testing class self...';
+    log ('Testing class self...');
     class Foo {
         method () {
             return self.name;
@@ -191,7 +191,7 @@ fun test_class_this () {
 }
 
 fun test_class_initializer () {
-    log 'Testing class initializer...';
+    log ('Testing class initializer...');
 
     class CoffeeMaker {
         init (coffee) {
@@ -199,7 +199,7 @@ fun test_class_initializer () {
         }
   
         brew () {
-            log '  Enjoy your cup of ' + self.coffee;
+            log ('  Enjoy your cup of ' + self.coffee);
             self.coffee = 'other';
         }
     }
@@ -211,7 +211,7 @@ fun test_class_initializer () {
 }
 
 fun test_class_invoke_non_method () {
-    log 'Testing class invoking non method...';
+    log ('Testing class invoking non method...');
 
     class Oops {
         init () {
@@ -228,7 +228,7 @@ fun test_class_invoke_non_method () {
 }
 
 fun test_class_super () {
-    log 'Testing class super...';
+    log ('Testing class super...');
     class A {
         method () {
             return 'A method';
@@ -268,4 +268,4 @@ test_class_super();
 test_gc_trigger();
 
 
-log '++++++++++++++END OF THE TEST+++++++++++++++++++++';
+log ('++++++++++++++END OF THE TEST+++++++++++++++++++++');

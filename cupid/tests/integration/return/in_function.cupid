@@ -1,6 +1,6 @@
 fun f () {
     return 'ok';
-    log 'bad';
+    log ('bad');
 }
 
-log f(); -- expect: ok
+log (f()); -- expect: ok

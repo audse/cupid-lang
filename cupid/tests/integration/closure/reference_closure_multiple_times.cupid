@@ -3,8 +3,8 @@ let f;
 {
     let a = 'a';
     fun f_ () {
-        log a;
-        log a;
+        log (a);
+        log (a);
     }
     f = f_;
 }

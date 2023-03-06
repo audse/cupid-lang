@@ -1,1 +1,1 @@
-log nil; -- expect: nil
+log (none); -- expect: none
