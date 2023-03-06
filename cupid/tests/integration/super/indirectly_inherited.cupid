@@ -1,0 +1,18 @@
+class A {
+    foo () {
+        log 'A.foo()';
+    }
+}
+
+class B < A {}
+
+class C < B {
+    foo () {
+        log 'C.foo()';
+        super.foo();
+    }
+}
+
+C().foo();
+-- expect: C.foo()
+-- expect: A.foo()

@@ -1,0 +1,13 @@
+log !true; -- expect: false
+log !false; -- expect: true
+log !!true; -- expect: true
+
+log !123; -- expect: false
+log !0; -- expect: false
+
+log !nil; -- expect: true
+
+log !''; -- expect: false
+
+fun foo () {}
+log !foo; -- expect: false

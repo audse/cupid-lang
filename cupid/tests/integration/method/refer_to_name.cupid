@@ -1,0 +1,7 @@
+class Foo {
+    method () {
+        log method; -- expect runtime error: Undefined variable 'method'.
+    }
+}
+
+Foo().method();

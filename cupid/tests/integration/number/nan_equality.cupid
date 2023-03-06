@@ -1,0 +1,8 @@
+let nan = 0/0;
+
+log nan == 0; -- expect: false
+log nan != 1; -- expect: true
+
+-- NaN is not equal to self.
+log nan == nan; -- expect: false
+log nan != nan; -- expect: true

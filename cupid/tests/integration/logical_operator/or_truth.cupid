@@ -1,0 +1,8 @@
+-- False and nil are false.
+log false or 'ok'; -- expect: ok
+log nil or 'ok'; -- expect: ok
+
+-- Everything else is true.
+log true or 'ok'; -- expect: true
+log 0 or 'ok'; -- expect: 0
+log 's' or 'ok'; -- expect: s

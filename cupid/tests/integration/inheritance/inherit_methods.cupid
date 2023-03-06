@@ -1,0 +1,14 @@
+class Foo {
+    methodOnFoo () { log 'foo'; }
+    override () { log 'foo'; }
+}
+
+class Bar < Foo {
+    methodOnBar () { log 'bar'; }
+    override () { log 'bar'; }
+}
+
+let bar = Bar();
+bar.methodOnFoo(); -- expect: foo
+bar.methodOnBar(); -- expect: bar
+bar.override(); -- expect: bar

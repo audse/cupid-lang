@@ -1,0 +1,10 @@
+let a = 'outer';
+{
+    fun foo () {
+        log a;
+    }
+
+    foo(); -- expect: outer
+    let a = 'inner';
+    foo(); -- expect: outer
+}

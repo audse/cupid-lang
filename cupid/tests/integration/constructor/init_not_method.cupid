@@ -1,0 +1,12 @@
+class Foo {
+    init (arg) {
+        log 'Foo.init (' + arg + ')';
+        self.field = 'init';
+    }
+}
+
+fun init () {
+    log 'not initializer';
+}
+
+init (); -- expect: not initializer

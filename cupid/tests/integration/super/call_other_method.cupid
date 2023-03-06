@@ -1,0 +1,16 @@
+class Base {
+    foo () {
+        log 'Base.foo()';
+    }
+}
+
+class Derived < Base {
+    bar () {
+        log 'Derived.bar()';
+        super.foo();
+    }
+}
+
+Derived().bar();
+-- expect: Derived.bar()
+-- expect: Base.foo()

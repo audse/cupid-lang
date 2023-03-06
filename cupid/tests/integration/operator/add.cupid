@@ -1,0 +1,2 @@
+log 123 + 456; -- expect: 579
+log 'str' + 'ing'; -- expect: string

@@ -1,0 +1,3 @@
+fun foo () {
+    self; -- Error at 'self': Can't use 'self' outside of a class.
+}

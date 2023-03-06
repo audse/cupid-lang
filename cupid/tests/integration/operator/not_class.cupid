@@ -1,0 +1,3 @@
+class Bar {}
+log !Bar; -- expect: false
+log !Bar(); -- expect: false

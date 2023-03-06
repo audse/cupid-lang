@@ -1,0 +1,8 @@
+class A {}
+
+fun f () {
+    class B < A {}
+    return B;
+}
+
+log f(); -- expect: B

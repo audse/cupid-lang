@@ -1,0 +1,11 @@
+let f;
+
+{
+    let local = 'local';
+    fun f_ () {
+        log local;
+    }
+    f = f_;
+}
+
+f(); -- expect: local

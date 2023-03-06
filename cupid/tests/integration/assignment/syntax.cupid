@@ -1,0 +1,5 @@
+-- Assignment on RHS of variable.
+let a = 'before';
+let c = a = 'let';
+log a; -- expect: let
+log c; -- expect: let

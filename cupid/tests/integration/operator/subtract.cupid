@@ -1,0 +1,2 @@
+log 4 - 3; -- expect: 1
+log 1.2 - 1.2; -- expect: 0

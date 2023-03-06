@@ -1,0 +1,8 @@
+class Foo {
+    method () {
+        return 'ok';
+        log 'bad';
+    }
+}
+
+log Foo().method(); -- expect: ok

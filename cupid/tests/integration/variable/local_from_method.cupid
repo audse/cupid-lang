@@ -1,0 +1,9 @@
+let foo = 'variable';
+
+class Foo {
+    method () {
+        log foo;
+    }
+}
+
+Foo().method(); -- expect: variable

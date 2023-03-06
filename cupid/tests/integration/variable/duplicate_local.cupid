@@ -1,0 +1,4 @@
+{
+    let a = 'value';
+    let a = 'other'; -- Error at 'a': Already variable with self name in self scope.
+}

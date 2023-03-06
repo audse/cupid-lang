@@ -1,0 +1,6 @@
+{
+    let a = 'outer';
+    {
+        log a; -- expect: outer
+    }
+}

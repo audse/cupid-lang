@@ -1,0 +1,9 @@
+{
+    class Foo {
+        returnSelf () {
+            return Foo;
+        }
+    }
+
+    log Foo().returnSelf(); -- expect: Foo
+}

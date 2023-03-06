@@ -1,0 +1,12 @@
+{
+    let foo = 'closure';
+    fun f () {
+        {
+            log foo; -- expect: closure
+            let foo = 'shadow';
+            log foo; -- expect: shadow
+        }
+        log foo; -- expect: closure
+    }
+    f();
+}

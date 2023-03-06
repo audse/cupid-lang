@@ -1,0 +1,11 @@
+class Foo {
+    init () {
+        log 'init';
+        return;
+        log 'nope';
+    }
+}
+
+let foo = Foo(); -- expect: init
+log foo.init (); -- expect: init
+-- expect: Foo instance

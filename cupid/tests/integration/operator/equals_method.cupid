@@ -1,0 +1,13 @@
+-- Bound methods have identity equality.
+class Foo {
+    method () {}
+}
+
+let foo = Foo();
+let fooMethod = foo.method;
+
+-- Same bound method.
+log fooMethod == fooMethod; -- expect: true
+
+-- Different closurizations.
+log foo.method == foo.method; -- expect: false

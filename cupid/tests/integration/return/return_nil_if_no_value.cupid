@@ -1,0 +1,6 @@
+fun f () {
+    return;
+    log 'bad';
+}
+
+log f(); -- expect: nil

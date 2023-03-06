@@ -1,0 +1,14 @@
+let f;
+
+{
+    let a = 'a';
+    fun f_ () {
+        log a;
+        log a;
+    }
+    f = f_;
+}
+
+f();
+-- expect: a
+-- expect: a

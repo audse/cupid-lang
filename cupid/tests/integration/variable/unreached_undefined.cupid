@@ -1,0 +1,5 @@
+if false {
+    log notDefined;
+}
+
+log 'ok'; -- expect: ok

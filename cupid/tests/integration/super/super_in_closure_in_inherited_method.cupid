@@ -1,0 +1,26 @@
+class A {
+    say () {
+        log 'A';
+    }
+}
+
+class B < A {
+    getClosure () {
+        fun closure () {
+            super.say();
+        }
+        return closure;
+    }
+
+    say () {
+        log 'B';
+    }
+}
+
+class C < B {
+    say () {
+        log 'C';
+    }
+}
+
+C().getClosure()(); -- expect: A

@@ -1,0 +1,5 @@
+log '(' + '' + ')';     -- expect: ()
+log 'a string'; -- expect: a string
+
+-- Non-ASCII.
+log 'A~¶Þॐஃ'; -- expect: A~¶Þॐஃ

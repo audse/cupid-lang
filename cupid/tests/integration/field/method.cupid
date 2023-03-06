@@ -1,0 +1,9 @@
+class Foo {
+    bar(arg) {
+        log arg;
+    }
+}
+
+let bar = Foo().bar;
+log 'got method'; -- expect: got method
+bar('arg'); -- expect: arg
