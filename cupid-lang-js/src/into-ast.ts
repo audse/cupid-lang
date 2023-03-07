@@ -1,4 +1,4 @@
-import { CustomNode, DecimalNode, IdentNode, IntNode, Node, nodeIs, RuleNode, StringNode } from '@/types'
+import { CustomNode, DecimalNode, IdentNode, IntNode, Node, nodeIs, RuleNode, StringNode, Option } from '@/types'
 import { Assign, BinOp, Block, Branch, Call, Decl, Environment, Expr, FieldType, Fun, FunType, Ident, Impl, InstanceType, Literal, Lookup, Match, PrimitiveType, StructType, Type, TypeConstructor, UnOp } from '@/ast'
 import { Scope } from './env'
 
@@ -20,7 +20,6 @@ export function intoAst () {
                 case 'Bool': return intoBool(node)
                 case 'Call': return intoCall(node)
                 case 'Decl': return intoDecl(node)
-                case 'DeclMut': return intoDecl(node, true)
                 case 'Fun': return intoFun(node)
                 case 'IfStmt': return intoBranch(node)
                 case 'Impl': return intoImpl(node)
@@ -149,15 +148,36 @@ export function intoAst () {
         return node.items.map(arg => into(arg))
     })
 
-    const intoDecl = rule<Decl, boolean>((node, mutable) => {
-        const [ident, type, value] = node.items.length === 3 ? node.items : [node.items[0], null, node.items[1]]
+    const intoDecl = rule(node => {
+        const [ident, mutable, type] = intoDeclBegin(node.items[0])
+        const value = into(node.items[1])
         return new Decl({
-            scope, file, mutable,
+            scope, file, mutable, ident, value, type,
             source: source.push(node),
-            ident: intoIdent(ident),
-            value: into(value),
-            ...type && { type: intoType(type) },
         })
+    })
+
+    const intoDeclBegin = (node: Node): [Ident, boolean, Type?] => {
+        if (nodeIs.RuleNode(node)) switch (node.name) {
+            case 'Decl_TypedMut': return intoDeclTypedMut(node)
+            case 'Decl_Typed': return intoDeclTyped(node)
+            case 'Decl_Mut': return intoDeclMut(node)
+        }
+        return [intoIdent(node), false]
+    }
+
+    const intoDeclTypedMut = rule<[Ident, boolean, Type?]>(node => {
+        const [type, ident] = node.items
+        return [intoIdent(ident), true, intoType(type)]
+    })
+
+    const intoDeclTyped = rule<[Ident, boolean, Type?]>(node => {
+        const [type, ident] = node.items
+        return [intoIdent(ident), false, intoType(type)]
+    })
+
+    const intoDeclMut = rule<[Ident, boolean, Type?]>(node => {
+        return [intoIdent(node.items[0]), true]
     })
 
     const intoFun = rule(node => {
@@ -301,7 +321,7 @@ export function intoAst () {
     })
 
     const intoFieldType = rule<FieldType>(node => {
-        const [ident, type] = node.items
+        const [type, ident] = node.items
         return new FieldType({
             scope, file,
             source: source.push(node),

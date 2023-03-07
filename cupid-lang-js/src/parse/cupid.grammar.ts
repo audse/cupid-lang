@@ -66,11 +66,7 @@ BaseType ~ {
     BracketList [ FieldType, ','? ]
 }
 
-TypeHint {
-    ':'~ InstanceType
-}
-
-FieldType { Ident ':'~ Type }
+FieldType { Type Ident }
 
 TypeConstructor {
     'type'~ TypeConstructor_Ident '='~ TypeConstructor_Value
@@ -114,7 +110,6 @@ Expr ~ {
     TypeConstructor
     | Impl
     | Block
-    | DeclMut
     | Decl
     | Assign
     | Fun
@@ -160,12 +155,25 @@ ElseStmt ~ {
     'else'~ Block
 }
 
-Decl {
-    'let'~ Ident TypeHint? '='~ Expr
+Decl { 'let'~ Decl_Inner '='~ Expr }
+
+Decl_Inner ~ {
+    Decl_TypedMut
+    | Decl_Mut
+    | Decl_Typed
+    | Ident
 }
 
-DeclMut {
-    'let'~ 'mut'~ Ident TypeHint? '='~ Expr
+Decl_TypedMut {
+    'mut'~ Type Ident
+}
+
+Decl_Typed {
+    Type Ident
+}
+
+Decl_Mut {
+    'mut'~ Ident
 }
 
 Assign {
@@ -192,7 +200,7 @@ Params {
 }
 Param { 
     'self'
-    | (Ident TypeHint)
+    | (Type Ident)
 }
 
 BinOp { CompareOp }

@@ -8,7 +8,7 @@ describe('ident end-to-end', () => {
 
     test('undefined', () => {
         const { exprs } = setup(`
-            let x : int = 1
+            let int x = 1
             y
         `)
         expectCompilationError(

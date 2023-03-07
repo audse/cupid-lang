@@ -9,8 +9,8 @@ describe('instance type end-to-end', () => {
     test('generic struct', () => {
         const { exprs } = setup(`
             type point = t => struct [
-                x : t
-                y : t
+                t x
+                t y
             ]
             type int-point = point [int]
             int-point
@@ -29,8 +29,8 @@ describe('instance type end-to-end', () => {
     test('undefined', () => {
         const { exprs } = setup(`
             type point = struct [
-                x : t
-                y : t
+                t x
+                t y
             ]
             point
         `)
@@ -44,8 +44,8 @@ describe('instance type end-to-end', () => {
         const { exprs } = setup(`
             let some-type = 123
             type point = t => struct [
-                x : t
-                y : t
+                t x
+                t y
             ]
             point [some-type]
         `)
@@ -58,8 +58,8 @@ describe('instance type end-to-end', () => {
     test('wrong number of arguments', () => {
         const { exprs } = setup(`
             type point = t => struct [
-                x : t
-                y : t
+                t x
+                t y
             ]
             type int-point = point [int, decimal]
             int-point

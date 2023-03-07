@@ -9,7 +9,7 @@ describe('impl end-to-end', () => {
     test('int', () => {
         const { exprs } = setup(`
             impl int = [
-                add : a : int, b : int -> int => a + b
+                add : int a, int b -> int => a + b
             ]
             int\\add
         `)
@@ -23,7 +23,7 @@ describe('impl end-to-end', () => {
     test('int explicit call', () => {
         const { exprs } = setup(`
             impl int = [
-                add : a : int, b : int -> int => a + b
+                add : int a, int b -> int => a + b
             ]
             int\\add(1, 2)
         `)
@@ -33,7 +33,7 @@ describe('impl end-to-end', () => {
     test('int explicit call wrong number of args', () => {
         const { exprs } = setup(`
             impl int = [
-                add : a : int, b : int -> int => a + b
+                add : int a, int b -> int => a + b
             ]
             int\\add(1)
         `)
@@ -46,7 +46,7 @@ describe('impl end-to-end', () => {
     test('int implicit call', () => {
         const { exprs } = setup(`
             impl int = [
-                add : a : int, b : int -> int => a + b
+                add : int a, int b -> int => a + b
             ]
             100\\add(1, 2)
         `)
@@ -56,7 +56,7 @@ describe('impl end-to-end', () => {
     test('int implicit call with self argument', () => {
         const { exprs } = setup(`
             impl int = [
-                add : self, other : int -> int => self + other
+                add : self, int other -> int => self + other
             ]
             1\\add(2)
         `)

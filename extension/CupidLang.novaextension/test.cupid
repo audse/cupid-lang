@@ -55,12 +55,12 @@ let my_list = ['a', 'b', 'c']
 for index, value in my_list => logs (index, value)
 
 let person_a = [
-	'name': "Audrey",
+	'name': 'Audrey',
 	'age': 22
 ]
 
 let person_b = [
-	'name': "Jacob",
+	'name': 'Jacob',
 	'age': 24
 ]
 
@@ -71,7 +71,7 @@ for person in people => for key, value in person => logs (key, value)
 
 let strings = ['my', 'list', 'of', 'strings']
 
-let a  = ''
+let a    = ''
 let concat = for s in strings => {
 	a = a + ' ' + s
 }
@@ -96,8 +96,8 @@ type person [
 ]
 
 person jacob = [
-	first: "jacob",
-	last: "aldred",
+	first: 'jacob',
+	last: 'aldred',
 	age: 24,
 	get_name: f, l => f + ' ' + l
 ]

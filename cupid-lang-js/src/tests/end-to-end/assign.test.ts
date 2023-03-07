@@ -8,7 +8,7 @@ describe('assign end-to-end', () => {
 
     test('int', () => {
         const { exprs } = setup(`
-            let mut x : int = 1
+            let mut int x = 1
             x = 2
             x
         `)
@@ -24,7 +24,7 @@ describe('assign end-to-end', () => {
 
     test('immutable', () => {
         const { exprs } = setup(`
-            let x : int = 1
+            let int x = 1
             x = 2
         `)
         expectCompilationError(

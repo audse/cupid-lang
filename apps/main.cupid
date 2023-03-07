@@ -1,49 +1,94 @@
+class array {
 
-# Type def
+	init (items) {
+		self.items = items
+	}
 
-type type! = []
-type trait! = []
-type none = []
-type int = []
-type dec = []
-type string = []
-type array (t) = [t]
-type fun = []
-type map (k, v) = [k, v]
+	push (item) => push(self.items, item)
+	pop () => return pop(self.items)
+	len () => return len(self.items)
+	get (i) => return get(self.items, i)
+	last () => return self.get(self.len() - 1)
+}
 
-sum bool = [
-	true,
-	false
-]
+class dict {
 
-sum maybe (t) = [
-	yes : t,
-	no
-]
+	init (entries) {
+		self.entries = array(entries)
+	}
 
-implement int = [
-	pow = left : int, right : int -> int,
-	sq = left : int -> int => left.pow(2)
-]
+	len () => return self.entries.len()
 
-# Trait def
+	find (key) {
+		for (let i = 0; i < self.len(); i = i + 1) {
+			let entry = self.get(i)
+			if entry.get(0) == key {
+				return entry.last()
+			}
+		}
+		return none
+	}
 
-trait equal! (t) = [
-	equal! = left : t, right : t -> bool => ()
-]
+	get (i) {
+		return self.entries.get(i)
+	}
 
-# infix 1 'is' = equal! (t)
+	insert (key, value) {
+		self.entries.push(array([key, value]))
+	}
+}
 
-trait not_equal! (t) = [
-	not_equal! = left : t, right : t -> bool => ()
-]
+let x = dict ([
+	array (['a', 1]),
+	array (['b', 2])
+])
 
-# infix 2 'is not' = not_equal! (t)
+log (x.find ('a'))
 
-implement int + equal! (int) = []
-implement int + not_equal! (int) = []
 
-type true = bool::true
-type false = bool::false
+class type {
+	init (name, fields) {
+		self.name = name
+		self.fields = dict(fields)
+	}
+	
+	is-primitive () => return self.fields.len() == 0
 
-# let my_val : bool = true
+	keys () {
+		let keys = array([])
+		for (let i = 0; i < self.fields.len(); i = i + 1) {
+			keys.push(self.fields.get(i).get(0))
+		}
+		return keys
+	}
+}
+
+fun point (t) {
+	return type(
+		'point',
+		[
+			array(['x', t]), 
+			array(['y', t])
+		]
+	)
+}
+
+let int = type('int', [])
+
+let my-type = point(int)
+
+log(my-type.keys().items)
+
+impl some-trait for array {
+	do-something () {
+		log ('something happened!')
+	}
+}
+
+let my-array = array([])
+my-array.do-something()
+
+let a = 'outer'
+{
+    let a = a
+}

@@ -6,7 +6,7 @@ import { resolve } from 'path'
 
 import cupidGrammar from '../parse/cupid.grammar'
 
-const output = resolve('./src/parse/cupid.parser.ts')
+const output = resolve('./parse/cupid.parser.ts')
 
 const tokenizer = new Tokenizer(0, cupidGrammar)
 const parser = new TokenParser(tokenizer.tokenize(), true)

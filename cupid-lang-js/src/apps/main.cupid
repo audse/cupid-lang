@@ -1,1 +1,6 @@
 
+
+type point = struct [
+          int x
+          int y
+]

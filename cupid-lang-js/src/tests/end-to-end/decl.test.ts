@@ -7,7 +7,7 @@ import { setup } from './utils'
 describe('decl end-to-end', () => {
 
     test('int', () => {
-        const { exprs } = setup(`let x : int = 1`)
+        const { exprs } = setup(`let int x = 1`)
         const decl = last(exprs)
         interpret(...exprs)
         expect(
@@ -19,7 +19,7 @@ describe('decl end-to-end', () => {
     })
 
     test('type mismatch', () => {
-        const { exprs } = setup(`let x : bool = 1`)
+        const { exprs } = setup(`let bool x = 1`)
         expectCompilationError(
             CompilationErrorCode.UnableToUnifyType,
             () => interpret(...exprs)

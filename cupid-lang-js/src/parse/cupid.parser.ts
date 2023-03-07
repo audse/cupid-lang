@@ -12,7 +12,6 @@ export namespace cupid {
         return getNodeArray(typeconstructor(parser)
             ?? impl(parser)
             ?? block(parser)
-            ?? declmut(parser)
             ?? decl(parser)
             ?? assign(parser)
             ?? fun(parser)
@@ -55,17 +54,10 @@ export namespace cupid {
                 modifier.optional(parser => node.string(parser.match(',')))
         ))
     }
-    export function typehint (parser: TokenParser): Option<RuleNode> {
-            return makeNode('TypeHint', parser.chain(
-                modifier.passThrough(parser => parser.match(':')),
-                instancetype
-        ))
-    }
     export function fieldtype (parser: TokenParser): Option<RuleNode> {
             return makeNode('FieldType', parser.chain(
-                ident,
-                modifier.passThrough(parser => parser.match(':')),
-                type
+                type,
+                ident
         ))
     }
     export function typeconstructor (parser: TokenParser): Option<RuleNode> {
@@ -216,20 +208,34 @@ export namespace cupid {
     export function decl (parser: TokenParser): Option<RuleNode> {
             return makeNode('Decl', parser.chain(
                 modifier.passThrough(parser => parser.match('let')),
-                ident,
-                modifier.optional(typehint),
+                decl_inner,
                 modifier.passThrough(parser => parser.match('=')),
                 expr
         ))
     }
-    export function declmut (parser: TokenParser): Option<RuleNode> {
-            return makeNode('DeclMut', parser.chain(
-                modifier.passThrough(parser => parser.match('let')),
+    export function decl_inner (parser: TokenParser): Option<Node[]> {
+        return getNodeArray(decl_typedmut(parser)
+            ?? decl_mut(parser)
+            ?? decl_typed(parser)
+        ?? ident(parser))
+    }
+    export function decl_typedmut (parser: TokenParser): Option<RuleNode> {
+            return makeNode('Decl_TypedMut', parser.chain(
                 modifier.passThrough(parser => parser.match('mut')),
-                ident,
-                modifier.optional(typehint),
-                modifier.passThrough(parser => parser.match('=')),
-                expr
+                type,
+                ident
+        ))
+    }
+    export function decl_typed (parser: TokenParser): Option<RuleNode> {
+            return makeNode('Decl_Typed', parser.chain(
+                type,
+                ident
+        ))
+    }
+    export function decl_mut (parser: TokenParser): Option<RuleNode> {
+            return makeNode('Decl_Mut', parser.chain(
+                modifier.passThrough(parser => parser.match('mut')),
+                ident
         ))
     }
     export function assign (parser: TokenParser): Option<RuleNode> {
@@ -278,8 +284,8 @@ export namespace cupid {
     export function param (parser: TokenParser): Option<RuleNode> {
         return makeNode('Param', node.string(parser.match('self'))
             ?? parser.chain(
-                ident,
-                typehint
+                type,
+                ident
         ))
     }
     export function binop (parser: TokenParser): Option<RuleNode> {
