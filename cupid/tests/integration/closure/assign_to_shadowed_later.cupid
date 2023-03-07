@@ -1,13 +1,13 @@
-let a = 'global';
+let a = 'global'
 
 {
     fun assign () {
-        a = 'assigned';
+        a = 'assigned'
     }
 
-    let a = 'inner';
-    assign();
-    log (a); -- expect: inner
+    let a = 'inner'
+    assign()
+    log (a) -- expect: inner
 }
 
-log (a); -- expect: assigned
+log (a) -- expect: assigned

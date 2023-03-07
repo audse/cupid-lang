@@ -4,12 +4,12 @@
 -- then didn't handle not finding the variable.
 
 fun f () {
-    let a = 'a';
-    let b = 'b';
+    let a = 'a'
+    let b = 'b'
     fun g () {
-        log (b); -- expect: b
-        log (a); -- expect: a
+        log (b) -- expect: b
+        log (a) -- expect: a
     }
-    g();
+    g()
 }
-f();
+f()

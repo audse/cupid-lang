@@ -1,6 +1,6 @@
 -- Evaluate the 'else' expression if the condition is false.
-if true log ('good'); else log ('bad'); -- expect: good
-if false log ('bad'); else log ('good'); -- expect: good
+if true log ('good') else log ('bad') -- expect: good
+if false log ('bad') else log ('good') -- expect: good
 
 -- Allow block body.
-if false none; else { log ('block'); } -- expect: block
+if false none else { log ('block') } -- expect: block

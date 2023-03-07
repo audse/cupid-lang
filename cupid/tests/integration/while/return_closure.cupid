@@ -1,10 +1,10 @@
 fun f () {
     while true {
-        let i = 'i';
-        fun g () { log (i); }
-        return g;
+        let i = 'i'
+        fun g () { log (i) }
+        return g
     }
 }
 
-let h = f();
-h(); -- expect: i
+let h = f()
+h() -- expect: i

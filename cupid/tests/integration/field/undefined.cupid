@@ -1,4 +1,4 @@
 class Foo {}
-let foo = Foo();
+let foo = Foo()
 
-foo.bar; -- expect runtime error: Undefined property 'bar'.
+foo.bar -- expect runtime error: Undefined property 'bar'.

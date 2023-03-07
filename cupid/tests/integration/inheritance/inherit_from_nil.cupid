@@ -1,2 +1,2 @@
-let None = none;
+let None = none
 class Foo < None {} -- expect runtime error: Superclass must be a class.

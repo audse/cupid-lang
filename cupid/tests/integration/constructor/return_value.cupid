@@ -3,3 +3,5 @@ class Foo {
         return 'result'; -- Error at 'return': Can't return a value from an initializer.
     }
 }
+
+-- Something wrong with return...requires a semicolon when returning a string to not cause a syntax error

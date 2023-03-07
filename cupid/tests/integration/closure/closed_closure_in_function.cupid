@@ -1,11 +1,11 @@
-let f;
+let f
 
 {
-    let local = 'local';
+    let local = 'local'
     fun f_ () {
-        log (local);
+        log (local)
     }
-    f = f_;
+    f = f_
 }
 
-f(); -- expect: local
+f() -- expect: local

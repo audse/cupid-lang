@@ -1,16 +1,19 @@
 use crate::{
     gc::GcRef,
-    objects::{Array, BoundMethod, Class, Closure, Function, Instance, NativeFunction, Str},
+    objects::{
+        Array, BoundMethod, Class, Closure, Function, Instance, NativeFunction, RoleImpl, Str,
+    },
     vm::Vm,
 };
 use std::{fmt, ops::Deref};
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub enum Value {
     Array(GcRef<Array>),
     Bool(bool),
     BoundMethod(GcRef<BoundMethod>),
     Class(GcRef<Class>),
+    RoleImpl(GcRef<RoleImpl>),
     Closure(GcRef<Closure>),
     Function(GcRef<Function>),
     Instance(GcRef<Instance>),
@@ -96,7 +99,7 @@ impl Value {
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Value::Array(array) => write!(f, "{}", array.deref()),
+            Value::Array(value) => write!(f, "{}", value.deref()),
             Value::Bool(value) => write!(f, "{value}"),
             Value::BoundMethod(value) => write!(f, "{}", value.method.function.deref()),
             Value::Class(value) => write!(f, "{}", value.name.deref()),
@@ -107,6 +110,7 @@ impl fmt::Display for Value {
             Value::Nil => write!(f, "none"),
             Value::Float(value) => write!(f, "{value}"),
             Value::Int(value) => write!(f, "{value}"),
+            Value::RoleImpl(value) => write!(f, "{}", value.deref()),
             Value::String(value) => write!(f, "{}", value.deref()),
         }
     }

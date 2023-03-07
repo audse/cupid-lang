@@ -3,6 +3,7 @@ use std::fmt;
 use crate::{gc::GcObject, objects::ObjectType};
 
 #[repr(C)]
+#[derive(Debug)]
 pub struct Str {
     pub header: GcObject,
     pub s: String,

@@ -4,11 +4,13 @@ use std::ptr::null_mut;
 
 use crate::{gc::GcRef, objects::Str, value::Value};
 
+#[derive(Debug)]
 struct Entry {
     key: Option<GcRef<Str>>,
     value: Value,
 }
 
+#[derive(Debug)]
 pub struct Table {
     count: usize,
     capacity: usize,

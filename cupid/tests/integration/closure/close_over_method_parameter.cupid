@@ -1,13 +1,13 @@
-let f;
+let f
 
 class Foo {
     method (param) {
         fun f_ () {
-            log (param);
+            log (param)
         }
-        f = f_;
+        f = f_
     }
 }
 
-Foo().method('param');
-f(); -- expect: param
+Foo().method('param')
+f() -- expect: param

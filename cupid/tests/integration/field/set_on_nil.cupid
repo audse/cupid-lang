@@ -1,1 +1,1 @@
-none.foo = 'value'; -- expect runtime error: Only instances have fields.
+none.foo = 'value' -- expect runtime error: Only instances have fields.

@@ -1,13 +1,13 @@
 fun returnArg (arg) {
-    return arg;
+    return arg
 }
 
 fun returnFunCallWithArg (func, arg) {
-    return returnArg(func)(arg);
+    return returnArg(func)(arg)
 }
 
 fun logArg (arg) {
-    log (arg);
+    log (arg)
 }
 
-returnFunCallWithArg(logArg, 'hello world'); -- expect: hello world
+returnFunCallWithArg(logArg, 'hello world') -- expect: hello world

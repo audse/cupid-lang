@@ -1,25 +1,25 @@
-log (1 < 2); -- expect: true
-log (2 < 2); -- expect: false
-log (2 < 1); -- expect: false
+log (1 < 2) -- expect: true
+log (2 < 2) -- expect: false
+log (2 < 1) -- expect: false
 
-log (1 <= 2); -- expect: true
-log (2 <= 2); -- expect: true
-log (2 <= 1); -- expect: false
+log (1 <= 2) -- expect: true
+log (2 <= 2) -- expect: true
+log (2 <= 1) -- expect: false
 
-log (1 > 2); -- expect: false
-log (2 > 2); -- expect: false
-log (2 > 1); -- expect: true
+log (1 > 2) -- expect: false
+log (2 > 2) -- expect: false
+log (2 > 1) -- expect: true
 
-log (1 >= 2); -- expect: false
-log (2 >= 2); -- expect: true
-log (2 >= 1); -- expect: true
+log (1 >= 2) -- expect: false
+log (2 >= 2) -- expect: true
+log (2 >= 1) -- expect: true
 
 -- Zero and negative zero compare the same.
-log (0 < -0); -- expect: false
-log (-0 < 0); -- expect: false
-log (0 > -0); -- expect: false
-log (-0 > 0); -- expect: false
-log (0 <= -0); -- expect: true
-log (-0 <= 0); -- expect: true
-log (0 >= -0); -- expect: true
-log (-0 >= 0); -- expect: true
+log (0 < -0) -- expect: false
+log (-0 < 0) -- expect: false
+log (0 > -0) -- expect: false
+log (-0 > 0) -- expect: false
+log (0 <= -0) -- expect: true
+log (-0 <= 0) -- expect: true
+log (0 >= -0) -- expect: true
+log (-0 >= 0) -- expect: true

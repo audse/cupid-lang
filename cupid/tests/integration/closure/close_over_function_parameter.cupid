@@ -1,11 +1,11 @@
-let f;
+let f
 
 fun foo (param) {
     fun f_ () {
-        log (param);
+        log (param)
     }
-    f = f_;
+    f = f_
 }
-foo('param');
+foo('param')
 
-f(); -- expect: param
+f() -- expect: param

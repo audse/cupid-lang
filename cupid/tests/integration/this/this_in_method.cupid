@@ -1,6 +1,6 @@
 class Foo {
-    bar () { return self; }
-    baz () { return 'baz'; }
+    bar () { return self }
+    baz () { return 'baz' }
 }
 
-log (Foo().bar().baz()); -- expect: baz
+log (Foo().bar().baz()) -- expect: baz

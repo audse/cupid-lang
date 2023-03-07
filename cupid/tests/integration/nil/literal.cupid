@@ -1,1 +1,1 @@
-log (none); -- expect: none
+log (none) -- expect: none

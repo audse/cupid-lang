@@ -1,5 +1,5 @@
 class Foo {
     method () { }
 }
-let foo = Foo();
-log (foo.method); -- expect: <fun method>
+let foo = Foo()
+log (foo.method) -- expect: <fun method>

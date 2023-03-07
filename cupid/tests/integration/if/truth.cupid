@@ -1,8 +1,8 @@
 -- False and none are false.
-if false log ('bad'); else log ('false'); -- expect: false
-if none log ('bad'); else log ('none'); -- expect: none
+if false log ('bad') else log ('false') -- expect: false
+if none log ('bad') else log ('none') -- expect: none
 
 -- Everything else is true.
-if true log (true); -- expect: true
-if 0 log (0); -- expect: 0
-if '' log ('empty'); -- expect: empty
+if true log (true) -- expect: true
+if 0 log (0) -- expect: 0
+if '' log ('empty') -- expect: empty

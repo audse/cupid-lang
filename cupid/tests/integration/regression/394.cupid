@@ -1,5 +1,5 @@
 {
     class A {}
     class B < A {}
-    log (B); -- expect: B
+    log (B) -- expect: B
 }

@@ -2,7 +2,7 @@ class A {}
 
 fun f () {
     class B < A {}
-    return B;
+    return B
 }
 
-log (f()); -- expect: B
+log (f()) -- expect: B

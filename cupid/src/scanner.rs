@@ -1,5 +1,17 @@
 use std::collections::HashMap;
 
+macro_rules! keyword_map {
+    ( $capacity:literal, { $( $key:tt : $val:expr ),* $(,)? } ) => {{
+        (|| {
+            let mut map = HashMap::with_capacity_and_hasher($capacity, Default::default());
+            $(
+                map.insert($key, $val);
+            )*
+            map
+        })()
+    }};
+}
+
 #[derive(Eq, PartialEq, Debug, Copy, Clone, Hash)]
 pub enum TokenType {
     LeftParen,
@@ -15,6 +27,7 @@ pub enum TokenType {
     Semicolon,
     Slash,
     Star,
+    NewLine,
 
     // One or two character tokens.
     Bang,
@@ -51,12 +64,14 @@ pub enum TokenType {
     True,
     Let,
     While,
+    Role,
+    Impl,
 
     Error,
     Eof,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct Token<'src> {
     pub kind: TokenType,
     pub line: usize,
@@ -85,24 +100,27 @@ pub struct Scanner<'src> {
 
 impl<'src> Scanner<'src> {
     pub fn new(code: &'src str) -> Scanner {
-        let mut keywords = HashMap::with_capacity_and_hasher(16, Default::default());
-        keywords.insert("and", TokenType::And);
-        keywords.insert("class", TokenType::Class);
-        keywords.insert("else", TokenType::Else);
-        keywords.insert("false", TokenType::False);
-        keywords.insert("for", TokenType::For);
-        keywords.insert("fun", TokenType::Fun);
-        keywords.insert("if", TokenType::If);
-        keywords.insert("in", TokenType::In);
-        keywords.insert("none", TokenType::Nil);
-        keywords.insert("or", TokenType::Or);
-        keywords.insert("log", TokenType::Log);
-        keywords.insert("return", TokenType::Return);
-        keywords.insert("super", TokenType::Super);
-        keywords.insert("self", TokenType::This);
-        keywords.insert("true", TokenType::True);
-        keywords.insert("let", TokenType::Let);
-        keywords.insert("while", TokenType::While);
+        let keywords: HashMap<&str, TokenType> = keyword_map!(17, {
+            "and": TokenType::And,
+            "class": TokenType::Class,
+            "else": TokenType::Else,
+            "false": TokenType::False,
+            "for": TokenType::For,
+            "fun": TokenType::Fun,
+            "if": TokenType::If,
+            "in": TokenType::In,
+            "none": TokenType::Nil,
+            "or": TokenType::Or,
+            "log": TokenType::Log,
+            "return": TokenType::Return,
+            "super": TokenType::Super,
+            "self": TokenType::This,
+            "true": TokenType::True,
+            "let": TokenType::Let,
+            "while": TokenType::While,
+            "trait": TokenType::Role,
+            "impl": TokenType::Impl,
+        });
 
         Scanner {
             keywords,
@@ -121,6 +139,7 @@ impl<'src> Scanner<'src> {
         }
 
         match self.advance() {
+            b'\n' => self.new_line(),
             b'(' => self.make_token(TokenType::LeftParen),
             b')' => self.make_token(TokenType::RightParen),
             b'{' => self.make_token(TokenType::LeftBrace),
@@ -164,6 +183,14 @@ impl<'src> Scanner<'src> {
             lexeme: self.lexeme(),
             line: self.line,
             index: self.current,
+        }
+    }
+
+    fn peek_back(&self, amt: usize) -> u8 {
+        if self.is_at_end() {
+            0
+        } else {
+            self.code.as_bytes()[self.current - amt]
         }
     }
 
@@ -213,10 +240,6 @@ impl<'src> Scanner<'src> {
                 b' ' | b'\r' | b'\t' => {
                     self.advance();
                 }
-                b'\n' => {
-                    self.line += 1;
-                    self.advance();
-                }
                 b'-' if self.peek_next() == b'-' => {
                     while self.peek() != b'\n' && !self.is_at_end() {
                         self.advance();
@@ -259,8 +282,19 @@ impl<'src> Scanner<'src> {
         }
     }
 
+    fn new_line(&mut self) -> Token<'src> {
+        self.line += 1;
+        let prev = self.peek_back(2);
+        let token = self.make_token(TokenType::NewLine);
+        self.skip_whitespace();
+        match self.peek() {
+            b'(' if prev != b';' => token,
+            _ => self.scan_token(),
+        }
+    }
+
     fn identifier(&mut self) -> Token<'src> {
-        while is_alpha(self.peek()) || is_digit(self.peek()) {
+        while is_ident(self.peek()) {
             self.advance();
         }
         self.make_token(self.identifier_type())
@@ -280,4 +314,8 @@ fn is_digit(c: u8) -> bool {
 
 fn is_alpha(c: u8) -> bool {
     c.is_ascii_alphabetic() || c == b'_'
+}
+
+fn is_ident(c: u8) -> bool {
+    is_alpha(c) || is_digit(c) || c == b'-'
 }

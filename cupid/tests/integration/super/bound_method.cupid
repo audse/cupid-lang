@@ -1,19 +1,19 @@
 class A {
     method(arg) {
-        log ('A.method(' + arg + ')');
+        log ('A.method(' + arg + ')')
     }
 }
 
 class B < A {
     getClosure () {
-        return super.method;
+        return super.method
     }
 
     method(arg) {
-        log ('B.method(' + arg + ')');
+        log ('B.method(' + arg + ')')
     }
 }
 
 
-let closure = B().getClosure();
-closure('arg'); -- expect: A.method(arg)
+let closure = B().getClosure()
+closure('arg') -- expect: A.method(arg)

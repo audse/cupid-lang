@@ -1,16 +1,16 @@
 class Base {
     init (a) {
-        self.a = a;
+        self.a = a
     }
 }
 
 class Derived < Base {
     init (a, b) {
-        super.init (a);
-        self.b = b;
+        super.init (a)
+        self.b = b
     }
 }
 
-let derived = Derived('a', 'b');
-log (derived.a); -- expect: a
-log (derived.b); -- expect: b
+let derived = Derived('a', 'b')
+log (derived.a) -- expect: a
+log (derived.b) -- expect: b

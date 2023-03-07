@@ -4,7 +4,9 @@ use crate::{
     error::CupidError,
     expose,
     gc::{Gc, GcRef},
-    objects::{Array, BoundMethod, Class, Closure, Instance, NativeFunction, Str, Upvalue},
+    objects::{
+        Array, BoundMethod, Class, Closure, Instance, NativeFunction, RoleImpl, Str, Upvalue,
+    },
     table::Table,
     value::Value,
 };
@@ -16,14 +18,14 @@ use std::{
 };
 
 pub struct Vm {
-    gc: Gc,
-    frames: [CallFrame; Vm::MAX_FRAMES],
-    frame_count: usize,
-    stack: [Value; Vm::STACK_SIZE],
+    pub gc: Gc,
+    pub frames: [CallFrame; Vm::MAX_FRAMES],
+    pub frame_count: usize,
+    pub stack: [Value; Vm::STACK_SIZE],
     pub stack_top: *mut Value,
-    globals: Table,
-    open_upvalues: Vec<GcRef<Upvalue>>,
-    init_string: GcRef<Str>,
+    pub globals: Table,
+    pub open_upvalues: Vec<GcRef<Upvalue>>,
+    pub init_string: GcRef<Str>,
     pub start_time: SystemTime,
 }
 
@@ -73,7 +75,7 @@ impl Vm {
         self.run()
     }
 
-    fn push(&mut self, v: Value) {
+    pub fn push(&mut self, v: Value) {
         unsafe {
             *self.stack_top = v;
             self.stack_top = self.stack_top.offset(1);
@@ -87,19 +89,19 @@ impl Vm {
         }
     }
 
-    fn peek(&self, n: usize) -> Value {
+    pub fn peek(&self, n: usize) -> Value {
         unsafe { *self.stack_top.offset(-1 - n as isize) }
     }
 
-    fn stack_truncate(&mut self, index: usize) {
+    pub fn stack_truncate(&mut self, index: usize) {
         unsafe { self.stack_top = self.stack.as_mut_ptr().add(index) }
     }
 
-    fn stack_len(&self) -> usize {
+    pub fn stack_len(&self) -> usize {
         unsafe { self.stack_top.offset_from(self.stack.as_ptr()) as usize }
     }
 
-    fn set_at(&mut self, n: usize, value: Value) {
+    pub fn set_at(&mut self, n: usize, value: Value) {
         unsafe {
             let pos = self.stack_top.offset(-1 - (n as isize));
             *pos = value
@@ -111,7 +113,7 @@ impl Vm {
         self.globals.set(name, Value::NativeFunction(native));
     }
 
-    fn runtime_error(&self, msg: &str) -> Result<(), CupidError> {
+    pub fn runtime_error(&self, msg: &str) -> Result<(), CupidError> {
         let current_frame = &self.frames[self.frame_count - 1];
         eprintln!("{}", msg);
         eprintln!("[line {}] in script", current_frame.line());
@@ -121,7 +123,9 @@ impl Vm {
     fn run(&mut self) -> Result<(), CupidError> {
         let mut current_frame =
             unsafe { &mut *(&mut self.frames[self.frame_count - 1] as *mut CallFrame) };
+
         let mut current_chunk = &current_frame.closure.function.chunk;
+
         loop {
             let instruction = unsafe { *current_frame.ip };
 
@@ -352,6 +356,19 @@ impl Vm {
                         current_chunk = &current_frame.closure.function.chunk;
                     }
                 }
+                Instruction::RoleImpl(role_name) => {
+                    let role = current_chunk.read_string(role_name);
+                    match self.peek(0) {
+                        Value::Class(class) => {
+                            let role_impl = RoleImpl::new(role, class);
+                            let role_impl = self.alloc(role_impl);
+                            self.push(Value::RoleImpl(role_impl));
+                        }
+                        _ => {
+                            return self.runtime_error("Traits may only be implemented on classes.")
+                        }
+                    }
+                }
                 Instruction::SetGlobal(constant) => {
                     let global_name = current_chunk.read_string(constant);
                     let value = self.peek(0);
@@ -410,7 +427,7 @@ impl Vm {
         }
     }
 
-    fn call_value(&mut self, arg_count: usize) -> Result<(), CupidError> {
+    pub fn call_value(&mut self, arg_count: usize) -> Result<(), CupidError> {
         let callee = self.peek(arg_count);
         match callee {
             Value::BoundMethod(bound) => {
@@ -446,7 +463,7 @@ impl Vm {
         }
     }
 
-    fn call(&mut self, closure: GcRef<Closure>, arg_count: usize) -> Result<(), CupidError> {
+    pub fn call(&mut self, closure: GcRef<Closure>, arg_count: usize) -> Result<(), CupidError> {
         let function = closure.function;
         if arg_count != function.arity {
             let msg = format!(
@@ -464,7 +481,7 @@ impl Vm {
         }
     }
 
-    fn invoke(&mut self, name: GcRef<Str>, arg_count: usize) -> Result<(), CupidError> {
+    pub fn invoke(&mut self, name: GcRef<Str>, arg_count: usize) -> Result<(), CupidError> {
         let receiver = self.peek(arg_count);
         if let Value::Instance(instance) = receiver {
             if let Some(field) = instance.fields.get(name) {
@@ -479,7 +496,7 @@ impl Vm {
         }
     }
 
-    fn invoke_from_class(
+    pub fn invoke_from_class(
         &mut self,
         class: GcRef<Class>,
         name: GcRef<Str>,
@@ -497,7 +514,7 @@ impl Vm {
         }
     }
 
-    fn bind_method(&mut self, class: GcRef<Class>, name: GcRef<Str>) -> Result<(), CupidError> {
+    pub fn bind_method(&mut self, class: GcRef<Class>, name: GcRef<Str>) -> Result<(), CupidError> {
         if let Some(method) = class.methods.get(name) {
             let receiver = self.peek(0);
             let method = match method {
@@ -515,7 +532,7 @@ impl Vm {
         }
     }
 
-    fn capture_upvalue(&mut self, location: usize) -> GcRef<Upvalue> {
+    pub fn capture_upvalue(&mut self, location: usize) -> GcRef<Upvalue> {
         for &upvalue in &self.open_upvalues {
             if upvalue.location == location {
                 return upvalue;
@@ -527,7 +544,7 @@ impl Vm {
         upvalue
     }
 
-    fn close_upvalues(&mut self, last: usize) {
+    pub fn close_upvalues(&mut self, last: usize) {
         let mut i = 0;
         while i != self.open_upvalues.len() {
             let mut upvalue = self.open_upvalues[i];
@@ -542,17 +559,22 @@ impl Vm {
         }
     }
 
-    fn define_method(&mut self, name: GcRef<Str>) {
+    pub fn define_method(&mut self, name: GcRef<Str>) {
         let method = self.peek(0);
-        if let Value::Class(mut class) = self.peek(1) {
-            class.methods.set(name, method);
-            self.pop();
-        } else {
-            panic!("Invalid state: trying to define a method of non class");
+        match self.peek(1) {
+            Value::Class(mut class) => {
+                class.methods.set(name, method);
+                self.pop();
+            }
+            Value::RoleImpl(mut role) => {
+                role.class.methods.set(name, method);
+                self.pop();
+            }
+            _ => panic!("Invalid state: trying to define a method of non class"),
         }
     }
 
-    fn alloc<T: Display + 'static>(&mut self, object: T) -> GcRef<T> {
+    pub fn alloc<T: Display + std::fmt::Debug + 'static>(&mut self, object: T) -> GcRef<T> {
         self.mark_and_sweep();
         self.gc.alloc(object)
     }
@@ -562,14 +584,14 @@ impl Vm {
         self.gc.intern(name)
     }
 
-    fn mark_and_sweep(&mut self) {
+    pub fn mark_and_sweep(&mut self) {
         if self.gc.should_gc() {
             self.mark_roots();
             self.gc.collect_garbage();
         }
     }
 
-    fn mark_roots(&mut self) {
+    pub fn mark_roots(&mut self) {
         for &value in &self.stack[0..self.stack_len()] {
             self.gc.mark_value(value);
         }
@@ -588,10 +610,10 @@ impl Vm {
 }
 
 #[derive(Clone, Copy)]
-struct CallFrame {
-    closure: GcRef<Closure>,
-    ip: *const Instruction,
-    slot: usize,
+pub struct CallFrame {
+    pub closure: GcRef<Closure>,
+    pub ip: *const Instruction,
+    pub slot: usize,
 }
 
 impl CallFrame {

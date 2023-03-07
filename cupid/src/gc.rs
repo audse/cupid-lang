@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 use std::ptr::NonNull;
 use std::{alloc, mem};
 use std::{
@@ -7,11 +7,16 @@ use std::{
     usize,
 };
 
-use crate::objects::{Array, BoundMethod, Class, Closure, Function, Instance, Str, Upvalue};
-use crate::table::Table;
-use crate::{objects::ObjectType, value::Value};
+use crate::{
+    objects::{
+        Array, BoundMethod, Class, Closure, Function, Instance, ObjectType, RoleImpl, Str, Upvalue,
+    },
+    table::Table,
+    value::Value,
+};
 
 #[repr(C)]
+#[derive(Debug)]
 pub struct GcObject {
     marked: bool,
     next: Option<NonNull<GcObject>>,
@@ -28,11 +33,12 @@ impl GcObject {
     }
 }
 
-pub struct GcRef<T> {
+#[derive(Debug)]
+pub struct GcRef<T: Debug> {
     pointer: NonNull<T>,
 }
 
-impl<T> GcRef<T> {
+impl<T: Debug> GcRef<T> {
     pub fn dangling() -> GcRef<T> {
         GcRef {
             pointer: NonNull::dangling(),
@@ -40,7 +46,7 @@ impl<T> GcRef<T> {
     }
 }
 
-impl<T> Deref for GcRef<T> {
+impl<T: Debug> Deref for GcRef<T> {
     type Target = T;
 
     fn deref(&self) -> &T {
@@ -48,23 +54,23 @@ impl<T> Deref for GcRef<T> {
     }
 }
 
-impl<T> DerefMut for GcRef<T> {
+impl<T: Debug> DerefMut for GcRef<T> {
     fn deref_mut(&mut self) -> &mut T {
         unsafe { self.pointer.as_mut() }
     }
 }
 
-impl<T> Copy for GcRef<T> {}
+impl<T: Debug> Copy for GcRef<T> {}
 
-impl<T> Clone for GcRef<T> {
+impl<T: Debug> Clone for GcRef<T> {
     fn clone(&self) -> GcRef<T> {
         *self
     }
 }
 
-impl<T> Eq for GcRef<T> {}
+impl<T: Debug> Eq for GcRef<T> {}
 
-impl<T> PartialEq for GcRef<T> {
+impl<T: Debug> PartialEq for GcRef<T> {
     fn eq(&self, other: &Self) -> bool {
         self.pointer == other.pointer
     }
@@ -91,7 +97,7 @@ impl Default for Gc {
 impl Gc {
     const HEAP_GROW_FACTOR: usize = 2;
 
-    pub fn alloc<T: Display + 'static>(&mut self, object: T) -> GcRef<T> {
+    pub fn alloc<T: Display + Debug + 'static>(&mut self, object: T) -> GcRef<T> {
         unsafe {
             let boxed = Box::new(object);
             let pointer = NonNull::new_unchecked(Box::into_raw(boxed));
@@ -170,6 +176,11 @@ impl Gc {
                 self.mark_value(method.receiver);
                 self.mark_object(method.method);
             }
+            ObjectType::Role => {
+                let role: &RoleImpl = unsafe { mem::transmute(pointer.as_ref()) };
+                self.mark_object(role.class);
+                self.mark_table(&role.methods);
+            }
         }
     }
 
@@ -186,7 +197,7 @@ impl Gc {
         }
     }
 
-    pub fn mark_object<T: 'static>(&mut self, mut reference: GcRef<T>) {
+    pub fn mark_object<T: 'static + Debug>(&mut self, mut reference: GcRef<T>) {
         unsafe {
             let mut header: NonNull<GcObject> = mem::transmute(reference.pointer.as_mut());
             header.as_mut().marked = true;

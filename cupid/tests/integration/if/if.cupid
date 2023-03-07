@@ -1,10 +1,10 @@
 -- Evaluate the 'then' expression if the condition is true.
-if true log ('good'); -- expect: good
-if false log ('bad');
+if true log ('good') -- expect: good
+if false log ('bad')
 
 -- Allow block body.
-if true { log ('block'); } -- expect: block
+if true { log ('block') } -- expect: block
 
 -- Assignment in if condition.
-let a = false;
-if a = true log (a); -- expect: true
+let a = false
+if a = true log (a) -- expect: true

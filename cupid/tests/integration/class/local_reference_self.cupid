@@ -1,9 +1,9 @@
 {
     class Foo {
         returnSelf () {
-            return Foo;
+            return Foo
         }
     }
 
-    log (Foo().returnSelf()); -- expect: Foo
+    log (Foo().returnSelf()) -- expect: Foo
 }

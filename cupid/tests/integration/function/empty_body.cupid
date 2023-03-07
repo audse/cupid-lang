@@ -1,2 +1,2 @@
 fun f () {}
-log (f()); -- expect: none
+log (f()) -- expect: none

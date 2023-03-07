@@ -1,5 +1,5 @@
 fun f () {
-    if true return 'ok';
+    if true return 'ok'
 }
 
-log (f()); -- expect: ok
+log (f()) -- expect: ok

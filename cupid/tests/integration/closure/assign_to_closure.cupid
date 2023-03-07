@@ -1,27 +1,27 @@
-let f;
-let g;
+let f
+let g
 
 {
-    let local = 'local';
+    let local = 'local'
     fun f_ () {
-        log (local);
-        local = 'after f';
-        log (local);
+        log (local)
+        local = 'after f'
+        log (local)
     }
-    f = f_;
+    f = f_
 
     fun g_ () {
-        log (local);
-        local = 'after g';
-        log (local);
+        log (local)
+        local = 'after g'
+        log (local)
     }
-    g = g_;
+    g = g_
 }
 
-f();
+f()
 -- expect: local
 -- expect: after f
 
-g();
+g()
 -- expect: after f
 -- expect: after g

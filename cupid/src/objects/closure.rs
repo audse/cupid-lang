@@ -6,6 +6,7 @@ use crate::{
 };
 
 #[repr(C)]
+#[derive(Debug)]
 pub struct Closure {
     pub header: GcObject,
     pub function: GcRef<Function>,

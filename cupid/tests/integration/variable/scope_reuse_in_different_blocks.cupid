@@ -1,9 +1,9 @@
 {
-    let a = 'first';
-    log (a); -- expect: first
+    let a = 'first'
+    log (a) -- expect: first
 }
 
 {
-    let a = 'second';
-    log (a); -- expect: second
+    let a = 'second'
+    log (a) -- expect: second
 }

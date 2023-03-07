@@ -1,19 +1,19 @@
 -- Note: These tests implicitly depend on ints being truthy.
 
 -- Return the first true argument.
-log (1 or true); -- expect: 1
-log (false or 1); -- expect: 1
-log (false or false or true); -- expect: true
+log (1 or true) -- expect: 1
+log (false or 1) -- expect: 1
+log (false or false or true) -- expect: true
 
 -- Return the last argument if all are false.
-log (false or false); -- expect: false
-log (false or false or false); -- expect: false
+log (false or false) -- expect: false
+log (false or false or false) -- expect: false
 
 -- Short-circuit at the first true argument.
-let a = 'before';
-let b = 'before';
-(a = false) or
-    (b = true) or
-    (a = 'bad');
-log (a); -- expect: false
-log (b); -- expect: true
+let a = 'before'
+let b = 'before'
+(a = false) 
+    or (b = true) 
+    or (a = 'bad')
+log (a) -- expect: false
+log (b) -- expect: true

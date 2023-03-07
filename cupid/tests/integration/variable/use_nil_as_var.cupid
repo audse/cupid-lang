@@ -1,2 +1,2 @@
 -- [line 2] Error at 'none': Expect variable name.
-let none = 'value';
+let none = 'value'

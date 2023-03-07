@@ -3,6 +3,7 @@ use std::fmt;
 use crate::{gc::GcObject, objects::ObjectType, value::Value};
 
 #[repr(C)]
+#[derive(Debug)]
 pub struct Array {
     pub header: GcObject,
     pub items: Vec<Value>,

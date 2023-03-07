@@ -2,12 +2,12 @@
 class Foo {}
 class Bar {}
 
-log (Foo == Foo); -- expect: true
-log (Foo == Bar); -- expect: false
-log (Bar == Foo); -- expect: false
-log (Bar == Bar); -- expect: true
+log (Foo == Foo) -- expect: true
+log (Foo == Bar) -- expect: false
+log (Bar == Foo) -- expect: false
+log (Bar == Bar) -- expect: true
 
-log (Foo == 'Foo'); -- expect: false
-log (Foo == none); -- expect: false
-log (Foo == 123); -- expect: false
-log (Foo == true); -- expect: false
+log (Foo == 'Foo') -- expect: false
+log (Foo == none) -- expect: false
+log (Foo == 123) -- expect: false
+log (Foo == true) -- expect: false

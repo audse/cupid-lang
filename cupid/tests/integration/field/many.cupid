@@ -1,170 +1,170 @@
 class Foo {}
 
-let foo = Foo();
+let foo = Foo()
 fun setFields () {
-    foo.bilberry = 'bilberry';
-    foo.lime = 'lime';
-    foo.elderberry = 'elderberry';
-    foo.raspberry = 'raspberry';
-    foo.gooseberry = 'gooseberry';
-    foo.longan = 'longan';
-    foo.mandarine = 'mandarine';
-    foo.kiwifruit = 'kiwifruit';
-    foo.orange = 'orange';
-    foo.pomegranate = 'pomegranate';
-    foo.tomato = 'tomato';
-    foo.banana = 'banana';
-    foo.juniper = 'juniper';
-    foo.damson = 'damson';
-    foo.blackcurrant = 'blackcurrant';
-    foo.peach = 'peach';
-    foo.grape = 'grape';
-    foo.mango = 'mango';
-    foo.redcurrant = 'redcurrant';
-    foo.watermelon = 'watermelon';
-    foo.plumcot = 'plumcot';
-    foo.papaya = 'papaya';
-    foo.cloudberry = 'cloudberry';
-    foo.rambutan = 'rambutan';
-    foo.salak = 'salak';
-    foo.physalis = 'physalis';
-    foo.huckleberry = 'huckleberry';
-    foo.coconut = 'coconut';
-    foo.date = 'date';
-    foo.tamarind = 'tamarind';
-    foo.lychee = 'lychee';
-    foo.raisin = 'raisin';
-    foo.apple = 'apple';
-    foo.avocado = 'avocado';
-    foo.nectarine = 'nectarine';
-    foo.pomelo = 'pomelo';
-    foo.melon = 'melon';
-    foo.currant = 'currant';
-    foo.plum = 'plum';
-    foo.persimmon = 'persimmon';
-    foo.olive = 'olive';
-    foo.cranberry = 'cranberry';
-    foo.boysenberry = 'boysenberry';
-    foo.blackberry = 'blackberry';
-    foo.passionfruit = 'passionfruit';
-    foo.mulberry = 'mulberry';
-    foo.marionberry = 'marionberry';
-    foo.plantain = 'plantain';
-    foo.lemon = 'lemon';
-    foo.yuzu = 'yuzu';
-    foo.loquat = 'loquat';
-    foo.kumquat = 'kumquat';
-    foo.salmonberry = 'salmonberry';
-    foo.tangerine = 'tangerine';
-    foo.durian = 'durian';
-    foo.pear = 'pear';
-    foo.cantaloupe = 'cantaloupe';
-    foo.quince = 'quince';
-    foo.guava = 'guava';
-    foo.strawberry = 'strawberry';
-    foo.nance = 'nance';
-    foo.apricot = 'apricot';
-    foo.jambul = 'jambul';
-    foo.grapefruit = 'grapefruit';
-    foo.clementine = 'clementine';
-    foo.jujube = 'jujube';
-    foo.cherry = 'cherry';
-    foo.feijoa = 'feijoa';
-    foo.jackfruit = 'jackfruit';
-    foo.fig = 'fig';
-    foo.cherimoya = 'cherimoya';
-    foo.pineapple = 'pineapple';
-    foo.blueberry = 'blueberry';
-    foo.jabuticaba = 'jabuticaba';
-    foo.miracle = 'miracle';
-    foo.dragonfruit = 'dragonfruit';
-    foo.satsuma = 'satsuma';
-    foo.tamarillo = 'tamarillo';
-    foo.honeydew = 'honeydew';
+    foo.bilberry = 'bilberry'
+    foo.lime = 'lime'
+    foo.elderberry = 'elderberry'
+    foo.raspberry = 'raspberry'
+    foo.gooseberry = 'gooseberry'
+    foo.longan = 'longan'
+    foo.mandarine = 'mandarine'
+    foo.kiwifruit = 'kiwifruit'
+    foo.orange = 'orange'
+    foo.pomegranate = 'pomegranate'
+    foo.tomato = 'tomato'
+    foo.banana = 'banana'
+    foo.juniper = 'juniper'
+    foo.damson = 'damson'
+    foo.blackcurrant = 'blackcurrant'
+    foo.peach = 'peach'
+    foo.grape = 'grape'
+    foo.mango = 'mango'
+    foo.redcurrant = 'redcurrant'
+    foo.watermelon = 'watermelon'
+    foo.plumcot = 'plumcot'
+    foo.papaya = 'papaya'
+    foo.cloudberry = 'cloudberry'
+    foo.rambutan = 'rambutan'
+    foo.salak = 'salak'
+    foo.physalis = 'physalis'
+    foo.huckleberry = 'huckleberry'
+    foo.coconut = 'coconut'
+    foo.date = 'date'
+    foo.tamarind = 'tamarind'
+    foo.lychee = 'lychee'
+    foo.raisin = 'raisin'
+    foo.apple = 'apple'
+    foo.avocado = 'avocado'
+    foo.nectarine = 'nectarine'
+    foo.pomelo = 'pomelo'
+    foo.melon = 'melon'
+    foo.currant = 'currant'
+    foo.plum = 'plum'
+    foo.persimmon = 'persimmon'
+    foo.olive = 'olive'
+    foo.cranberry = 'cranberry'
+    foo.boysenberry = 'boysenberry'
+    foo.blackberry = 'blackberry'
+    foo.passionfruit = 'passionfruit'
+    foo.mulberry = 'mulberry'
+    foo.marionberry = 'marionberry'
+    foo.plantain = 'plantain'
+    foo.lemon = 'lemon'
+    foo.yuzu = 'yuzu'
+    foo.loquat = 'loquat'
+    foo.kumquat = 'kumquat'
+    foo.salmonberry = 'salmonberry'
+    foo.tangerine = 'tangerine'
+    foo.durian = 'durian'
+    foo.pear = 'pear'
+    foo.cantaloupe = 'cantaloupe'
+    foo.quince = 'quince'
+    foo.guava = 'guava'
+    foo.strawberry = 'strawberry'
+    foo.nance = 'nance'
+    foo.apricot = 'apricot'
+    foo.jambul = 'jambul'
+    foo.grapefruit = 'grapefruit'
+    foo.clementine = 'clementine'
+    foo.jujube = 'jujube'
+    foo.cherry = 'cherry'
+    foo.feijoa = 'feijoa'
+    foo.jackfruit = 'jackfruit'
+    foo.fig = 'fig'
+    foo.cherimoya = 'cherimoya'
+    foo.pineapple = 'pineapple'
+    foo.blueberry = 'blueberry'
+    foo.jabuticaba = 'jabuticaba'
+    foo.miracle = 'miracle'
+    foo.dragonfruit = 'dragonfruit'
+    foo.satsuma = 'satsuma'
+    foo.tamarillo = 'tamarillo'
+    foo.honeydew = 'honeydew'
 }
 
-setFields();
+setFields()
 
 fun logFields () {
-    log (foo.apple); -- expect: apple
-    log (foo.apricot); -- expect: apricot
-    log (foo.avocado); -- expect: avocado
-    log (foo.banana); -- expect: banana
-    log (foo.bilberry); -- expect: bilberry
-    log (foo.blackberry); -- expect: blackberry
-    log (foo.blackcurrant); -- expect: blackcurrant
-    log (foo.blueberry); -- expect: blueberry
-    log (foo.boysenberry); -- expect: boysenberry
-    log (foo.cantaloupe); -- expect: cantaloupe
-    log (foo.cherimoya); -- expect: cherimoya
-    log (foo.cherry); -- expect: cherry
-    log (foo.clementine); -- expect: clementine
-    log (foo.cloudberry); -- expect: cloudberry
-    log (foo.coconut); -- expect: coconut
-    log (foo.cranberry); -- expect: cranberry
-    log (foo.currant); -- expect: currant
-    log (foo.damson); -- expect: damson
-    log (foo.date); -- expect: date
-    log (foo.dragonfruit); -- expect: dragonfruit
-    log (foo.durian); -- expect: durian
-    log (foo.elderberry); -- expect: elderberry
-    log (foo.feijoa); -- expect: feijoa
-    log (foo.fig); -- expect: fig
-    log (foo.gooseberry); -- expect: gooseberry
-    log (foo.grape); -- expect: grape
-    log (foo.grapefruit); -- expect: grapefruit
-    log (foo.guava); -- expect: guava
-    log (foo.honeydew); -- expect: honeydew
-    log (foo.huckleberry); -- expect: huckleberry
-    log (foo.jabuticaba); -- expect: jabuticaba
-    log (foo.jackfruit); -- expect: jackfruit
-    log (foo.jambul); -- expect: jambul
-    log (foo.jujube); -- expect: jujube
-    log (foo.juniper); -- expect: juniper
-    log (foo.kiwifruit); -- expect: kiwifruit
-    log (foo.kumquat); -- expect: kumquat
-    log (foo.lemon); -- expect: lemon
-    log (foo.lime); -- expect: lime
-    log (foo.longan); -- expect: longan
-    log (foo.loquat); -- expect: loquat
-    log (foo.lychee); -- expect: lychee
-    log (foo.mandarine); -- expect: mandarine
-    log (foo.mango); -- expect: mango
-    log (foo.marionberry); -- expect: marionberry
-    log (foo.melon); -- expect: melon
-    log (foo.miracle); -- expect: miracle
-    log (foo.mulberry); -- expect: mulberry
-    log (foo.nance); -- expect: nance
-    log (foo.nectarine); -- expect: nectarine
-    log (foo.olive); -- expect: olive
-    log (foo.orange); -- expect: orange
-    log (foo.papaya); -- expect: papaya
-    log (foo.passionfruit); -- expect: passionfruit
-    log (foo.peach); -- expect: peach
-    log (foo.pear); -- expect: pear
-    log (foo.persimmon); -- expect: persimmon
-    log (foo.physalis); -- expect: physalis
-    log (foo.pineapple); -- expect: pineapple
-    log (foo.plantain); -- expect: plantain
-    log (foo.plum); -- expect: plum
-    log (foo.plumcot); -- expect: plumcot
-    log (foo.pomegranate); -- expect: pomegranate
-    log (foo.pomelo); -- expect: pomelo
-    log (foo.quince); -- expect: quince
-    log (foo.raisin); -- expect: raisin
-    log (foo.rambutan); -- expect: rambutan
-    log (foo.raspberry); -- expect: raspberry
-    log (foo.redcurrant); -- expect: redcurrant
-    log (foo.salak); -- expect: salak
-    log (foo.salmonberry); -- expect: salmonberry
-    log (foo.satsuma); -- expect: satsuma
-    log (foo.strawberry); -- expect: strawberry
-    log (foo.tamarillo); -- expect: tamarillo
-    log (foo.tamarind); -- expect: tamarind
-    log (foo.tangerine); -- expect: tangerine
-    log (foo.tomato); -- expect: tomato
-    log (foo.watermelon); -- expect: watermelon
-    log (foo.yuzu); -- expect: yuzu
+    log (foo.apple) -- expect: apple
+    log (foo.apricot) -- expect: apricot
+    log (foo.avocado) -- expect: avocado
+    log (foo.banana) -- expect: banana
+    log (foo.bilberry) -- expect: bilberry
+    log (foo.blackberry) -- expect: blackberry
+    log (foo.blackcurrant) -- expect: blackcurrant
+    log (foo.blueberry) -- expect: blueberry
+    log (foo.boysenberry) -- expect: boysenberry
+    log (foo.cantaloupe) -- expect: cantaloupe
+    log (foo.cherimoya) -- expect: cherimoya
+    log (foo.cherry) -- expect: cherry
+    log (foo.clementine) -- expect: clementine
+    log (foo.cloudberry) -- expect: cloudberry
+    log (foo.coconut) -- expect: coconut
+    log (foo.cranberry) -- expect: cranberry
+    log (foo.currant) -- expect: currant
+    log (foo.damson) -- expect: damson
+    log (foo.date) -- expect: date
+    log (foo.dragonfruit) -- expect: dragonfruit
+    log (foo.durian) -- expect: durian
+    log (foo.elderberry) -- expect: elderberry
+    log (foo.feijoa) -- expect: feijoa
+    log (foo.fig) -- expect: fig
+    log (foo.gooseberry) -- expect: gooseberry
+    log (foo.grape) -- expect: grape
+    log (foo.grapefruit) -- expect: grapefruit
+    log (foo.guava) -- expect: guava
+    log (foo.honeydew) -- expect: honeydew
+    log (foo.huckleberry) -- expect: huckleberry
+    log (foo.jabuticaba) -- expect: jabuticaba
+    log (foo.jackfruit) -- expect: jackfruit
+    log (foo.jambul) -- expect: jambul
+    log (foo.jujube) -- expect: jujube
+    log (foo.juniper) -- expect: juniper
+    log (foo.kiwifruit) -- expect: kiwifruit
+    log (foo.kumquat) -- expect: kumquat
+    log (foo.lemon) -- expect: lemon
+    log (foo.lime) -- expect: lime
+    log (foo.longan) -- expect: longan
+    log (foo.loquat) -- expect: loquat
+    log (foo.lychee) -- expect: lychee
+    log (foo.mandarine) -- expect: mandarine
+    log (foo.mango) -- expect: mango
+    log (foo.marionberry) -- expect: marionberry
+    log (foo.melon) -- expect: melon
+    log (foo.miracle) -- expect: miracle
+    log (foo.mulberry) -- expect: mulberry
+    log (foo.nance) -- expect: nance
+    log (foo.nectarine) -- expect: nectarine
+    log (foo.olive) -- expect: olive
+    log (foo.orange) -- expect: orange
+    log (foo.papaya) -- expect: papaya
+    log (foo.passionfruit) -- expect: passionfruit
+    log (foo.peach) -- expect: peach
+    log (foo.pear) -- expect: pear
+    log (foo.persimmon) -- expect: persimmon
+    log (foo.physalis) -- expect: physalis
+    log (foo.pineapple) -- expect: pineapple
+    log (foo.plantain) -- expect: plantain
+    log (foo.plum) -- expect: plum
+    log (foo.plumcot) -- expect: plumcot
+    log (foo.pomegranate) -- expect: pomegranate
+    log (foo.pomelo) -- expect: pomelo
+    log (foo.quince) -- expect: quince
+    log (foo.raisin) -- expect: raisin
+    log (foo.rambutan) -- expect: rambutan
+    log (foo.raspberry) -- expect: raspberry
+    log (foo.redcurrant) -- expect: redcurrant
+    log (foo.salak) -- expect: salak
+    log (foo.salmonberry) -- expect: salmonberry
+    log (foo.satsuma) -- expect: satsuma
+    log (foo.strawberry) -- expect: strawberry
+    log (foo.tamarillo) -- expect: tamarillo
+    log (foo.tamarind) -- expect: tamarind
+    log (foo.tangerine) -- expect: tangerine
+    log (foo.tomato) -- expect: tomato
+    log (foo.watermelon) -- expect: watermelon
+    log (foo.yuzu) -- expect: yuzu
 }
 
-logFields();
+logFields()

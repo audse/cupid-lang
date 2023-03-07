@@ -2,30 +2,32 @@ use std::{fmt, ops::Deref};
 
 use crate::{
     gc::{GcObject, GcRef},
-    objects::{ObjectType, Str},
+    objects::{Class, ObjectType, Str},
     table::Table,
 };
 
 #[repr(C)]
 #[derive(Debug)]
-pub struct Class {
+pub struct RoleImpl {
     pub header: GcObject,
     pub name: GcRef<Str>,
+    pub class: GcRef<Class>,
     pub methods: Table,
 }
 
-impl Class {
-    pub fn new(name: GcRef<Str>) -> Self {
-        Class {
-            header: GcObject::new(ObjectType::Class),
+impl RoleImpl {
+    pub fn new(name: GcRef<Str>, class: GcRef<Class>) -> Self {
+        RoleImpl {
+            header: GcObject::new(ObjectType::Role),
             name,
+            class,
             methods: Table::default(),
         }
     }
 }
 
-impl fmt::Display for Class {
+impl fmt::Display for RoleImpl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.name.deref())
+        write!(f, "{}", self.class.deref())
     }
 }

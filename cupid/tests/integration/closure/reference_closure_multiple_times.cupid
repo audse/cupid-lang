@@ -1,14 +1,14 @@
-let f;
+let f
 
 {
-    let a = 'a';
+    let a = 'a'
     fun f_ () {
-        log (a);
-        log (a);
+        log (a)
+        log (a)
     }
-    f = f_;
+    f = f_
 }
 
-f();
+f()
 -- expect: a
 -- expect: a

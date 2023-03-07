@@ -1,23 +1,23 @@
-log (true == true); -- expect: true
-log (true == false); -- expect: false
-log (false == true); -- expect: false
-log (false == false); -- expect: true
+log (true == true) -- expect: true
+log (true == false) -- expect: false
+log (false == true) -- expect: false
+log (false == false) -- expect: true
 
 -- Not equal to other types.
-log (true == 1); -- expect: false
-log (false == 0); -- expect: false
-log (true == 'true'); -- expect: false
-log (false == 'false'); -- expect: false
-log (false == ''); -- expect: false
+log (true == 1) -- expect: false
+log (false == 0) -- expect: false
+log (true == 'true') -- expect: false
+log (false == 'false') -- expect: false
+log (false == '') -- expect: false
 
-log (true != true); -- expect: false
-log (true != false); -- expect: true
-log (false != true); -- expect: true
-log (false != false); -- expect: false
+log (true != true) -- expect: false
+log (true != false) -- expect: true
+log (false != true) -- expect: true
+log (false != false) -- expect: false
 
 -- Not equal to other types.
-log (true != 1); -- expect: true
-log (false != 0); -- expect: true
-log (true != 'true'); -- expect: true
-log (false != 'false'); -- expect: true
-log (false != ''); -- expect: true
+log (true != 1) -- expect: true
+log (false != 0) -- expect: true
+log (true != 'true') -- expect: true
+log (false != 'false') -- expect: true
+log (false != '') -- expect: true

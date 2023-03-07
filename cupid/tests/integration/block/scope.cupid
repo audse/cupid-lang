@@ -1,8 +1,8 @@
-let a = 'outer';
+let a = 'outer'
 
 {
-    let a = 'inner';
-    log (a); -- expect: inner
+    let a = 'inner'
+    log (a) -- expect: inner
 }
 
-log (a); -- expect: outer
+log (a) -- expect: outer

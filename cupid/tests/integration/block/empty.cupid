@@ -4,4 +4,4 @@
 if true {}
 if false {} else {}
 
-log ('ok'); -- expect: ok
+log ('ok') -- expect: ok

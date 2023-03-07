@@ -1,8 +1,8 @@
 class Foo {
     method () {
-        return 'ok';
-        log ('bad');
+        return 'ok'
+        log ('bad')
     }
 }
 
-log (Foo().method()); -- expect: ok
+log (Foo().method()) -- expect: ok

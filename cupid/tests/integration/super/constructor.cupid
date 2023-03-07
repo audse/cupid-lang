@@ -1,16 +1,16 @@
 class Base {
     init (a, b) {
-        log ('Base.init (' + a + ', ' + b + ')');
+        log ('Base.init (' + a + ', ' + b + ')')
     }
 }
 
 class Derived < Base {
     init () {
-        log ('Derived.init ()');
-        super.init ('a', 'b');
+        log ('Derived.init ()')
+        super.init ('a', 'b')
     }
 }
 
-Derived();
+Derived()
 -- expect: Derived.init ()
 -- expect: Base.init (a, b)

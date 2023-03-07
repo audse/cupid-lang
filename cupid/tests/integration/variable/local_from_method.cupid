@@ -1,9 +1,9 @@
-let foo = 'variable';
+let foo = 'variable'
 
 class Foo {
     method () {
-        log (foo);
+        log (foo)
     }
 }
 
-Foo().method(); -- expect: variable
+Foo().method() -- expect: variable

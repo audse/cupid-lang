@@ -41,6 +41,7 @@ impl Precedence {
     }
 }
 
+type SimpleParseFn<'src> = fn(&mut Parser<'src>) -> ();
 type ParseFn<'src> = fn(&mut Parser<'src>, can_assign: bool) -> ();
 
 #[derive(Copy, Clone)]
@@ -136,6 +137,9 @@ impl<'src> Parser<'src> {
         rule(While, None, None, P::None);
         rule(Error, None, None, P::None);
         rule(Eof, None, None, P::None);
+        rule(Role, None, None, P::None);
+        rule(Impl, None, None, P::None);
+        rule(NewLine, Some(Parser::terminator), None, P::None);
 
         let function_name = gc.intern("script".to_owned());
 
@@ -175,13 +179,16 @@ impl<'src> Parser<'src> {
 
     fn expression_statement(&mut self) {
         self.expression();
-        self.consume(TokenType::Semicolon, "Expect ';' after expression.");
+        // self.consume(TokenType::Semicolon, "Expect ';' after expression.");
+        self.terminator(false);
         self.emit(Instruction::Pop);
     }
 
     fn declaration(&mut self) {
         if self.matches(TokenType::Class) {
             self.class_declaration();
+        } else if self.matches(TokenType::Impl) {
+            self.role_impl_declaration();
         } else if self.matches(TokenType::Fun) {
             self.fun_declaration();
         } else if self.matches(TokenType::Let) {
@@ -189,7 +196,6 @@ impl<'src> Parser<'src> {
         } else {
             self.statement();
         }
-
         if self.panic_mode {
             self.synchronize();
         }
@@ -222,11 +228,7 @@ impl<'src> Parser<'src> {
         }
 
         self.named_variable(class_name, false);
-        self.consume(TokenType::LeftBrace, "Expect '{' before class body.");
-        while !self.check(TokenType::RightBrace) && !self.check(TokenType::Eof) {
-            self.method();
-        }
-        self.consume(TokenType::RightBrace, "Expect '}' after class body.");
+        self.braces(Self::methods, "before class body.", "after class body.");
         self.emit(Instruction::Pop);
         if self.class_compiler.as_ref().unwrap().has_superclass {
             self.end_scope();
@@ -236,6 +238,32 @@ impl<'src> Parser<'src> {
             Some(c) => self.class_compiler = c.enclosing,
             None => self.class_compiler = None,
         }
+    }
+
+    fn methods(&mut self) {
+        while !self.check(TokenType::RightBrace) && !self.check(TokenType::Eof) {
+            self.method();
+        }
+    }
+
+    fn role_impl_declaration(&mut self) {
+        // Get name of role
+        self.consume(TokenType::Identifier, "Expect role name.");
+        let role_name = self.previous;
+        let role_name_constant = self.identifier_constant(role_name);
+
+        self.consume(TokenType::For, "Expect 'for' after role name.");
+
+        // Get impl class
+
+        self.consume(TokenType::Identifier, "Expect class name.");
+        self.named_variable(self.previous, false);
+
+        self.emit(Instruction::RoleImpl(role_name_constant));
+
+        self.braces(Self::methods, "before role body.", "after role body.");
+
+        self.emit(Instruction::Pop);
     }
 
     fn fun_declaration(&mut self) {
@@ -263,10 +291,7 @@ impl<'src> Parser<'src> {
         }
     }
 
-    fn function(&mut self, kind: FunctionType) {
-        self.push_compiler(kind);
-        self.begin_scope();
-        self.consume(TokenType::LeftParen, "Expect '(' after function name.");
+    fn function_params(&mut self) {
         if !self.check(TokenType::RightParen) {
             loop {
                 self.compiler.function.arity += 1;
@@ -280,13 +305,20 @@ impl<'src> Parser<'src> {
                 }
             }
         }
-        self.consume(TokenType::RightParen, "Expect ')' after parameters.");
-        if self.matches(TokenType::ThickArrow) {
-            self.arrow_block();
-        } else {
-            self.consume(TokenType::LeftBrace, "Expect '{' before function body.");
-            self.block();
-        }
+    }
+
+    fn function(&mut self, kind: FunctionType) {
+        self.push_compiler(kind);
+        self.begin_scope();
+
+        self.parens(
+            Self::function_params,
+            "before parameters.",
+            "after parameters.",
+        );
+
+        self.function_body();
+
         let function = self.pop_compiler();
         let fn_id = self.gc.alloc(function);
 
@@ -313,10 +345,11 @@ impl<'src> Parser<'src> {
         } else {
             self.emit(Instruction::Nil);
         }
-        self.consume(
-            TokenType::Semicolon,
-            "Expect ';' after variable declaration.",
-        );
+        // self.consume(
+        //     TokenType::Semicolon,
+        //     "Expect ';' after variable declaration.",
+        // );
+        self.terminator(false);
         self.define_variable(index);
     }
 
@@ -347,7 +380,7 @@ impl<'src> Parser<'src> {
             self.while_statement();
         } else if self.matches(TokenType::For) {
             self.for_statement();
-        } else if self.matches(TokenType::LeftBrace) {
+        } else if self.check(TokenType::LeftBrace) {
             self.begin_scope();
             self.block();
             self.end_scope();
@@ -367,7 +400,8 @@ impl<'src> Parser<'src> {
                 self.error("Can't return a value from an initializer.");
             }
             self.expression();
-            self.consume(TokenType::Semicolon, "Expect ';' after return value.");
+            // self.consume(TokenType::Semicolon, "Expect ';' after return value.");
+            self.terminator(false);
             self.emit(Instruction::Return);
         }
     }
@@ -407,7 +441,9 @@ impl<'src> Parser<'src> {
         } else if self.matches(TokenType::Let) {
             self.var_declaration();
         } else {
-            self.expression_statement();
+            self.expression();
+            self.consume(TokenType::Semicolon, "Expect ';' after loop initializer.");
+            self.emit(Instruction::Pop);
         }
         let mut loop_start = self.start_loop();
 
@@ -459,23 +495,57 @@ impl<'src> Parser<'src> {
         }
     }
 
-    fn arrow_block(&mut self) {
-        self.declaration();
+    fn function_body(&mut self) {
+        if self.matches(TokenType::ThickArrow) {
+            self.declaration();
+        } else {
+            self.braces(
+                |parser| {
+                    while !parser.check(TokenType::RightBrace) && !parser.check(TokenType::Eof) {
+                        parser.declaration();
+                    }
+                },
+                "before function body.",
+                "after block.",
+            );
+        }
     }
 
     fn block(&mut self) {
-        while !self.check(TokenType::RightBrace) && !self.check(TokenType::Eof) {
-            self.declaration();
-        }
-        self.consume(TokenType::RightBrace, "Expect '}' after block.");
+        self.braces(
+            |parser| {
+                while !parser.check(TokenType::RightBrace) && !parser.check(TokenType::Eof) {
+                    parser.declaration();
+                }
+            },
+            "before block.",
+            "after block.",
+        );
+    }
+
+    fn terminator(&mut self, _can_assign: bool) {
+        self.matches_any(
+            &[TokenType::Semicolon, TokenType::NewLine, TokenType::Eof],
+            // "Expect either ';' or new line to terminate statement.",
+        );
     }
 
     fn log_statement(&mut self) {
-        self.consume(TokenType::LeftParen, "Expect '(' after 'log'");
-        self.expression();
-        self.consume(TokenType::RightParen, "Expect ')' after 'log'");
-        self.consume(TokenType::Semicolon, "Expect ';' after value.");
+        self.parens(Self::expression, "after log.", "after log.");
+        self.terminator(false);
         self.emit(Instruction::Log);
+    }
+
+    fn parens(&mut self, inner: SimpleParseFn<'src>, before_msg: &str, after_msg: &str) {
+        self.consume(TokenType::LeftParen, &format!("Expect '(' {before_msg}"));
+        inner(self);
+        self.consume(TokenType::RightParen, &format!("Expect ')' {after_msg}"));
+    }
+
+    fn braces(&mut self, inner: SimpleParseFn<'src>, before_msg: &str, after_msg: &str) {
+        self.consume(TokenType::LeftBrace, &format!("Expect '{{' {before_msg}"));
+        inner(self);
+        self.consume(TokenType::RightBrace, &format!("Expect '}}' {after_msg}"));
     }
 
     fn float(&mut self, _can_assign: bool) {
@@ -799,8 +869,21 @@ impl<'src> Parser<'src> {
         }
     }
 
+    fn matches_any(&mut self, kinds: &[TokenType]) -> bool {
+        if !self.check_any(kinds) {
+            false
+        } else {
+            self.advance();
+            true
+        }
+    }
+
     fn check(&self, kind: TokenType) -> bool {
         self.current.kind == kind
+    }
+
+    fn check_any(&self, kinds: &[TokenType]) -> bool {
+        kinds.contains(&self.current.kind)
     }
 
     fn error_at_current(&mut self, msg: &str) {

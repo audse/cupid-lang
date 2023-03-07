@@ -4,4 +4,4 @@ class Base {
     }
 }
 
-Base().foo();
+Base().foo()

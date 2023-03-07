@@ -1,10 +1,10 @@
 {
-    let a = 'before';
-    log (a); -- expect: before
+    let a = 'before'
+    log (a) -- expect: before
 
-    a = 'after';
-    log (a); -- expect: after
+    a = 'after'
+    log (a) -- expect: after
 
-    log (a = 'arg'); -- expect: arg
-    log (a); -- expect: arg
+    log (a = 'arg') -- expect: arg
+    log (a) -- expect: arg
 }

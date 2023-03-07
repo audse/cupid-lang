@@ -1,26 +1,26 @@
 class A {
     say () {
-        log ('A');
+        log ('A')
     }
 }
 
 class B < A {
     getClosure () {
         fun closure () {
-            super.say();
+            super.say()
         }
-        return closure;
+        return closure
     }
 
     say () {
-        log ('B');
+        log ('B')
     }
 }
 
 class C < B {
     say () {
-        log ('C');
+        log ('C')
     }
 }
 
-C().getClosure()(); -- expect: A
+C().getClosure()() -- expect: A

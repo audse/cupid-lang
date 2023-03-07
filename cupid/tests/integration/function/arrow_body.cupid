@@ -1,5 +1,5 @@
-fun f0 () => return 0;
-log (f0()); -- expect: 0
+fun f0 () => return 0
+log (f0()) -- expect: 0
 
-fun f1 (a) => return a;
-log (f1(1)); -- expect: 1
+fun f1 (a) => return a
+log (f1(1)) -- expect: 1

@@ -24,6 +24,7 @@ impl PartialEq for NativeFunction {
 }
 
 #[repr(C)]
+#[derive(Debug)]
 pub struct Function {
     pub header: GcObject,
     pub arity: usize,

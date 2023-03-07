@@ -1,10 +1,10 @@
 class Foo {
     init () {
         fun init () {
-            return 'bar';
+            return 'bar'
         }
-        log (init ()); -- expect: bar
+        log (init ()) -- expect: bar
     }
 }
 
-log (Foo()); -- expect: Foo instance
+log (Foo()) -- expect: Foo instance

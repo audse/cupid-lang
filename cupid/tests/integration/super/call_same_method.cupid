@@ -1,16 +1,16 @@
 class Base {
     foo () {
-        log ('Base.foo()');
+        log ('Base.foo()')
     }
 }
 
 class Derived < Base {
     foo () {
-        log ('Derived.foo()');
-        super.foo();
+        log ('Derived.foo()')
+        super.foo()
     }
 }
 
-Derived().foo();
+Derived().foo()
 -- expect: Derived.foo()
 -- expect: Base.foo()

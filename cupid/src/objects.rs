@@ -19,17 +19,21 @@ pub use self::method::BoundMethod;
 pub mod string;
 pub use self::string::Str;
 
+pub mod role;
+pub use self::role::RoleImpl;
+
 pub mod upvalue;
 pub use self::upvalue::{FunctionUpvalue, Upvalue};
 
 #[derive(Debug)]
 pub enum ObjectType {
     Array,
-    Function,
+    BoundMethod,
+    Class,
     Closure,
+    Function,
+    Instance,
+    Role,
     Str,
     Upvalue,
-    Class,
-    Instance,
-    BoundMethod,
 }

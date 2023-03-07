@@ -6,4 +6,4 @@
 -- Other stuff: ឃᢆ᯽₪ℜ↩⊗┺░
 -- Emoji: ☃☺♣
 
-log ('ok'); -- expect: ok
+log ('ok') -- expect: ok

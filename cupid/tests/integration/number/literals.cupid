@@ -1,7 +1,7 @@
-log (123); -- expect: 123
-log (987654); -- expect: 987654
-log (0); -- expect: 0
-log (-0); -- expect: 0
+log (123) -- expect: 123
+log (987654) -- expect: 987654
+log (0) -- expect: 0
+log (-0) -- expect: 0
 
-log (123.456); -- expect: 123.456
-log (-0.001); -- expect: -0.001
+log (123.456) -- expect: 123.456
+log (-0.001) -- expect: -0.001

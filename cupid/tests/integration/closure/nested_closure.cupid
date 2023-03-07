@@ -1,25 +1,25 @@
-let f;
+let f
 
 fun f1 () {
-    let a = 'a';
+    let a = 'a'
     fun f2 () {
-        let b = 'b';
+        let b = 'b'
         fun f3 () {
-            let c = 'c';
+            let c = 'c'
             fun f4 () {
-                log (a);
-                log (b);
-                log (c);
+                log (a)
+                log (b)
+                log (c)
             }
-            f = f4;
+            f = f4
         }
-        f3();
+        f3()
     }
-    f2();
+    f2()
 }
-f1();
+f1()
 
-f();
+f()
 -- expect: a
 -- expect: b
 -- expect: c

@@ -7,6 +7,7 @@ use crate::{
 };
 
 #[repr(C)]
+#[derive(Debug)]
 pub struct BoundMethod {
     pub header: GcObject,
     pub receiver: Value,

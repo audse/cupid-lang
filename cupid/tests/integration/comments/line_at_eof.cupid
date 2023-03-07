@@ -1,2 +1,2 @@
-log ('ok'); -- expect: ok
+log ('ok') -- expect: ok
 -- comment

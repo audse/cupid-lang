@@ -7,6 +7,7 @@ use crate::{
 };
 
 #[repr(C)]
+#[derive(Debug)]
 pub struct Instance {
     pub header: GcObject,
     pub class: GcRef<Class>,

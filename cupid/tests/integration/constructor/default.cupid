@@ -1,4 +1,4 @@
 class Foo {}
 
-let foo = Foo();
-log (foo); -- expect: Foo instance
+let foo = Foo()
+log (foo) -- expect: Foo instance
