@@ -126,7 +126,7 @@ impl<'src> Parser<'src> {
         rule(Else, None, None, P::None);
         rule(False, Some(Parser::literal), None, P::None);
         rule(For, None, None, P::None);
-        rule(Fun, None, None, P::None);
+        rule(Fun, Some(Parser::lambda), None, P::None);
         rule(If, None, None, P::None);
         rule(Nil, Some(Parser::literal), None, P::None);
         rule(Or, None, Some(Parser::or_op), P::Or);
@@ -334,6 +334,10 @@ impl<'src> Parser<'src> {
 
         let index = self.make_constant(Value::Function(fn_id));
         self.emit(Instruction::Closure(index));
+    }
+
+    fn lambda(&mut self, _can_assign: bool) {
+        self.function(FunctionType::Function)
     }
 
     fn method(&mut self) {

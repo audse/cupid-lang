@@ -9,6 +9,14 @@ class array {
 	len () => return len(self.items)
 	get (i) => return get(self.items, i)
 	last () => return self.get(self.len() - 1)
+
+	map (map-fun) {
+		let results = array([])
+		for (let i = 0; i < self.len(); i = i + 1) {
+			results.push(map-fun(self.get(i)))
+		}
+		return results
+	}
 }
 
 class dict {
@@ -88,7 +96,4 @@ impl some-trait for array {
 let my-array = array([])
 my-array.do-something()
 
--- let a = 'outer'
--- {
---    let a = a
--- }
+log(array([1, 2, 3]).map(fun (item) => return item * 2).items)

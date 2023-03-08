@@ -24,7 +24,7 @@ repository:
       - name: constant.language.boolean.cupid
         match: \b(true|false)(?!\-)\b
       - name: support.function.builtin.cupid
-        match: \b(log)(?!\-)\b
+        match: \b(log|clock|push|pop|panic|len|get)(?!\-)\b
       - name: variable.language.this.cupid
         match: \b(self)(?!\-)\b
       - name: variable.language.super.cupid

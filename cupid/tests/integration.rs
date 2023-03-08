@@ -1,5 +1,4 @@
 use std::path::PathBuf;
-use std::process::ExitStatus;
 use std::{env, fs, process::Command};
 
 extern crate cupid_fmt;
@@ -37,10 +36,10 @@ struct Expected {
 }
 
 fn parse_comments(path: &PathBuf) -> Expected {
-    let output_re = Regex::new(r"-- expect: ?(.*)").unwrap();
-    let error_re = Regex::new(r"-- (Error.*)").unwrap();
-    let error_line_re = Regex::new(r"-- \[(?:c )?line (\d+)\] (Error.*)").unwrap();
-    let runtime_error_re = Regex::new(r"-- expect runtime error: (.+)").unwrap();
+    let output_re = Regex::new(r"-->? expect: ?(.*)").unwrap();
+    let error_re = Regex::new(r"-->? (Error.*)").unwrap();
+    let error_line_re = Regex::new(r"-->? \[(?:c )?line (\d+)\] (Error.*)").unwrap();
+    let runtime_error_re = Regex::new(r"-->? expect runtime error: (.+)").unwrap();
 
     let mut expected = Expected {
         out: vec![],
