@@ -1,0 +1,181 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Cupid",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#statements"
+    },
+    {
+      "include": "#callables"
+    },
+    {
+      "include": "#ident"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#digits"
+    }
+  ],
+  "repository": {
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.cupid",
+          "match": "\\b(if|else|while|for|return|break)(?!\\-)\\b"
+        },
+        {
+          "name": "keyword.operator.cupid",
+          "match": "\\b((or|and|in|not|is)(?!\\-))\\b|([+-/.=!^\\\\><%])"
+        },
+        {
+          "name": "keyword.other.cupid",
+          "match": "\\b(impl)(?!\\-)\\b"
+        },
+        {
+          "name": "constant.language.null.cupid",
+          "match": "\\b(none)(?!\\-)\\b"
+        },
+        {
+          "name": "constant.language.boolean.cupid",
+          "match": "\\b(true|false)(?!\\-)\\b"
+        },
+        {
+          "name": "support.function.builtin.cupid",
+          "match": "\\b(log)(?!\\-)\\b"
+        },
+        {
+          "name": "variable.language.this.cupid",
+          "match": "\\b(self)(?!\\-)\\b"
+        },
+        {
+          "name": "variable.language.super.cupid",
+          "match": "\\b(super)(?!\\-)\\b"
+        }
+      ]
+    },
+    "statements": {
+      "patterns": [
+        {
+          "match": "\\b(let)\\s+([A-Za-z_][A-Za-z0-9_\\-]*)\\b",
+          "captures": {
+            "1": {
+              "name": "storage.type.cupid"
+            },
+            "2": {
+              "name": "support.variable.cupid"
+            }
+          }
+        },
+        {
+          "match": "\\b(fun\\b)?\\s+([A-Za-z_][A-Za-z0-9_\\-]*)\\s*\\(([A-Za-z0-9_\\-\\,\\s]*)\\)",
+          "captures": {
+            "1": {
+              "name": "storage.type.function.cupid"
+            },
+            "2": {
+              "name": "entity.name.function.cupid"
+            },
+            "3": {
+              "patterns": [
+                {
+                  "match": "\\b[A-Za-z_][A-Za-z0-9_\\-]*\\b",
+                  "name": "variable.parameter.cupid"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "match": "\\b(class)\\s+([A-Za-z_][A-Za-z0-9_\\-]*)(?:\\s*(<)\\s*([A-Za-z_][A-Za-z0-9_\\-]*))?\\b",
+          "captures": {
+            "1": {
+              "name": "storage.type.class.cupid"
+            },
+            "2": {
+              "name": "entity.name.type.class.cupid"
+            },
+            "3": {
+              "name": "storage.modifier.cupid"
+            },
+            "4": {
+              "name": "entity.name.type.class.cupid"
+            }
+          }
+        },
+        {
+          "match": "\\b(impl)\\s+([A-Za-z_][A-Za-z0-9_\\-]*)(?:\\s*(for)\\s*([A-Za-z_][A-Za-z0-9_\\-]*))?\\b",
+          "captures": {
+            "1": {
+              "name": "storage.type.class.cupid"
+            },
+            "2": {
+              "name": "entity.name.type.class.cupid"
+            },
+            "3": {
+              "name": "keyword.other.cupid"
+            },
+            "4": {
+              "name": "entity.name.type.class.cupid"
+            }
+          }
+        }
+      ]
+    },
+    "callables": {
+      "patterns": [
+        {
+          "match": "([A-Za-z_][A-Za-z0-9_\\-]*)\\s*(?=\\()",
+          "name": "support.function.cupid",
+          "captures": {
+            "1": {
+              "name": "entity.name.function.cupid"
+            }
+          }
+        }
+      ]
+    },
+    "strings": {
+      "name": "string.quoted.single.cupid",
+      "begin": "\\'",
+      "end": "\\'",
+      "patterns": []
+    },
+    "digits": {
+      "patterns": [
+        {
+          "name": "constant.numeric.cupid",
+          "match": "\\b[0-9]+(?:.[0-9]+)?\\b"
+        }
+      ]
+    },
+    "ident": {
+      "patterns": [
+        {
+          "name": "variable.other.cupid",
+          "match": "\\b[A-Za-z_][A-Za-z0-9_\\-]*\\b"
+        }
+      ]
+    },
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.block.documentation.cupid",
+          "match": "-->.*"
+        },
+        {
+          "name": "comment.line.cupid",
+          "match": "--.*"
+        }
+      ]
+    }
+  },
+  "scopeName": "source.cupid"
+}

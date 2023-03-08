@@ -21,10 +21,15 @@ checksum = "50d30906286121d95be3d479533b458f87493b30a4b5f79a607db8f5d11aa91f"
 name = "cupid"
 version = "0.1.0"
 dependencies = [
+ "cupid-fmt",
  "mimalloc",
  "regex",
  "test-generator",
 ]
+
+[[package]]
+name = "cupid-fmt"
+version = "0.1.0"
 
 [[package]]
 name = "glob"

@@ -88,7 +88,7 @@ impl some-trait for array {
 let my-array = array([])
 my-array.do-something()
 
-let a = 'outer'
-{
-    let a = a
-}
+-- let a = 'outer'
+-- {
+--    let a = a
+-- }

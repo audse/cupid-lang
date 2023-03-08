@@ -8,7 +8,9 @@ pub mod parser;
 pub mod repl;
 pub mod run;
 pub mod scanner;
+pub mod span;
 pub mod table;
+pub mod token;
 pub mod value;
 pub mod vm;
 

@@ -6,12 +6,14 @@ use crate::{
     error::CupidError,
     gc::{Gc, GcRef},
     objects::Function,
-    scanner::{Scanner, Token, TokenType},
+    scanner::Scanner,
+    token::{Token, TokenType},
     value::Value,
 };
 
-#[derive(Copy, Clone, PartialOrd, PartialEq)]
+#[derive(Copy, Clone, PartialOrd, PartialEq, Default, Debug)]
 pub enum Precedence {
+    #[default]
     None,
     Assignment, // =
     Or,         // or
@@ -44,7 +46,7 @@ impl Precedence {
 type SimpleParseFn<'src> = fn(&mut Parser<'src>) -> ();
 type ParseFn<'src> = fn(&mut Parser<'src>, can_assign: bool) -> ();
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 pub struct ParseRule<'src> {
     pub prefix: Option<ParseFn<'src>>,
     pub infix: Option<ParseFn<'src>>,
@@ -87,7 +89,7 @@ impl<'src> Parser<'src> {
         };
 
         use self::Precedence as P;
-        use scanner::TokenType::*;
+        use self::TokenType::*;
 
         rule(
             LeftParen,
@@ -179,7 +181,6 @@ impl<'src> Parser<'src> {
 
     fn expression_statement(&mut self) {
         self.expression();
-        // self.consume(TokenType::Semicolon, "Expect ';' after expression.");
         self.terminator(false);
         self.emit(Instruction::Pop);
     }
@@ -228,7 +229,7 @@ impl<'src> Parser<'src> {
         }
 
         self.named_variable(class_name, false);
-        self.braces(Self::methods, "before class body.", "after class body.");
+        self.methods("class");
         self.emit(Instruction::Pop);
         if self.class_compiler.as_ref().unwrap().has_superclass {
             self.end_scope();
@@ -240,10 +241,19 @@ impl<'src> Parser<'src> {
         }
     }
 
-    fn methods(&mut self) {
-        while !self.check(TokenType::RightBrace) && !self.check(TokenType::Eof) {
+    fn methods(&mut self, ty: &str) {
+        self.consume(
+            TokenType::LeftBrace,
+            &format!("Expect '{{' before {ty} body."),
+        );
+        while !self.check_any(&[TokenType::RightBrace, TokenType::Eof]) {
             self.method();
+            while self.matches(TokenType::NewLine) {}
         }
+        self.consume(
+            TokenType::RightBrace,
+            &format!("Expect '}}' after {ty} body."),
+        );
     }
 
     fn role_impl_declaration(&mut self) {
@@ -261,7 +271,7 @@ impl<'src> Parser<'src> {
 
         self.emit(Instruction::RoleImpl(role_name_constant));
 
-        self.braces(Self::methods, "before role body.", "after role body.");
+        self.methods("role");
 
         self.emit(Instruction::Pop);
     }
@@ -345,10 +355,6 @@ impl<'src> Parser<'src> {
         } else {
             self.emit(Instruction::Nil);
         }
-        // self.consume(
-        //     TokenType::Semicolon,
-        //     "Expect ';' after variable declaration.",
-        // );
         self.terminator(false);
         self.define_variable(index);
     }
@@ -380,7 +386,7 @@ impl<'src> Parser<'src> {
             self.while_statement();
         } else if self.matches(TokenType::For) {
             self.for_statement();
-        } else if self.check(TokenType::LeftBrace) {
+        } else if self.matches(TokenType::LeftBrace) {
             self.begin_scope();
             self.block();
             self.end_scope();
@@ -400,7 +406,6 @@ impl<'src> Parser<'src> {
                 self.error("Can't return a value from an initializer.");
             }
             self.expression();
-            // self.consume(TokenType::Semicolon, "Expect ';' after return value.");
             self.terminator(false);
             self.emit(Instruction::Return);
         }
@@ -499,35 +504,20 @@ impl<'src> Parser<'src> {
         if self.matches(TokenType::ThickArrow) {
             self.declaration();
         } else {
-            self.braces(
-                |parser| {
-                    while !parser.check(TokenType::RightBrace) && !parser.check(TokenType::Eof) {
-                        parser.declaration();
-                    }
-                },
-                "before function body.",
-                "after block.",
-            );
+            self.consume(TokenType::LeftBrace, "Expect '{' before function body.");
+            self.block();
         }
     }
 
     fn block(&mut self) {
-        self.braces(
-            |parser| {
-                while !parser.check(TokenType::RightBrace) && !parser.check(TokenType::Eof) {
-                    parser.declaration();
-                }
-            },
-            "before block.",
-            "after block.",
-        );
+        while !self.check_any(&[TokenType::RightBrace, TokenType::Eof]) {
+            self.declaration();
+        }
+        self.consume(TokenType::RightBrace, "Expect '}' after block.");
     }
 
     fn terminator(&mut self, _can_assign: bool) {
-        self.matches_any(
-            &[TokenType::Semicolon, TokenType::NewLine, TokenType::Eof],
-            // "Expect either ';' or new line to terminate statement.",
-        );
+        self.matches_any(&[TokenType::Semicolon, TokenType::NewLine, TokenType::Eof]);
     }
 
     fn log_statement(&mut self) {
@@ -540,12 +530,6 @@ impl<'src> Parser<'src> {
         self.consume(TokenType::LeftParen, &format!("Expect '(' {before_msg}"));
         inner(self);
         self.consume(TokenType::RightParen, &format!("Expect ')' {after_msg}"));
-    }
-
-    fn braces(&mut self, inner: SimpleParseFn<'src>, before_msg: &str, after_msg: &str) {
-        self.consume(TokenType::LeftBrace, &format!("Expect '{{' {before_msg}"));
-        inner(self);
-        self.consume(TokenType::RightBrace, &format!("Expect '}}' {after_msg}"));
     }
 
     fn float(&mut self, _can_assign: bool) {
@@ -848,10 +832,24 @@ impl<'src> Parser<'src> {
         self.error_at_current(msg);
     }
 
+    fn next(&mut self) -> Token<'src> {
+        let mut current = self.scanner.scan_token();
+        while current.kind == TokenType::NewLine {
+            match self.previous.kind {
+                TokenType::Return => break,
+                _ => match self.scanner.peek_token().kind {
+                    TokenType::RightBrace | TokenType::LeftParen => break,
+                    _ => current = self.scanner.scan_token(),
+                },
+            }
+        }
+        current
+    }
+
     fn advance(&mut self) {
         self.previous = self.current;
         loop {
-            self.current = self.scanner.scan_token();
+            self.current = self.next();
             if self.current.kind == TokenType::Error {
                 self.error_at_current(self.current.lexeme);
             } else {
@@ -900,7 +898,7 @@ impl<'src> Parser<'src> {
         }
         self.had_error = true;
         self.panic_mode = true;
-        eprint!("[line {}] Error", token.line);
+        eprint!("[line {}] Error", token.position.line);
         match token.kind {
             TokenType::Eof => eprint!(" at end"),
             TokenType::Error => (),
@@ -912,7 +910,7 @@ impl<'src> Parser<'src> {
     fn synchronize(&mut self) {
         self.panic_mode = false;
         while self.previous.kind != TokenType::Eof {
-            if self.previous.kind == TokenType::Semicolon {
+            if [TokenType::Semicolon, TokenType::NewLine].contains(&self.previous.kind) {
                 return;
             }
             match self.current.kind {
@@ -934,12 +932,18 @@ impl<'src> Parser<'src> {
         self.compiler
             .function
             .chunk
-            .write(instruction, self.previous.line)
+            .write(instruction, self.previous.position.line)
     }
 
     fn emit_two(&mut self, i1: Instruction, i2: Instruction) -> usize {
-        self.compiler.function.chunk.write(i1, self.previous.line);
-        self.compiler.function.chunk.write(i2, self.previous.line)
+        self.compiler
+            .function
+            .chunk
+            .write(i1, self.previous.position.line);
+        self.compiler
+            .function
+            .chunk
+            .write(i2, self.previous.position.line)
     }
 
     fn emit_return(&mut self) -> usize {

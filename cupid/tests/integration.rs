@@ -1,9 +1,12 @@
 use std::path::PathBuf;
+use std::process::ExitStatus;
 use std::{env, fs, process::Command};
 
+extern crate cupid_fmt;
 extern crate regex;
 extern crate test_generator;
 
+use cupid_fmt::color;
 use regex::Regex;
 use test_generator::test_resources;
 
@@ -21,6 +24,7 @@ fn cupid_command() -> Command {
     Command::new(path.into_os_string())
 }
 
+#[derive(Debug)]
 struct RuntimeError {
     line_prefix: String,
     message: String,
@@ -74,6 +78,29 @@ fn parse_comments(path: &PathBuf) -> Expected {
     expected
 }
 
+fn fmt_test_problem(msg: &str, expected: &Expected, errors: &[String]) -> String {
+    let expected_compile_err = !expected.compile_err.is_empty();
+    let expected_runtime_err = expected.runtime_err.is_some();
+    let expected_err = match (expected_compile_err, expected_runtime_err) {
+        (true, false) => format!("{:?}", expected.compile_err),
+        (false, true) => format!("{:?}", expected.runtime_err),
+        (false, false) => String::from("success"),
+        (true, true) => format!(
+            "compile error {:?}, runtime error {:?}",
+            expected.compile_err, expected.runtime_err
+        ),
+    };
+    let pipe = color("│").dim().ok();
+    vec![
+        color("\n╭───").dim().ok(),
+        format!("{pipe} {}", color(msg).bold().red()),
+        format!("{pipe} {} {}", color("Expected ──▶︎").red(), expected_err),
+        format!("{pipe} {} {:?}", color("Found ─────▶︎").red(), errors),
+        color("╰───\n").dim().ok(),
+    ]
+    .join("\n")
+}
+
 #[test_resources("tests/integration/*/*.cupid")]
 fn run_file_test(filename: &str) {
     let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -93,44 +120,61 @@ fn run_file_test(filename: &str) {
         .map(|x| x.to_owned())
         .collect();
 
+    let formatted = |msg| fmt_test_problem(msg, &expected, &err);
+
     match (
         expected.runtime_err.is_none(),
         expected.compile_err.is_empty(),
     ) {
         (true, true) => assert!(
             output.status.success(),
-            "Program exited with failure, expected success"
+            "{}",
+            formatted("Program unexpectedly exited with failure")
         ),
         (false, true) => assert_eq!(
             output.status.code().unwrap(),
             70,
-            "Runtime errors should have error code 70"
+            "{}",
+            formatted("Found runtime error when expecting compile error")
         ),
         (true, false) => assert_eq!(
             output.status.code().unwrap(),
             65,
-            "Compile errors should have error code 65"
+            "{}",
+            formatted("Found compile error when expecting runtime error")
         ),
-        (false, false) => panic!("Simultaneous error and compile error"),
+        (false, false) => panic!("{}", formatted("Simultaneous error and compile error")),
     }
 
-    if let Some(e) = expected.runtime_err {
-        assert_eq!(e.message, err[0], "Runtime error should match");
+    if let Some(e) = &expected.runtime_err {
+        assert_eq!(
+            e.message,
+            err[0],
+            "{}",
+            formatted("Runtime error should match")
+        );
         assert_eq!(
             err[1][0..e.line_prefix.len()],
             e.line_prefix,
-            "Runtime error line should match"
+            "{}",
+            formatted("Runtime error line should match")
         );
     } else {
         if !err.is_empty() {
             assert_eq!(
                 output.status.code().unwrap(),
                 65,
-                "Compile errors should have error code 65"
+                "{}",
+                formatted("Compile errors should have error code 65")
             );
         }
-        assert_eq!(expected.compile_err, err, "Compile error should match");
+        assert_eq!(
+            expected.compile_err,
+            err,
+            "{}",
+            formatted("Compile error should match")
+        );
     }
 
-    assert_eq!(expected.out, out, "Output should match");
+    assert_eq!(expected.out, out, "{}", formatted("Output should match"));
 }

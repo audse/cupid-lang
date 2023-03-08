@@ -4,7 +4,7 @@ use crate::{
     objects::FunctionUpvalue,
     objects::{Function, Str},
     parser::Parser,
-    scanner::Token,
+    token::Token,
 };
 
 #[derive(Copy, Clone)]

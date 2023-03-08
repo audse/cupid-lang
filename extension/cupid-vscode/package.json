@@ -1,0 +1,25 @@
+{
+  "name": "cupidlang",
+  "displayName": "CupidLang",
+  "description": "VSCode support for Cupid programming language",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.76.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [{
+      "id": "cupid",
+      "aliases": ["Cupid", "cupid"],
+      "extensions": [".cupid"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "cupid",
+      "scopeName": "source.cupid",
+      "path": "./syntaxes/cupid.tmLanguage.json"
+    }]
+  }
+}

@@ -1,5 +1,10 @@
 use std::collections::HashMap;
 
+use crate::{
+    span::Position,
+    token::{Token, TokenType},
+};
+
 macro_rules! keyword_map {
     ( $capacity:literal, { $( $key:tt : $val:expr ),* $(,)? } ) => {{
         (|| {
@@ -12,90 +17,11 @@ macro_rules! keyword_map {
     }};
 }
 
-#[derive(Eq, PartialEq, Debug, Copy, Clone, Hash)]
-pub enum TokenType {
-    LeftParen,
-    RightParen,
-    LeftBrace,
-    RightBrace,
-    LeftBracket,
-    RightBracket,
-    Comma,
-    Dot,
-    Minus,
-    Plus,
-    Semicolon,
-    Slash,
-    Star,
-    NewLine,
-
-    // One or two character tokens.
-    Bang,
-    BangEqual,
-    Equal,
-    EqualEqual,
-    Greater,
-    GreaterEqual,
-    Less,
-    LessEqual,
-    ThickArrow,
-
-    // Literals.
-    Identifier,
-    String,
-    Float,
-    Int,
-
-    // Keywords.
-    And,
-    In,
-    Class,
-    Else,
-    False,
-    For,
-    Fun,
-    If,
-    Nil,
-    Or,
-    Log,
-    Return,
-    Super,
-    This,
-    True,
-    Let,
-    While,
-    Role,
-    Impl,
-
-    Error,
-    Eof,
-}
-
-#[derive(Copy, Clone, Debug)]
-pub struct Token<'src> {
-    pub kind: TokenType,
-    pub line: usize,
-    pub index: usize,
-    pub lexeme: &'src str,
-}
-
-impl<'src> Token<'src> {
-    pub fn synthetic(text: &'src str) -> Token<'src> {
-        Token {
-            kind: TokenType::Error,
-            lexeme: text,
-            line: 0,
-            index: 0,
-        }
-    }
-}
-
 pub struct Scanner<'src> {
     keywords: HashMap<&'static str, TokenType>,
     code: &'src str,
     start: usize,
-    current: usize,
-    line: usize,
+    position: Position,
 }
 
 impl<'src> Scanner<'src> {
@@ -126,20 +52,31 @@ impl<'src> Scanner<'src> {
             keywords,
             code,
             start: 0,
-            current: 0,
-            line: 1,
+            position: Position::default(),
         }
+    }
+
+    pub fn peek_token(&mut self) -> Token<'src> {
+        let start = self.start;
+        let position = self.position;
+        let token = self.scan_token();
+        self.start = start;
+        self.position = position;
+        token
     }
 
     pub fn scan_token(&mut self) -> Token<'src> {
         self.skip_whitespace();
-        self.start = self.current;
+        self.start = self.position.index;
         if self.is_at_end() {
             return self.make_token(TokenType::Eof);
         }
 
         match self.advance() {
-            b'\n' => self.new_line(),
+            b'\n' => {
+                self.position.increment_line();
+                self.make_token(TokenType::NewLine)
+            }
             b'(' => self.make_token(TokenType::LeftParen),
             b')' => self.make_token(TokenType::RightParen),
             b'{' => self.make_token(TokenType::LeftBrace),
@@ -170,27 +107,18 @@ impl<'src> Scanner<'src> {
     }
 
     fn is_at_end(&self) -> bool {
-        self.current == self.code.len()
+        self.position.index == self.code.len()
     }
 
     fn lexeme(&self) -> &'src str {
-        &self.code[self.start..self.current]
+        &self.code[self.start..self.position.index]
     }
 
     fn make_token(&self, kind: TokenType) -> Token<'src> {
         Token {
             kind,
             lexeme: self.lexeme(),
-            line: self.line,
-            index: self.current,
-        }
-    }
-
-    fn peek_back(&self, amt: usize) -> u8 {
-        if self.is_at_end() {
-            0
-        } else {
-            self.code.as_bytes()[self.current - amt]
+            position: self.position,
         }
     }
 
@@ -198,15 +126,15 @@ impl<'src> Scanner<'src> {
         if self.is_at_end() {
             0
         } else {
-            self.code.as_bytes()[self.current]
+            self.code.as_bytes()[self.position.index]
         }
     }
 
     fn peek_next(&self) -> u8 {
-        if self.current > self.code.len() - 2 {
+        if self.position.index > self.code.len() - 2 {
             b'\0'
         } else {
-            self.code.as_bytes()[self.current + 1]
+            self.code.as_bytes()[self.position.index + 1]
         }
     }
 
@@ -214,14 +142,13 @@ impl<'src> Scanner<'src> {
         Token {
             kind: TokenType::Error,
             lexeme: message,
-            line: self.line,
-            index: self.current,
+            position: self.position,
         }
     }
 
     fn advance(&mut self) -> u8 {
         let char = self.peek();
-        self.current += 1;
+        self.position.increment();
         char
     }
 
@@ -229,7 +156,7 @@ impl<'src> Scanner<'src> {
         if self.is_at_end() || self.peek() != expected {
             false
         } else {
-            self.current += 1;
+            self.position.increment();
             true
         }
     }
@@ -253,7 +180,7 @@ impl<'src> Scanner<'src> {
     fn string(&mut self) -> Token<'src> {
         while self.peek() != b'\'' && !self.is_at_end() {
             if self.peek() == b'\n' {
-                self.line += 1;
+                self.position.increment_line();
             }
             self.advance();
         }
@@ -279,17 +206,6 @@ impl<'src> Scanner<'src> {
             self.make_token(TokenType::Float)
         } else {
             self.make_token(TokenType::Int)
-        }
-    }
-
-    fn new_line(&mut self) -> Token<'src> {
-        self.line += 1;
-        let prev = self.peek_back(2);
-        let token = self.make_token(TokenType::NewLine);
-        self.skip_whitespace();
-        match self.peek() {
-            b'(' if prev != b';' => token,
-            _ => self.scan_token(),
         }
     }
 

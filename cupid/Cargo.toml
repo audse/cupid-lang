@@ -3,10 +3,13 @@ name = "cupid"
 version = "0.1.0"
 
 [workspace]
-members = []
+members = [
+    "cupid-fmt"
+]
 
 [dependencies]
 mimalloc = { version = "*", default-features = false }
+cupid-fmt = { path = "cupid-fmt" }
 
 [dev-dependencies]
 regex = "1.5.4"
