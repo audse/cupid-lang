@@ -13,6 +13,11 @@ impl FrameState<'_, '_> {
     pub fn set_instruction(&mut self, offset: isize) {
         self.frame.ip = unsafe { self.frame.ip.offset(offset) };
     }
+
+    pub fn set(&mut self, frames: &mut Frames) {
+        self.frame = frames.current_frame();
+        self.chunk = frames.current_chunk();
+    }
 }
 
 use crate::{
@@ -21,6 +26,7 @@ use crate::{
     objects::Closure,
 };
 
+#[derive(Debug, Clone)]
 pub struct Frames {
     pub frames: [CallFrame; Frames::MAX],
     pub count: usize,
@@ -41,6 +47,10 @@ impl Default for Frames {
 
 impl Frames {
     pub const MAX: usize = 64;
+
+    pub fn frame(&self) -> &CallFrame {
+        &self.frames[self.count - 1]
+    }
 
     pub fn current_frame<'this, 'frame>(&'this mut self) -> &'frame mut CallFrame {
         unsafe { &mut *(&mut self.frames[self.count - 1] as *mut CallFrame) }
@@ -63,7 +73,7 @@ impl Frames {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct CallFrame {
     pub closure: GcRef<Closure>,
     pub ip: *const Instruction,

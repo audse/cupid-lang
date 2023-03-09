@@ -78,6 +78,8 @@ pub struct Parser<'src> {
     panic_mode: bool,
     resolver_errors: Vec<&'static str>,
     rules: HashMap<TokenType, ParseRule<'src>>,
+
+    loop_jumps: Vec<Vec<usize>>,
 }
 
 impl<'src> Parser<'src> {
@@ -142,6 +144,8 @@ impl<'src> Parser<'src> {
         rule(Role, None, None, P::None);
         rule(Impl, None, None, P::None);
         rule(NewLine, Some(Parser::terminator), None, P::None);
+        rule(Break, None, None, P::None);
+        rule(Loop, None, None, P::None);
 
         let function_name = gc.intern("script".to_owned());
 
@@ -156,6 +160,7 @@ impl<'src> Parser<'src> {
             panic_mode: false,
             resolver_errors: Vec::new(),
             rules,
+            loop_jumps: vec![],
         }
     }
 
@@ -265,7 +270,6 @@ impl<'src> Parser<'src> {
         self.consume(TokenType::For, "Expect 'for' after role name.");
 
         // Get impl class
-
         self.consume(TokenType::Identifier, "Expect class name.");
         self.named_variable(self.previous, false);
 
@@ -386,10 +390,14 @@ impl<'src> Parser<'src> {
             self.if_statement();
         } else if self.matches(TokenType::Return) {
             self.return_statement();
+        } else if self.matches(TokenType::Break) {
+            self.break_statement();
         } else if self.matches(TokenType::While) {
             self.while_statement();
         } else if self.matches(TokenType::For) {
             self.for_statement();
+        } else if self.matches(TokenType::Loop) {
+            self.loop_statement();
         } else if self.matches(TokenType::LeftBrace) {
             self.begin_scope();
             self.block();
@@ -403,7 +411,7 @@ impl<'src> Parser<'src> {
         if let FunctionType::Script = self.compiler.function_type {
             self.error("Can't return from top-level code.");
         }
-        if self.matches(TokenType::Semicolon) {
+        if self.matches_any(&[TokenType::Semicolon, TokenType::NewLine]) {
             self.emit_return();
         } else {
             if let FunctionType::Initializer = self.compiler.function_type {
@@ -429,15 +437,45 @@ impl<'src> Parser<'src> {
         self.patch_jump(else_jump);
     }
 
+    fn loop_statement(&mut self) {
+        let loop_start = self.start_loop();
+        self.loop_jumps.push(vec![]);
+
+        self.statement();
+        self.emit_loop(loop_start);
+
+        let exit_jump = self.emit(Instruction::Jump(0xffff));
+        self.patch_jump(exit_jump);
+
+        self.patch_loop_jumps();
+    }
+
+    fn break_statement(&mut self) {
+        if !self.matches_any(&[TokenType::Semicolon, TokenType::NewLine, TokenType::Eof]) {
+            self.statement();
+        }
+        let break_address = self.emit(Instruction::Jump(0xffff));
+        let loop_jump = if let Some(loop_jump) = self.loop_jumps.last_mut() {
+            loop_jump
+        } else {
+            return self.error("Can't break outside of a loop.");
+        };
+        loop_jump.push(break_address);
+    }
+
     fn while_statement(&mut self) {
         let loop_start = self.start_loop();
         self.expression();
         let exit_jump = self.emit(Instruction::JumpIfFalse(0xffff));
         self.emit(Instruction::Pop);
+
+        self.loop_jumps.push(vec![]);
         self.statement();
+
         self.emit_loop(loop_start);
         self.patch_jump(exit_jump);
         self.emit(Instruction::Pop);
+        self.patch_loop_jumps();
     }
 
     fn for_statement(&mut self) {
@@ -838,9 +876,20 @@ impl<'src> Parser<'src> {
 
     fn next(&mut self) -> Token<'src> {
         let mut current = self.scanner.scan_token();
+        // In a few cases, newlines matter to disambiguate
+        // ```cupid
+        // -- should it be `ident(123)` or `ident; 123`?
+        // ident
+        // (123)
+        // -- should it be `break; i += 1` or `break i = i + 1`?
+        // loop {
+        //     break
+        //     i = 1 + 1
+        // }
+        // ```
         while current.kind == TokenType::NewLine {
-            match self.previous.kind {
-                TokenType::Return => break,
+            match self.current.kind {
+                TokenType::Return | TokenType::Break => break,
                 _ => match self.scanner.peek_token().kind {
                     TokenType::RightBrace | TokenType::LeftParen => break,
                     _ => current = self.scanner.scan_token(),
@@ -989,6 +1038,13 @@ impl<'src> Parser<'src> {
             Instruction::Jump(ref mut o) => *o = offset,
             _ => panic!("Instruction at position is not jump"),
         }
+    }
+
+    fn patch_loop_jumps(&mut self) {
+        for jump in self.loop_jumps.last().unwrap().clone() {
+            self.patch_jump(jump);
+        }
+        self.loop_jumps.pop();
     }
 
     fn make_constant(&mut self, value: Value) -> u8 {

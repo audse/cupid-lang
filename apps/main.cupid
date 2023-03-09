@@ -51,7 +51,7 @@ let x = dict ([
 	array (['b', 2])
 ])
 
-log (x.find ('a'))
+-- log (x.find ('a'))
 
 
 class type {
@@ -85,7 +85,7 @@ let int = type('int', [])
 
 let my-type = point(int)
 
-log(my-type.keys().items)
+-- log(my-type.keys().items)
 
 impl some-trait for array {
 	do-something () {
@@ -93,7 +93,17 @@ impl some-trait for array {
 	}
 }
 
-let my-array = array([])
-my-array.do-something()
+-- log (array)
 
-log(array([1, 2, 3]).map(fun (item) => return item * 2).items)
+-- let my-array = array([])
+-- my-array.do-something()
+
+-- log(array([1, 2, 3]).map(fun (item) => return item * 2).items)
+
+let i = 0
+
+loop {
+	log (i)
+	i = i + 1
+	if i > 5 break i
+}

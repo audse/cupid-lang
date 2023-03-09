@@ -1,0 +1,21 @@
+let i = 0
+while true {
+    i = i + 1
+    break
+}
+log (i) --> expect: 1
+
+
+-- Break with value
+while true {
+    break i = i + 1
+}
+log (i) --> expect: 2
+
+
+-- Break value is newline-sensitive, so `i` does not increment
+while true {
+    break 
+    i = i + 1
+}
+log (i) --> expect: 2

@@ -1,5 +1,5 @@
 fun f () {
-    return;
+    return
     log ('bad')
 }
 

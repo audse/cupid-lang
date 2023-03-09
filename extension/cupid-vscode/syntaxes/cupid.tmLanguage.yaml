@@ -14,7 +14,7 @@ repository:
   keywords:
     patterns:
       - name: keyword.control.cupid
-        match: \b(if|else|while|for|return|break)(?!\-)\b
+        match: \b(if|else|while|for|return|break|loop)(?!\-)\b
       - name: keyword.operator.cupid
         match: \b((or|and|in|not|is)(?!\-))\b|([+-/.=!^\\><%])
       - name: keyword.other.cupid
@@ -47,7 +47,8 @@ repository:
             patterns:
               - match: \b[A-Za-z_][A-Za-z0-9_\-]*\b
                 name: variable.parameter.cupid
-      - match: \b(class)\s+([A-Za-z_][A-Za-z0-9_\-]*)(?:\s*(<)\s*([A-Za-z_][A-Za-z0-9_\-]*))?\b
+      - name: meta.class.cupid
+        match: \b(class)\s+([A-Za-z_][A-Za-z0-9_\-]*)(?:\s*(<)\s*([A-Za-z_][A-Za-z0-9_\-]*))?\b
         captures:
           '1':
             name: storage.type.class.cupid
@@ -57,7 +58,15 @@ repository:
             name: storage.modifier.cupid
           '4':
             name: entity.name.type.class.cupid
-      - match: \b(impl)\s+([A-Za-z_][A-Za-z0-9_\-]*)(?:\s*(for)\s*([A-Za-z_][A-Za-z0-9_\-]*))?\b
+      - name: meta.class.trait.cupid
+        match: \b(trait)\s+([A-Za-z_][A-Za-z0-9_\-]*)\b
+        captures:
+          '1':
+            name: storage.type.class.trait.cupid
+          '2':
+            name: entity.name.type.class.trait.cupid
+      - name: meta.class.trait.impl.cupid
+        match: \b(impl)\s+([A-Za-z_][A-Za-z0-9_\-]*)(?:\s*(for)\s*([A-Za-z_][A-Za-z0-9_\-]*))?\b
         captures:
           '1':
             name: storage.type.class.cupid

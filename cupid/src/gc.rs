@@ -76,6 +76,7 @@ impl<T: Debug> PartialEq for GcRef<T> {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Gc {
     next_gc: usize,
     first: Option<NonNull<GcObject>>,

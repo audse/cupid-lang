@@ -11,6 +11,7 @@ pub fn run_file(vm: &mut Vm, path: &str) {
             process::exit(74);
         }
     };
+
     if let Err(error) = vm.interpret(&code) {
         match error {
             CupidError::CompileError => process::exit(65),

@@ -1,0 +1,9 @@
+fun f () {
+    loop {
+        let i = 'i'
+        return i
+    }
+}
+
+log (f())
+-- expect: i

@@ -36,16 +36,19 @@ pub enum TokenType {
 
     // Keywords.
     And,
-    In,
+    Break,
     Class,
     Else,
     False,
     For,
     Fun,
     If,
+    Impl,
+    In,
     Nil,
     Or,
     Log,
+    Loop,
     Return,
     Super,
     This,
@@ -53,7 +56,6 @@ pub enum TokenType {
     Let,
     While,
     Role,
-    Impl,
 
     Error,
     Eof,

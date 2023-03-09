@@ -1,0 +1,6 @@
+loop {
+    let i = 'before'
+    break
+}
+
+log (i) --> expect runtime error: Undefined variable 'i'.

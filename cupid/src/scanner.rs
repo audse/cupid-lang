@@ -28,16 +28,19 @@ impl<'src> Scanner<'src> {
     pub fn new(code: &'src str) -> Scanner {
         let keywords: HashMap<&str, TokenType> = keyword_map!(17, {
             "and": TokenType::And,
+            "break": TokenType::Break,
             "class": TokenType::Class,
             "else": TokenType::Else,
             "false": TokenType::False,
             "for": TokenType::For,
             "fun": TokenType::Fun,
             "if": TokenType::If,
+            "impl": TokenType::Impl,
             "in": TokenType::In,
             "none": TokenType::Nil,
             "or": TokenType::Or,
             "log": TokenType::Log,
+            "loop": TokenType::Loop,
             "return": TokenType::Return,
             "super": TokenType::Super,
             "self": TokenType::This,
@@ -45,7 +48,6 @@ impl<'src> Scanner<'src> {
             "let": TokenType::Let,
             "while": TokenType::While,
             "trait": TokenType::Role,
-            "impl": TokenType::Impl,
         });
 
         Scanner {
