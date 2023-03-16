@@ -10,6 +10,7 @@ members = [
 [dependencies]
 mimalloc = { version = "*", default-features = false }
 cupid-fmt = { path = "cupid-fmt" }
+serde = "1.0.155"
 
 [dev-dependencies]
 regex = "1.5.4"

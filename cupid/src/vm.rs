@@ -1,10 +1,10 @@
 use crate::{
     // chunk::Instruction,
     compiler::compile,
-    error::CupidError,
+    error::CupidErr,
     expose,
     gc::{Gc, GcRef},
-    objects::{BoundMethod, Class, Closure, Instance, NativeFunction, Str, Upvalue},
+    objects::{BoundMethod, Class, Closure, Function, Instance, NativeFunction, Str, Upvalue},
     table::Table,
     value::Value,
 };
@@ -58,8 +58,15 @@ impl Vm {
         self.stack.top = self.stack.stack.as_mut_ptr();
     }
 
-    pub fn interpret(&mut self, code: &str) -> Result<(), CupidError> {
+    pub fn interpret(&mut self, code: &str) -> Result<(), CupidErr> {
         let function = compile(code, &mut self.gc)?;
+        self.stack.push(Value::Function(function));
+        let closure = self.alloc(Closure::new(function));
+        self.frames.increment(CallFrame::new(closure, 0));
+        self.run()
+    }
+
+    pub fn interpret_function(&mut self, function: GcRef<Function>) -> Result<(), CupidErr> {
         self.stack.push(Value::Function(function));
         let closure = self.alloc(Closure::new(function));
         self.frames.increment(CallFrame::new(closure, 0));
@@ -71,7 +78,7 @@ impl Vm {
         self.globals.set(name, Value::NativeFunction(native));
     }
 
-    pub fn call_value(&mut self, arg_count: usize) -> Result<(), CupidError> {
+    pub fn call_value(&mut self, arg_count: usize) -> Result<(), CupidErr> {
         let callee = self.stack.peek(arg_count);
         match callee {
             Value::BoundMethod(bound) => {
@@ -88,7 +95,7 @@ impl Vm {
                     return self.runtime_err("Initializer is not closure");
                 } else if arg_count != 0 {
                     let msg = format!("Expected 0 arguments but got {}.", arg_count);
-                    return self.runtime_err(&msg);
+                    return self.runtime_err(msg);
                 }
                 Ok(())
             }
@@ -100,14 +107,18 @@ impl Vm {
                 self.stack.push(result);
                 Ok(())
             }
+            Value::Function(fun) => self.runtime_err(format!(
+                "Can only call functions and classes, not {:#?}",
+                fun.deref()
+            )),
             _ => self.runtime_err("Can only call functions and classes."),
         }
     }
 
-    pub fn call(&mut self, closure: GcRef<Closure>, arg_count: usize) -> Result<(), CupidError> {
+    pub fn call(&mut self, closure: GcRef<Closure>, arg_count: usize) -> Result<(), CupidErr> {
         let function = closure.function;
         if arg_count != function.arity {
-            self.runtime_err(&format!(
+            self.runtime_err(format!(
                 "Expected {} arguments but got {}.",
                 function.arity, arg_count
             ))
@@ -120,7 +131,7 @@ impl Vm {
         }
     }
 
-    pub fn invoke(&mut self, name: GcRef<Str>, arg_count: usize) -> Result<(), CupidError> {
+    pub fn invoke(&mut self, name: GcRef<Str>, arg_count: usize) -> Result<(), CupidErr> {
         let receiver = self.stack.peek(arg_count);
         if let Value::Instance(instance) = receiver {
             if let Some(field) = instance.fields.get(name) {
@@ -131,7 +142,7 @@ impl Vm {
                 self.invoke_from_class(class, name, arg_count)
             }
         } else {
-            self.runtime_err("Only instances have methods.")
+            self.runtime_err(&format!("Only instances have methods, not {}", name.deref()))
         }
     }
 
@@ -140,7 +151,7 @@ impl Vm {
         class: GcRef<Class>,
         name: GcRef<Str>,
         arg_count: usize,
-    ) -> Result<(), CupidError> {
+    ) -> Result<(), CupidErr> {
         if let Some(method) = class.methods.get(name) {
             if let Value::Closure(closure) = method {
                 self.call(closure, arg_count)
@@ -148,12 +159,11 @@ impl Vm {
                 panic!("Got method that is not closure!")
             }
         } else {
-            let msg = format!("Undefined property '{}'.", name.deref());
-            self.runtime_err(&msg)
+            self.runtime_err(format!("Undefined property '{}'.", name.deref()))
         }
     }
 
-    pub fn bind_method(&mut self, class: GcRef<Class>, name: GcRef<Str>) -> Result<(), CupidError> {
+    pub fn bind_method(&mut self, class: GcRef<Class>, name: GcRef<Str>) -> Result<(), CupidErr> {
         if let Some(method) = class.methods.get(name) {
             let receiver = self.stack.peek(0);
             let method = match method {
@@ -165,8 +175,7 @@ impl Vm {
             self.stack.push(Value::BoundMethod(bound));
             Ok(())
         } else {
-            let msg = format!("Undefined property '{}'.", name.deref());
-            self.runtime_err(&msg)
+            self.runtime_err(format!("Undefined property '{}'.", name.deref()))
         }
     }
 
@@ -208,7 +217,11 @@ impl Vm {
                 role.class.methods.set(name, method);
                 self.stack.pop();
             }
-            _ => panic!("Invalid state: trying to define a method of non class"),
+            _ => panic!(
+                "Invalid state: trying to define a method of non class: {} ({:#?})",
+                name.deref(),
+                self.stack.peek(1)
+            ),
         }
     }
 

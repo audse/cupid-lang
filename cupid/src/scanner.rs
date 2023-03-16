@@ -6,14 +6,14 @@ use crate::{
 };
 
 macro_rules! keyword_map {
-    ( $capacity:literal, { $( $key:tt : $val:expr ),* $(,)? } ) => {{
-        (|| {
+    ( $capacity:literal, { $( $key:literal : $val:expr ),* $(,)? } ) => {{
+        {
             let mut map = HashMap::with_capacity_and_hasher($capacity, Default::default());
             $(
                 map.insert($key, $val);
             )*
             map
-        })()
+        }
     }};
 }
 
@@ -27,27 +27,27 @@ pub struct Scanner<'src> {
 impl<'src> Scanner<'src> {
     pub fn new(code: &'src str) -> Scanner {
         let keywords: HashMap<&str, TokenType> = keyword_map!(17, {
-            "and": TokenType::And,
-            "break": TokenType::Break,
-            "class": TokenType::Class,
-            "else": TokenType::Else,
-            "false": TokenType::False,
-            "for": TokenType::For,
-            "fun": TokenType::Fun,
-            "if": TokenType::If,
-            "impl": TokenType::Impl,
-            "in": TokenType::In,
-            "none": TokenType::Nil,
-            "or": TokenType::Or,
-            "log": TokenType::Log,
-            "loop": TokenType::Loop,
+               "and": TokenType::And,
+             "break": TokenType::Break,
+             "class": TokenType::Class,
+              "else": TokenType::Else,
+             "false": TokenType::False,
+               "for": TokenType::For,
+               "fun": TokenType::Fun,
+                "if": TokenType::If,
+              "impl": TokenType::Impl,
+                "in": TokenType::In,
+              "none": TokenType::Nil,
+                "or": TokenType::Or,
+               "log": TokenType::Log,
+              "loop": TokenType::Loop,
             "return": TokenType::Return,
-            "super": TokenType::Super,
-            "self": TokenType::This,
-            "true": TokenType::True,
-            "let": TokenType::Let,
-            "while": TokenType::While,
-            "trait": TokenType::Role,
+             "super": TokenType::Super,
+              "self": TokenType::This,
+              "true": TokenType::True,
+               "let": TokenType::Let,
+             "while": TokenType::While,
+             "trait": TokenType::Role,
         });
 
         Scanner {
@@ -86,6 +86,7 @@ impl<'src> Scanner<'src> {
             b'[' => self.make_token(TokenType::LeftBracket),
             b']' => self.make_token(TokenType::RightBracket),
             b';' => self.make_token(TokenType::Semicolon),
+            b':' => self.make_token(TokenType::Colon),
             b',' => self.make_token(TokenType::Comma),
             b'.' => self.make_token(TokenType::Dot),
             b'-' => self.make_token(TokenType::Minus),
@@ -219,10 +220,7 @@ impl<'src> Scanner<'src> {
     }
 
     fn identifier_type(&self) -> TokenType {
-        self.keywords
-            .get(self.lexeme())
-            .cloned()
-            .unwrap_or(TokenType::Identifier)
+        self.keywords.get(self.lexeme()).cloned().unwrap_or(TokenType::Identifier)
     }
 }
 

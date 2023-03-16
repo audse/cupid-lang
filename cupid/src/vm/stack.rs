@@ -1,8 +1,6 @@
 use std::ptr::null_mut;
 
-use crate::value::{Type, Value};
-
-use super::Frames;
+use crate::{value::Value, vm::Frames};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Stack<T: Copy + std::fmt::Debug> {
@@ -39,6 +37,10 @@ impl<T: Copy + std::fmt::Debug> Stack<T> {
         unsafe { self.top.offset_from(self.stack.as_ptr()) as usize }
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn set_at(&mut self, n: usize, value: T) {
         unsafe {
             let pos = self.top.offset(-1 - (n as isize));
@@ -51,15 +53,6 @@ impl Default for Stack<Value> {
     fn default() -> Self {
         Self {
             stack: [Value::Nil; SIZE],
-            top: null_mut(),
-        }
-    }
-}
-
-impl Default for Stack<Type> {
-    fn default() -> Self {
-        Self {
-            stack: [Type::Unknown; SIZE],
             top: null_mut(),
         }
     }

@@ -64,7 +64,7 @@ export default class Interpreter extends ExprVisitor<Value> {
                 param.ident.expectSymbol().value = call.args[i]
             })
             if (fun.hasSelfParam && call.fun instanceof Lookup) {
-                fun.scope.annotate(
+                fun.scope.annotate_ty(
                     new Ident({ scope: call.fun.scope, name: 'self', file: fun.file, source: fun.source }),
                     { value: call.fun.environment }
                 )

@@ -3,7 +3,7 @@ use std::{collections::HashMap, convert::TryFrom, mem};
 use crate::{
     chunk::Instruction,
     compiler::{ClassCompiler, Compiler, FunctionType, Local},
-    error::CupidError,
+    error::CupidErr,
     gc::{Gc, GcRef},
     objects::Function,
     scanner::Scanner,
@@ -43,8 +43,8 @@ impl Precedence {
     }
 }
 
-type SimpleParseFn<'src> = fn(&mut Parser<'src>) -> ();
-type ParseFn<'src> = fn(&mut Parser<'src>, can_assign: bool) -> ();
+type SimpleParseFn<'src> = fn(&mut Parser<'src>);
+type ParseFn<'src> = fn(&mut Parser<'src>, can_assign: bool);
 
 #[derive(Copy, Clone, Default)]
 pub struct ParseRule<'src> {
@@ -93,12 +93,7 @@ impl<'src> Parser<'src> {
         use self::Precedence as P;
         use self::TokenType::*;
 
-        rule(
-            LeftParen,
-            Some(Parser::grouping),
-            Some(Parser::call),
-            P::Call,
-        );
+        rule(LeftParen, Some(Parser::grouping), Some(Parser::call), P::Call);
         rule(RightParen, None, None, P::None);
         rule(LeftBrace, None, None, P::None);
         rule(RightBrace, None, None, P::None);
@@ -164,7 +159,7 @@ impl<'src> Parser<'src> {
         }
     }
 
-    pub fn compile(mut self) -> Result<GcRef<Function>, CupidError> {
+    pub fn compile(mut self) -> Result<GcRef<Function>, CupidErr> {
         self.advance();
 
         while !self.matches(TokenType::Eof) {
@@ -174,7 +169,7 @@ impl<'src> Parser<'src> {
         self.emit_return();
 
         if self.had_error {
-            Err(CupidError::CompileError)
+            Err(CupidErr::CompileError)
         } else {
             Ok(self.gc.alloc(self.compiler.function))
         }
@@ -247,18 +242,12 @@ impl<'src> Parser<'src> {
     }
 
     fn methods(&mut self, ty: &str) {
-        self.consume(
-            TokenType::LeftBrace,
-            &format!("Expect '{{' before {ty} body."),
-        );
+        self.consume(TokenType::LeftBrace, &format!("Expect '{{' before {ty} body."));
         while !self.check_any(&[TokenType::RightBrace, TokenType::Eof]) {
             self.method();
             while self.matches(TokenType::NewLine) {}
         }
-        self.consume(
-            TokenType::RightBrace,
-            &format!("Expect '}}' after {ty} body."),
-        );
+        self.consume(TokenType::RightBrace, &format!("Expect '}}' after {ty} body."));
     }
 
     fn role_impl_declaration(&mut self) {
@@ -312,7 +301,10 @@ impl<'src> Parser<'src> {
                 if self.compiler.function.arity > 255 {
                     self.error_at_current("Can't have more than 255 parameters.");
                 }
+
                 let param = self.parse_variable("Expect parameter name.");
+                self.optional_type_hint();
+
                 self.define_variable(param);
                 if !self.matches(TokenType::Comma) {
                     break;
@@ -325,11 +317,7 @@ impl<'src> Parser<'src> {
         self.push_compiler(kind);
         self.begin_scope();
 
-        self.parens(
-            Self::function_params,
-            "before parameters.",
-            "after parameters.",
-        );
+        self.parens(Self::function_params, "before parameters.", "after parameters.");
 
         self.function_body();
 
@@ -356,8 +344,20 @@ impl<'src> Parser<'src> {
         self.emit(Instruction::Method(constant));
     }
 
+    fn optional_type_hint(&mut self) -> Option<u8> {
+        if self.matches(TokenType::Colon) {
+            self.consume(TokenType::Identifier, "Expect type name.");
+            let idx = self.identifier_constant(self.previous);
+            return Some(idx);
+        }
+        None
+    }
+
     fn var_declaration(&mut self) {
         let index = self.parse_variable("Expect variable name.");
+
+        self.optional_type_hint();
+
         if self.matches(TokenType::Equal) {
             self.expression();
         } else {
@@ -575,20 +575,12 @@ impl<'src> Parser<'src> {
     }
 
     fn float(&mut self, _can_assign: bool) {
-        let value: f64 = self
-            .previous
-            .lexeme
-            .parse()
-            .expect("Parsed value is not a double");
+        let value: f64 = self.previous.lexeme.parse().expect("Parsed value is not a double");
         self.emit_constant(Value::Float(value));
     }
 
     fn int(&mut self, _can_assign: bool) {
-        let value: i32 = self
-            .previous
-            .lexeme
-            .parse()
-            .expect("Parsed value is not a double");
+        let value: i32 = self.previous.lexeme.parse().expect("Parsed value is not a double");
         self.emit_constant(Value::Int(value));
     }
 
@@ -628,7 +620,7 @@ impl<'src> Parser<'src> {
         if self.matches(TokenType::LeftParen) {
             let arg_count = self.argument_list();
             self.named_variable(Token::synthetic("super"), false);
-            self.emit(Instruction::SuperInvoke((name, arg_count)));
+            self.emit(Instruction::SuperInvoke(name, arg_count));
         } else {
             self.named_variable(Token::synthetic("super"), false);
             self.emit(Instruction::GetSuper(name));
@@ -675,9 +667,7 @@ impl<'src> Parser<'src> {
     }
 
     fn resolve_upvalue(&mut self, name: Token) -> Option<u8> {
-        let result = self
-            .compiler
-            .resolve_upvalue(name, &mut self.resolver_errors);
+        let result = self.compiler.resolve_upvalue(name, &mut self.resolver_errors);
         while let Some(e) = self.resolver_errors.pop() {
             self.error(e);
         }
@@ -720,7 +710,7 @@ impl<'src> Parser<'src> {
             self.emit(Instruction::SetProperty(name));
         } else if self.matches(TokenType::LeftParen) {
             let arg_count = self.argument_list();
-            self.emit(Instruction::Invoke((name, arg_count)));
+            self.emit(Instruction::Invoke(name, arg_count));
         } else {
             self.emit(Instruction::GetProperty(name));
         }
@@ -982,21 +972,12 @@ impl<'src> Parser<'src> {
     }
 
     fn emit(&mut self, instruction: Instruction) -> usize {
-        self.compiler
-            .function
-            .chunk
-            .write(instruction, self.previous.position.line)
+        self.compiler.function.chunk.write(instruction, self.previous.position.line)
     }
 
     fn emit_two(&mut self, i1: Instruction, i2: Instruction) -> usize {
-        self.compiler
-            .function
-            .chunk
-            .write(i1, self.previous.position.line);
-        self.compiler
-            .function
-            .chunk
-            .write(i2, self.previous.position.line)
+        self.compiler.function.chunk.write(i1, self.previous.position.line);
+        self.compiler.function.chunk.write(i2, self.previous.position.line)
     }
 
     fn emit_return(&mut self) -> usize {
@@ -1032,7 +1013,6 @@ impl<'src> Parser<'src> {
                 0xfff
             }
         };
-
         match self.compiler.function.chunk.code[pos] {
             Instruction::JumpIfFalse(ref mut o) => *o = offset,
             Instruction::Jump(ref mut o) => *o = offset,

@@ -1,21 +1,29 @@
+pub mod analyze;
+pub mod ast;
 pub mod chunk;
 pub mod compiler;
 pub mod error;
 pub mod expose;
 pub mod gc;
 pub mod objects;
+pub mod parse;
 pub mod parser;
+pub mod pointer;
 pub mod repl;
 pub mod run;
 pub mod scanner;
+pub mod scope;
 pub mod span;
 pub mod table;
 pub mod token;
+pub mod ty;
 pub mod value;
 pub mod vm;
 
 use std::env;
 use std::process;
+
+extern crate cupid_fmt;
 
 fn main() {
     let args: Vec<String> = env::args().collect();

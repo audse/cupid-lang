@@ -1,4 +1,4 @@
-use std::fmt::{Debug, Display};
+use std::fmt::Debug;
 use std::ptr::NonNull;
 use std::{alloc, mem};
 use std::{
@@ -16,7 +16,7 @@ use crate::{
 };
 
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct GcObject {
     marked: bool,
     next: Option<NonNull<GcObject>>,
@@ -98,7 +98,7 @@ impl Default for Gc {
 impl Gc {
     const HEAP_GROW_FACTOR: usize = 2;
 
-    pub fn alloc<T: Display + Debug + 'static>(&mut self, object: T) -> GcRef<T> {
+    pub fn alloc<T: Debug + 'static>(&mut self, object: T) -> GcRef<T> {
         unsafe {
             let boxed = Box::new(object);
             let pointer = NonNull::new_unchecked(Box::into_raw(boxed));
@@ -110,8 +110,8 @@ impl Gc {
         }
     }
 
-    pub fn intern(&mut self, s: String) -> GcRef<Str> {
-        let ls = Str::from_string(s);
+    pub fn intern(&mut self, s: impl Into<String>) -> GcRef<Str> {
+        let ls = Str::from_string(s.into());
         if let Some(value) = self.strings.find_string(&ls.s, ls.hash) {
             value
         } else {
@@ -252,8 +252,7 @@ struct GlobalAllocator {
 
 impl GlobalAllocator {
     fn bytes_allocated(&self) -> usize {
-        self.bytes_allocated
-            .load(std::sync::atomic::Ordering::Relaxed)
+        self.bytes_allocated.load(std::sync::atomic::Ordering::Relaxed)
     }
 }
 

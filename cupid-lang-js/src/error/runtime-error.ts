@@ -1,11 +1,11 @@
-import { CupidError, Reportable } from './error'
+import { CupidErr, Reportable } from './error'
 
 export enum RuntimeErrorCode {
     Unimplemented = 'unimplemented',
     Unreachable = 'unreachable',
 }
 
-export class RuntimeError<T extends Reportable> extends CupidError<T> implements Reportable {
+export class RuntimeError<T extends Reportable> extends CupidErr<T> implements Reportable {
 
     code: RuntimeErrorCode = RuntimeErrorCode.Unimplemented
     message: string = ''

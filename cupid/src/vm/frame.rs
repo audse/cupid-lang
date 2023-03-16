@@ -52,15 +52,15 @@ impl Frames {
         &self.frames[self.count - 1]
     }
 
-    pub fn current_frame<'this, 'frame>(&'this mut self) -> &'frame mut CallFrame {
+    pub fn current_frame<'frame>(&mut self) -> &'frame mut CallFrame {
         unsafe { &mut *(&mut self.frames[self.count - 1] as *mut CallFrame) }
     }
 
-    pub fn current_chunk<'this, 'chunk>(&'this mut self) -> &'chunk Chunk {
+    pub fn current_chunk<'chunk>(&mut self) -> &'chunk Chunk {
         &self.current_frame().closure.function.chunk
     }
 
-    pub fn state<'this, 'frame, 'chunk>(&'this mut self) -> FrameState<'frame, 'chunk> {
+    pub fn state<'frame, 'chunk>(&mut self) -> FrameState<'frame, 'chunk> {
         FrameState {
             frame: self.current_frame(),
             chunk: self.current_chunk(),

@@ -115,12 +115,12 @@ impl ColorString {
         .flatten()
         .filter(|color| !color.is_empty())
         .collect();
-        return format!(
+        format!(
             "{begin}{content}{end}",
             begin = to_console_color(full_color.join(";")),
             content = self.string,
             end = to_console_color(modifier::RESET)
-        );
+        )
     }
 }
 

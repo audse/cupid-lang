@@ -1,5 +1,5 @@
 import { pluralize } from '@/utils'
-import { CupidError, Reportable } from './error'
+import { CupidErr, Reportable } from './error'
 
 export enum CompilationErrorCode {
     AlreadyDefined = 'already defined',
@@ -17,7 +17,7 @@ export enum CompilationErrorCode {
     Unreachable = 'unreachable',
 }
 
-export class CompilationError<T extends Reportable> extends CupidError<T> {
+export class CompilationError<T extends Reportable> extends CupidErr<T> {
 
     code: CompilationErrorCode = CompilationErrorCode.Unimplemented
     message: string = ''

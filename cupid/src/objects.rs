@@ -25,7 +25,7 @@ pub use self::role::RoleImpl;
 pub mod upvalue;
 pub use self::upvalue::{FunctionUpvalue, Upvalue};
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum ObjectType {
     Array,
     BoundMethod,

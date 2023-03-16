@@ -1,109 +1,107 @@
-class array {
+{
+    class array {
 
-	init (items) {
-		self.items = items
-	}
+        init (items) {
+            self.items = items
+        }
 
-	push (item) => push(self.items, item)
-	pop () => return pop(self.items)
-	len () => return len(self.items)
-	get (i) => return get(self.items, i)
-	last () => return self.get(self.len() - 1)
+        push (item) => push(self.items, item)
+        pop () => return pop(self.items)
+        len () => return len(self.items)
+        get (i) => return get(self.items, i)
+        last () => return self.get(self.len() - 1)
 
-	map (map-fun) {
-		let results = array([])
-		for (let i = 0; i < self.len(); i = i + 1) {
-			results.push(map-fun(self.get(i)))
-		}
-		return results
-	}
+        map (map-fun) {
+            let results = array([])
+            for (let i = 0; i < self.len(); i = i + 1) {
+                results.push(map-fun(self.get(i)))
+            }
+            return results
+        }
+    }
+
+    class dict {
+
+        init (entries) {
+            self.entries = array(entries)
+        }
+
+        len () => return self.entries.len()
+
+        find (key) {
+            for (let i = 0; i < self.len(); i = i + 1) {
+                let entry = self.get(i)
+                if entry.get(0) == key => return entry.last()
+            }
+            return none
+        }
+
+        get (i) {
+            return self.entries.get(i)
+        }
+
+        insert (key, value) {
+            self.entries.push(array([key, value]))
+        }
+    }
+
+    let x = dict ([
+        array (['a', 1]),
+        array (['b', 2])
+    ])
+
+    log (x.find ('a'))
+
+
+    class type {
+        init (name, fields) {
+            self.name = name
+            self.fields = dict(fields)
+        }
+        
+        is-primitive () => return self.fields.len() == 0
+
+        keys () {
+            let keys = array([])
+            let i = 0
+            while i < self.fields.len() {
+                log (i)
+                keys.push(self.fields.get(i).get(0))
+                i = i + 1
+            }
+            return keys
+        }
+    }
+
+    fun point (t) {
+        return type(
+            'point',
+            [
+                array(['x', t]), 
+                array(['y', t])
+            ]
+        )
+    }
+
+    let int = type('int', [])
+    log (point(int).keys().items)
+
+    log (array([1, 2, 3]).map(fun (item) => return item * 2).items)
+
+    let i = 0
+
+    loop {
+        -- log (i)
+        i = i + 1
+        if i > 5 break i
+    }
+
 }
-
-class dict {
-
-	init (entries) {
-		self.entries = array(entries)
-	}
-
-	len () => return self.entries.len()
-
-	find (key) {
-		for (let i = 0; i < self.len(); i = i + 1) {
-			let entry = self.get(i)
-			if entry.get(0) == key {
-				return entry.last()
-			}
-		}
-		return none
-	}
-
-	get (i) {
-		return self.entries.get(i)
-	}
-
-	insert (key, value) {
-		self.entries.push(array([key, value]))
-	}
-}
-
-let x = dict ([
-	array (['a', 1]),
-	array (['b', 2])
-])
-
--- log (x.find ('a'))
-
-
-class type {
-	init (name, fields) {
-		self.name = name
-		self.fields = dict(fields)
-	}
-	
-	is-primitive () => return self.fields.len() == 0
-
-	keys () {
-		let keys = array([])
-		for (let i = 0; i < self.fields.len(); i = i + 1) {
-			keys.push(self.fields.get(i).get(0))
-		}
-		return keys
-	}
-}
-
-fun point (t) {
-	return type(
-		'point',
-		[
-			array(['x', t]), 
-			array(['y', t])
-		]
-	)
-}
-
-let int = type('int', [])
-
-let my-type = point(int)
-
--- log(my-type.keys().items)
-
-impl some-trait for array {
-	do-something () {
-		log ('something happened!')
-	}
-}
-
--- log (array)
 
 -- let my-array = array([])
+-- impl some-trait for array {
+--     do-something () {
+--         -- log ('something happened!')
+--     }
+-- }
 -- my-array.do-something()
-
--- log(array([1, 2, 3]).map(fun (item) => return item * 2).items)
-
-let i = 0
-
-loop {
-	log (i)
-	i = i + 1
-	if i > 5 break i
-}

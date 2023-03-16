@@ -4,10 +4,16 @@ use std::ptr::null_mut;
 
 use crate::{gc::GcRef, objects::Str, value::Value};
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Copy, Clone)]
 struct Entry {
     key: Option<GcRef<Str>>,
     value: Value,
+}
+
+impl fmt::Debug for Entry {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}: {}", self.key.as_deref(), self.value)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -175,10 +181,7 @@ impl Table {
                 continue;
             }
         }
-        dealloc(
-            self.entries.cast(),
-            Layout::array::<Entry>(self.capacity).unwrap(),
-        );
+        dealloc(self.entries.cast(), Layout::array::<Entry>(self.capacity).unwrap());
         self.entries = entries;
         self.capacity = capacity;
     }
@@ -188,10 +191,7 @@ impl Drop for Table {
     fn drop(&mut self) {
         unsafe {
             if !self.entries.is_null() {
-                dealloc(
-                    self.entries.cast(),
-                    Layout::array::<Entry>(self.capacity).unwrap(),
-                );
+                dealloc(self.entries.cast(), Layout::array::<Entry>(self.capacity).unwrap());
             }
         }
     }
@@ -281,9 +281,8 @@ mod tests {
     fn grow() {
         let mut gc = Gc::default();
         let mut table = Table::default();
-        let keys: Vec<GcRef<Str>> = (0..64)
-            .map(|i| gc.alloc(Str::from_string(format!("key {}", i))))
-            .collect();
+        let keys: Vec<GcRef<Str>> =
+            (0..64).map(|i| gc.alloc(Str::from_string(format!("key {}", i)))).collect();
 
         for (i, &key) in keys.iter().enumerate() {
             table.set(key, Value::Float(i as f64));
@@ -302,9 +301,8 @@ mod tests {
     fn add_all() {
         let mut gc = Gc::default();
         let mut table = Table::default();
-        let keys: Vec<GcRef<Str>> = (0..64)
-            .map(|i| gc.alloc(Str::from_string(format!("key {}", i))))
-            .collect();
+        let keys: Vec<GcRef<Str>> =
+            (0..64).map(|i| gc.alloc(Str::from_string(format!("key {}", i)))).collect();
 
         for (i, &key) in keys.iter().enumerate() {
             table.set(key, Value::Float(i as f64));

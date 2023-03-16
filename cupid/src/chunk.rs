@@ -1,3 +1,5 @@
+use std::fmt;
+
 use crate::{gc::GcRef, objects::Str, value::Value};
 
 #[derive(Debug, Copy, Clone)]
@@ -20,7 +22,7 @@ pub enum Instruction {
     GetUpvalue(u8),
     Greater,
     Inherit,
-    Invoke((u8, u8)),
+    Invoke(u8, u8),
     Jump(u16),
     JumpIfFalse(u16),
     Less,
@@ -39,11 +41,11 @@ pub enum Instruction {
     SetProperty(u8),
     SetUpvalue(u8),
     Subtract,
-    SuperInvoke((u8, u8)),
+    SuperInvoke(u8, u8),
     True,
 }
 
-#[derive(Default, Debug)]
+#[derive(Default)]
 pub struct Chunk {
     pub code: Vec<Instruction>,
     pub constants: Vec<Value>,
@@ -72,5 +74,15 @@ impl Chunk {
         } else {
             panic!("Constant is not String!")
         }
+    }
+}
+
+impl fmt::Debug for Chunk {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let exprs: Vec<String> = self.code.iter().map(|expr| format!("{expr:?}")).collect();
+        f.debug_struct("Chunk")
+            .field("code", &exprs)
+            .field("constants", &self.constants)
+            .finish()
     }
 }

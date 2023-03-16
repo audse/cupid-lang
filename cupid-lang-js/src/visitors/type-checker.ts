@@ -44,7 +44,7 @@ export default class TypeChecker extends BaseExprVisitorWithContext<TypeUnifier>
     visitDecl (decl: Decl, unifier: TypeUnifier): void {
         super.visitDecl(decl, unifier)
         const type = unifier.visit(decl.type, decl.value.expectType())
-        decl.scope.annotate(decl.ident, { type })
+        decl.scope.annotate_ty(decl.ident, { type })
     }
 
     visitFun (fun: Fun, unifier: TypeUnifier): void {

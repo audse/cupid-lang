@@ -2,7 +2,7 @@ use std::ops::Deref;
 
 use crate::{
     chunk::Instruction,
-    error::CupidError,
+    error::CupidErr,
     objects::{Array, Class, Closure, RoleImpl},
     table::Table,
     value::Value,
@@ -11,33 +11,34 @@ use crate::{
 use super::Vm;
 
 pub trait Runtime {
-    fn into_runtime_err(&self, msg: impl std::fmt::Display) -> CupidError;
-    fn runtime_err(&self, msg: impl std::fmt::Display) -> Result<(), CupidError>;
-    fn run(&mut self) -> Result<(), CupidError>;
+    fn as_runtime_err(&self, msg: impl std::fmt::Display) -> CupidErr;
+    fn runtime_err(&self, msg: impl std::fmt::Display) -> Result<(), CupidErr>;
+    fn run(&mut self) -> Result<(), CupidErr>;
 }
 
 impl Runtime for Vm {
-    fn into_runtime_err(&self, msg: impl std::fmt::Display) -> CupidError {
+    fn as_runtime_err(&self, msg: impl std::fmt::Display) -> CupidErr {
         self.runtime_err(msg).unwrap_err()
     }
 
-    fn runtime_err(&self, msg: impl std::fmt::Display) -> Result<(), CupidError> {
+    fn runtime_err(&self, msg: impl std::fmt::Display) -> Result<(), CupidErr> {
         eprintln!("{}", msg);
         eprintln!("[line {}] in script", self.frames.frame().line());
-        Err(CupidError::RuntimeError)
+        Err(CupidErr::RuntimeError)
     }
 
-    fn run(&mut self) -> Result<(), CupidError> {
+    fn run(&mut self) -> Result<(), CupidErr> {
         let mut state = self.frames.state();
 
         loop {
             let instruction = state.instruction();
+            // println!("{:?}", instruction);
             state.set_instruction(1);
 
             match instruction {
                 Instruction::Add => {
                     let (b, a) = (self.stack.pop(), self.stack.pop());
-                    let result = a.add(b, self).map_err(|e| self.into_runtime_err(e))?;
+                    let result = a.add(b, self).map_err(|e| self.as_runtime_err(e))?;
                     self.stack.push(result);
                 }
                 Instruction::Array(item_count) => {
@@ -98,8 +99,7 @@ impl Runtime for Vm {
                 }
                 Instruction::Divide => {
                     let (b, a) = (self.stack.pop(), self.stack.pop());
-                    self.stack
-                        .push(a.divide(b).map_err(|e| self.into_runtime_err(e))?);
+                    self.stack.push(a.divide(b).map_err(|e| self.as_runtime_err(e))?);
                 }
                 Instruction::Equal => {
                     let (b, a) = (self.stack.pop(), self.stack.pop());
@@ -111,7 +111,7 @@ impl Runtime for Vm {
                     match self.globals.get(global_name) {
                         Some(value) => self.stack.push(value),
                         None => {
-                            return self.runtime_err(&format!(
+                            return self.runtime_err(format!(
                                 "Undefined variable '{}'.",
                                 global_name.deref()
                             ));
@@ -159,8 +159,7 @@ impl Runtime for Vm {
                 }
                 Instruction::Greater => {
                     let (b, a) = (self.stack.pop(), self.stack.pop());
-                    self.stack
-                        .push(a.greater(b).map_err(|e| self.into_runtime_err(e))?);
+                    self.stack.push(a.greater(b).map_err(|e| self.as_runtime_err(e))?);
                 }
                 Instruction::Inherit => {
                     let pair = (self.stack.peek(0), self.stack.peek(1));
@@ -172,7 +171,7 @@ impl Runtime for Vm {
                         return self.runtime_err("Superclass must be a class.");
                     }
                 }
-                Instruction::Invoke((constant, arg_count)) => {
+                Instruction::Invoke(constant, arg_count) => {
                     let name = state.chunk.read_string(constant);
                     self.invoke(name, arg_count as usize)?;
                     state = self.frames.state();
@@ -187,8 +186,7 @@ impl Runtime for Vm {
                 }
                 Instruction::Less => {
                     let (b, a) = (self.stack.pop(), self.stack.pop());
-                    self.stack
-                        .push(a.lesser(b).map_err(|e| self.into_runtime_err(e))?);
+                    self.stack.push(a.lesser(b).map_err(|e| self.as_runtime_err(e))?);
                 }
                 Instruction::Loop(offset) => {
                     state.set_instruction(-1 - (offset as isize));
@@ -199,8 +197,7 @@ impl Runtime for Vm {
                 }
                 Instruction::Multiply => {
                     let (b, a) = (self.stack.pop(), self.stack.pop());
-                    self.stack
-                        .push(a.multiply(b).map_err(|e| self.into_runtime_err(e))?);
+                    self.stack.push(a.multiply(b).map_err(|e| self.as_runtime_err(e))?);
                 }
                 Instruction::Negate => match self.stack.peek(0) {
                     Value::Float(value) => {
@@ -252,10 +249,8 @@ impl Runtime for Vm {
                     let value = self.stack.peek(0);
                     if self.globals.set(global_name, value) {
                         self.globals.delete(global_name);
-                        return self.runtime_err(&format!(
-                            "Undefined variable '{}'.",
-                            global_name.deref()
-                        ));
+                        return self
+                            .runtime_err(format!("Undefined variable '{}'.", global_name.deref()));
                     }
                 }
                 Instruction::SetLocal(slot) => {
@@ -285,10 +280,9 @@ impl Runtime for Vm {
                 }
                 Instruction::Subtract => {
                     let (b, a) = (self.stack.pop(), self.stack.pop());
-                    self.stack
-                        .push(a.subtract(b).map_err(|e| self.into_runtime_err(e))?);
+                    self.stack.push(a.subtract(b).map_err(|e| self.as_runtime_err(e))?);
                 }
-                Instruction::SuperInvoke((constant, arg_count)) => {
+                Instruction::SuperInvoke(constant, arg_count) => {
                     let method_name = state.chunk.read_string(constant);
                     if let Value::Class(class) = self.stack.pop() {
                         self.invoke_from_class(class, method_name, arg_count as usize)?;

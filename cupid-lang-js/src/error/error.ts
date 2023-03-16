@@ -6,7 +6,7 @@ export interface Reportable {
     log: () => void
 }
 
-export class CupidError<T extends Reportable> extends Error implements Reportable {
+export class CupidErr<T extends Reportable> extends Error implements Reportable {
     code: string | number = 404
     message: string = ''
     context: T

@@ -24,7 +24,6 @@ impl PartialEq for NativeFunction {
 }
 
 #[repr(C)]
-#[derive(Debug)]
 pub struct Function {
     pub header: GcObject,
     pub arity: usize,
@@ -42,6 +41,18 @@ impl Function {
             name,
             upvalues: Vec::new(),
         }
+    }
+}
+
+impl fmt::Debug for Function {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Function")
+            .field("name", &self.name.deref().s)
+            .field("arity", &self.arity)
+            // .field("header", &self.header)
+            .field("chunk", &self.chunk)
+            .field("upvalues", &self.upvalues)
+            .finish()
     }
 }
 

@@ -1,69 +1,79 @@
-class Toggle {
-    init (startState) {
-        self.state = startState;
-    }
+log ('Running...')
 
-    value () { return self.state; }
-
-    activate () {
-        self.state = !self.state;
-        return self;
-    }
-}
-
-class NthToggle < Toggle {
-    init (startState, maxCounter) {
-        super.init (startState);
-        self.countMax = maxCounter;
-        self.count = 0;
-    }
-
-    activate () {
-        self.count = self.count + 1;
-        if self.count >= self.countMax {
-                super.activate();
-                self.count = 0;
+fun run-bench () {
+    class Toggle {
+        init (startState) {
+            self.state = startState
         }
 
-        return self;
+        value () { return self.state }
+
+        activate () {
+            self.state = !self.state
+            return self
+        }
     }
+
+    class NthToggle < Toggle {
+        init (startState, maxCounter) {
+            super.init (startState)
+            self.countMax = maxCounter
+            self.count = 0
+        }
+
+        activate () {
+            self.count = self.count + 1
+            if self.count >= self.countMax {
+                    super.activate()
+                    self.count = 0
+            }
+
+            return self
+        }
+    }
+
+    let start = clock()
+    let n = 100000
+    let val = true
+    let toggle = Toggle(val)
+
+    for (let i = 0; i < n; i = i + 1) {
+        val = toggle.activate().value()
+        val = toggle.activate().value()
+        val = toggle.activate().value()
+        val = toggle.activate().value()
+        val = toggle.activate().value()
+        val = toggle.activate().value()
+        val = toggle.activate().value()
+        val = toggle.activate().value()
+        val = toggle.activate().value()
+        val = toggle.activate().value()
+    }
+
+    val = true
+    let ntoggle = NthToggle(val, 3)
+
+    for (let i = 0; i < n; i = i + 1) {
+        val = ntoggle.activate().value()
+        val = ntoggle.activate().value()
+        val = ntoggle.activate().value()
+        val = ntoggle.activate().value()
+        val = ntoggle.activate().value()
+        val = ntoggle.activate().value()
+        val = ntoggle.activate().value()
+        val = ntoggle.activate().value()
+        val = ntoggle.activate().value()
+        val = ntoggle.activate().value()
+    }
+
+    return clock() - start
 }
 
-let start = clock();
-let n = 100000;
-let val = true;
-let toggle = Toggle(val);
+let runtime = run-bench()
 
-for (let i = 0; i < n; i = i + 1) {
-    val = toggle.activate().value();
-    val = toggle.activate().value();
-    val = toggle.activate().value();
-    val = toggle.activate().value();
-    val = toggle.activate().value();
-    val = toggle.activate().value();
-    val = toggle.activate().value();
-    val = toggle.activate().value();
-    val = toggle.activate().value();
-    val = toggle.activate().value();
+for (let i = 0; i < 50; i = i + 1) {
+    runtime = (runtime + run-bench()) / 2
 }
 
-log (toggle.value());
-
-val = true;
-let ntoggle = NthToggle(val, 3);
-
-for (let i = 0; i < n; i = i + 1) {
-    val = ntoggle.activate().value();
-    val = ntoggle.activate().value();
-    val = ntoggle.activate().value();
-    val = ntoggle.activate().value();
-    val = ntoggle.activate().value();
-    val = ntoggle.activate().value();
-    val = ntoggle.activate().value();
-    val = ntoggle.activate().value();
-    val = ntoggle.activate().value();
-    val = ntoggle.activate().value();
-}
-
-log (ntoggle.value());
-log (clock() - start);
+log ('Average runtime:')
+log (runtime)

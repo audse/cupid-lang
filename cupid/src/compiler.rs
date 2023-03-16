@@ -1,5 +1,7 @@
+use std::fmt;
+
 use crate::{
-    error::CupidError,
+    error::CupidErr,
     gc::{Gc, GcRef},
     objects::FunctionUpvalue,
     objects::{Function, Str},
@@ -24,7 +26,13 @@ impl<'src> Local<'src> {
     }
 }
 
-#[derive(Clone, Copy)]
+impl fmt::Debug for Local<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "local {}", self.name.lexeme)
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
 pub enum FunctionType {
     Function,
     Initializer,
@@ -32,6 +40,7 @@ pub enum FunctionType {
     Script,
 }
 
+#[derive(Debug)]
 pub struct Compiler<'src> {
     pub enclosing: Option<Box<Compiler<'src>>>,
     pub function: Function,
@@ -130,7 +139,7 @@ impl ClassCompiler {
     }
 }
 
-pub fn compile(code: &str, gc: &mut Gc) -> Result<GcRef<Function>, CupidError> {
+pub fn compile(code: &str, gc: &mut Gc) -> Result<GcRef<Function>, CupidErr> {
     let parser = Parser::new(code, gc);
     parser.compile()
 }
