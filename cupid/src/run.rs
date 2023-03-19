@@ -1,12 +1,25 @@
+use cupid_fmt::reindent::{Multiline, Reindent};
 use error::CupidErr;
 use std::fs;
 use std::process;
 use vm::Vm;
 
-use crate::analyze::infer::Infer;
-use crate::analyze::resolve::Resolve;
-use crate::parse::bytecode::BytecodeCompiler;
-use crate::parse::parser::Parser;
+use crate::analyze::{infer::Infer, pretty::PrettyPrint, resolve::Resolve};
+use crate::arena::ExprArena;
+use crate::ast::expr::Expr;
+use crate::error::CupidError;
+use crate::parse::{bytecode::BytecodeCompiler, parser::Parser};
+
+/// 1. Resolve symbols (classes, functions, local variables, etc.)
+/// 2. Infer types
+/// 3. Resolve properties & methods
+/// 4. Infer properties & methods
+fn do_passes<'src>(
+    expr: Vec<Expr<'src>>,
+    arena: &mut ExprArena<'src>,
+) -> Result<Vec<Expr<'src>>, CupidError> {
+    expr.resolve(arena)?.infer(arena)?.resolve(arena)?.infer(arena)
+}
 
 pub fn run_file(vm: &mut Vm, path: &str) {
     let code = match fs::read_to_string(path) {
@@ -21,16 +34,13 @@ pub fn run_file(vm: &mut Vm, path: &str) {
 
     match expr {
         Ok(expr) => {
-            let expr = match expr.resolve() {
-                Ok(expr) => expr,
-                Err(err) => panic!("{}", err),
-            };
-            let expr = match expr.infer() {
+            let expr = match do_passes(expr, &mut parser.arena) {
                 Ok(expr) => expr,
                 Err(err) => panic!("{}", err),
             };
             // println!("{expr:#?}");
-            let compiler = BytecodeCompiler::new(expr, &mut vm.gc);
+            println!("{}", expr.pretty_print(&parser.arena).multiline(40).reindent(3));
+            let compiler = BytecodeCompiler::new(expr, parser.arena, &mut vm.gc);
             let function = compiler.compile();
             match vm.interpret_function(function) {
                 Err(CupidErr::CompileError) => process::exit(65),

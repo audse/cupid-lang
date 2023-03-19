@@ -1,117 +1,120 @@
 use crate::{
-    error::CupidError,
-    for_expr_variant,
-    parse::{
+    arena::{EntryId, ExprArena, UseArena},
+    ast::{
         Array, BinOp, Block, Break, Call, Class, Constant, Define, Expr, Fun, Get, GetProperty,
-        GetSuper, Header, If, Invoke, InvokeSuper, Loop, Method, Return, Set, SetProperty, UnOp,
+        GetSuper, GetTy, HasSymbol, Header, If, Invoke, InvokeSuper, Loop, Method, Return, Set,
+        SetProperty, UnOp,
     },
+    auto_impl, base_pass,
+    error::CupidError,
+    for_expr_variant, pass,
     ty::Type,
     value::Value,
 };
 
-pub trait Infer
-where
-    Self: Sized,
-{
-    fn infer(self) -> Result<Self, CupidError>;
+auto_impl! {
+    pub trait Infer<'src>
+    where
+        Self: Sized,
+    {
+        fn infer(self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError>;
+    }
 }
 
-fn unwrapped_ty<'src, T: Header<'src>>(value: &Option<T>) -> Type<'src> {
+base_pass! {
+    impl Infer::infer(arena: &mut ExprArena<'src>) for {
+        Block,
+    }
+}
+
+fn entry_ty<'src>(id: EntryId, arena: &mut ExprArena<'src>) -> Type<'src> {
+    UseArena::<Expr>::expect(arena, id).ty()
+}
+
+fn unwrapped_ty<'src, T: GetTy<'src>>(value: &Option<T>) -> Type<'src> {
     match value {
         Some(inner) => inner.ty(),
-        None => Type::Nil,
+        None => Type::Unknown,
     }
 }
 
-impl<T: Infer> Infer for Vec<T> {
-    fn infer(self) -> Result<Self, CupidError> {
-        self.into_iter().map(|item| item.infer()).collect()
+fn unwrapped_entry_ty<'src>(id: Option<EntryId>, arena: &mut ExprArena<'src>) -> Type<'src> {
+    match id {
+        Some(inner) => entry_ty(inner, arena),
+        None => Type::Unknown,
     }
 }
 
-impl<T: Infer> Infer for Box<T> {
-    fn infer(self) -> Result<Self, CupidError> {
-        Ok(Box::new((*self).infer()?))
+impl<'src> Infer<'src> for EntryId {
+    fn infer(self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
+        let expr: Expr<'src> = arena.take(self);
+        let expr = expr.infer(arena)?;
+        arena.replace(self, expr);
+        Ok(self)
     }
 }
 
-impl<T: Infer> Infer for Option<T> {
-    fn infer(self) -> Result<Self, CupidError> {
-        match self {
-            Some(inner) => Ok(Some(inner.infer()?)),
-            None => Ok(None),
+impl<'src> Infer<'src> for Array<'src> {
+    fn infer(mut self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
+        pass!(Array::infer(self, arena));
+        let item_ty = match self.items.get(0) {
+            Some(id) => entry_ty(*id, arena),
+            None => Type::Unknown,
+        };
+        self.header.ty = Type::Array(arena.insert(item_ty));
+        Ok(self)
+    }
+}
+
+impl<'src> Infer<'src> for BinOp<'src> {
+    fn infer(mut self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
+        pass!(BinOp::infer(self, arena));
+        self.set_ty(entry_ty(self.left, arena));
+        Ok(self)
+    }
+}
+
+impl<'src> Infer<'src> for Break<'src> {
+    fn infer(mut self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
+        pass!(Break::infer(self, arena));
+        match self.value {
+            Some(id) => self.set_ty(entry_ty(id, arena)),
+            None => (),
         }
-    }
-}
-
-impl<'src> Infer for Expr<'src> {
-    fn infer(self) -> Result<Self, CupidError> {
-        for_expr_variant!(self => |inner| Ok(inner.infer()?.into()))
-    }
-}
-
-impl<'src> Infer for Array<'src> {
-    fn infer(mut self) -> Result<Self, CupidError> {
-        self.items = self.items.infer()?;
-        self.header.ty = Type::Array;
         Ok(self)
     }
 }
 
-impl<'src> Infer for BinOp<'src> {
-    fn infer(self) -> Result<Self, CupidError> {
-        Ok(BinOp {
-            left: self.left.infer()?,
-            right: self.right.infer()?,
-            ..self
-        })
-    }
-}
-
-impl<'src> Infer for Block<'src> {
-    fn infer(self) -> Result<Self, CupidError> {
-        Ok(Block {
-            body: self.body.infer()?,
-            ..self
-        })
-    }
-}
-
-impl<'src> Infer for Break<'src> {
-    fn infer(mut self) -> Result<Self, CupidError> {
-        self.value = self.value.infer()?;
-        self.set_ty(unwrapped_ty(&self.value));
+impl<'src> Infer<'src> for Call<'src> {
+    fn infer(mut self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
+        pass!(Call::infer(self, arena));
+        match entry_ty(self.callee, arena) {
+            Type::Function { returns } => self.set_ty(*arena.expect_ty(returns)),
+            Type::Class(class) => self.set_ty(Type::Instance(class)),
+            Type::Unknown => (),
+            _ => return Err(CupidError::type_error("Not a function", "")),
+        }
         Ok(self)
     }
 }
 
-impl<'src> Infer for Call<'src> {
-    fn infer(self) -> Result<Self, CupidError> {
-        Ok(Call {
-            callee: self.callee.infer()?,
-            args: self.args.infer()?,
-            ..self
-        })
-    }
-}
-
-impl<'src> Infer for Class<'src> {
-    fn infer(mut self) -> Result<Self, CupidError> {
+impl<'src> Infer<'src> for Class<'src> {
+    fn infer(mut self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
         let name = self.name.lexeme;
         let ty = Type::class(name);
         self.scope_mut().annotate_ty(name, ty);
-        self.scope_mut().annotate_ty("self", ty);
+        self.class_scope_mut().annotate_ty("self", ty);
         if let Some(super_class) = self.super_class {
-            self.scope_mut().annotate_ty("super", Type::class(super_class.lexeme));
+            self.class_scope_mut().annotate_ty("super", Type::class(super_class.lexeme));
         }
-        self.header.ty = Type::class(name);
-        self.methods = self.methods.infer()?;
+        self.set_ty(Type::class(name));
+        pass!(Class::infer(self, arena));
         Ok(self)
     }
 }
 
-impl<'src> Infer for Constant<'src> {
-    fn infer(mut self) -> Result<Self, CupidError> {
+impl<'src> Infer<'src> for Constant<'src> {
+    fn infer(mut self, _arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
         let ty = match self.value {
             Value::Bool(_) => Type::Bool,
             Value::Int(_) => Type::Int,
@@ -125,10 +128,10 @@ impl<'src> Infer for Constant<'src> {
     }
 }
 
-impl<'src> Infer for Define<'src> {
-    fn infer(mut self) -> Result<Self, CupidError> {
-        self.value = self.value.infer()?;
-        let ty = unwrapped_ty(&self.value);
+impl<'src> Infer<'src> for Define<'src> {
+    fn infer(mut self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
+        pass!(Define::infer(self, arena));
+        let ty = unwrapped_entry_ty(self.value, arena);
         let name = self.name.lexeme;
         self.scope_mut().annotate_ty(name, ty);
         self.set_ty(Type::Unit);
@@ -136,11 +139,13 @@ impl<'src> Infer for Define<'src> {
     }
 }
 
-impl<'src> Infer for Fun<'src> {
-    fn infer(mut self) -> Result<Self, CupidError> {
-        self.params = self.params.infer()?;
-        self.body = self.body.infer()?;
-        self.header.ty = Type::Function;
+impl<'src> Infer<'src> for Fun<'src> {
+    fn infer(mut self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
+        pass!(Fun::infer(self, arena));
+        let body_ty = entry_ty(self.body, arena);
+        self.header.ty = Type::Function {
+            returns: arena.insert(body_ty),
+        };
         if let Some(name) = self.name {
             let ty = self.ty();
             self.scope_mut().annotate_ty(name.lexeme, ty);
@@ -149,100 +154,123 @@ impl<'src> Infer for Fun<'src> {
     }
 }
 
-impl<'src> Infer for Get<'src> {
-    fn infer(mut self) -> Result<Self, CupidError> {
+impl<'src> Infer<'src> for Get<'src> {
+    fn infer(mut self, _arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
         let ty = self.expect_symbol()?.ty;
         self.set_ty(ty);
         Ok(self)
     }
 }
 
-impl<'src> Infer for GetProperty<'src> {
-    fn infer(mut self) -> Result<Self, CupidError> {
-        self.receiver = self.receiver.infer()?;
+impl<'src> Infer<'src> for GetProperty<'src> {
+    fn infer(mut self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
+        pass!(GetProperty::infer(self, arena));
+        self.set_ty(unwrapped_ty(&self.symbol));
         Ok(self)
     }
 }
 
-impl<'src> Infer for GetSuper<'src> {
-    fn infer(mut self) -> Result<Self, CupidError> {
+impl<'src> Infer<'src> for GetSuper<'src> {
+    fn infer(mut self, _arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
         let ty = self.expect_symbol()?.ty;
         self.set_ty(ty);
         Ok(self)
     }
 }
 
-impl<'src> Infer for If<'src> {
-    fn infer(mut self) -> Result<Self, CupidError> {
-        self.condition = self.condition.infer()?;
-        self.body = self.body.infer()?;
-        self.else_body = self.else_body.infer()?;
+impl<'src> Infer<'src> for If<'src> {
+    fn infer(mut self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
+        pass!(If::infer(self, arena));
+        self.set_ty(entry_ty(self.body, arena));
         Ok(self)
     }
 }
 
-impl<'src> Infer for Invoke<'src> {
-    fn infer(mut self) -> Result<Self, CupidError> {
-        self.receiver = self.receiver.infer()?;
+impl<'src> Infer<'src> for Invoke<'src> {
+    fn infer(mut self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
+        pass!(Invoke::infer(self, arena));
+        self.set_ty(unwrapped_ty(&self.symbol));
         Ok(self)
     }
 }
 
-impl<'src> Infer for InvokeSuper<'src> {
-    fn infer(self) -> Result<Self, CupidError> {
-        Ok(self)
-    }
-}
-
-impl<'src> Infer for Loop<'src> {
-    fn infer(mut self) -> Result<Self, CupidError> {
-        self.body = self.body.infer()?;
-        self.set_ty(self.body.ty());
-        Ok(self)
-    }
-}
-
-impl<'src> Infer for Method<'src> {
-    fn infer(mut self) -> Result<Self, CupidError> {
-        self.fun = self.fun.infer()?;
-        self.set_ty(self.fun.header.ty);
-        Ok(self)
-    }
-}
-
-impl<'src> Infer for Return<'src> {
-    fn infer(mut self) -> Result<Self, CupidError> {
-        self.value = self.value.infer()?;
-        self.set_ty(unwrapped_ty(&self.value));
-        Ok(self)
-    }
-}
-
-impl<'src> Infer for Set<'src> {
-    fn infer(mut self) -> Result<Self, CupidError> {
+impl<'src> Infer<'src> for InvokeSuper<'src> {
+    fn infer(mut self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
+        pass!(InvokeSuper::infer(self, arena));
         self.set_ty(Type::Unit);
-        Ok(Set {
-            value: self.value.infer()?,
-            ..self
-        })
+        Ok(self)
     }
 }
 
-impl<'src> Infer for SetProperty<'src> {
-    fn infer(mut self) -> Result<Self, CupidError> {
+impl<'src> Infer<'src> for Loop<'src> {
+    fn infer(mut self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
+        pass!(Loop::infer(self, arena));
+        self.set_ty(entry_ty(self.body, arena));
+        Ok(self)
+    }
+}
+
+impl<'src> Infer<'src> for Method<'src> {
+    fn infer(mut self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
+        pass!(Method::infer(self, arena));
+        let ty = self.fun.header.ty;
+        let name = self.name.lexeme;
+        self.set_ty(ty);
+        self.scope_mut().annotate_ty(name, ty);
+        Ok(self)
+    }
+}
+
+impl<'src> Infer<'src> for Return<'src> {
+    fn infer(mut self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
+        pass!(Return::infer(self, arena));
+        self.set_ty(unwrapped_entry_ty(self.value, arena));
+        Ok(self)
+    }
+}
+
+impl<'src> Infer<'src> for Set<'src> {
+    fn infer(mut self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
+        pass!(Set::infer(self, arena));
         self.set_ty(Type::Unit);
-        Ok(SetProperty {
-            receiver: self.receiver.infer()?,
-            value: self.value.infer()?,
-            ..self
-        })
+
+        // Infer types from assignments, if the type is unknown
+        if self.symbol.is_some() {
+            let value_ty = entry_ty(self.value, arena);
+            let mut symbol = self.expect_symbol_mut()?;
+            match symbol.ty {
+                Type::Unknown => symbol.ty = value_ty,
+                _ => (),
+            }
+        }
+
+        Ok(self)
     }
 }
 
-impl<'src> Infer for UnOp<'src> {
-    fn infer(mut self) -> Result<Self, CupidError> {
-        self.expr = self.expr.infer()?;
-        self.set_ty(self.expr.ty());
+impl<'src> Infer<'src> for SetProperty<'src> {
+    fn infer(mut self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
+        pass!(SetProperty::infer(self, arena));
+        self.set_ty(Type::Unit);
+
+        // Infer types from assignments, if the type is unknown
+        if self.symbol.is_some() {
+            let value_ty = entry_ty(self.value, arena);
+            let mut symbol = self.expect_symbol_mut()?;
+            match symbol.ty {
+                Type::Unknown => symbol.ty = value_ty,
+                _ => (),
+            }
+        }
+
+        Ok(self)
+    }
+}
+
+impl<'src> Infer<'src> for UnOp<'src> {
+    fn infer(mut self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
+        pass!(UnOp::infer(self, arena));
+        self.set_ty(entry_ty(self.expr, arena));
         Ok(self)
     }
 }

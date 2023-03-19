@@ -1,4 +1,5 @@
 use crate::{
+    arena::{EntryId, ExprArena, UseArena},
     chunk::Instruction,
     compiler::{ClassCompiler, Compiler, FunctionType, Local},
     gc::{Gc, GcRef},
@@ -8,7 +9,7 @@ use crate::{
 };
 use std::convert::TryFrom;
 
-use super::{
+use ast::{
     Array, BinOp, Block, Break, Call, Class, Constant, Define, Expr, Fun, Get, GetProperty,
     GetSuper, If, Invoke, InvokeSuper, Loop, Method, Return, Set, SetProperty, UnOp,
 };
@@ -20,6 +21,7 @@ pub struct Errors {
 
 pub struct BytecodeCompiler<'src> {
     pub expr: Vec<Expr<'src>>,
+    pub arena: ExprArena<'src>,
     pub compiler: Box<Compiler<'src>>,
     pub class_compiler: Option<Box<ClassCompiler>>,
     pub gc: &'src mut Gc,
@@ -28,10 +30,11 @@ pub struct BytecodeCompiler<'src> {
 }
 
 impl<'src> BytecodeCompiler<'src> {
-    pub fn new(expr: Vec<Expr<'src>>, gc: &'src mut Gc) -> Self {
+    pub fn new(expr: Vec<Expr<'src>>, arena: ExprArena<'src>, gc: &'src mut Gc) -> Self {
         let function_name = gc.intern("script".to_owned());
         Self {
             expr,
+            arena,
             errors: Errors::default(),
             loop_jumps: vec![],
             compiler: Compiler::new(function_name, FunctionType::Script),
@@ -267,6 +270,14 @@ impl<'src, T: ToBytecode<'src>> ToBytecode<'src> for Vec<T> {
     }
 }
 
+impl<'src> ToBytecode<'src> for EntryId {
+    fn compile(&self, compiler: &mut BytecodeCompiler<'src>) {
+        let expr: Expr<'src> = compiler.arena.take(*self);
+        expr.compile(compiler);
+        compiler.arena.replace(*self, expr);
+    }
+}
+
 impl<'src> ToBytecode<'src> for Expr<'src> {
     fn compile(&self, compiler: &mut BytecodeCompiler<'src>) {
         match self {
@@ -289,7 +300,7 @@ impl<'src> ToBytecode<'src> for Expr<'src> {
             Self::Return(stmt) => stmt.compile(compiler),
             Self::Set(set) => set.compile(compiler),
             Self::SetProperty(set) => set.compile(compiler),
-            Self::UnOp(unop) => unop.compile(compiler), // _ => todo!(),
+            Self::UnOp(unop) => unop.compile(compiler),
         }
     }
 }
@@ -346,7 +357,8 @@ impl<'src> ToBytecode<'src> for Break<'src> {
 
 impl<'src> ToBytecode<'src> for Call<'src> {
     fn compile(&self, compiler: &mut BytecodeCompiler<'src>) {
-        match &*self.callee {
+        let callee = compiler.arena.expect(self.callee);
+        match callee {
             Expr::Get(get) if get.name.lexeme == "log" => {
                 self.args.compile(compiler);
                 compiler.write(Instruction::Log)

@@ -1,43 +1,38 @@
 use crate::{
-    error::CupidError,
-    for_expr_variant,
-    parse::{
+    arena::{EntryId, ExprArena, UseArena},
+    ast::{
         Array, BinOp, Block, Break, Call, Class, Constant, Define, Expr, Fun, Get, GetProperty,
-        GetSuper, Header, If, Invoke, InvokeSuper, Loop, Method, Return, Set, SetProperty, UnOp,
+        GetSuper, GetTy, Header, If, Invoke, InvokeSuper, Loop, Method, Return, Set, SetProperty,
+        UnOp,
     },
+    auto_impl, base_pass,
+    error::CupidError,
+    for_expr_variant, pass,
+    scope::Lookup,
+    ty::Type,
 };
 
-pub trait Resolve
-where
-    Self: Sized,
-{
-    fn resolve(self) -> Result<Self, CupidError>;
-}
-
-impl<T: Resolve> Resolve for Vec<T> {
-    fn resolve(self) -> Result<Self, CupidError> {
-        self.into_iter().map(|item| item.resolve()).collect()
+auto_impl! {
+    pub trait Resolve<'src>
+    where
+        Self: Sized
+    {
+        fn resolve(self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError>;
     }
 }
 
-impl<T: Resolve> Resolve for Box<T> {
-    fn resolve(self) -> Result<Self, CupidError> {
-        Ok(Box::new((*self).resolve()?))
-    }
-}
-
-impl<T: Resolve> Resolve for Option<T> {
-    fn resolve(self) -> Result<Self, CupidError> {
-        match self {
-            Some(inner) => Ok(Some(inner.resolve()?)),
-            None => Ok(None),
-        }
-    }
-}
-
-impl<'src> Resolve for Expr<'src> {
-    fn resolve(self) -> Result<Self, CupidError> {
-        for_expr_variant!(self => |inner| Ok(inner.resolve()?.into()))
+base_pass! {
+    impl Resolve::resolve(_arena: &mut ExprArena<'src>) for {
+        Array,
+        BinOp,
+        Block,
+        Break,
+        Call,
+        Constant,
+        If,
+        Loop,
+        Return,
+        UnOp
     }
 }
 
@@ -49,203 +44,138 @@ macro_rules! update_symbol {
     }};
 }
 
-impl<'src> Resolve for Array<'src> {
-    fn resolve(self) -> Result<Self, CupidError> {
-        Ok(Array {
-            items: self.items.resolve()?,
-            ..self
-        })
-    }
-}
-
-impl<'src> Resolve for BinOp<'src> {
-    fn resolve(self) -> Result<Self, CupidError> {
-        Ok(BinOp {
-            left: self.left.resolve()?,
-            right: self.right.resolve()?,
-            ..self
-        })
-    }
-}
-
-impl<'src> Resolve for Block<'src> {
-    fn resolve(self) -> Result<Self, CupidError> {
-        Ok(Block {
-            body: self.body.resolve()?,
-            ..self
-        })
-    }
-}
-
-impl<'src> Resolve for Break<'src> {
-    fn resolve(self) -> Result<Self, CupidError> {
-        Ok(Break {
-            value: self.value.resolve()?,
-            ..self
-        })
-    }
-}
-
-impl<'src> Resolve for Call<'src> {
-    fn resolve(self) -> Result<Self, CupidError> {
-        Ok(Call {
-            callee: self.callee.resolve()?,
-            args: self.args.resolve()?,
-            ..self
-        })
-    }
-}
-
-impl<'src> Resolve for Class<'src> {
-    fn resolve(mut self) -> Result<Self, CupidError> {
-        let name = self.name.lexeme;
-        self.scope_mut().define(name);
-
-        let scope = self.header.scope.clone();
-        self.scope_mut().insert_class(name, scope);
-
-        self.scope_mut().define("self");
-        self.scope_mut().annotate_class(name);
-
-        if let Some(super_class) = self.super_class {
-            self.scope_mut().define("super");
-            self.scope_mut().annotate_class(super_class.lexeme);
-        }
-        Ok(Class {
-            methods: self.methods.resolve()?,
-            ..self
-        })
-    }
-}
-
-impl<'src> Resolve for Constant<'src> {
-    fn resolve(self) -> Result<Self, CupidError> {
+impl<'src> Resolve<'src> for EntryId {
+    fn resolve(self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
+        let expr: Expr<'src> = arena.take(self);
+        let expr = expr.resolve(arena)?;
+        arena.replace(self, expr);
         Ok(self)
     }
 }
 
-impl<'src> Resolve for Define<'src> {
-    fn resolve(mut self) -> Result<Self, CupidError> {
+impl<'src> Resolve<'src> for Class<'src> {
+    fn resolve(mut self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
         let name = self.name.lexeme;
         self.scope_mut().define(name);
-        Ok(Define {
-            value: self.value.resolve()?,
-            ..self
-        })
+
+        let scope = self.class_scope.clone();
+        self.scope_mut().insert_class(name, scope);
+
+        self.class_scope_mut().define("self");
+        self.class_scope_mut().annotate_class(name);
+
+        if let Some(super_class) = self.super_class {
+            self.class_scope_mut().define("super");
+            self.class_scope_mut().annotate_class(super_class.lexeme);
+        }
+        pass!(Class::resolve(self, arena));
+        Ok(self)
     }
 }
 
-impl<'src> Resolve for Fun<'src> {
-    fn resolve(mut self) -> Result<Self, CupidError> {
+impl<'src> Resolve<'src> for Define<'src> {
+    fn resolve(mut self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
+        let name = self.name.lexeme;
+        self.scope_mut().define(name);
+        pass!(Define::resolve(self, arena));
+        Ok(self)
+    }
+}
+
+impl<'src> Resolve<'src> for Fun<'src> {
+    fn resolve(mut self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
         if let Some(name) = self.name {
             self.scope_mut().define(name.lexeme);
         }
-        Ok(Fun {
-            params: self.params.resolve()?,
-            body: self.body.resolve()?,
-            ..self
-        })
+        pass!(Fun::resolve(self, arena));
+        Ok(self)
     }
 }
 
-impl<'src> Resolve for Get<'src> {
-    fn resolve(mut self) -> Result<Self, CupidError> {
+impl<'src> Resolve<'src> for Get<'src> {
+    fn resolve(mut self, _arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
         update_symbol!(self => name, symbol);
         Ok(self)
     }
 }
 
-impl<'src> Resolve for GetProperty<'src> {
-    fn resolve(mut self) -> Result<Self, CupidError> {
-        self.receiver = self.receiver.resolve()?;
+impl<'src> Resolve<'src> for GetProperty<'src> {
+    fn resolve(mut self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
+        pass!(GetProperty::resolve(self, arena));
+        let receiver_ty = UseArena::<Expr>::expect(arena, self.receiver).ty();
+        match receiver_ty {
+            Type::Class(_) => {
+                let symbol = self.scope().lookup_property(receiver_ty, self.property)?;
+                self.symbol = symbol;
+            }
+            _ => (),
+        }
         Ok(self)
     }
 }
 
-impl<'src> Resolve for GetSuper<'src> {
-    fn resolve(mut self) -> Result<Self, CupidError> {
+impl<'src> Resolve<'src> for GetSuper<'src> {
+    fn resolve(mut self, _arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
         update_symbol!(self => name, symbol);
         Ok(self)
     }
 }
 
-impl<'src> Resolve for If<'src> {
-    fn resolve(mut self) -> Result<Self, CupidError> {
-        self.condition = self.condition.resolve()?;
-        self.body = self.body.resolve()?;
-        self.else_body = self.else_body.resolve()?;
+impl<'src> Resolve<'src> for Invoke<'src> {
+    fn resolve(mut self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
+        pass!(Invoke::resolve(self, arena));
+        let receiver_ty = UseArena::<Expr>::expect(arena, self.receiver).ty();
+        match receiver_ty {
+            Type::Class(_) => {
+                let symbol = self.scope().lookup_property(receiver_ty, self.callee)?;
+                self.symbol = symbol;
+            }
+            _ => (),
+        }
         Ok(self)
     }
 }
 
-impl<'src> Resolve for Invoke<'src> {
-    fn resolve(mut self) -> Result<Self, CupidError> {
-        self.receiver = self.receiver.resolve()?;
-        Ok(self)
-    }
-}
-
-impl<'src> Resolve for InvokeSuper<'src> {
-    fn resolve(mut self) -> Result<Self, CupidError> {
+impl<'src> Resolve<'src> for InvokeSuper<'src> {
+    fn resolve(mut self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
         update_symbol!(self => name, symbol);
+        self.args = self.args.resolve(arena)?;
         Ok(self)
     }
 }
 
-impl<'src> Resolve for Loop<'src> {
-    fn resolve(self) -> Result<Self, CupidError> {
-        Ok(Loop {
-            body: self.body.resolve()?,
-            ..self
-        })
-    }
-}
-
-impl<'src> Resolve for Method<'src> {
-    fn resolve(mut self) -> Result<Self, CupidError> {
+impl<'src> Resolve<'src> for Method<'src> {
+    fn resolve(mut self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
         let name = self.name.lexeme;
         self.scope_mut().define(name);
         Ok(Method {
-            fun: self.fun.resolve()?,
+            fun: self.fun.resolve(arena)?,
             ..self
         })
     }
 }
 
-impl<'src> Resolve for Return<'src> {
-    fn resolve(self) -> Result<Self, CupidError> {
-        Ok(Return {
-            value: self.value.resolve()?,
-            ..self
-        })
-    }
-}
-
-impl<'src> Resolve for Set<'src> {
-    fn resolve(mut self) -> Result<Self, CupidError> {
+impl<'src> Resolve<'src> for Set<'src> {
+    fn resolve(mut self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
         update_symbol!(self => name, symbol);
         Ok(Set {
-            value: self.value.resolve()?,
+            value: self.value.resolve(arena)?,
             ..self
         })
     }
 }
 
-impl<'src> Resolve for SetProperty<'src> {
-    fn resolve(self) -> Result<Self, CupidError> {
-        Ok(SetProperty {
-            receiver: self.receiver.resolve()?,
-            value: self.value.resolve()?,
-            ..self
-        })
-    }
-}
-
-impl<'src> Resolve for UnOp<'src> {
-    fn resolve(self) -> Result<Self, CupidError> {
-        Ok(UnOp {
-            expr: self.expr.resolve()?,
-            ..self
-        })
+impl<'src> Resolve<'src> for SetProperty<'src> {
+    fn resolve(mut self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
+        pass!(SetProperty::resolve(self, arena));
+        let receiver_ty = UseArena::<Expr>::expect(arena, self.receiver).ty();
+        match receiver_ty {
+            Type::Class(_) => {
+                let symbol = self.scope().lookup_property(receiver_ty, self.property)?;
+                self.symbol = symbol;
+            }
+            _ => (),
+        }
+        Ok(self)
     }
 }

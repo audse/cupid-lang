@@ -1,4 +1,5 @@
 pub mod analyze;
+pub mod arena;
 pub mod ast;
 pub mod chunk;
 pub mod compiler;

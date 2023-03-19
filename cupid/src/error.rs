@@ -92,12 +92,21 @@ impl CupidError {
         }
     }
 
-    pub fn name_error(msg: impl ToString, token: StaticToken) -> Self {
+    pub fn name_error(msg: impl ToString, token: impl Reportable + 'static) -> Self {
         Self {
             kind: Kind::Parse,
             severity: Severity::Error,
             message: msg.to_string(),
             data: vec![Box::new(token)],
+        }
+    }
+
+    pub fn type_error(msg: impl ToString, data: impl Reportable + 'static) -> Self {
+        Self {
+            kind: Kind::Type,
+            severity: Severity::Error,
+            message: msg.to_string(),
+            data: vec![Box::new(data)],
         }
     }
 }

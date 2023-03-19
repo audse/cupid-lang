@@ -1,8 +1,14 @@
-use std::{cell::RefCell, collections::HashMap, fmt, rc::Rc};
+use std::{collections::HashMap, fmt};
 
-use crate::{pointer::Pointer, ty::Type};
+use crate::{
+    arena::{EntryId, ExprArena, UseArena},
+    error::CupidError,
+    pointer::Pointer,
+    token::Token,
+    ty::Type,
+};
 
-use self::symbol::{Class, ClassId, Symbol, SymbolValue};
+use self::symbol::{ClassId, ClassTable, Symbol, SymbolValue};
 
 pub mod symbol;
 
@@ -11,8 +17,43 @@ pub struct Scope<'src> {
     pub context: ScopeContext,
     pub parent: Option<Pointer<Scope<'src>>>,
     pub symbols: HashMap<&'src str, Pointer<Symbol<'src>>>,
-    pub classes: HashMap<&'src str, Class<'src>>,
+    pub classes: HashMap<ClassId<'src>, ClassTable<'src>>,
     pub depth: usize,
+}
+
+pub trait Lookup<'src, K, V> {
+    fn lookup(&self, key: K) -> Option<V>;
+    fn lookup_current(&self, key: K) -> Option<V>;
+}
+
+impl<'src> Lookup<'src, &'src str, Pointer<Symbol<'src>>> for Scope<'src> {
+    fn lookup(&self, key: &'src str) -> Option<Pointer<Symbol<'src>>> {
+        match self.lookup_current(key) {
+            Some(symbol) => Some(symbol),
+            None => match &self.parent {
+                Some(parent) => parent.borrow().lookup(key),
+                None => None,
+            },
+        }
+    }
+    fn lookup_current(&self, key: &'src str) -> Option<Pointer<Symbol<'src>>> {
+        self.symbols.get(key).cloned()
+    }
+}
+
+impl<'src> Lookup<'src, ClassId<'src>, ClassTable<'src>> for Scope<'src> {
+    fn lookup(&self, key: ClassId<'src>) -> Option<ClassTable<'src>> {
+        match self.lookup_current(key) {
+            Some(class) => Some(class),
+            None => match &self.parent {
+                Some(parent) => parent.borrow().lookup(key),
+                None => None,
+            },
+        }
+    }
+    fn lookup_current(&self, key: ClassId<'src>) -> Option<ClassTable<'src>> {
+        self.classes.get(&key).cloned()
+    }
 }
 
 impl<'src> Scope<'src> {
@@ -26,18 +67,51 @@ impl<'src> Scope<'src> {
         }
     }
 
-    pub fn lookup(&self, name: &str) -> Option<Pointer<Symbol<'src>>> {
-        match self.lookup_current(name) {
-            Some(symbol) => Some(symbol),
-            None => match &self.parent {
-                Some(parent) => parent.borrow().lookup(name),
-                None => None,
+    pub fn lookup_property(
+        &self,
+        receiver_ty: Type<'src>,
+        prop: Token<'src>,
+    ) -> Result<Option<Pointer<Symbol<'src>>>, CupidError> {
+        let class_table = match receiver_ty {
+            Type::Class(class_name) => self.lookup(class_name),
+            Type::Instance(instance_class_name) => self.lookup(instance_class_name),
+            _ => {
+                return Err(CupidError::type_error(
+                    "Only classes have properties.",
+                    prop.to_static(),
+                ))
+            }
+        };
+        match class_table {
+            Some(class) => match class.scope.borrow().lookup(prop.lexeme) {
+                Some(value) => Ok(Some(value)),
+                None => Ok(None),
             },
+            None => Err(CupidError::name_error("Undefined", prop.to_static())),
         }
-    }
-
-    pub fn lookup_current(&self, name: &str) -> Option<Pointer<Symbol<'src>>> {
-        self.symbols.get(name).cloned()
+        // match receiver_ty {
+        //     Type::Class(class_name) => {
+        //         let class = self.lookup(class_name);
+        //         match class {
+        //             Some(class) => match class.scope.borrow().lookup(prop.lexeme) {
+        //                 Some(value) => Ok(Some(value)),
+        //                 None => Ok(None),
+        //             },
+        //             None => Err(CupidError::name_error("Undefined", prop.to_static())),
+        //         }
+        //     }
+        //     Type::Instance(class_name) => {
+        //         let instance = self.lookup(class_name);
+        //         match instance {
+        //             Some(class) => match class.scope.borrow().lookup(prop.lexeme) {
+        //                 Some(value) => Ok(Some(value)),
+        //                 None => Ok(None),
+        //             },
+        //             None => Err(CupidError::name_error("Undefined", prop.to_static())),
+        //         }
+        //     }
+        //     _ => Err(CupidError::type_error("Only classes have properties.", prop.to_static())),
+        // }
     }
 
     pub fn define(&mut self, name: &'src str) {
@@ -54,6 +128,12 @@ impl<'src> Scope<'src> {
         self.symbols.entry(name).and_modify(|sym| sym.borrow_mut().ty = ty);
     }
 
+    pub fn annotate_expr(&mut self, name: &'src str, expr: EntryId) {
+        self.symbols
+            .entry(name)
+            .and_modify(|sym| sym.borrow_mut().value = SymbolValue::Expr(expr));
+    }
+
     pub fn annotate_class(&mut self, name: &'src str) {
         self.symbols
             .entry(name)
@@ -61,32 +141,45 @@ impl<'src> Scope<'src> {
     }
 
     pub fn insert_class(&mut self, name: &'src str, class_scope: Pointer<Scope<'src>>) {
-        self.classes.insert(name, Class { scope: class_scope });
+        self.classes.insert(ClassId(name), ClassTable { scope: class_scope });
         self.annotate_class(name)
     }
 
-    pub fn initialize(&mut self) {
+    pub fn initialize(&mut self, arena: &mut ExprArena<'src>) {
         self.define("log");
-        self.annotate_ty("log", Type::Function);
+        let nil_ty = arena.insert(Type::Nil);
+        self.annotate_ty("log", Type::Function { returns: nil_ty });
 
         self.define("panic");
-        self.annotate_ty("panic", Type::Function);
+        self.annotate_ty("panic", Type::Function { returns: nil_ty });
 
         self.define("push");
-        self.annotate_ty("push", Type::Function);
+        let int_ty = arena.insert(Type::Int);
+        self.annotate_ty("push", Type::Function { returns: int_ty });
 
         self.define("pop");
-        self.annotate_ty("pop", Type::Function);
+        let unknown_ty = arena.insert(Type::Unknown);
+        self.annotate_ty(
+            "pop",
+            Type::Function {
+                returns: unknown_ty,
+            },
+        );
 
         self.define("len");
-        self.annotate_ty("len", Type::Function);
+        self.annotate_ty("len", Type::Function { returns: int_ty });
 
         self.define("get");
-        self.annotate_ty("get", Type::Function);
+        self.annotate_ty(
+            "get",
+            Type::Function {
+                returns: unknown_ty,
+            },
+        );
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
 pub enum ScopeContext {
     Block,
     Class,
@@ -98,16 +191,30 @@ pub enum ScopeContext {
 
 impl<'src> Pointer<Scope<'src>> {
     pub fn global() -> Self {
-        Pointer::<Scope<'src>>::new(Scope::default())
+        Self::new(Scope::default())
     }
 
     pub fn subscope(&self, context: ScopeContext) -> Self {
         let scope = Scope::new(context, Some(self.clone()));
-        Self(Rc::new(RefCell::new(scope)))
+        Self::new(scope)
     }
 
     pub fn parent(&self) -> Option<Pointer<Scope<'src>>> {
         self.borrow().parent.as_ref().cloned()
+    }
+
+    pub fn is_within_context(&self, context: ScopeContext) -> bool {
+        if self.is_context(context) {
+            return true;
+        } else if let Some(parent) = self.borrow().parent.as_ref() {
+            return parent.is_context(context);
+        } else {
+            false
+        }
+    }
+
+    pub fn is_context(&self, context: ScopeContext) -> bool {
+        self.borrow().context == context
     }
 }
 

@@ -20,7 +20,7 @@ pub fn cupid_push(_vm: &Vm, args: &[Value]) -> Value {
     match args[0] {
         Value::Array(mut array) => {
             array.items.push(args[1]);
-            Value::Nil
+            Value::Int(array.items.len() as i32)
         }
         _ => panic!("expected array"),
     }

@@ -1,3 +1,5 @@
+pub mod reindent;
+
 pub mod modifier {
     pub static ITALIC: &str = "3";
     pub static RESET: &str = "0";

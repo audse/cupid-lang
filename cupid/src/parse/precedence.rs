@@ -1,10 +1,12 @@
 use crate::{
+    arena::UseArena,
+    ast::BinOp,
     error::CupidError,
     gc::Gc,
     token::{TokenType, INFIX_OPS, POSTFIX_OPS, PREFIX_OPS},
 };
 
-use super::{iter::Iter, parse_args, parse_unit, parser::Parser, Call, Expr, UnOp};
+use super::{iter::Iter, parse_args, parse_unit, parser::Parser, Call, Expr, Header, UnOp};
 
 pub fn parse_precedence<'src>(
     parser: &mut Parser<'src>,
@@ -16,9 +18,10 @@ pub fn parse_precedence<'src>(
             parser.advance();
             let ((), r_bp) = prefix_binding_power(parser.curr.kind);
             let rhs = parse_precedence(parser, r_bp, gc)?.unwrap();
+            let rhs = parser.arena.insert(rhs);
             UnOp {
                 header: parser.header(),
-                expr: Box::new(rhs),
+                expr: rhs,
                 op: parser.curr.kind,
             }
             .into()
@@ -43,7 +46,14 @@ pub fn parse_precedence<'src>(
             match op.kind {
                 TokenType::LeftParen => {
                     let args = parse_args(parser, gc)?.unwrap();
-                    lhs = Call::new(lhs, args).into();
+                    let header = lhs.header().clone();
+                    let callee = parser.arena.insert(lhs);
+                    lhs = Call {
+                        header,
+                        callee,
+                        args,
+                    }
+                    .into();
                 }
                 _ => (),
             }
@@ -60,7 +70,15 @@ pub fn parse_precedence<'src>(
             Some(rhs) => rhs,
             None => return Err(parser.err("Expected righthand side of operation.")),
         };
-        lhs = Expr::new_binop(lhs, rhs, op);
+        let left = parser.arena.insert(lhs);
+        let right = parser.arena.insert(rhs);
+        lhs = BinOp {
+            header: parser.header(),
+            left,
+            right,
+            op: op.kind,
+        }
+        .into();
     }
     Ok(Some(lhs))
 }

@@ -1,4 +1,5 @@
 use crate::{
+    arena::ExprArena,
     error::CupidError,
     gc::Gc,
     pointer::Pointer,
@@ -8,10 +9,11 @@ use crate::{
     ty::Type,
 };
 
-use super::{iter::Iter, parse_inst, recompose::Recompose, Expr, InstHeader};
+use super::{iter::Iter, parse_expr, recompose::Recompose, Expr, ExprHeader};
 
 pub struct Parser<'src> {
     scanner: Scanner<'src>,
+    pub arena: ExprArena<'src>,
     pub curr: Token<'src>,
     pub prev: Token<'src>,
     pub scope: Pointer<Scope<'src>>,
@@ -21,26 +23,28 @@ pub struct Parser<'src> {
 impl<'src> Parser<'src> {
     pub fn new(code: impl Into<&'src str>) -> Parser<'src> {
         let scope = Pointer::<Scope>::global();
-        scope.borrow_mut().initialize();
+        let mut arena = ExprArena::default();
+        scope.borrow_mut().initialize(&mut arena);
         Self {
             scanner: Scanner::new(code.into()),
             curr: Token::synthetic(""),
             prev: Token::synthetic(""),
             depth: 0,
             scope,
+            arena,
         }
     }
 
     pub fn parse(&mut self, gc: &mut Gc) -> Result<Vec<Expr<'src>>, CupidError> {
         let mut exprs = vec![];
         while self.matches(TokenType::Eof).is_none() {
-            match parse_inst(self, gc) {
+            match parse_expr(self, gc) {
                 Ok(Some(expr)) => exprs.push(expr),
                 Ok(None) => (),
                 Err(err) => return Err(err),
             }
         }
-        exprs.recompose()
+        exprs.recompose(&mut self.arena)
     }
 
     pub fn err(&self, msg: impl ToString) -> CupidError {
@@ -54,8 +58,8 @@ impl<'src> Parser<'src> {
         }
     }
 
-    pub fn header(&self) -> InstHeader<'src> {
-        InstHeader {
+    pub fn header(&self) -> ExprHeader<'src> {
+        ExprHeader {
             ty: Type::Unknown,
             scope: self.scope.clone(),
         }
@@ -66,8 +70,9 @@ impl<'src> Parser<'src> {
         self.scope = scope;
     }
 
-    pub fn end_scope(&mut self) {
-        self.scope = self.scope.parent().unwrap();
+    pub fn end_scope(&mut self) -> Pointer<Scope<'src>> {
+        let parent = self.scope.parent().unwrap();
+        std::mem::replace(&mut self.scope, parent)
     }
 }
 
