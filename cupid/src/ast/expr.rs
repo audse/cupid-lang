@@ -1,4 +1,10 @@
-use crate::{error::CupidError, pointer::Pointer, scope::symbol::Symbol, token::Token};
+use crate::{
+    arena::{EntryId, ExprArena},
+    cst::{expr::ExprSource, SourceId},
+    error::CupidError,
+    pointer::Pointer,
+    scope::symbol::Symbol,
+};
 
 use std::{
     cell::{Ref, RefMut},
@@ -6,8 +12,8 @@ use std::{
 };
 
 use super::{
-    Array, BinOp, Block, Break, Call, Class, Constant, Define, Fun, Get, GetProperty, GetSuper, If,
-    Invoke, InvokeSuper, Loop, Return, Set, SetProperty, UnOp,
+    Array, BinOp, Block, Break, Call, Class, Constant, Define, Fun, Get, GetProperty, GetSuper,
+    Header, If, Invoke, InvokeSuper, Loop, Return, Set, SetProperty, UnOp,
 };
 
 #[derive(Clone)]
@@ -65,7 +71,7 @@ macro_rules! for_expr_variant {
 pub(crate) use for_expr_variant;
 
 pub trait HasSymbol<'src> {
-    fn symbol_token(&self) -> Token<'src>;
+    fn symbol_name(&self) -> &'src str;
     fn symbol(&self) -> Option<&Pointer<Symbol<'src>>>;
     fn symbol_mut(&mut self) -> Option<&mut Pointer<Symbol<'src>>>;
     fn set_symbol(&mut self, symbol: Option<Pointer<Symbol<'src>>>);
@@ -73,28 +79,41 @@ pub trait HasSymbol<'src> {
         match self.symbol().as_ref() {
             Some(symbol) => Ok(symbol.borrow()),
             None => {
-                let token = self.symbol_token();
-                Err(CupidError::name_error(
-                    format!("Undefined: `{}`", token.lexeme),
-                    token.to_static(),
-                ))
+                let name = self.symbol_name();
+                Err(CupidError::name_error(format!("Undefined: `{}`", name), name.to_string()))
             }
         }
     }
     fn expect_symbol_mut(&mut self) -> Result<RefMut<Symbol<'src>>, CupidError> {
-        let token = self.symbol_token();
+        let name = self.symbol_name();
         if let Some(symbol) = self.symbol_mut() {
             return Ok(symbol.borrow_mut());
         }
-        Err(CupidError::name_error(
-            format!("Undefined: `{}`", token.lexeme),
-            token.to_static(),
-        ))
+        Err(CupidError::name_error(format!("Undefined: `{}`", name), name.to_string()))
     }
 }
 
 impl fmt::Debug for Expr<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for_expr_variant!(self => |inner| write!(f, "Expr {:#?}", inner))
+    }
+}
+
+pub trait GetSource<'src> {
+    fn source_id(&self, arena: &ExprArena<'src>) -> SourceId;
+    fn source<'a, 'b>(&'a self, arena: &'b ExprArena<'src>) -> &'b ExprSource<'src> {
+        arena.expect_source(self.source_id(arena))
+    }
+}
+
+impl<'src> GetSource<'src> for EntryId {
+    fn source_id(&self, arena: &ExprArena<'src>) -> SourceId {
+        arena.expect_expr(*self).header().source
+    }
+}
+
+impl<'src, T: Header<'src>> GetSource<'src> for T {
+    fn source_id(&self, _arena: &ExprArena<'src>) -> SourceId {
+        self.header().source
     }
 }

@@ -1,28 +1,18 @@
-use super::{Expr, ExprHeader, HasSymbol, Header, SourceId};
-use crate::{arena::EntryId, pointer::Pointer, scope::symbol::Symbol, token::Token, with_header};
+use super::{Expr, ExprHeader, HasSymbol, Header};
+use crate::{arena::EntryId, pointer::Pointer, scope::symbol::Symbol, with_header};
 
 with_header! {
     #[derive(Debug, Clone)]
     pub struct Invoke<'src> {
         pub receiver: EntryId,
-        pub callee: Token<'src>,
+        pub callee: &'src str,
         pub args: Vec<EntryId>,
         pub symbol: Option<Pointer<Symbol<'src>>>
     }
 }
 
-pub struct InvokeSource<'src> {
-    pub receiver: SourceId,
-    pub dot: Token<'src>,
-    pub callee: Token<'src>,
-    pub open_paren: Token<'src>,
-    pub close_paren: Token<'src>,
-    pub commas: Vec<Token<'src>>,
-    pub args: Vec<SourceId>,
-}
-
 impl<'src> HasSymbol<'src> for Invoke<'src> {
-    fn symbol_token(&self) -> Token<'src> {
+    fn symbol_name(&self) -> &'src str {
         self.callee
     }
     fn symbol(&self) -> Option<&Pointer<Symbol<'src>>> {

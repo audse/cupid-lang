@@ -1,5 +1,6 @@
 use crate::{
-    arena::ExprArena,
+    arena::{ExprArena, UseArena},
+    cst::{expr::ExprSource, SourceId},
     error::CupidError,
     gc::Gc,
     pointer::Pointer,
@@ -58,10 +59,11 @@ impl<'src> Parser<'src> {
         }
     }
 
-    pub fn header(&self) -> ExprHeader<'src> {
+    pub fn header(&self, source: impl Into<SourceId>) -> ExprHeader<'src> {
         ExprHeader {
             ty: Type::Unknown,
             scope: self.scope.clone(),
+            source: source.into(),
         }
     }
 
@@ -73,6 +75,10 @@ impl<'src> Parser<'src> {
     pub fn end_scope(&mut self) -> Pointer<Scope<'src>> {
         let parent = self.scope.parent().unwrap();
         std::mem::replace(&mut self.scope, parent)
+    }
+
+    pub fn insert_source(&mut self, source: impl Into<ExprSource<'src>>) -> SourceId {
+        self.arena.insert(Into::<ExprSource>::into(source)).into()
     }
 }
 

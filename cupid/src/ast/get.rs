@@ -1,16 +1,16 @@
 use super::{Expr, ExprHeader, HasSymbol, Header};
-use crate::{pointer::Pointer, scope::symbol::Symbol, token::Token, with_header};
+use crate::{pointer::Pointer, scope::symbol::Symbol, with_header};
 
 with_header! {
     #[derive(Debug, Clone)]
     pub struct Get<'src> {
-        pub name: Token<'src>,
+        pub name: &'src str,
         pub symbol: Option<Pointer<Symbol<'src>>>
     }
 }
 
 impl<'src> HasSymbol<'src> for Get<'src> {
-    fn symbol_token(&self) -> Token<'src> {
+    fn symbol_name(&self) -> &'src str {
         self.name
     }
     fn symbol(&self) -> Option<&Pointer<Symbol<'src>>> {
@@ -22,10 +22,6 @@ impl<'src> HasSymbol<'src> for Get<'src> {
     fn set_symbol(&mut self, symbol: Option<Pointer<Symbol<'src>>>) {
         self.symbol = symbol;
     }
-}
-
-pub struct GetSource<'src> {
-    pub name: Token<'src>,
 }
 
 impl<'src> From<Get<'src>> for Expr<'src> {

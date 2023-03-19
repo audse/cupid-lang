@@ -1,6 +1,10 @@
 use std::ops;
 
-use crate::{ast::Expr, ty::Type};
+use crate::{
+    ast::Expr,
+    cst::{expr::ExprSource, SourceArena},
+    ty::Type,
+};
 
 #[derive(Default)]
 pub struct Arena<T> {
@@ -84,6 +88,7 @@ impl<T> UseArena<T> for Arena<T> {
 pub struct ExprArena<'src> {
     pub expr: Arena<Expr<'src>>,
     pub ty: Arena<Type<'src>>,
+    pub source: SourceArena<'src>,
 }
 
 impl<'src> Default for ExprArena<'src> {
@@ -91,6 +96,7 @@ impl<'src> Default for ExprArena<'src> {
         Self {
             expr: Arena::default(),
             ty: Arena::default(),
+            source: SourceArena::default(),
         }
     }
 }
@@ -98,6 +104,15 @@ impl<'src> Default for ExprArena<'src> {
 impl<'src> ExprArena<'src> {
     pub fn expect_expr(&self, id: impl Into<EntryId>) -> &Expr<'src> {
         UseArena::<Expr>::expect(self, id)
+    }
+    pub fn expect_source(&self, id: impl Into<EntryId>) -> &ExprSource<'src> {
+        UseArena::<ExprSource>::expect(self, id)
+    }
+    pub fn take_source(&mut self, id: impl Into<EntryId>) -> ExprSource<'src> {
+        UseArena::<ExprSource>::take(self, id)
+    }
+    pub fn replace_source(&mut self, id: impl Into<EntryId>, value: ExprSource<'src>) {
+        UseArena::<ExprSource>::replace(self, id, value)
     }
     pub fn expect_ty(&self, id: impl Into<EntryId>) -> &Type<'src> {
         UseArena::<Type>::expect(self, id)
@@ -107,6 +122,9 @@ impl<'src> ExprArena<'src> {
     }
     pub fn expect_ty_mut(&mut self, id: impl Into<EntryId>) -> &mut Type<'src> {
         UseArena::<Type>::expect_mut(self, id)
+    }
+    pub fn expect_source_mut(&mut self, id: impl Into<EntryId>) -> &mut ExprSource<'src> {
+        UseArena::<ExprSource>::expect_mut(self, id)
     }
 }
 
@@ -131,5 +149,17 @@ impl<'src> UseArena<Type<'src>> for ExprArena<'src> {
     }
     fn get_entry_mut(&mut self, id: EntryId) -> Option<&mut Entry<Type<'src>>> {
         self.ty.get_entry_mut(id)
+    }
+}
+
+impl<'src> UseArena<ExprSource<'src>> for ExprArena<'src> {
+    fn insert(&mut self, value: ExprSource<'src>) -> EntryId {
+        self.source.insert(value)
+    }
+    fn get_entry(&self, id: EntryId) -> Option<&Entry<ExprSource<'src>>> {
+        self.source.get_entry(id)
+    }
+    fn get_entry_mut(&mut self, id: EntryId) -> Option<&mut Entry<ExprSource<'src>>> {
+        self.source.get_entry_mut(id)
     }
 }

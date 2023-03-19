@@ -1,6 +1,7 @@
 use crate::{
     arena::UseArena,
-    ast::BinOp,
+    ast::{expr::GetSource, BinOp},
+    cst::{binop::BinOpSource, expr::ExprSource, unop::UnOpSource},
     error::CupidError,
     gc::Gc,
     token::{TokenType, INFIX_OPS, POSTFIX_OPS, PREFIX_OPS},
@@ -19,8 +20,13 @@ pub fn parse_precedence<'src>(
             let ((), r_bp) = prefix_binding_power(parser.curr.kind);
             let rhs = parse_precedence(parser, r_bp, gc)?.unwrap();
             let rhs = parser.arena.insert(rhs);
+            let unop_source = UnOpSource {
+                expr_src: rhs.source_id(&parser.arena),
+                op: parser.curr,
+            };
+            let unop_source_id = parser.arena.insert(ExprSource::from(unop_source));
             UnOp {
-                header: parser.header(),
+                header: parser.header(unop_source_id),
                 expr: rhs,
                 op: parser.curr.kind,
             }
@@ -72,8 +78,14 @@ pub fn parse_precedence<'src>(
         };
         let left = parser.arena.insert(lhs);
         let right = parser.arena.insert(rhs);
+        let binop_source = BinOpSource {
+            left_src: left.source_id(&parser.arena),
+            right_src: right.source_id(&parser.arena),
+            op,
+        };
+        let binop_source_id = parser.arena.insert(ExprSource::from(binop_source));
         lhs = BinOp {
-            header: parser.header(),
+            header: parser.header(binop_source_id),
             left,
             right,
             op: op.kind,

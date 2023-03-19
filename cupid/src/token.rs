@@ -1,4 +1,4 @@
-use crate::span::Position;
+use crate::span::{Position, Span};
 
 #[derive(Eq, PartialEq, Debug, Copy, Clone, Hash)]
 pub enum TokenType {
@@ -82,11 +82,11 @@ pub static INFIX_OPS: &[TokenType] = &[
 pub static PREFIX_OPS: &[TokenType] = &[TokenType::Minus, TokenType::Bang];
 pub static POSTFIX_OPS: &[TokenType] = &[TokenType::LeftParen];
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub struct Token<'src> {
     pub kind: TokenType,
     pub lexeme: &'src str,
-    pub position: Position,
+    pub span: Span,
 }
 
 impl<'src> Token<'src> {
@@ -94,7 +94,10 @@ impl<'src> Token<'src> {
         Token {
             kind: TokenType::Identifier,
             lexeme: text,
-            position: Position::synthetic(),
+            span: Span {
+                start: Position::synthetic(),
+                end: Position::synthetic(),
+            },
         }
     }
 
@@ -102,7 +105,10 @@ impl<'src> Token<'src> {
         Token {
             kind: TokenType::Error,
             lexeme: text,
-            position: Position::synthetic(),
+            span: Span {
+                start: Position::synthetic(),
+                end: Position::synthetic(),
+            },
         }
     }
 
@@ -110,7 +116,7 @@ impl<'src> Token<'src> {
         StaticToken {
             lexeme: self.lexeme.to_string(),
             kind: self.kind,
-            position: self.position,
+            span: self.span,
         }
     }
 }
@@ -119,7 +125,7 @@ impl<'src> Token<'src> {
 pub struct StaticToken {
     pub kind: TokenType,
     pub lexeme: String,
-    pub position: Position,
+    pub span: Span,
 }
 
 impl std::fmt::Debug for Token<'_> {
@@ -127,7 +133,7 @@ impl std::fmt::Debug for Token<'_> {
         write!(
             f,
             "Token '{}' ({:?}, {}:{})",
-            self.lexeme, self.kind, self.position.line, self.position.col
+            self.lexeme, self.kind, self.span.start.line, self.span.start.col
         )
     }
 }

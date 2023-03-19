@@ -1,19 +1,14 @@
 use std::fmt;
 
-use super::{ExprHeader, Fun, FunSource, Header};
-use crate::{token::Token, with_header};
+use super::{ExprHeader, Fun, Header};
+use crate::with_header;
 
 with_header! {
     #[derive(Clone)]
     pub struct Method<'src> {
-        pub name: Token<'src>,
+        pub name: &'src str,
         pub fun: Fun<'src>,
     }
-}
-
-pub struct MethodSource<'src> {
-    pub name: Token<'src>,
-    pub fun: FunSource<'src>,
 }
 
 impl fmt::Debug for Method<'_> {

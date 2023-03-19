@@ -1,5 +1,5 @@
-use super::{Expr, ExprHeader, Header, SourceId};
-use crate::{arena::EntryId, token::Token, with_header};
+use super::{Expr, ExprHeader, Header};
+use crate::{arena::EntryId, with_header};
 
 with_header! {
     #[derive(Debug, Clone)]
@@ -12,9 +12,4 @@ impl<'src> From<Return<'src>> for Expr<'src> {
     fn from(value: Return<'src>) -> Self {
         Expr::Return(value.into())
     }
-}
-
-pub struct ReturnSource<'src> {
-    pub return_kw: Token<'src>,
-    pub value: Option<SourceId>,
 }

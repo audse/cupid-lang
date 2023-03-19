@@ -1,23 +1,17 @@
-use super::{Expr, ExprHeader, HasSymbol, Header, SourceId};
-use crate::{arena::EntryId, pointer::Pointer, scope::symbol::Symbol, token::Token, with_header};
+use super::{Expr, ExprHeader, HasSymbol, Header};
+use crate::{arena::EntryId, pointer::Pointer, scope::symbol::Symbol, with_header};
 
 with_header! {
     #[derive(Debug, Clone)]
     pub struct Set<'src> {
-        pub name: Token<'src>,
+        pub name: &'src str,
         pub value: EntryId,
         pub symbol: Option<Pointer<Symbol<'src>>>,
     }
 }
 
-pub struct SetSource<'src> {
-    pub name: Token<'src>,
-    pub value: SourceId,
-    pub equal: Token<'src>,
-}
-
 impl<'src> HasSymbol<'src> for Set<'src> {
-    fn symbol_token(&self) -> Token<'src> {
+    fn symbol_name(&self) -> &'src str {
         self.name
     }
     fn symbol(&self) -> Option<&Pointer<Symbol<'src>>> {

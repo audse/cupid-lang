@@ -38,7 +38,7 @@ base_pass! {
 
 macro_rules! update_symbol {
     ($self:ident => $token_field:ident, $symbol_field:ident) => {{
-        let name = $self.$token_field.lexeme;
+        let name = $self.$token_field;
         let symbol = $self.scope().lookup(name);
         $self.$symbol_field = symbol;
     }};
@@ -55,7 +55,7 @@ impl<'src> Resolve<'src> for EntryId {
 
 impl<'src> Resolve<'src> for Class<'src> {
     fn resolve(mut self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
-        let name = self.name.lexeme;
+        let name = self.name;
         self.scope_mut().define(name);
 
         let scope = self.class_scope.clone();
@@ -66,7 +66,7 @@ impl<'src> Resolve<'src> for Class<'src> {
 
         if let Some(super_class) = self.super_class {
             self.class_scope_mut().define("super");
-            self.class_scope_mut().annotate_class(super_class.lexeme);
+            self.class_scope_mut().annotate_class(super_class);
         }
         pass!(Class::resolve(self, arena));
         Ok(self)
@@ -75,7 +75,7 @@ impl<'src> Resolve<'src> for Class<'src> {
 
 impl<'src> Resolve<'src> for Define<'src> {
     fn resolve(mut self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
-        let name = self.name.lexeme;
+        let name = self.name;
         self.scope_mut().define(name);
         pass!(Define::resolve(self, arena));
         Ok(self)
@@ -85,7 +85,7 @@ impl<'src> Resolve<'src> for Define<'src> {
 impl<'src> Resolve<'src> for Fun<'src> {
     fn resolve(mut self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
         if let Some(name) = self.name {
-            self.scope_mut().define(name.lexeme);
+            self.scope_mut().define(name);
         }
         pass!(Fun::resolve(self, arena));
         Ok(self)
@@ -146,7 +146,7 @@ impl<'src> Resolve<'src> for InvokeSuper<'src> {
 
 impl<'src> Resolve<'src> for Method<'src> {
     fn resolve(mut self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
-        let name = self.name.lexeme;
+        let name = self.name;
         self.scope_mut().define(name);
         Ok(Method {
             fun: self.fun.resolve(arena)?,

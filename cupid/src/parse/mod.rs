@@ -1,11 +1,31 @@
 use self::{iter::Iter, parser::Parser};
 use crate::{
     arena::{EntryId, UseArena},
+    ast::expr::GetSource as GetExprSource,
     compiler::FunctionType,
+    cst::{
+        array::ArraySource,
+        block::{ArrowBlockSource, BraceBlockSource},
+        class::ClassSource,
+        constant::ConstantSource,
+        define::DefineSource,
+        expr::ExprSource,
+        fun::FunSource,
+        get::GetSource,
+        get_super::GetSuperSource,
+        invoke_super::InvokeSuperSource,
+        r#break::BreakSource,
+        r#if::IfSource,
+        r#loop::LoopSource,
+        r#return::ReturnSource,
+        set::SetSource,
+        unop::UnOpSource,
+        SourceId,
+    },
     error::CupidError,
     gc::Gc,
     scope::ScopeContext,
-    token::TokenType,
+    token::{Token, TokenType},
     value::Value,
 };
 use ast::*;
@@ -93,25 +113,38 @@ impl<'src> ParseExpr<'src> for Array<'src> {
         parser: &mut Parser<'src>,
         gc: &mut Gc,
     ) -> Result<Option<Expr<'src>>, CupidError> {
-        let _open_bracket = match parser.matches(TokenType::LeftBracket) {
+        let open_bracket = match parser.matches(TokenType::LeftBracket) {
             Some(token) => token,
             None => return Ok(None),
         };
         let mut items: Vec<EntryId> = vec![];
+        let mut items_src: Vec<SourceId> = vec![];
+        let mut commas: Vec<Token<'src>> = vec![];
         while !parser.check(TokenType::RightBracket) {
             match parse_expr(parser, gc)? {
-                Some(expr) => items.push(parser.arena.insert(expr)),
+                Some(expr) => {
+                    items_src.push(expr.header().source);
+                    items.push(parser.arena.insert(expr))
+                }
                 None => break,
             }
-            if parser.matches(TokenType::Comma).is_none() {
-                break;
+            match parser.matches(TokenType::Comma) {
+                Some(comma) => commas.push(comma),
+                None => break,
             }
         }
-        let _close_bracket =
+        let close_bracket =
             parser.expect(TokenType::RightBracket, "Expect ']' after array items.")?;
+        let array_source = ArraySource {
+            open_bracket,
+            close_bracket,
+            items_src,
+            commas,
+        }; // TODO sources
+        let array_source_id = parser.arena.insert(ExprSource::from(array_source));
         Ok(Some(
             Array {
-                header: parser.header(),
+                header: parser.header(array_source_id),
                 items,
             }
             .into(),
@@ -133,9 +166,10 @@ impl<'src> ParseExpr<'src> for Break<'src> {
         parser: &mut Parser<'src>,
         gc: &mut Gc,
     ) -> Result<Option<Expr<'src>>, CupidError> {
-        if let None = parser.matches(TokenType::Break) {
-            return Ok(None);
-        }
+        let break_kw = match parser.matches(TokenType::Break) {
+            Some(token) => token,
+            None => return Ok(None),
+        };
         let value: Option<Expr<'src>> =
             match parser.matches_any(&[TokenType::Semicolon, TokenType::NewLine, TokenType::Eof]) {
                 Some(_) => None,
@@ -145,9 +179,13 @@ impl<'src> ParseExpr<'src> for Break<'src> {
             Some(value) => Some(parser.arena.insert(value)),
             None => None,
         };
+        let break_source_id = parser.insert_source(BreakSource {
+            break_kw,
+            value_src: None,
+        });
         Ok(Some(
             Break {
-                header: parser.header(),
+                header: parser.header(break_source_id),
                 value,
             }
             .into(),
@@ -160,25 +198,39 @@ impl<'src> ParseExpr<'src> for Class<'src> {
         parser: &mut Parser<'src>,
         gc: &mut Gc,
     ) -> Result<Option<Expr<'src>>, CupidError> {
-        if let None = parser.matches(TokenType::Class) {
-            return Ok(None);
-        }
-        let name = parser.expect(TokenType::Identifier, "Expect class name.")?;
-        let super_class = match parser.matches(TokenType::Less) {
-            Some(_) => Some(parser.expect(TokenType::Identifier, "Expect superclass name.")?),
-            None => None,
+        let class_kw = match parser.matches(TokenType::Class) {
+            Some(token) => token,
+            None => return Ok(None),
         };
-        parser.expect(TokenType::LeftBrace, "Expect '{' before body.")?;
+        let name = parser.expect(TokenType::Identifier, "Expect class name.")?;
+        let (super_class, super_class_name) = match parser.matches(TokenType::Less) {
+            Some(token) => (
+                Some(token),
+                Some(parser.expect(TokenType::Identifier, "Expect superclass name.")?),
+            ),
+            None => (None, None),
+        };
+        let open_brace = parser.expect(TokenType::LeftBrace, "Expect '{' before body.")?;
         parser.begin_scope(ScopeContext::Class);
         let fields = parse_fields(parser, gc)?;
         let methods = parse_methods(parser, gc)?;
         let class_scope = parser.end_scope();
-        parser.expect(TokenType::RightBrace, "Expect '}' after body.")?;
+        let close_brace = parser.expect(TokenType::RightBrace, "Expect '}' after body.")?;
+        let source_id = parser.insert_source(ClassSource {
+            open_brace,
+            close_brace,
+            class_kw,
+            name,
+            super_class_name,
+            super_class,
+            fields: fields.iter().map(|f| f.source_id(&parser.arena)).collect(),
+            methods: methods.iter().map(|f| f.source_id(&parser.arena)).collect(),
+        });
         Ok(Some(
             Class {
-                header: parser.header(),
-                name,
-                super_class,
+                header: parser.header(source_id),
+                name: name.lexeme,
+                super_class: super_class.map(|s| s.lexeme),
                 fields,
                 methods,
                 class_scope,
@@ -193,15 +245,17 @@ impl<'src> ParseExpr<'src> for Fun<'src> {
         parser: &mut Parser<'src>,
         gc: &mut Gc,
     ) -> Result<Option<Expr<'src>>, CupidError> {
-        if let None = parser.matches(TokenType::Fun) {
-            return Ok(None);
-        }
+        let kw = match parser.matches(TokenType::Fun) {
+            Some(token) => token,
+            None => return Ok(None),
+        };
         parser.matches(TokenType::Identifier);
-        Ok(Some(parse_fun(parser, FunctionType::Function, gc)?.into()))
+        Ok(Some(parse_fun(kw, parser, FunctionType::Function, gc)?.into()))
     }
 }
 
 fn parse_fun<'src>(
+    kw: Token<'src>,
     parser: &mut Parser<'src>,
     function_type: FunctionType,
     gc: &mut Gc,
@@ -211,27 +265,48 @@ fn parse_fun<'src>(
         _ => None,
     };
     parser.begin_scope(ScopeContext::Fun);
-    parser.expect(TokenType::LeftParen, "Expect '(' before parameters.")?;
+    let open_paren = parser.expect(TokenType::LeftParen, "Expect '(' before parameters.")?;
     let mut params = vec![];
+    let mut params_src: Vec<SourceId> = vec![];
+    let mut commas = vec![];
     while !parser.check_any(&[TokenType::RightParen, TokenType::Eof]) {
         let name = parser.expect(TokenType::Identifier, "Expect parameter name.")?;
-        params.push(Define {
-            header: parser.header(),
+        let define_source = parser.insert_source(DefineSource {
             name,
+            let_kw: None,
+            equal: None,
+            value_src: None,
+        });
+        params_src.push(define_source);
+        params.push(Define {
+            header: parser.header(define_source),
+            name: name.lexeme,
             value: None,
         });
-        if parser.matches(TokenType::Comma).is_none() {
-            break;
+        match parser.matches(TokenType::Comma) {
+            Some(token) => commas.push(token),
+            None => break,
         }
     }
-    parser.expect(TokenType::RightParen, "Expect ')' after parameters.")?;
+    let close_paren = parser.expect(TokenType::RightParen, "Expect ')' after parameters.")?;
     let body = Block::parse(parser, gc)?;
+    let body_src = body.header.source;
     let body = parser.arena.insert(Expr::from(body));
     parser.end_scope();
-    Ok(Fun {
-        header: parser.header(),
-        kind: function_type,
+
+    let source_id = parser.insert_source(FunSource {
+        fun_kw: kw,
         name,
+        params_src,
+        body_src,
+        open_paren,
+        close_paren,
+        commas,
+    });
+    Ok(Fun {
+        header: parser.header(source_id),
+        kind: function_type,
+        name: name.map(|n| n.lexeme),
         params,
         body,
     })
@@ -239,33 +314,42 @@ fn parse_fun<'src>(
 
 impl<'src> Parse<'src> for Block<'src> {
     fn parse(parser: &mut Parser<'src>, gc: &mut Gc) -> Result<Block<'src>, CupidError> {
-        if parser.matches(TokenType::ThickArrow).is_some() {
+        if let Some(arrow) = parser.matches(TokenType::ThickArrow) {
             parser.begin_scope(ScopeContext::Block);
             let inner: Expr<'src> = parse_expect_expr(parser, gc, "Expected block.")?.into();
             let inner: EntryId = parser.arena.insert(inner);
             parser.end_scope();
+            let body_src = inner.source_id(&parser.arena);
+            let source_id = parser.insert_source(ArrowBlockSource { arrow, body_src });
             Ok(Block {
-                header: parser.header(),
+                header: parser.header(source_id),
                 body: vec![inner],
             })
         } else {
             parser.begin_scope(ScopeContext::Block);
-            parser.expect(TokenType::LeftBrace, "Expect '{' before block.")?;
+            let open_brace = parser.expect(TokenType::LeftBrace, "Expect '{' before block.")?;
             let mut body = vec![];
+            let mut body_src = vec![]; // TODO
             while !parser.check_any(&[TokenType::RightBrace, TokenType::Eof]) {
                 match parse_expr(parser, gc)? {
                     Some(expr) => {
+                        body_src.push(expr.header().source);
                         let id = parser.arena.insert(Expr::from(expr));
                         body.push(id);
                     }
                     None => break,
                 }
             }
-            parser.expect(TokenType::RightBrace, "Expect '}' after block.")?;
+            let close_brace = parser.expect(TokenType::RightBrace, "Expect '}' after block.")?;
             terminate(parser);
             parser.end_scope();
+            let source_id = parser.insert_source(BraceBlockSource {
+                open_brace,
+                close_brace,
+                body_src,
+            });
             Ok(Block {
-                header: parser.header(),
+                header: parser.header(source_id),
                 body,
             })
         }
@@ -288,14 +372,17 @@ impl<'src> ParseExpr<'src> for Get<'src> {
         _gc: &mut Gc,
     ) -> Result<Option<Expr<'src>>, CupidError> {
         match parser.matches_any(&[TokenType::Identifier, TokenType::This, TokenType::Log]) {
-            Some(name) => Ok(Some(
-                Get {
-                    header: parser.header(),
-                    symbol: None,
-                    name,
-                }
-                .into(),
-            )),
+            Some(name) => {
+                let source_id = parser.insert_source(GetSource { name });
+                Ok(Some(
+                    Get {
+                        header: parser.header(source_id),
+                        symbol: None,
+                        name: name.lexeme,
+                    }
+                    .into(),
+                ))
+            }
             None => Ok(None),
         }
     }
@@ -311,23 +398,35 @@ impl<'src> ParseExpr<'src> for GetSuper<'src> {
             None => return Ok(None),
         };
         match parse_args(parser, gc) {
-            Ok(Some(args)) => Ok(Some(
-                InvokeSuper {
-                    header: parser.header(),
-                    symbol: None,
+            Ok(Some(args)) => {
+                let source_id = parser.insert_source(InvokeSuperSource {
                     name,
-                    args,
-                }
-                .into(),
-            )),
-            Ok(None) => Ok(Some(
-                GetSuper {
-                    header: parser.header(),
-                    symbol: None,
-                    name,
-                }
-                .into(),
-            )),
+                    args: vec![],
+                    open_paren: Token::synthetic("("),
+                    close_paren: Token::synthetic(")"),
+                    commas: vec![],
+                });
+                Ok(Some(
+                    InvokeSuper {
+                        header: parser.header(source_id),
+                        symbol: None,
+                        name: name.lexeme,
+                        args,
+                    }
+                    .into(),
+                ))
+            }
+            Ok(None) => {
+                let source_id = parser.insert_source(GetSuperSource { name });
+                Ok(Some(
+                    GetSuper {
+                        header: parser.header(source_id),
+                        symbol: None,
+                        name: name.lexeme,
+                    }
+                    .into(),
+                ))
+            }
             Err(e) => Err(e),
         }
     }
@@ -338,23 +437,34 @@ impl<'src> ParseExpr<'src> for If<'src> {
         parser: &mut Parser<'src>,
         gc: &mut Gc,
     ) -> Result<Option<Expr<'src>>, CupidError> {
-        if let None = parser.matches(TokenType::If) {
-            return Ok(None);
-        }
+        let if_kw = match parser.matches(TokenType::If) {
+            Some(token) => token,
+            None => return Ok(None),
+        };
         let condition = BinOp::parse_expect_expr(parser, gc, "Expected if condition.")?;
+        let condition_src = condition.header().source;
         let condition = parser.arena.insert(condition);
         let body = parse_expect_expr(parser, gc, "Expected if body.")?;
+        let body_src = body.header().source;
         let body = parser.arena.insert(body);
-        let else_body = match parser.matches(TokenType::Else) {
-            Some(_) => {
+        let (else_kw, else_body, else_body_src) = match parser.matches(TokenType::Else) {
+            Some(token) => {
                 let else_body = parse_expect_expr(parser, gc, "Expected else body.")?;
-                Some(parser.arena.insert(else_body))
+                let else_body_src = else_body.header().source;
+                (Some(token), Some(parser.arena.insert(else_body)), Some(else_body_src))
             }
-            None => None,
+            None => (None, None, None),
         };
+        let source_id = parser.insert_source(IfSource {
+            if_kw,
+            condition_src,
+            body_src,
+            else_body_src,
+            else_kw,
+        });
         Ok(Some(
             If {
-                header: parser.header(),
+                header: parser.header(source_id),
                 condition,
                 body,
                 else_body,
@@ -369,16 +479,19 @@ impl<'src> ParseExpr<'src> for Loop<'src> {
         parser: &mut Parser<'src>,
         gc: &mut Gc,
     ) -> Result<Option<Expr<'src>>, CupidError> {
-        if let None = parser.matches(TokenType::Loop) {
-            return Ok(None);
-        }
+        let loop_kw = match parser.matches(TokenType::Loop) {
+            Some(token) => token,
+            None => return Ok(None),
+        };
         parser.begin_scope(ScopeContext::Loop);
         let body = Block::parse(parser, gc)?;
+        let body_src = body.header.source;
         let body = parser.arena.insert(Expr::from(body));
         parser.end_scope();
+        let source_id = parser.insert_source(LoopSource { loop_kw, body_src });
         Ok(Some(
             Loop {
-                header: parser.header(),
+                header: parser.header(source_id),
                 body,
             }
             .into(),
@@ -421,11 +534,12 @@ impl<'src> Parse<'src> for Method<'src> {
             "init" => FunctionType::Initializer,
             _ => FunctionType::Method,
         };
-        let mut fun = parse_fun(parser, function_type, gc)?;
+        let mut fun = parse_fun(Token::synthetic("fun"), parser, function_type, gc)?;
+        let source_id = fun.source_id(&parser.arena);
         fun.name = None;
         Ok(Method {
-            header: parser.header(),
-            name,
+            header: parser.header(source_id),
+            name: name.lexeme,
             fun: fun.into(),
         })
     }
@@ -436,9 +550,10 @@ impl<'src> ParseExpr<'src> for Return<'src> {
         parser: &mut Parser<'src>,
         gc: &mut Gc,
     ) -> Result<Option<Expr<'src>>, CupidError> {
-        if let None = parser.matches(TokenType::Return) {
-            return Ok(None);
-        }
+        let return_kw = match parser.matches(TokenType::Return) {
+            Some(token) => token,
+            None => return Ok(None),
+        };
         let value = match parser.matches_any(&[TokenType::NewLine, TokenType::Semicolon]) {
             Some(_) => None,
             None => {
@@ -446,9 +561,14 @@ impl<'src> ParseExpr<'src> for Return<'src> {
                 expr.map(|expr| parser.arena.insert(expr))
             }
         };
+        let value_src = value.map(|val| val.source_id(&parser.arena));
+        let source_id = parser.insert_source(ReturnSource {
+            return_kw,
+            value_src,
+        });
         Ok(Some(
             Return {
-                header: parser.header(),
+                header: parser.header(source_id),
                 value,
             }
             .into(),
@@ -466,27 +586,36 @@ impl<'src> ParseExpr<'src> for Set<'src> {
             None => return Ok(None),
         };
         match parser.matches(TokenType::Equal) {
-            Some(_) => {
+            Some(equal) => {
                 let value = parse_expect_expr(parser, gc, "Expect value.")?;
+                let value_src = value.source_id(&parser.arena);
                 let value = parser.arena.insert(value);
+                let source_id = parser.insert_source(SetSource {
+                    name,
+                    equal,
+                    value_src,
+                });
                 Ok(Some(
                     Set {
-                        header: parser.header(),
+                        header: parser.header(source_id),
                         symbol: None,
-                        name,
+                        name: name.lexeme,
                         value,
                     }
                     .into(),
                 ))
             }
-            None => Ok(Some(
-                Get {
-                    header: parser.header(),
-                    symbol: None,
-                    name,
-                }
-                .into(),
-            )),
+            None => {
+                let source_id = parser.insert_source(GetSource { name });
+                Ok(Some(
+                    Get {
+                        header: parser.header(source_id),
+                        symbol: None,
+                        name: name.lexeme,
+                    }
+                    .into(),
+                ))
+            }
         }
     }
 }
@@ -496,13 +625,15 @@ impl<'src> ParseExpr<'src> for Value {
         parser: &mut Parser<'src>,
         gc: &mut Gc,
     ) -> Result<Option<Expr<'src>>, CupidError> {
+        let source = ConstantSource { value: parser.curr };
         match parser.curr.kind {
             TokenType::Float => {
                 parser.advance();
                 let value: f64 = parser.prev.lexeme.parse().expect("Parsed value is not a double");
+                let source_id = parser.insert_source(source);
                 Ok(Some(
                     Constant {
-                        header: parser.header(),
+                        header: parser.header(source_id),
                         value: Value::Float(value),
                     }
                     .into(),
@@ -512,9 +643,10 @@ impl<'src> ParseExpr<'src> for Value {
                 parser.advance();
                 let value: i32 =
                     parser.prev.lexeme.parse().expect("Parsed value is not an integer");
+                let source_id = parser.insert_source(source);
                 Ok(Some(
                     Constant {
-                        header: parser.header(),
+                        header: parser.header(source_id),
                         value: Value::Int(value),
                     }
                     .into(),
@@ -524,9 +656,10 @@ impl<'src> ParseExpr<'src> for Value {
                 parser.advance();
                 let lexeme = parser.prev.lexeme;
                 let value = &lexeme[1..(lexeme.len() - 1)];
+                let source_id = parser.insert_source(source);
                 Ok(Some(
                     Constant {
-                        header: parser.header(),
+                        header: parser.header(source_id),
                         value: Value::String(gc.intern(value)),
                     }
                     .into(),
@@ -534,9 +667,10 @@ impl<'src> ParseExpr<'src> for Value {
             }
             TokenType::False => {
                 parser.advance();
+                let source_id = parser.insert_source(source);
                 Ok(Some(
                     Constant {
-                        header: parser.header(),
+                        header: parser.header(source_id),
                         value: Value::Bool(false),
                     }
                     .into(),
@@ -544,9 +678,10 @@ impl<'src> ParseExpr<'src> for Value {
             }
             TokenType::True => {
                 parser.advance();
+                let source_id = parser.insert_source(source);
                 Ok(Some(
                     Constant {
-                        header: parser.header(),
+                        header: parser.header(source_id),
                         value: Value::Bool(true),
                     }
                     .into(),
@@ -554,9 +689,10 @@ impl<'src> ParseExpr<'src> for Value {
             }
             TokenType::Nil => {
                 parser.advance();
+                let source_id = parser.insert_source(source);
                 Ok(Some(
                     Constant {
-                        header: parser.header(),
+                        header: parser.header(source_id),
                         value: Value::Nil,
                     }
                     .into(),
@@ -572,31 +708,47 @@ impl<'src> ParseExpr<'src> for Define<'src> {
         parser: &mut Parser<'src>,
         gc: &mut Gc,
     ) -> Result<Option<Expr<'src>>, CupidError> {
-        if let None = parser.matches(TokenType::Let) {
-            return Ok(None);
-        }
+        let let_kw = match parser.matches(TokenType::Let) {
+            Some(token) => token,
+            None => return Ok(None),
+        };
         let name = parser.expect(TokenType::Identifier, "Expect identifier.")?;
         match parser.matches(TokenType::Equal) {
-            Some(_) => {
+            Some(equal) => {
                 let value = parse_expect_expr(parser, gc, "Expect value after '='.")?;
+                let value_src = value.header().source;
                 let value = parser.arena.insert(value);
+                let source_id = parser.insert_source(DefineSource {
+                    name,
+                    let_kw: Some(let_kw),
+                    value_src: Some(value_src),
+                    equal: Some(equal),
+                });
                 Ok(Some(
                     Define {
-                        header: parser.header(),
-                        name,
+                        header: parser.header(source_id),
+                        name: name.lexeme,
                         value: Some(value),
                     }
                     .into(),
                 ))
             }
-            None => Ok(Some(
-                Define {
-                    header: parser.header(),
+            None => {
+                let source_id = parser.insert_source(DefineSource {
                     name,
-                    value: None,
-                }
-                .into(),
-            )),
+                    let_kw: Some(let_kw),
+                    value_src: None,
+                    equal: None,
+                });
+                Ok(Some(
+                    Define {
+                        header: parser.header(source_id),
+                        name: name.lexeme,
+                        value: None,
+                    }
+                    .into(),
+                ))
+            }
         }
     }
 }
@@ -605,9 +757,10 @@ fn parse_for_loop<'src>(
     parser: &mut Parser<'src>,
     gc: &mut Gc,
 ) -> Result<Option<Expr<'src>>, CupidError> {
-    if let None = parser.matches(TokenType::For) {
-        return Ok(None);
-    }
+    let kw = match parser.matches(TokenType::For) {
+        Some(token) => token,
+        None => return Ok(None),
+    };
     parser.begin_scope(ScopeContext::Loop);
 
     parser.expect(TokenType::LeftParen, "Expect '(' after 'for'.")?;
@@ -618,9 +771,14 @@ fn parse_for_loop<'src>(
 
     // Break condition
     let cond = BinOp::parse_expect_expr(parser, gc, "Expect for loop condition.")?;
+    let cond_src = cond.header().source;
     let cond = parser.arena.insert(cond);
+    let cond_source_id = parser.insert_source(UnOpSource {
+        expr_src: cond_src,
+        op: Token::synthetic("todo"),
+    });
     let cond = UnOp {
-        header: parser.header(),
+        header: parser.header(cond_source_id),
         expr: cond,
         op: TokenType::Bang,
     }
@@ -633,13 +791,14 @@ fn parse_for_loop<'src>(
 
     parser.expect(TokenType::RightParen, "Expect ')' after 'for'.")?;
     let mut body = Block::parse(parser, gc)?;
+    let body_source = body.header.source;
     body.body.push(increment);
 
-    let loop_expr: Expr<'src> = make_condition_loop(parser, cond, body).into();
+    let loop_expr: Expr<'src> = make_condition_loop(kw, parser, cond, body).into();
     let loop_expr: EntryId = parser.arena.insert(loop_expr);
 
     let block = Block {
-        header: parser.header(),
+        header: parser.header(body_source),
         body: vec![def, loop_expr],
     };
 
@@ -651,47 +810,83 @@ fn parse_while_loop<'src>(
     parser: &mut Parser<'src>,
     gc: &mut Gc,
 ) -> Result<Option<Expr<'src>>, CupidError> {
-    if let None = parser.matches(TokenType::While) {
-        return Ok(None);
-    }
+    let kw = match parser.matches(TokenType::While) {
+        Some(token) => token,
+        None => return Ok(None),
+    };
     parser.begin_scope(ScopeContext::Loop);
     let cond = BinOp::parse_expect_expr(parser, gc, "Expected condition after 'while'.")?;
+    let cond_src = cond.header().source;
     let cond = parser.arena.insert(cond);
+    let cond_source_id = parser.insert_source(UnOpSource {
+        expr_src: cond_src,
+        op: Token::synthetic("todo"),
+    });
     let cond = UnOp {
-        header: parser.header(),
+        header: parser.header(cond_source_id),
         expr: cond,
         op: TokenType::Bang,
     };
     let body = Block::parse(parser, gc)?;
     parser.end_scope();
-    Ok(Some(make_condition_loop(parser, cond.into(), body).into()))
+    Ok(Some(make_condition_loop(kw, parser, cond.into(), body).into()))
 }
 
 fn make_condition_loop<'src>(
+    kw: Token<'src>,
     parser: &mut Parser<'src>,
     cond: Expr<'src>,
     mut loop_body: Block<'src>,
 ) -> Loop<'src> {
+    let cond_src = cond.header().source;
     let cond = parser.arena.insert(cond);
-    let if_body = parser.arena.insert(Expr::from(Break {
-        header: parser.header(),
+
+    let if_body_source_id = parser.insert_source(BreakSource {
+        break_kw: Token::synthetic("break"),
+        value_src: None,
+    });
+    let if_body = Break {
+        header: parser.header(if_body_source_id),
         value: None,
-    }));
+    };
+    let if_body_src = if_body.header.source;
+    let if_body = parser.arena.insert(Expr::from(if_body));
+
+    let if_stmt_source_id = parser.insert_source(IfSource {
+        if_kw: Token::synthetic("if"),
+        condition_src: cond_src,
+        body_src: if_body_src,
+        else_kw: None,
+        else_body_src: None,
+    });
     let if_stmt = If {
-        header: parser.header(),
+        header: parser.header(if_stmt_source_id),
         condition: cond,
         body: if_body,
         else_body: None,
     };
     let if_stmt = parser.arena.insert(Expr::from(if_stmt));
+    let mut loop_body_src: Vec<SourceId> =
+        loop_body.body.iter().map(|b| b.source_id(&parser.arena)).collect();
+    let mut block_source = BraceBlockSource {
+        open_brace: Token::synthetic("{"),
+        close_brace: Token::synthetic("}"),
+        body_src: vec![if_stmt_source_id.into()],
+    };
+    block_source.body_src.append(&mut loop_body_src);
+    let block_source_id = parser.insert_source(block_source);
     let mut block = Block {
-        header: parser.header(),
+        header: parser.header(if_stmt_source_id),
         body: vec![if_stmt],
     };
     block.body.append(&mut loop_body.body);
     let body = parser.arena.insert(Expr::from(block));
+    let loop_source_id = parser.insert_source(LoopSource {
+        loop_kw: kw,
+        body_src: block_source_id.into(),
+    });
     Loop {
-        header: parser.header(),
+        header: parser.header(loop_source_id),
         body,
     }
 }

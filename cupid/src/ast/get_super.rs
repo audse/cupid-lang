@@ -1,20 +1,16 @@
 use super::{Expr, ExprHeader, HasSymbol, Header};
-use crate::{pointer::Pointer, scope::symbol::Symbol, token::Token, with_header};
+use crate::{pointer::Pointer, scope::symbol::Symbol, with_header};
 
 with_header! {
     #[derive(Debug, Clone)]
     pub struct GetSuper<'src> {
-        pub name: Token<'src>,
+        pub name: &'src str,
         pub symbol: Option<Pointer<Symbol<'src>>>
     }
 }
 
-pub struct GetSuperSource<'src> {
-    pub name: Token<'src>,
-}
-
 impl<'src> HasSymbol<'src> for GetSuper<'src> {
-    fn symbol_token(&self) -> Token<'src> {
+    fn symbol_name(&self) -> &'src str {
         self.name
     }
     fn symbol(&self) -> Option<&Pointer<Symbol<'src>>> {

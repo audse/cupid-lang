@@ -1,23 +1,17 @@
-use super::{Expr, ExprHeader, HasSymbol, Header, SourceId};
-use crate::{arena::EntryId, pointer::Pointer, scope::symbol::Symbol, token::Token, with_header};
+use super::{Expr, ExprHeader, HasSymbol, Header};
+use crate::{arena::EntryId, pointer::Pointer, scope::symbol::Symbol, with_header};
 
 with_header! {
     #[derive(Debug, Clone)]
     pub struct GetProperty<'src> {
         pub receiver: EntryId,
-        pub property: Token<'src>,
+        pub property: &'src str,
         pub symbol: Option<Pointer<Symbol<'src>>>,
     }
 }
 
-pub struct GetPropertySource<'src> {
-    pub receiver: SourceId,
-    pub property: Token<'src>,
-    pub dot: Token<'src>,
-}
-
 impl<'src> HasSymbol<'src> for GetProperty<'src> {
-    fn symbol_token(&self) -> Token<'src> {
+    fn symbol_name(&self) -> &'src str {
         self.property
     }
     fn symbol(&self) -> Option<&Pointer<Symbol<'src>>> {

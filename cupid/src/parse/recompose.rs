@@ -1,7 +1,7 @@
 use crate::{
     arena::{EntryId, ExprArena, UseArena},
     error::CupidError,
-    token::{Token, TokenType},
+    token::TokenType,
 };
 
 use super::{
@@ -100,7 +100,7 @@ impl<'src> Recompose<'src> for BinOp<'src> {
                 .into()),
                 _ => Ok(Set {
                     header: left_ref.header().clone(),
-                    name: extract_token(&left_ref)?,
+                    name: extract_name(&left_ref)?,
                     value: right,
                     symbol: None,
                 }
@@ -118,7 +118,7 @@ impl<'src> Recompose<'src> for BinOp<'src> {
                 _ => Ok(GetProperty {
                     header: left_ref.header().clone(),
                     receiver: left,
-                    property: extract_token(right_ref)?,
+                    property: extract_name(right_ref)?,
                     symbol: None,
                 }
                 .into()),
@@ -271,11 +271,11 @@ impl<'src> Recompose<'src> for UnOp<'src> {
 fn extract_entry_token<'src>(
     id: EntryId,
     arena: &ExprArena<'src>,
-) -> Result<Token<'src>, CupidError> {
-    extract_token(arena.expect(id))
+) -> Result<&'src str, CupidError> {
+    extract_name(arena.expect(id))
 }
 
-fn extract_token<'src>(expr: &Expr<'src>) -> Result<Token<'src>, CupidError> {
+fn extract_name<'src>(expr: &Expr<'src>) -> Result<&'src str, CupidError> {
     match expr {
         Expr::Get(var) => Ok(var.name),
         _ => Err(CupidError::parse_error(format!("Expected token: {:#?}", expr), None)),

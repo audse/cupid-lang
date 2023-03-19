@@ -1,6 +1,5 @@
 use crate::{
     // chunk::Instruction,
-    compiler::compile,
     error::CupidErr,
     expose,
     gc::{Gc, GcRef},
@@ -58,14 +57,6 @@ impl Vm {
         self.stack.top = self.stack.stack.as_mut_ptr();
     }
 
-    pub fn interpret(&mut self, code: &str) -> Result<(), CupidErr> {
-        let function = compile(code, &mut self.gc)?;
-        self.stack.push(Value::Function(function));
-        let closure = self.alloc(Closure::new(function));
-        self.frames.increment(CallFrame::new(closure, 0));
-        self.run()
-    }
-
     pub fn interpret_function(&mut self, function: GcRef<Function>) -> Result<(), CupidErr> {
         self.stack.push(Value::Function(function));
         let closure = self.alloc(Closure::new(function));
@@ -107,10 +98,7 @@ impl Vm {
                 self.stack.push(result);
                 Ok(())
             }
-            Value::Function(fun) => self.runtime_err(format!(
-                "Can only call functions and classes, not {:#?}",
-                fun.deref()
-            )),
+            Value::Function(fun) if &fun.name.s == "script" => Ok(()),
             _ => self.runtime_err("Can only call functions and classes."),
         }
     }

@@ -1,4 +1,4 @@
-use super::{Expr, ExprHeader, Header, SourceId};
+use super::{Expr, ExprHeader, Header};
 use crate::{value::Value, with_header};
 
 with_header! {
@@ -6,10 +6,6 @@ with_header! {
     pub struct Constant<'src> {
         pub value: Value,
     }
-}
-
-pub struct ConstantSource {
-    pub value_src: SourceId,
 }
 
 impl<'src> From<Constant<'src>> for Expr<'src> {

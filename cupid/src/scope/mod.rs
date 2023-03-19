@@ -4,7 +4,6 @@ use crate::{
     arena::{EntryId, ExprArena, UseArena},
     error::CupidError,
     pointer::Pointer,
-    token::Token,
     ty::Type,
 };
 
@@ -70,48 +69,20 @@ impl<'src> Scope<'src> {
     pub fn lookup_property(
         &self,
         receiver_ty: Type<'src>,
-        prop: Token<'src>,
+        prop: &'src str,
     ) -> Result<Option<Pointer<Symbol<'src>>>, CupidError> {
         let class_table = match receiver_ty {
             Type::Class(class_name) => self.lookup(class_name),
             Type::Instance(instance_class_name) => self.lookup(instance_class_name),
-            _ => {
-                return Err(CupidError::type_error(
-                    "Only classes have properties.",
-                    prop.to_static(),
-                ))
-            }
+            _ => return Err(CupidError::type_error("Only classes have properties.", "")),
         };
         match class_table {
-            Some(class) => match class.scope.borrow().lookup(prop.lexeme) {
+            Some(class) => match class.scope.borrow().lookup(prop) {
                 Some(value) => Ok(Some(value)),
                 None => Ok(None),
             },
-            None => Err(CupidError::name_error("Undefined", prop.to_static())),
+            None => Err(CupidError::name_error(format!("Undefined: `{}`", prop), "")),
         }
-        // match receiver_ty {
-        //     Type::Class(class_name) => {
-        //         let class = self.lookup(class_name);
-        //         match class {
-        //             Some(class) => match class.scope.borrow().lookup(prop.lexeme) {
-        //                 Some(value) => Ok(Some(value)),
-        //                 None => Ok(None),
-        //             },
-        //             None => Err(CupidError::name_error("Undefined", prop.to_static())),
-        //         }
-        //     }
-        //     Type::Instance(class_name) => {
-        //         let instance = self.lookup(class_name);
-        //         match instance {
-        //             Some(class) => match class.scope.borrow().lookup(prop.lexeme) {
-        //                 Some(value) => Ok(Some(value)),
-        //                 None => Ok(None),
-        //             },
-        //             None => Err(CupidError::name_error("Undefined", prop.to_static())),
-        //         }
-        //     }
-        //     _ => Err(CupidError::type_error("Only classes have properties.", prop.to_static())),
-        // }
     }
 
     pub fn define(&mut self, name: &'src str) {
@@ -176,6 +147,10 @@ impl<'src> Scope<'src> {
                 returns: unknown_ty,
             },
         );
+
+        self.define("clock");
+        let float_ty = arena.insert(Type::Float);
+        self.annotate_ty("clock", Type::Function { returns: float_ty });
     }
 }
 

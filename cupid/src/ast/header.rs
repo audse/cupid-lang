@@ -1,6 +1,6 @@
 use std::cell::{Ref, RefMut};
 
-use crate::{for_expr_variant, pointer::Pointer, scope::Scope, ty::Type};
+use crate::{cst::SourceId, for_expr_variant, pointer::Pointer, scope::Scope, ty::Type};
 
 use super::Expr;
 
@@ -8,6 +8,7 @@ use super::Expr;
 pub struct ExprHeader<'src> {
     pub ty: Type<'src>,
     pub scope: Pointer<Scope<'src>>,
+    pub source: SourceId,
 }
 
 pub trait Header<'src> {

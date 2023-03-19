@@ -4,7 +4,7 @@ use crate::{
     compiler::{ClassCompiler, Compiler, FunctionType, Local},
     gc::{Gc, GcRef},
     objects::Function,
-    token::{Token, TokenType},
+    token::TokenType,
     value::Value,
 };
 use std::convert::TryFrom;
@@ -53,19 +53,20 @@ impl<'src> BytecodeCompiler<'src> {
     }
 
     fn write(&mut self, instruction: Instruction) -> usize {
-        self.compiler.function.chunk.write(instruction, 0)
+        let approx_line = self.compiler.function.chunk.code.len(); // TODO replace with actual line
+        self.compiler.function.chunk.write(instruction, approx_line)
     }
 
-    fn write_line(&mut self, instruction: Instruction, line: usize) -> usize {
-        self.compiler.function.chunk.write(instruction, line)
-    }
+    // fn write_line(&mut self, instruction: Instruction, line: usize) -> usize {
+    //     self.compiler.function.chunk.write(instruction, line)
+    // }
 
     fn write_pop(&mut self) -> usize {
         self.write(Instruction::Pop)
     }
 
-    fn push(&mut self, name: Token<'src>, kind: FunctionType) {
-        let function_name = self.gc.intern(name.lexeme.to_owned());
+    fn push(&mut self, name: &'src str, kind: FunctionType) {
+        let function_name = self.gc.intern(name.to_owned());
         let new_compiler = Compiler::new(function_name, kind);
         let old_compiler = std::mem::replace(&mut self.compiler, new_compiler);
         self.compiler.enclosing = Some(old_compiler);
@@ -96,13 +97,13 @@ impl<'src> BytecodeCompiler<'src> {
         }
     }
 
-    fn ident_constant(&mut self, ident: Token<'src>) -> u8 {
-        let identifier = self.gc.intern(ident.lexeme);
+    fn ident_constant(&mut self, ident: &'src str) -> u8 {
+        let identifier = self.gc.intern(ident);
         let value = Value::String(identifier);
         self.constant(value)
     }
 
-    fn declare(&mut self, name: Token<'src>) {
+    fn declare(&mut self, name: &'src str) {
         if self.compiler.scope_depth == 0 {
             return;
         }
@@ -112,7 +113,7 @@ impl<'src> BytecodeCompiler<'src> {
         self.add_local(name)
     }
 
-    fn declare_constant(&mut self, name: Token<'src>) -> u8 {
+    fn declare_constant(&mut self, name: &'src str) -> u8 {
         self.declare(name);
         if self.compiler.scope_depth > 0 {
             return 0;
@@ -136,11 +137,11 @@ impl<'src> BytecodeCompiler<'src> {
         last_local.depth = self.compiler.scope_depth;
     }
 
-    fn add_local(&mut self, token: Token<'src>) {
+    fn add_local(&mut self, name: &'src str) {
         if self.compiler.locals.len() == Compiler::LOCAL_COUNT {
             panic!("Too many local variables in function.")
         }
-        let local = Local::new(token, -1);
+        let local = Local::new(name, -1);
         self.compiler.locals.push(local);
     }
 
@@ -195,7 +196,7 @@ impl<'src> BytecodeCompiler<'src> {
         }
     }
 
-    fn get_name(&mut self, name: Token<'src>) {
+    fn get_name(&mut self, name: &'src str) {
         let instruction = if let Some(arg) = self.resolve_local(name) {
             Instruction::GetLocal(arg)
         } else if let Some(arg) = self.resolve_upvalue(name) {
@@ -204,10 +205,10 @@ impl<'src> BytecodeCompiler<'src> {
             let index = self.ident_constant(name);
             Instruction::GetGlobal(index)
         };
-        self.write_line(instruction, name.position.line);
+        self.write(instruction);
     }
 
-    fn set_name(&mut self, name: Token<'src>) {
+    fn set_name(&mut self, name: &'src str) {
         let instruction = if let Some(arg) = self.resolve_local(name) {
             Instruction::SetLocal(arg)
         } else if let Some(arg) = self.resolve_upvalue(name) {
@@ -216,10 +217,10 @@ impl<'src> BytecodeCompiler<'src> {
             let index = self.ident_constant(name);
             Instruction::SetGlobal(index)
         };
-        self.write_line(instruction, name.position.line);
+        self.write(instruction);
     }
 
-    fn resolve_local(&mut self, name: Token) -> Option<u8> {
+    fn resolve_local(&mut self, name: &str) -> Option<u8> {
         let result = self.compiler.resolve_local(name, &mut self.errors.resolver);
         while let Some(e) = self.errors.resolver.pop() {
             panic!("{}", e);
@@ -227,7 +228,7 @@ impl<'src> BytecodeCompiler<'src> {
         result
     }
 
-    fn resolve_upvalue(&mut self, name: Token) -> Option<u8> {
+    fn resolve_upvalue(&mut self, name: &'src str) -> Option<u8> {
         let result = self.compiler.resolve_upvalue(name, &mut self.errors.resolver);
         while let Some(e) = self.errors.resolver.pop() {
             panic!("{}", e);
@@ -359,7 +360,7 @@ impl<'src> ToBytecode<'src> for Call<'src> {
     fn compile(&self, compiler: &mut BytecodeCompiler<'src>) {
         let callee = compiler.arena.expect(self.callee);
         match callee {
-            Expr::Get(get) if get.name.lexeme == "log" => {
+            Expr::Get(get) if get.name == "log" => {
                 self.args.compile(compiler);
                 compiler.write(Instruction::Log)
             }
@@ -376,7 +377,7 @@ impl<'src> ToBytecode<'src> for Class<'src> {
     fn compile(&self, compiler: &mut BytecodeCompiler<'src>) {
         let name = compiler.ident_constant(self.name);
         compiler.declare(self.name);
-        compiler.write_line(Instruction::Class(name), self.name.position.line);
+        compiler.write(Instruction::Class(name));
         compiler.define(name);
 
         compiler.update_class_compiler();
@@ -386,7 +387,7 @@ impl<'src> ToBytecode<'src> for Class<'src> {
             let _index = compiler.ident_constant(super_name);
             compiler.get_name(super_name);
             compiler.begin_scope();
-            compiler.add_local(Token::synthetic("super"));
+            compiler.add_local("super");
             compiler.define(0); // TODO this may be wrong
             compiler.get_name(self.name);
             compiler.write(Instruction::Inherit);
@@ -423,12 +424,16 @@ impl<'src> ToBytecode<'src> for Define<'src> {
 
 impl<'src> ToBytecode<'src> for Fun<'src> {
     fn compile(&self, compiler: &mut BytecodeCompiler<'src>) {
-        if let Some(name) = self.name {
-            let global = compiler.declare_constant(name);
-            compiler.define(global);
-        }
+        let global = match self.name {
+            Some(name) => {
+                let global = Some(compiler.declare_constant(name));
+                compiler.mark_initialized();
+                global
+            }
+            None => None,
+        };
 
-        compiler.push(self.name.unwrap_or_else(|| Token::synthetic("__closure")), self.kind);
+        compiler.push(self.name.unwrap_or_else(|| "__closure"), self.kind);
         compiler.begin_scope();
 
         for param in &self.params {
@@ -446,6 +451,10 @@ impl<'src> ToBytecode<'src> for Fun<'src> {
         let id = compiler.gc.alloc(fun);
         let index = compiler.constant(Value::Function(id));
         compiler.write(Instruction::Closure(index));
+
+        if let Some(global) = global {
+            compiler.define(global);
+        }
     }
 }
 
@@ -467,8 +476,8 @@ impl<'src> ToBytecode<'src> for GetSuper<'src> {
     fn compile(&self, compiler: &mut BytecodeCompiler<'src>) {
         compiler.expect_class_compiler();
         let name = compiler.ident_constant(self.name);
-        compiler.get_name(Token::synthetic("self"));
-        compiler.get_name(Token::synthetic("super"));
+        compiler.get_name("self");
+        compiler.get_name("super");
         compiler.write(Instruction::GetSuper(name));
     }
 }
@@ -504,9 +513,9 @@ impl<'src> ToBytecode<'src> for InvokeSuper<'src> {
     fn compile(&self, compiler: &mut BytecodeCompiler<'src>) {
         compiler.expect_class_compiler();
         let name = compiler.ident_constant(self.name);
-        compiler.get_name(Token::synthetic("self"));
+        compiler.get_name("self");
         self.args.compile(compiler);
-        compiler.get_name(Token::synthetic("super"));
+        compiler.get_name("super");
         compiler.write(Instruction::SuperInvoke(name, self.args.len() as u8));
     }
 }

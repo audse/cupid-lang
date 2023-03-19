@@ -100,12 +100,12 @@ impl<'src> Infer<'src> for Call<'src> {
 
 impl<'src> Infer<'src> for Class<'src> {
     fn infer(mut self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
-        let name = self.name.lexeme;
+        let name = self.name;
         let ty = Type::class(name);
         self.scope_mut().annotate_ty(name, ty);
         self.class_scope_mut().annotate_ty("self", ty);
         if let Some(super_class) = self.super_class {
-            self.class_scope_mut().annotate_ty("super", Type::class(super_class.lexeme));
+            self.class_scope_mut().annotate_ty("super", Type::class(super_class));
         }
         self.set_ty(Type::class(name));
         pass!(Class::infer(self, arena));
@@ -132,7 +132,7 @@ impl<'src> Infer<'src> for Define<'src> {
     fn infer(mut self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
         pass!(Define::infer(self, arena));
         let ty = unwrapped_entry_ty(self.value, arena);
-        let name = self.name.lexeme;
+        let name = self.name;
         self.scope_mut().annotate_ty(name, ty);
         self.set_ty(Type::Unit);
         Ok(self)
@@ -148,7 +148,7 @@ impl<'src> Infer<'src> for Fun<'src> {
         };
         if let Some(name) = self.name {
             let ty = self.ty();
-            self.scope_mut().annotate_ty(name.lexeme, ty);
+            self.scope_mut().annotate_ty(name, ty);
         }
         Ok(self)
     }
@@ -214,7 +214,7 @@ impl<'src> Infer<'src> for Method<'src> {
     fn infer(mut self, arena: &mut ExprArena<'src>) -> Result<Self, CupidError> {
         pass!(Method::infer(self, arena));
         let ty = self.fun.header.ty;
-        let name = self.name.lexeme;
+        let name = self.name;
         self.set_ty(ty);
         self.scope_mut().annotate_ty(name, ty);
         Ok(self)

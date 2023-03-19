@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    span::Position,
+    span::{Position, Span},
     token::{Token, TokenType},
 };
 
@@ -20,7 +20,7 @@ macro_rules! keyword_map {
 pub struct Scanner<'src> {
     keywords: HashMap<&'static str, TokenType>,
     code: &'src str,
-    start: usize,
+    start: Position,
     position: Position,
 }
 
@@ -53,7 +53,7 @@ impl<'src> Scanner<'src> {
         Scanner {
             keywords,
             code,
-            start: 0,
+            start: Position::default(),
             position: Position::default(),
         }
     }
@@ -69,7 +69,7 @@ impl<'src> Scanner<'src> {
 
     pub fn scan_token(&mut self) -> Token<'src> {
         self.skip_whitespace();
-        self.start = self.position.index;
+        self.start = self.position;
         if self.is_at_end() {
             return self.make_token(TokenType::Eof);
         }
@@ -114,14 +114,17 @@ impl<'src> Scanner<'src> {
     }
 
     fn lexeme(&self) -> &'src str {
-        &self.code[self.start..self.position.index]
+        &self.code[self.start.index..self.position.index]
     }
 
     fn make_token(&self, kind: TokenType) -> Token<'src> {
         Token {
             kind,
             lexeme: self.lexeme(),
-            position: self.position,
+            span: Span {
+                start: self.start,
+                end: self.position,
+            },
         }
     }
 
@@ -145,7 +148,10 @@ impl<'src> Scanner<'src> {
         Token {
             kind: TokenType::Error,
             lexeme: message,
-            position: self.position,
+            span: Span {
+                start: self.position,
+                end: self.position,
+            },
         }
     }
 

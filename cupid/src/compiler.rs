@@ -1,23 +1,21 @@
 use std::fmt;
 
 use crate::{
-    error::CupidErr,
-    gc::{Gc, GcRef},
+    gc::GcRef,
     objects::FunctionUpvalue,
     objects::{Function, Str},
-    parser::Parser,
     token::Token,
 };
 
 #[derive(Copy, Clone)]
 pub struct Local<'src> {
-    pub name: Token<'src>,
+    pub name: &'src str,
     pub depth: i32,
     pub is_captured: bool,
 }
 
 impl<'src> Local<'src> {
-    pub fn new(name: Token<'src>, depth: i32) -> Self {
+    pub fn new(name: &'src str, depth: i32) -> Self {
         Local {
             name,
             depth,
@@ -28,7 +26,7 @@ impl<'src> Local<'src> {
 
 impl fmt::Debug for Local<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "local {}", self.name.lexeme)
+        write!(f, "local {}", self.name)
     }
 }
 
@@ -65,13 +63,13 @@ impl<'src> Compiler<'src> {
             FunctionType::Method | FunctionType::Initializer => Token::synthetic("self"),
             _ => Token::synthetic(""),
         };
-        compiler.locals.push(Local::new(token, 0));
+        compiler.locals.push(Local::new(token.lexeme, 0));
         Box::new(compiler)
     }
 
-    pub fn resolve_local(&mut self, name: Token, errors: &mut Vec<&'static str>) -> Option<u8> {
+    pub fn resolve_local(&mut self, name: &str, errors: &mut Vec<&'static str>) -> Option<u8> {
         for (i, local) in self.locals.iter().enumerate().rev() {
-            if name.lexeme == local.name.lexeme {
+            if name == local.name {
                 if local.depth == -1 {
                     errors.push("Can't read local variable in its own initializer.");
                 }
@@ -81,7 +79,7 @@ impl<'src> Compiler<'src> {
         None
     }
 
-    pub fn resolve_upvalue(&mut self, name: Token, errors: &mut Vec<&'static str>) -> Option<u8> {
+    pub fn resolve_upvalue(&mut self, name: &str, errors: &mut Vec<&'static str>) -> Option<u8> {
         if let Some(enclosing) = self.enclosing.as_mut() {
             if let Some(index) = enclosing.resolve_local(name, errors) {
                 enclosing.locals[index as usize].is_captured = true;
@@ -112,12 +110,12 @@ impl<'src> Compiler<'src> {
         count as u8
     }
 
-    pub fn is_local_declared(&self, name: Token) -> bool {
+    pub fn is_local_declared(&self, name: &'src str) -> bool {
         for local in self.locals.iter().rev() {
             if local.depth != -1 && local.depth < self.scope_depth {
                 return false;
             }
-            if local.name.lexeme == name.lexeme {
+            if local.name == name {
                 return true;
             }
         }
@@ -137,9 +135,4 @@ impl ClassCompiler {
             has_superclass: false,
         })
     }
-}
-
-pub fn compile(code: &str, gc: &mut Gc) -> Result<GcRef<Function>, CupidErr> {
-    let parser = Parser::new(code, gc);
-    parser.compile()
 }

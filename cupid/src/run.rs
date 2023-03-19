@@ -1,14 +1,15 @@
+#[allow(unused_imports)]
+use crate::{
+    analyze::{infer::Infer, pretty::PrettyPrint, resolve::Resolve},
+    arena::ExprArena,
+    ast::expr::Expr,
+    error::{CupidErr, CupidError},
+    parse::{bytecode::BytecodeCompiler, parser::Parser},
+    vm::Vm,
+};
+#[allow(unused_imports)]
 use cupid_fmt::reindent::{Multiline, Reindent};
-use error::CupidErr;
-use std::fs;
-use std::process;
-use vm::Vm;
-
-use crate::analyze::{infer::Infer, pretty::PrettyPrint, resolve::Resolve};
-use crate::arena::ExprArena;
-use crate::ast::expr::Expr;
-use crate::error::CupidError;
-use crate::parse::{bytecode::BytecodeCompiler, parser::Parser};
+use std::{fs, process};
 
 /// 1. Resolve symbols (classes, functions, local variables, etc.)
 /// 2. Infer types
@@ -39,7 +40,7 @@ pub fn run_file(vm: &mut Vm, path: &str) {
                 Err(err) => panic!("{}", err),
             };
             // println!("{expr:#?}");
-            println!("{}", expr.pretty_print(&parser.arena).multiline(40).reindent(3));
+            // println!("{}", expr.pretty_print(&parser.arena).multiline(40).reindent(3));
             let compiler = BytecodeCompiler::new(expr, parser.arena, &mut vm.gc);
             let function = compiler.compile();
             match vm.interpret_function(function) {
